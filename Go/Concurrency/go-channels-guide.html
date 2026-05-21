@@ -424,6 +424,28 @@
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: var(--bg2); }
   ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Concept Images */
+  .concept-img-wrapper {
+    margin: 32px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .concept-img-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .concept-img-caption {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    text-align: center;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -469,6 +491,11 @@
     <h2 class="section-title"><span class="hi">01</span> — Tổng Quan về Channel</h2>
 
     <p>Channel là cơ chế giao tiếp cốt lõi trong Go, được xây dựng dựa trên mô hình <strong>CSP (Communicating Sequential Processes)</strong> của Tony Hoare. Thay vì chia sẻ bộ nhớ giữa các goroutines, Go khuyến khích việc chia sẻ dữ liệu thông qua channel.</p>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-channels-concept.png" alt="Go Channel Concept — Sender và Receiver Goroutine giao tiếp qua Channel" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Hai goroutine giao tiếp qua unbuffered channel — Sender gửi dữ liệu, Receiver nhận (block khi channel trống)</div>
+    </div>
 
     <div class="callout info">
       <div class="callout-icon">💡</div>
@@ -777,6 +804,12 @@
     </div>
 
   </section>
+
+  <!-- Visual comparison: Buffered vs Unbuffered -->
+  <div class="concept-img-wrapper" style="margin: 48px 0;">
+    <img src="../../public/images/go-buffered-vs-unbuffered.png" alt="So sánh Buffered và Unbuffered Channel trong Go" loading="lazy">
+    <div class="concept-img-caption">So sánh: Unbuffered Channel (synchronous, cap=0) vs Buffered Channel (asynchronous, cap=N)</div>
+  </div>
 
   <!-- SECTION 3: BUFFERED -->
   <section class="section" id="s3">

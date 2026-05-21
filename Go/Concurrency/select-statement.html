@@ -542,6 +542,28 @@
     .doc-header::after { display: none; }
     .toc-grid { grid-template-columns: 1fr; }
   }
+
+  /* Concept Images */
+  .concept-img-wrapper {
+    margin: 32px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .concept-img-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .concept-img-caption {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    text-align: center;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
 </style>
 </head>
 <body>
@@ -603,6 +625,11 @@
     <div class="callout info">
       <div class="callout-title">💡 CSP Philosophy</div>
       <p>Go theo triết lý của Tony Hoare: <em>"Don't communicate by sharing memory; share memory by communicating."</em> — <code>select</code> là công cụ cốt lõi để hiện thực triết lý này trong thực tế.</p>
+    </div>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-select-multiplexing.png" alt="Go Select Statement — Multiplexing channels" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Select statement multiplexing — chọn channel đầu tiên sẵn sàng (READY), nếu không có channel nào sẵn sàng thì thực thi default</div>
     </div>
 
     <div class="subsection">
@@ -1399,6 +1426,11 @@
       </div>
     </div>
 
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-fan-in-fan-out.png" alt="Go Fan-in Fan-out Pattern" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Fan-Out (phân tán công việc song song) và Fan-In (gộp kết quả từ nhiều goroutine vào một channel)</div>
+    </div>
+
     <div class="code-block">
       <div class="code-header">
         <div style="display:flex;align-items:center;gap:12px">
@@ -1660,6 +1692,11 @@
       </div>
     </div>
 
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-worker-pool.png" alt="Go Worker Pool Pattern" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Worker Pool — Dispatcher gửi jobs vào buffered channel, N workers xử lý song song với bounded concurrency</div>
+    </div>
+
     <div class="code-block">
       <div class="code-header">
         <div style="display:flex;align-items:center;gap:12px">
@@ -1787,6 +1824,11 @@
         <div class="section-title">Pipeline Pattern</div>
         <div class="section-desc">Xây dựng data transformation pipelines với select và generics.</div>
       </div>
+    </div>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-pipeline-pattern.png" alt="Go Pipeline Pattern — chained stages" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Pipeline Pattern — chuỗi các stages (Generator → Filter → Transform → Consumer) kết nối bằng channels</div>
     </div>
 
     <div class="code-block">
@@ -1923,6 +1965,11 @@
         <div class="section-title">Done Channel Pattern</div>
         <div class="section-desc">Broadcast cancellation đến nhiều goroutines bằng channel close.</div>
       </div>
+    </div>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-done-channel.png" alt="Go Done Channel Pattern — broadcast close" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Done Channel Pattern — close(done) broadcast tín hiệu đến tất cả goroutines, cho phép graceful shutdown</div>
     </div>
 
     <div class="callout info">

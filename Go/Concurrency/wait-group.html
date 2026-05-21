@@ -728,6 +728,28 @@ footer a { color: var(--go-blue2); text-decoration: none; }
   .pattern-grid { grid-template-columns: 1fr; }
   .nav { padding: 0 16px; }
 }
+
+/* Concept Images */
+.concept-img-wrapper {
+  margin: 32px 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+}
+.concept-img-wrapper img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.concept-img-caption {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text2);
+  text-align: center;
+  border-top: 1px solid var(--border);
+  font-style: italic;
+}
 </style>
 </head>
 <body>
@@ -783,6 +805,11 @@ footer a { color: var(--go-blue2); text-decoration: none; }
   <div class="callout callout-info">
     <div class="callout-title">💡 Định Nghĩa</div>
     <p><strong style="color: var(--text)">WaitGroup</strong> hoạt động như một bộ đếm (counter) nguyên tử (atomic counter). Goroutine chính gọi <code style="font-family: 'JetBrains Mono'">Add()</code> để tăng bộ đếm, mỗi goroutine worker gọi <code style="font-family: 'JetBrains Mono'">Done()</code> khi hoàn thành, và <code style="font-family: 'JetBrains Mono'">Wait()</code> sẽ block cho đến khi bộ đếm về 0.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go-waitgroup-lifecycle.png" alt="Go sync.WaitGroup Lifecycle" loading="lazy">
+    <div class="concept-img-caption">Minh họa: WaitGroup lifecycle — Add(3) → spawn goroutines → Wait() block → Done() giảm counter → counter=0 → released!</div>
   </div>
 
   <!-- Diagram: WaitGroup lifecycle -->

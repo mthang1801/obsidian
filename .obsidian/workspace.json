@@ -11,14 +11,12 @@
             "id": "f13b0062a2cef275",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
-                "mode": "source",
-                "source": false
+                "file": "Go/Concurrency/wait-group.html"
               },
               "icon": "lucide-file",
-              "title": "🎯 Roadmap Go Concurrency"
+              "title": "wait-group"
             }
           }
         ]
@@ -78,7 +76,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 620.5
+    "width": 333.5
   },
   "right": {
     "id": "3f5721041d0b3d3a",
@@ -185,23 +183,33 @@
   },
   "active": "f13b0062a2cef275",
   "lastOpenFiles": [
-    "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
-    "Go/Concurrency/mutex-and-confinement.html",
-    "Go/Concurrency/select-statement.html",
-    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
     "Go/Concurrency/context.html",
+    "Go/Concurrency/select-statement.html",
+    "Go/Concurrency/wait-group.html",
     "Go/Concurrency/go-channels-guide.html",
+    "public/images/go-buffered-vs-unbuffered.png",
+    "public/images/go-channels-concept.png",
+    "public/images/go-worker-pool.png",
+    "public/images/go-select-multiplexing.png",
+    "public/images/go-rwmutex-concept.png",
+    "public/images/go-fan-in-fan-out.png",
+    "public/images/go-done-channel.png",
+    "public/images/go-context-timeout.png",
+    "public/images/go-pipeline-pattern.png",
+    "public/images/go-mutex-race-condition.png",
+    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
+    "LENDING/2026-04-24.md",
+    "public/docs",
+    "public/images",
+    "public",
+    "Go/Concurrency/mutex-and-confinement.html",
+    "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
     "go-channels-guilde.html.md",
     "Go/Concurrency/Context.html",
     "Go/Concurrency/Fan_in_fan_out.html",
-    "Go/Concurrency/wait-group.html",
-    "Go/Concurrency/go-mutex-And-Confinement.html",
-    "Go/Concurrency/Mutex And Confinement.html",
-    "Go/Concurrency/fan_in_fan_out_golang_guide.html",
     "Go/Concurrency/Go Select Statement — Hướng Dẫn Toàn Diện.md",
     "Go/Artifacts/Untitled.md",
     "Go/Artifacts/Untitled 1.md",
-    "LENDING/2026-04-24.md",
     "Glosarry/AI glossary.md",
     "Diagram/Flowchart/Pattern 5 — CQRS Command Flow sử dụng Event Sourcing (Expert).md",
     "Diagram/Flowchart/Pattern 3 — Circuit Breaker + Fallback (Advanced).md",
