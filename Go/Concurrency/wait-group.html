@@ -1,0 +1,2616 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>sync.WaitGroup – Hướng Dẫn Toàn Diện Go</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --bg4: #30363d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --text3: #6e7681;
+  --accent: #58a6ff;
+  --accent2: #7ee787;
+  --accent3: #ffa657;
+  --accent4: #ff7b72;
+  --accent5: #d2a8ff;
+  --accent6: #79c0ff;
+  --teal: #39d353;
+  --yellow: #e3b341;
+  --red: #f85149;
+  --code-bg: #0d1117;
+  --go-blue: #00acd7;
+  --go-blue2: #5dc9e2;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Be Vietnam Pro', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  font-size: 15px;
+}
+
+.hero {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1c2333 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 80px 40px 60px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(ellipse at center, rgba(0,172,215,0.06) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.hero-badge {
+  display: inline-block;
+  background: rgba(0,172,215,0.12);
+  border: 1px solid rgba(0,172,215,0.3);
+  color: var(--go-blue2);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 24px;
+}
+
+.hero h1 {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #e6edf3 0%, var(--go-blue2) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero h1 span {
+  color: var(--go-blue);
+  -webkit-text-fill-color: var(--go-blue);
+}
+
+.hero-subtitle {
+  font-size: 18px;
+  color: var(--text2);
+  max-width: 640px;
+  margin: 0 auto 32px;
+  font-weight: 300;
+}
+
+.toc-pill {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.toc-pill a {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.toc-pill a:hover {
+  border-color: var(--go-blue);
+  color: var(--go-blue2);
+  background: rgba(0,172,215,0.08);
+}
+
+.container {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+
+/* Section styles */
+.section {
+  padding: 60px 0 40px;
+  border-bottom: 1px solid var(--border);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.section-num {
+  background: linear-gradient(135deg, var(--go-blue) 0%, var(--accent5) 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.section-title span {
+  color: var(--go-blue2);
+}
+
+/* Callout boxes */
+.callout {
+  border-radius: 10px;
+  padding: 20px 24px;
+  margin: 24px 0;
+  border-left: 3px solid;
+  font-size: 14px;
+}
+
+.callout-info {
+  background: rgba(88,166,255,0.07);
+  border-color: var(--accent);
+}
+
+.callout-warn {
+  background: rgba(255,166,87,0.07);
+  border-color: var(--accent3);
+}
+
+.callout-danger {
+  background: rgba(248,81,73,0.07);
+  border-color: var(--red);
+}
+
+.callout-success {
+  background: rgba(126,231,135,0.07);
+  border-color: var(--accent2);
+}
+
+.callout-title {
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.callout-info .callout-title { color: var(--accent); }
+.callout-warn .callout-title { color: var(--accent3); }
+.callout-danger .callout-title { color: var(--red); }
+.callout-success .callout-title { color: var(--accent2); }
+.callout p { color: var(--text2); line-height: 1.7; }
+
+/* Code blocks */
+.code-wrap {
+  margin: 24px 0;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 18px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-lang {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--go-blue2);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.code-title-text {
+  font-size: 12px;
+  color: var(--text3);
+  font-family: 'JetBrains Mono', monospace;
+}
+
+pre {
+  background: var(--code-bg);
+  padding: 24px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  line-height: 1.75;
+}
+
+/* Syntax highlighting */
+.kw { color: #ff7b72; }          /* keywords */
+.fn { color: #d2a8ff; }          /* functions */
+.ty { color: #79c0ff; }          /* types */
+.st { color: #a5d6ff; }          /* strings */
+.cm { color: #8b949e; font-style: italic; } /* comments */
+.nm { color: #ffa657; }          /* numbers */
+.pk { color: #7ee787; }          /* packages */
+.op { color: #e6edf3; }          /* operators */
+.va { color: #e6edf3; }          /* variables */
+
+/* Diagram SVG areas */
+.diagram-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  margin: 28px 0;
+  overflow-x: auto;
+}
+
+.diagram-caption {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text3);
+  margin-top: 14px;
+  font-style: italic;
+}
+
+/* Method table */
+.method-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 24px 0;
+  font-size: 14px;
+}
+
+.method-table th {
+  background: var(--bg3);
+  padding: 12px 18px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border);
+}
+
+.method-table td {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--bg3);
+  color: var(--text2);
+  vertical-align: top;
+}
+
+.method-table tr:last-child td { border-bottom: none; }
+
+.method-table tr:hover td { background: rgba(88,166,255,0.03); }
+
+.method-name {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--accent5);
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.method-sig {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+
+/* Grid layouts */
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin: 24px 0;
+}
+
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot-green { width: 8px; height: 8px; border-radius: 50%; background: var(--accent2); flex-shrink: 0; }
+.dot-red { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+
+/* Level badges */
+.level-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.level-basic {
+  background: rgba(126,231,135,0.1);
+  color: var(--accent2);
+  border: 1px solid rgba(126,231,135,0.2);
+}
+
+.level-advanced {
+  background: rgba(88,166,255,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(88,166,255,0.2);
+}
+
+.level-expert {
+  background: rgba(210,168,255,0.1);
+  color: var(--accent5);
+  border: 1px solid rgba(210,168,255,0.2);
+}
+
+/* Interactive WaitGroup demo */
+.demo-box {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  margin: 28px 0;
+}
+
+.demo-header {
+  background: var(--bg3);
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.demo-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.btn {
+  background: var(--go-blue);
+  color: #fff;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Be Vietnam Pro', sans-serif;
+  transition: all 0.2s;
+}
+
+.btn:hover { background: var(--go-blue2); transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+.btn-danger { background: var(--red); }
+.btn-danger:hover { background: #ff6b67; }
+
+.demo-body { padding: 20px; }
+
+/* WaitGroup counter viz */
+.wg-viz {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 16px 0;
+  padding: 16px;
+  background: var(--bg);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.wg-counter-display {
+  text-align: center;
+}
+
+.wg-counter-label {
+  font-size: 11px;
+  color: var(--text3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.wg-counter-val {
+  font-size: 42px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  line-height: 1;
+  transition: all 0.3s;
+}
+
+.wg-counter-val.active { color: var(--accent3); }
+.wg-counter-val.zero { color: var(--accent2); }
+
+.goroutine-list {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.goroutine-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid;
+  transition: all 0.4s;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.goroutine-chip.running {
+  background: rgba(255,166,87,0.12);
+  border-color: rgba(255,166,87,0.4);
+  color: var(--accent3);
+}
+
+.goroutine-chip.done {
+  background: rgba(126,231,135,0.08);
+  border-color: rgba(126,231,135,0.3);
+  color: var(--accent2);
+}
+
+.goroutine-chip .indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.goroutine-chip.running .indicator {
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.main-goroutine {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: 'JetBrains Mono', monospace;
+  margin-top: 12px;
+  border: 1px solid;
+  transition: all 0.4s;
+}
+
+.main-goroutine.waiting {
+  background: rgba(88,166,255,0.1);
+  border-color: rgba(88,166,255,0.3);
+  color: var(--accent);
+}
+
+.main-goroutine.released {
+  background: rgba(126,231,135,0.1);
+  border-color: rgba(126,231,135,0.3);
+  color: var(--accent2);
+}
+
+.log-area {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  max-height: 160px;
+  overflow-y: auto;
+  margin-top: 14px;
+  line-height: 1.6;
+}
+
+.log-line { margin: 2px 0; color: var(--text2); }
+.log-line.add { color: var(--accent3); }
+.log-line.done { color: var(--accent2); }
+.log-line.wait { color: var(--accent); }
+.log-line.release { color: var(--teal); font-weight: 600; }
+
+/* Pattern comparison */
+.pattern-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.pattern-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 18px;
+  transition: border-color 0.2s;
+}
+
+.pattern-card:hover { border-color: var(--go-blue); }
+
+.pattern-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.pattern-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pattern-desc {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* Nav bar */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(13,17,23,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  height: 52px;
+}
+
+.nav-brand {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--go-blue2);
+  margin-right: 32px;
+  white-space: nowrap;
+}
+
+.nav-links {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+}
+
+.nav-links a {
+  color: var(--text2);
+  text-decoration: none;
+  font-size: 13px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+  background: var(--bg3);
+}
+
+/* Pro tips */
+.pro-tip {
+  display: flex;
+  gap: 14px;
+  padding: 18px 20px;
+  background: rgba(210,168,255,0.05);
+  border: 1px solid rgba(210,168,255,0.15);
+  border-radius: 10px;
+  margin: 20px 0;
+  font-size: 14px;
+}
+
+.pro-tip-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.pro-tip-content strong {
+  color: var(--accent5);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+}
+
+.pro-tip-content { color: var(--text2); line-height: 1.7; }
+
+/* Comparison table */
+.compare-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 24px 0;
+  font-size: 13px;
+}
+
+.compare-table th {
+  background: var(--bg3);
+  padding: 10px 16px;
+  text-align: left;
+  color: var(--text2);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+
+.compare-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--bg3);
+  color: var(--text2);
+}
+
+.compare-table tr:last-child td { border-bottom: none; }
+.check { color: var(--accent2); font-weight: 700; }
+.cross { color: var(--red); font-weight: 700; }
+.neut { color: var(--text3); }
+
+/* Footer */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px;
+  text-align: center;
+  color: var(--text3);
+  font-size: 13px;
+}
+
+footer a { color: var(--go-blue2); text-decoration: none; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .hero h1 { font-size: 36px; }
+  .hero { padding: 50px 20px 40px; }
+  .container { padding: 0 16px; }
+  .two-col { grid-template-columns: 1fr; }
+  .pattern-grid { grid-template-columns: 1fr; }
+  .nav { padding: 0 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- Navigation -->
+<nav class="nav">
+  <span class="nav-brand">sync.WaitGroup</span>
+  <div class="nav-links">
+    <a href="#khai-niem">Khái Niệm</a>
+    <a href="#methods">Methods</a>
+    <a href="#basic">Cơ Bản</a>
+    <a href="#patterns">Patterns</a>
+    <a href="#advanced">Advanced</a>
+    <a href="#expert">Expert</a>
+    <a href="#pitfalls">Pitfalls</a>
+    <a href="#best-practices">Best Practices</a>
+  </div>
+</nav>
+
+<!-- Hero -->
+<div class="hero">
+  <div class="hero-badge">Go Concurrency Series</div>
+  <h1><span>sync.WaitGroup</span><br>Hướng Dẫn Toàn Diện</h1>
+  <p class="hero-subtitle">
+    Từ khái niệm cơ bản đến các pattern chuyên sâu trong đồng bộ hóa goroutine — hướng dẫn đầy đủ bằng tiếng Việt dành cho Go developers.
+  </p>
+  <div class="toc-pill">
+    <a href="#khai-niem">📖 Khái Niệm</a>
+    <a href="#methods">⚙️ API Methods</a>
+    <a href="#patterns">🔷 Patterns</a>
+    <a href="#advanced">🚀 Advanced</a>
+    <a href="#expert">🧠 Expert</a>
+    <a href="#pitfalls">⚠️ Pitfalls</a>
+  </div>
+</div>
+
+<!-- Content -->
+<div class="container">
+
+<!-- ============================================================ -->
+<!-- SECTION 1: KHÁI NIỆM -->
+<!-- ============================================================ -->
+<section class="section" id="khai-niem">
+  <div class="section-header">
+    <div class="section-num">01</div>
+    <h2 class="section-title">Khái Niệm & Định Nghĩa</h2>
+  </div>
+
+  <p style="color: var(--text2); margin-bottom: 20px; font-size: 15px; line-height: 1.8;">
+    <code style="color: var(--accent5); font-family: 'JetBrains Mono'">sync.WaitGroup</code> là một primitive đồng bộ hóa (synchronization primitive) trong package <code style="color: var(--go-blue2); font-family: 'JetBrains Mono'">sync</code> của Go chuẩn. Nó cho phép một goroutine <strong style="color: var(--text)">chờ đợi</strong> cho đến khi một nhóm goroutine khác <strong style="color: var(--text)">hoàn thành</strong> công việc của chúng.
+  </p>
+
+  <div class="callout callout-info">
+    <div class="callout-title">💡 Định Nghĩa</div>
+    <p><strong style="color: var(--text)">WaitGroup</strong> hoạt động như một bộ đếm (counter) nguyên tử (atomic counter). Goroutine chính gọi <code style="font-family: 'JetBrains Mono'">Add()</code> để tăng bộ đếm, mỗi goroutine worker gọi <code style="font-family: 'JetBrains Mono'">Done()</code> khi hoàn thành, và <code style="font-family: 'JetBrains Mono'">Wait()</code> sẽ block cho đến khi bộ đếm về 0.</p>
+  </div>
+
+  <!-- Diagram: WaitGroup lifecycle -->
+  <div class="diagram-wrap">
+    <svg width="100%" viewBox="0 0 860 320" role="img">
+      <title>WaitGroup Lifecycle Diagram</title>
+      <desc>Minh họa vòng đời của sync.WaitGroup: Add → goroutines chạy → Done → counter về 0 → Wait được giải phóng</desc>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Main goroutine lane -->
+      <rect x="30" y="30" width="800" height="60" rx="8" fill="rgba(0,172,215,0.06)" stroke="rgba(0,172,215,0.25)" stroke-width="0.5"/>
+      <text x="50" y="58" fill="#5dc9e2" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700">main goroutine</text>
+
+      <!-- Worker goroutines lane -->
+      <rect x="30" y="120" width="800" height="140" rx="8" fill="rgba(255,166,87,0.04)" stroke="rgba(255,166,87,0.2)" stroke-width="0.5" stroke-dasharray="4 3"/>
+      <text x="50" y="142" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700">worker goroutines</text>
+
+      <!-- Step boxes on main lane -->
+      <!-- Add(3) -->
+      <rect x="80" y="40" width="100" height="40" rx="6" fill="rgba(88,166,255,0.15)" stroke="rgba(88,166,255,0.4)" stroke-width="0.5"/>
+      <text x="130" y="57" fill="#79c0ff" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">wg.Add(3)</text>
+      <text x="130" y="72" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">counter = 3</text>
+
+      <!-- go func calls -->
+      <rect x="240" y="40" width="120" height="40" rx="6" fill="rgba(210,168,255,0.1)" stroke="rgba(210,168,255,0.3)" stroke-width="0.5"/>
+      <text x="300" y="57" fill="#d2a8ff" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="600" text-anchor="middle">go worker()</text>
+      <text x="300" y="72" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">×3 goroutines</text>
+
+      <!-- Wait -->
+      <rect x="430" y="40" width="110" height="40" rx="6" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.35)" stroke-width="0.5"/>
+      <text x="485" y="57" fill="#58a6ff" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">wg.Wait()</text>
+      <text x="485" y="72" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">blocking...</text>
+
+      <!-- Released -->
+      <rect x="620" y="40" width="130" height="40" rx="6" fill="rgba(126,231,135,0.12)" stroke="rgba(126,231,135,0.35)" stroke-width="0.5"/>
+      <text x="685" y="57" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">✓ released!</text>
+      <text x="685" y="72" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">counter = 0</text>
+
+      <!-- Arrows on main lane -->
+      <line x1="180" y1="60" x2="238" y2="60" stroke="#8b949e" stroke-width="1" marker-end="url(#arr)"/>
+      <line x1="360" y1="60" x2="428" y2="60" stroke="#8b949e" stroke-width="1" marker-end="url(#arr)"/>
+      <line x1="540" y1="60" x2="618" y2="60" stroke="#ffa657" stroke-width="1.5" stroke-dasharray="3 2" marker-end="url(#arr)"/>
+
+      <!-- Worker boxes -->
+      <!-- Worker 1 -->
+      <rect x="80" y="160" width="160" height="36" rx="6" fill="rgba(255,166,87,0.1)" stroke="rgba(255,166,87,0.3)" stroke-width="0.5"/>
+      <text x="160" y="175" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" text-anchor="middle">goroutine 1: work()</text>
+      <text x="160" y="189" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">→ defer wg.Done()</text>
+
+      <!-- Worker 2 -->
+      <rect x="280" y="160" width="160" height="36" rx="6" fill="rgba(255,166,87,0.1)" stroke="rgba(255,166,87,0.3)" stroke-width="0.5"/>
+      <text x="360" y="175" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" text-anchor="middle">goroutine 2: work()</text>
+      <text x="360" y="189" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">→ defer wg.Done()</text>
+
+      <!-- Worker 3 -->
+      <rect x="480" y="160" width="160" height="36" rx="6" fill="rgba(255,166,87,0.1)" stroke="rgba(255,166,87,0.3)" stroke-width="0.5"/>
+      <text x="560" y="175" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" text-anchor="middle">goroutine 3: work()</text>
+      <text x="560" y="189" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">→ defer wg.Done()</text>
+
+      <!-- Done badges -->
+      <rect x="86" y="212" width="62" height="22" rx="4" fill="rgba(126,231,135,0.12)" stroke="rgba(126,231,135,0.3)" stroke-width="0.5"/>
+      <text x="117" y="227" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="10" font-weight="700" text-anchor="middle">Done() ✓</text>
+
+      <rect x="286" y="212" width="62" height="22" rx="4" fill="rgba(126,231,135,0.12)" stroke="rgba(126,231,135,0.3)" stroke-width="0.5"/>
+      <text x="317" y="227" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="10" font-weight="700" text-anchor="middle">Done() ✓</text>
+
+      <rect x="486" y="212" width="62" height="22" rx="4" fill="rgba(126,231,135,0.12)" stroke="rgba(126,231,135,0.3)" stroke-width="0.5"/>
+      <text x="517" y="227" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="10" font-weight="700" text-anchor="middle">Done() ✓</text>
+
+      <!-- Spawn arrows from main to workers -->
+      <path d="M300 80 L160 158" fill="none" stroke="#d2a8ff" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)" opacity="0.7"/>
+      <path d="M300 80 L360 158" fill="none" stroke="#d2a8ff" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)" opacity="0.7"/>
+      <path d="M300 80 L560 158" fill="none" stroke="#d2a8ff" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)" opacity="0.7"/>
+
+      <!-- Done arrows up to Wait release zone -->
+      <path d="M117 212 L580 82" fill="none" stroke="#39d353" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)" opacity="0.5"/>
+      <path d="M317 212 L580 82" fill="none" stroke="#39d353" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)" opacity="0.5"/>
+      <path d="M517 212 L580 82" fill="none" stroke="#39d353" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr)" opacity="0.5"/>
+
+      <!-- Counter states -->
+      <text x="430" y="305" fill="#6e7681" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">counter: 3 → 2 → 1 → 0  →  Wait() được giải phóng</text>
+    </svg>
+    <div class="diagram-caption">Vòng đời của WaitGroup: Add → spawn goroutines → Done × N → counter=0 → Wait trả về</div>
+  </div>
+
+  <!-- Atomic counter explanation -->
+  <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px; color: var(--text)">Bộ Đếm Bên Trong (Internal Counter)</h3>
+
+  <div class="diagram-wrap">
+    <svg width="100%" viewBox="0 0 860 180" role="img">
+      <title>WaitGroup counter states</title>
+      <desc>Trạng thái bộ đếm WaitGroup khi Add và Done được gọi</desc>
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- States -->
+      <!-- 0 initial -->
+      <rect x="30" y="50" width="100" height="80" rx="10" fill="rgba(110,118,129,0.12)" stroke="rgba(110,118,129,0.3)" stroke-width="0.5"/>
+      <text x="80" y="85" fill="#6e7681" font-family="'JetBrains Mono',monospace" font-size="28" font-weight="800" text-anchor="middle">0</text>
+      <text x="80" y="118" fill="#6e7681" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">initial</text>
+
+      <!-- arrow + label -->
+      <line x1="130" y1="90" x2="188" y2="90" stroke="#79c0ff" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="159" y="82" fill="#79c0ff" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">Add(3)</text>
+
+      <!-- 3 -->
+      <rect x="190" y="50" width="100" height="80" rx="10" fill="rgba(255,166,87,0.12)" stroke="rgba(255,166,87,0.4)" stroke-width="0.5"/>
+      <text x="240" y="85" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="28" font-weight="800" text-anchor="middle">3</text>
+      <text x="240" y="118" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">blocking</text>
+
+      <line x1="290" y1="90" x2="348" y2="90" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="319" y="82" fill="#ff7b72" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">Done()</text>
+
+      <!-- 2 -->
+      <rect x="350" y="50" width="100" height="80" rx="10" fill="rgba(255,166,87,0.12)" stroke="rgba(255,166,87,0.4)" stroke-width="0.5"/>
+      <text x="400" y="85" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="28" font-weight="800" text-anchor="middle">2</text>
+      <text x="400" y="118" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">blocking</text>
+
+      <line x1="450" y1="90" x2="508" y2="90" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="479" y="82" fill="#ff7b72" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">Done()</text>
+
+      <!-- 1 -->
+      <rect x="510" y="50" width="100" height="80" rx="10" fill="rgba(255,166,87,0.12)" stroke="rgba(255,166,87,0.4)" stroke-width="0.5"/>
+      <text x="560" y="85" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="28" font-weight="800" text-anchor="middle">1</text>
+      <text x="560" y="118" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">blocking</text>
+
+      <line x1="610" y1="90" x2="668" y2="90" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <text x="639" y="82" fill="#ff7b72" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">Done()</text>
+
+      <!-- 0 final -->
+      <rect x="670" y="50" width="100" height="80" rx="10" fill="rgba(126,231,135,0.15)" stroke="rgba(126,231,135,0.5)" stroke-width="1"/>
+      <text x="720" y="85" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="28" font-weight="800" text-anchor="middle">0</text>
+      <text x="720" y="118" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">released!</text>
+
+      <!-- Wait indicator -->
+      <rect x="188" y="145" width="484" height="22" rx="4" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.2)" stroke-width="0.5"/>
+      <text x="430" y="160" fill="#58a6ff" font-family="'JetBrains Mono',monospace" font-size="11" text-anchor="middle">⟵ wg.Wait() đang block trong suốt khoảng này ⟶</text>
+    </svg>
+    <div class="diagram-caption">Bộ đếm atomic: tăng qua Add(), giảm qua Done(), Wait() unblock khi counter = 0</div>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: API METHODS -->
+<!-- ============================================================ -->
+<section class="section" id="methods">
+  <div class="section-header">
+    <div class="section-num">02</div>
+    <h2 class="section-title">API <span>Methods</span></h2>
+  </div>
+
+  <table class="method-table">
+    <thead>
+      <tr>
+        <th style="width: 28%">Method</th>
+        <th style="width: 22%">Signature</th>
+        <th>Mô Tả</th>
+        <th style="width: 18%">Lưu Ý</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div class="method-name">Add(delta int)</div>
+          <div class="method-sig">func (wg *WaitGroup) Add(delta int)</div>
+        </td>
+        <td style="font-family: 'JetBrains Mono',monospace; font-size: 12px; color: var(--accent3)">Add(n) hoặc Add(-n)</td>
+        <td style="color: var(--text2)">Tăng (hoặc giảm) bộ đếm internal đi <code style="font-family: 'JetBrains Mono'; color: var(--accent3)">delta</code>. Thường gọi trước khi spawn goroutine. Delta có thể âm nhưng không được làm counter âm.</td>
+        <td style="color: var(--yellow); font-size: 12px">Phải gọi trước khi <code style="font-family:'JetBrains Mono'">Wait()</code></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="method-name">Done()</div>
+          <div class="method-sig">func (wg *WaitGroup) Done()</div>
+        </td>
+        <td style="font-family: 'JetBrains Mono',monospace; font-size: 12px; color: var(--accent2)">≡ Add(-1)</td>
+        <td style="color: var(--text2)">Giảm bộ đếm đi 1. Thường được gọi qua <code style="font-family: 'JetBrains Mono'; color: var(--accent2)">defer wg.Done()</code> ở đầu goroutine để đảm bảo luôn được gọi kể cả khi panic.</td>
+        <td style="color: var(--accent2); font-size: 12px">Luôn dùng <code style="font-family:'JetBrains Mono'">defer</code></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="method-name">Wait()</div>
+          <div class="method-sig">func (wg *WaitGroup) Wait()</div>
+        </td>
+        <td style="font-family: 'JetBrains Mono',monospace; font-size: 12px; color: var(--accent)">blocking</td>
+        <td style="color: var(--text2)">Block goroutine hiện tại cho đến khi bộ đếm về 0. Nếu counter đã là 0 khi gọi, trả về ngay lập tức. Có thể gọi từ nhiều goroutine cùng lúc.</td>
+        <td style="color: var(--text3); font-size: 12px">Thread-safe</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout callout-warn">
+    <div class="callout-title">⚠️ Quy Tắc Quan Trọng</div>
+    <p>WaitGroup <strong style="color: var(--text)">không được copy</strong> sau lần sử dụng đầu tiên. Luôn truyền con trỏ <code style="font-family: 'JetBrains Mono'">*sync.WaitGroup</code> vào goroutine, không được truyền bằng giá trị (value). Go vet sẽ cảnh báo nếu bạn vi phạm quy tắc này.</p>
+  </div>
+
+  <!-- Internal structure -->
+  <h3 style="font-size: 18px; font-weight: 600; margin: 32px 0 16px;">Cấu Trúc Nội Bộ</h3>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">sync/waitgroup.go (simplified)</span>
+    </div>
+    <pre><span class="cm">// Cấu trúc nội bộ (simplified từ Go source code)</span>
+<span class="kw">type</span> <span class="ty">WaitGroup</span> <span class="kw">struct</span> {
+    noCopy  <span class="ty">noCopy</span>   <span class="cm">// Phòng chống copy (go vet)</span>
+    state   <span class="ty">atomic.Uint64</span> <span class="cm">// High 32 bits = counter, Low 32 bits = waiters</span>
+    sema    <span class="ty">uint32</span>   <span class="cm">// Semaphore cho Wait() goroutines</span>
+}
+
+<span class="cm">// Add: tăng counter atomically</span>
+<span class="kw">func</span> (wg *<span class="ty">WaitGroup</span>) <span class="fn">Add</span>(delta <span class="ty">int</span>) {
+    <span class="cm">// ... atomic operation trên state</span>
+    <span class="cm">// Nếu counter về 0: wake up tất cả goroutines đang Wait()</span>
+}
+
+<span class="cm">// Done: tương đương Add(-1)</span>
+<span class="kw">func</span> (wg *<span class="ty">WaitGroup</span>) <span class="fn">Done</span>() { wg.<span class="fn">Add</span>(-<span class="nm">1</span>) }
+
+<span class="cm">// Wait: block bằng runtime semaphore cho đến khi counter = 0</span>
+<span class="kw">func</span> (wg *<span class="ty">WaitGroup</span>) <span class="fn">Wait</span>() {
+    <span class="cm">// ... atomic increment waiters count</span>
+    <span class="cm">// ... block trên runtime_Semacquire(&wg.sema)</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: CƠ BẢN -->
+<!-- ============================================================ -->
+<section class="section" id="basic">
+  <div class="section-header">
+    <div class="section-num">03</div>
+    <h2 class="section-title">Ví Dụ <span>Cơ Bản</span></h2>
+  </div>
+
+  <div style="margin-bottom: 20px; display: flex; align-items: center; gap: 10px;">
+    <span class="level-badge level-basic">● Cơ Bản</span>
+    <span style="color: var(--text2); font-size: 14px">Ví dụ đơn giản nhất — chờ nhiều goroutine hoàn thành</span>
+  </div>
+
+  <!-- Interactive Demo -->
+  <div class="demo-box">
+    <div class="demo-header">
+      <span class="demo-title">🎮 Demo Tương Tác — WaitGroup Visualizer</span>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-sm" onclick="runDemo()">▶ Chạy Demo</button>
+        <button class="btn btn-sm" style="background: var(--bg4); color: var(--text2)" onclick="resetDemo()">↺ Reset</button>
+      </div>
+    </div>
+    <div class="demo-body">
+      <div style="display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap;">
+        <div class="wg-viz" style="flex: 1; min-width: 260px;">
+          <div class="wg-counter-display">
+            <div class="wg-counter-label">WaitGroup Counter</div>
+            <div class="wg-counter-val zero" id="wg-counter">0</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size: 11px; color: var(--text3); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;">Goroutines</div>
+            <div class="goroutine-list" id="goroutine-list">
+              <span style="color: var(--text3); font-size: 12px; font-family: 'JetBrains Mono'">Chưa khởi động...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="main-goroutine waiting" id="main-status">
+        <div class="indicator" style="width:8px; height:8px; border-radius:50%; background:currentColor;"></div>
+        <span id="main-status-text">main goroutine: Sẵn sàng (chưa gọi Wait)</span>
+      </div>
+      <div class="log-area" id="demo-log">
+        <div class="log-line" style="color: var(--text3)">// Nhấn "Chạy Demo" để xem WaitGroup hoạt động...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example 1: Simplest -->
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">Ví dụ 1: WaitGroup đơn giản nhất</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+    <span class="cm">// Add(3): báo cho WaitGroup biết có 3 goroutine sẽ chạy</span>
+    wg.<span class="fn">Add</span>(<span class="nm">3</span>)
+
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < <span class="nm">3</span>; i++ {
+        <span class="kw">go func</span>(id <span class="ty">int</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>() <span class="cm">// Luôn dùng defer để đảm bảo Done được gọi</span>
+            fmt.<span class="fn">Printf</span>(<span class="st">"Worker %d đang làm việc\n"</span>, id)
+        }(i)
+    }
+
+    <span class="cm">// Block cho đến khi cả 3 goroutine gọi Done()</span>
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Println</span>(<span class="st">"Tất cả workers đã hoàn thành!"</span>)
+}
+
+<span class="cm">// Output (thứ tự có thể thay đổi mỗi lần chạy):
+// Worker 0 đang làm việc
+// Worker 2 đang làm việc
+// Worker 1 đang làm việc
+// Tất cả workers đã hoàn thành!</span></pre>
+  </div>
+
+  <!-- Example 2: Add inside loop (correct pattern) -->
+  <div class="callout callout-success">
+    <div class="callout-title">✅ Pattern Đúng: Add Trước Khi Spawn</div>
+    <p>Gọi <code style="font-family:'JetBrains Mono'">wg.Add(1)</code> trước mỗi <code style="font-family:'JetBrains Mono'">go</code> statement. Đây là pattern an toàn hơn so với gọi <code style="font-family:'JetBrains Mono'">Add(N)</code> một lần, đặc biệt khi số goroutine không cố định.</p>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">Ví dụ 2: Add(1) trước từng goroutine (pattern khuyến nghị)</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">processItem</span>(wg *<span class="ty">sync.WaitGroup</span>, item <span class="ty">string</span>) {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+    time.<span class="fn">Sleep</span>(<span class="nm">100</span> * time.Millisecond)
+    fmt.<span class="fn">Printf</span>(<span class="st">"✓ Xử lý xong: %s\n"</span>, item)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    items := []<span class="ty">string</span>{<span class="st">"Hà Nội"</span>, <span class="st">"TP.HCM"</span>, <span class="st">"Đà Nẵng"</span>, <span class="st">"Cần Thơ"</span>, <span class="st">"Huế"</span>}
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)          <span class="cm">// Add TRƯỚC khi spawn — đây là điểm mấu chốt!</span>
+        <span class="kw">go</span> <span class="fn">processItem</span>(&wg, item)
+    }
+
+    fmt.<span class="fn">Println</span>(<span class="st">"⏳ Đang chờ tất cả goroutines..."</span>)
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Println</span>(<span class="st">"🎉 Hoàn tất tất cả items!"</span>)
+}</pre>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: PATTERNS -->
+<!-- ============================================================ -->
+<section class="section" id="patterns">
+  <div class="section-header">
+    <div class="section-num">04</div>
+    <h2 class="section-title">Các <span>Pattern</span> Phổ Biến</h2>
+  </div>
+
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background: rgba(0,172,215,0.1);">🏭</div>
+      <div class="pattern-name">Worker Pool</div>
+      <div class="pattern-desc">Giới hạn số goroutine đồng thời bằng cách kết hợp WaitGroup với channel.</div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background: rgba(126,231,135,0.1);">📦</div>
+      <div class="pattern-name">Fan-Out / Fan-In</div>
+      <div class="pattern-desc">Phân phối công việc cho nhiều goroutine, gom kết quả về một channel.</div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background: rgba(210,168,255,0.1);">🔄</div>
+      <div class="pattern-name">Pipeline</div>
+      <div class="pattern-desc">WaitGroup đồng bộ các stage trong data processing pipeline.</div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background: rgba(255,166,87,0.1);">🌐</div>
+      <div class="pattern-name">Parallel HTTP</div>
+      <div class="pattern-desc">Gửi nhiều HTTP request đồng thời, chờ tất cả response.</div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background: rgba(248,81,73,0.1);">🛑</div>
+      <div class="pattern-name">Graceful Shutdown</div>
+      <div class="pattern-desc">Chờ tất cả active requests hoàn thành trước khi tắt server.</div>
+    </div>
+    <div class="pattern-card">
+      <div class="pattern-icon" style="background: rgba(57,211,83,0.1);">✅</div>
+      <div class="pattern-name">Batch Processing</div>
+      <div class="pattern-desc">Xử lý batch dữ liệu song song, đồng bộ trước khi bước tiếp theo.</div>
+    </div>
+  </div>
+
+  <!-- Pattern 1: Worker Pool -->
+  <div style="margin: 32px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-advanced">▲ Advanced</span>
+    <h3 style="font-size: 18px; font-weight: 600;">Pattern 1: Worker Pool</h3>
+  </div>
+
+  <div class="diagram-wrap">
+    <svg width="100%" viewBox="0 0 860 260" role="img">
+      <title>Worker Pool Pattern</title>
+      <desc>Worker Pool sử dụng WaitGroup và channel</desc>
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Jobs source -->
+      <rect x="20" y="100" width="120" height="60" rx="8" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.3)" stroke-width="0.5"/>
+      <text x="80" y="126" fill="#79c0ff" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">Jobs Source</text>
+      <text x="80" y="144" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">chan Job</text>
+
+      <!-- Arrow to jobs channel -->
+      <line x1="140" y1="130" x2="198" y2="130" stroke="#79c0ff" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <!-- Jobs channel -->
+      <rect x="200" y="110" width="100" height="40" rx="6" fill="rgba(57,211,83,0.1)" stroke="rgba(57,211,83,0.3)" stroke-width="0.5"/>
+      <text x="250" y="128" fill="#39d353" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="600" text-anchor="middle">jobs chan</text>
+      <text x="250" y="143" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">buffered</text>
+
+      <!-- Arrows to workers -->
+      <line x1="300" y1="130" x2="358" y2="60" stroke="#ffa657" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr3)" opacity="0.8"/>
+      <line x1="300" y1="130" x2="358" y2="130" stroke="#ffa657" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr3)" opacity="0.8"/>
+      <line x1="300" y1="130" x2="358" y2="200" stroke="#ffa657" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr3)" opacity="0.8"/>
+
+      <!-- Workers -->
+      <rect x="360" y="38" width="130" height="44" rx="6" fill="rgba(255,166,87,0.1)" stroke="rgba(255,166,87,0.3)" stroke-width="0.5"/>
+      <text x="425" y="56" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="600" text-anchor="middle">worker goroutine 1</text>
+      <text x="425" y="74" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">defer wg.Done()</text>
+
+      <rect x="360" y="108" width="130" height="44" rx="6" fill="rgba(255,166,87,0.1)" stroke="rgba(255,166,87,0.3)" stroke-width="0.5"/>
+      <text x="425" y="126" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="600" text-anchor="middle">worker goroutine 2</text>
+      <text x="425" y="144" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">defer wg.Done()</text>
+
+      <rect x="360" y="178" width="130" height="44" rx="6" fill="rgba(255,166,87,0.1)" stroke="rgba(255,166,87,0.3)" stroke-width="0.5"/>
+      <text x="425" y="196" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="600" text-anchor="middle">worker goroutine 3</text>
+      <text x="425" y="214" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">defer wg.Done()</text>
+
+      <!-- Arrows to results -->
+      <line x1="490" y1="60" x2="548" y2="130" stroke="#39d353" stroke-width="1" marker-end="url(#arr3)" opacity="0.8"/>
+      <line x1="490" y1="130" x2="548" y2="130" stroke="#39d353" stroke-width="1" marker-end="url(#arr3)" opacity="0.8"/>
+      <line x1="490" y1="200" x2="548" y2="130" stroke="#39d353" stroke-width="1" marker-end="url(#arr3)" opacity="0.8"/>
+
+      <!-- Results channel -->
+      <rect x="550" y="110" width="100" height="40" rx="6" fill="rgba(57,211,83,0.1)" stroke="rgba(57,211,83,0.3)" stroke-width="0.5"/>
+      <text x="600" y="128" fill="#39d353" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="600" text-anchor="middle">results chan</text>
+      <text x="600" y="143" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">← workers send</text>
+
+      <line x1="650" y1="130" x2="708" y2="130" stroke="#79c0ff" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <!-- Consumer -->
+      <rect x="710" y="100" width="120" height="60" rx="8" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.3)" stroke-width="0.5"/>
+      <text x="770" y="126" fill="#79c0ff" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">Consumer</text>
+      <text x="770" y="144" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">range results</text>
+
+      <!-- WaitGroup label -->
+      <rect x="340" y="240" width="170" height="20" rx="4" fill="rgba(210,168,255,0.06)" stroke="rgba(210,168,255,0.2)" stroke-width="0.5"/>
+      <text x="425" y="254" fill="#d2a8ff" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">WaitGroup controls workers</text>
+    </svg>
+    <div class="diagram-caption">Worker Pool: Jobs channel phân phối công việc, WaitGroup đồng bộ khi tất cả workers hoàn thành</div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">worker_pool.go — Pattern Worker Pool hoàn chỉnh</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="ty">Job</span> <span class="kw">struct</span> {
+    ID   <span class="ty">int</span>
+    Data <span class="ty">string</span>
+}
+
+<span class="kw">type</span> <span class="ty">Result</span> <span class="kw">struct</span> {
+    JobID  <span class="ty">int</span>
+    Output <span class="ty">string</span>
+    Err    <span class="ty">error</span>
+}
+
+<span class="cm">// WorkerPool tạo numWorkers goroutines đọc từ jobs channel</span>
+<span class="kw">func</span> <span class="fn">WorkerPool</span>(numWorkers <span class="ty">int</span>, jobs <-<span class="kw">chan</span> <span class="ty">Job</span>) <-<span class="kw">chan</span> <span class="ty">Result</span> {
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Result</span>, numWorkers*<span class="nm">2</span>)
+
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < numWorkers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go func</span>(workerID <span class="ty">int</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="cm">// Đọc từ jobs channel cho đến khi đóng</span>
+            <span class="kw">for</span> job := <span class="kw">range</span> jobs {
+                result := <span class="ty">Result</span>{
+                    JobID:  job.ID,
+                    Output: fmt.<span class="fn">Sprintf</span>(<span class="st">"[worker-%d] processed: %s"</span>, workerID, job.Data),
+                }
+                time.<span class="fn">Sleep</span>(<span class="nm">50</span> * time.Millisecond) <span class="cm">// Giả lập công việc</span>
+                results <- result
+            }
+        }(i)
+    }
+
+    <span class="cm">// Goroutine trung gian: đóng results khi tất cả workers xong</span>
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(results) <span class="cm">// An toàn vì chỉ goroutine này đóng channel</span>
+    }()
+
+    <span class="kw">return</span> results
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// Tạo và gửi 20 jobs</span>
+    jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Job</span>, <span class="nm">20</span>)
+    <span class="kw">for</span> i := <span class="nm">1</span>; i <= <span class="nm">20</span>; i++ {
+        jobs <- <span class="ty">Job</span>{ID: i, Data: fmt.<span class="fn">Sprintf</span>(<span class="st">"task-%d"</span>, i)}
+    }
+    <span class="fn">close</span>(jobs)
+
+    <span class="cm">// Chạy pool với 5 workers</span>
+    results := <span class="fn">WorkerPool</span>(<span class="nm">5</span>, jobs)
+
+    <span class="cm">// Nhận kết quả (range tự dừng khi channel bị đóng)</span>
+    count := <span class="nm">0</span>
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        count++
+        fmt.<span class="fn">Println</span>(r.Output)
+    }
+    fmt.<span class="fn">Printf</span>(<span class="st">"\n✅ Hoàn thành %d jobs\n"</span>, count)
+}</pre>
+  </div>
+
+  <!-- Pattern 2: Fan-Out / Collect Results -->
+  <div style="margin: 40px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-advanced">▲ Advanced</span>
+    <h3 style="font-size: 18px; font-weight: 600;">Pattern 2: Fan-Out với Thu Thập Kết Quả</h3>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">fan_out.go — Parallel HTTP requests + collect results</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// FetchResult lưu kết quả của từng HTTP request</span>
+<span class="kw">type</span> <span class="ty">FetchResult</span> <span class="kw">struct</span> {
+    URL      <span class="ty">string</span>
+    Status   <span class="ty">int</span>
+    Duration <span class="ty">time.Duration</span>
+    Err      <span class="ty">error</span>
+}
+
+<span class="cm">// FetchAll gọi song song nhiều URL, trả về slice kết quả theo thứ tự</span>
+<span class="kw">func</span> <span class="fn">FetchAll</span>(urls []<span class="ty">string</span>) []<span class="ty">FetchResult</span> {
+    results := <span class="fn">make</span>([]<span class="ty">FetchResult</span>, <span class="fn">len</span>(urls))
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+    <span class="kw">for</span> i, url := <span class="kw">range</span> urls {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go func</span>(idx <span class="ty">int</span>, u <span class="ty">string</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+
+            start := time.<span class="fn">Now</span>()
+            <span class="cm">// Giả lập HTTP request với thời gian khác nhau</span>
+            time.<span class="fn">Sleep</span>(time.Duration(<span class="nm">100</span>+idx*<span class="nm">30</span>) * time.Millisecond)
+
+            <span class="cm">// Ghi vào slice tại vị trí cố định — an toàn vì mỗi goroutine</span>
+            <span class="cm">// chỉ ghi vào index của riêng nó, không có race condition</span>
+            results[idx] = <span class="ty">FetchResult</span>{
+                URL:      u,
+                Status:   <span class="nm">200</span>,
+                Duration: time.<span class="fn">Since</span>(start),
+            }
+        }(i, url)
+    }
+
+    wg.<span class="fn">Wait</span>() <span class="cm">// Chờ tất cả requests hoàn thành</span>
+    <span class="kw">return</span> results <span class="cm">// Trả về sau khi tất cả goroutines ghi xong</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    urls := []<span class="ty">string</span>{
+        <span class="st">"https://api.example.com/users"</span>,
+        <span class="st">"https://api.example.com/products"</span>,
+        <span class="st">"https://api.example.com/orders"</span>,
+        <span class="st">"https://api.example.com/inventory"</span>,
+    }
+
+    start := time.<span class="fn">Now</span>()
+    results := <span class="fn">FetchAll</span>(urls)
+    total := time.<span class="fn">Since</span>(start)
+
+    <span class="kw">for</span> _, r := <span class="kw">range</span> results {
+        fmt.<span class="fn">Printf</span>(<span class="st">"%-45s → %d (%v)\n"</span>, r.URL, r.Status, r.Duration)
+    }
+    fmt.<span class="fn">Printf</span>(<span class="st">"\nTổng thời gian: %v (song song, không tuần tự)\n"</span>, total)
+}</pre>
+  </div>
+
+  <!-- Pattern 3: Parallel writes to shared map with mutex -->
+  <div style="margin: 40px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-advanced">▲ Advanced</span>
+    <h3 style="font-size: 18px; font-weight: 600;">Pattern 3: WaitGroup + Mutex — Ghi Vào Shared Map</h3>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">shared_map.go — WaitGroup + sync.Mutex bảo vệ shared state</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// Aggregator thu thập kết quả từ nhiều goroutines vào shared map</span>
+<span class="kw">type</span> <span class="ty">Aggregator</span> <span class="kw">struct</span> {
+    mu      <span class="ty">sync.Mutex</span>
+    results <span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewAggregator</span>() *<span class="ty">Aggregator</span> {
+    <span class="kw">return</span> &<span class="ty">Aggregator</span>{results: <span class="fn">make</span>(<span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">int</span>)}
+}
+
+<span class="kw">func</span> (a *<span class="ty">Aggregator</span>) <span class="fn">Record</span>(key <span class="ty">string</span>, value <span class="ty">int</span>) {
+    a.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> a.mu.<span class="fn">Unlock</span>()
+    a.results[key] += value
+}
+
+<span class="kw">func</span> <span class="fn">analyzeRegion</span>(region <span class="ty">string</span>, agg *<span class="ty">Aggregator</span>, wg *<span class="ty">sync.WaitGroup</span>) {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+    <span class="cm">// Giả lập xử lý dữ liệu của region</span>
+    sales := <span class="kw">map</span>[<span class="ty">string</span>]<span class="ty">int</span>{
+        <span class="st">"Hà Nội"</span>:  <span class="nm">1500</span>,
+        <span class="st">"TP.HCM"</span>: <span class="nm">2300</span>,
+        <span class="st">"Đà Nẵng"</span>: <span class="nm">800</span>,
+    }
+    agg.<span class="fn">Record</span>(region, sales[region])
+    fmt.<span class="fn">Printf</span>(<span class="st">"Đã phân tích: %s\n"</span>, region)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    regions := []<span class="ty">string</span>{<span class="st">"Hà Nội"</span>, <span class="st">"TP.HCM"</span>, <span class="st">"Đà Nẵng"</span>}
+    agg := <span class="fn">NewAggregator</span>()
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+    <span class="kw">for</span> _, region := <span class="kw">range</span> regions {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="fn">analyzeRegion</span>(region, agg, &wg)
+    }
+
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Println</span>(<span class="st">"\n📊 Kết quả tổng hợp:"</span>)
+    <span class="kw">for</span> region, sales := <span class="kw">range</span> agg.results {
+        fmt.<span class="fn">Printf</span>(<span class="st">"  %s: %d đơn\n"</span>, region, sales)
+    }
+}</pre>
+  </div>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: ADVANCED -->
+<!-- ============================================================ -->
+<section class="section" id="advanced">
+  <div class="section-header">
+    <div class="section-num">05</div>
+    <h2 class="section-title">Kỹ Thuật <span>Advanced</span></h2>
+  </div>
+
+  <!-- WaitGroup + Context -->
+  <div style="margin: 0 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-advanced">▲ Advanced</span>
+    <h3 style="font-size: 18px; font-weight: 600;">WaitGroup + context.Context — Cancellation</h3>
+  </div>
+
+  <p style="color: var(--text2); margin-bottom: 20px; line-height: 1.8;">
+    Kết hợp WaitGroup với <code style="color: var(--accent5); font-family: 'JetBrains Mono'">context.Context</code> để hỗ trợ cancellation và deadline — đây là pattern quan trọng nhất trong production code.
+  </p>
+
+  <div class="diagram-wrap">
+    <svg width="100%" viewBox="0 0 860 200" role="img">
+      <title>WaitGroup + Context cancellation flow</title>
+      <desc>Luồng cancellation với WaitGroup và context</desc>
+      <defs>
+        <marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Context source -->
+      <rect x="20" y="60" width="130" height="80" rx="8" fill="rgba(210,168,255,0.1)" stroke="rgba(210,168,255,0.3)" stroke-width="0.5"/>
+      <text x="85" y="93" fill="#d2a8ff" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">context</text>
+      <text x="85" y="110" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">WithTimeout</text>
+      <text x="85" y="126" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">WithCancel</text>
+
+      <line x1="150" y1="100" x2="208" y2="100" stroke="#d2a8ff" stroke-width="1.5" marker-end="url(#arr4)"/>
+
+      <!-- WaitGroup -->
+      <rect x="210" y="70" width="110" height="60" rx="8" fill="rgba(0,172,215,0.1)" stroke="rgba(0,172,215,0.3)" stroke-width="0.5"/>
+      <text x="265" y="96" fill="#5dc9e2" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">WaitGroup</text>
+      <text x="265" y="116" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">+ goroutines</text>
+
+      <!-- Arrows to workers -->
+      <line x1="320" y1="100" x2="368" y2="55" stroke="#ffa657" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr4)"/>
+      <line x1="320" y1="100" x2="368" y2="100" stroke="#ffa657" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr4)"/>
+      <line x1="320" y1="100" x2="368" y2="145" stroke="#ffa657" stroke-width="1" stroke-dasharray="3 2" marker-end="url(#arr4)"/>
+
+      <!-- Workers with select -->
+      <rect x="370" y="35" width="160" height="40" rx="6" fill="rgba(255,166,87,0.08)" stroke="rgba(255,166,87,0.25)" stroke-width="0.5"/>
+      <text x="450" y="51" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">select {</text>
+      <text x="450" y="67" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">ctx.Done() or do_work</text>
+
+      <rect x="370" y="80" width="160" height="40" rx="6" fill="rgba(255,166,87,0.08)" stroke="rgba(255,166,87,0.25)" stroke-width="0.5"/>
+      <text x="450" y="96" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">select {</text>
+      <text x="450" y="112" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">ctx.Done() or do_work</text>
+
+      <rect x="370" y="125" width="160" height="40" rx="6" fill="rgba(255,166,87,0.08)" stroke="rgba(255,166,87,0.25)" stroke-width="0.5"/>
+      <text x="450" y="141" fill="#ffa657" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">select {</text>
+      <text x="450" y="157" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="9" text-anchor="middle">ctx.Done() or do_work</text>
+
+      <!-- Cancel signal -->
+      <rect x="560" y="70" width="110" height="60" rx="8" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.25)" stroke-width="0.5" stroke-dasharray="4 2"/>
+      <text x="615" y="97" fill="#ff7b72" font-family="'JetBrains Mono',monospace" font-size="12" font-weight="700" text-anchor="middle">cancel()</text>
+      <text x="615" y="115" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">or timeout</text>
+
+      <!-- Broadcast arrow -->
+      <line x1="530" y1="55" x2="558" y2="88" stroke="#ff7b72" stroke-width="1" marker-end="url(#arr4)"/>
+      <line x1="530" y1="100" x2="558" y2="100" stroke="#ff7b72" stroke-width="1" marker-end="url(#arr4)"/>
+      <line x1="530" y1="145" x2="558" y2="112" stroke="#ff7b72" stroke-width="1" marker-end="url(#arr4)"/>
+
+      <!-- ctx.Done broadcast -->
+      <line x1="560" y1="100" x2="608" y2="100" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#arr4)"/>
+
+      <!-- Result -->
+      <rect x="700" y="60" width="130" height="80" rx="8" fill="rgba(126,231,135,0.08)" stroke="rgba(126,231,135,0.25)" stroke-width="0.5"/>
+      <text x="765" y="93" fill="#7ee787" font-family="'JetBrains Mono',monospace" font-size="11" font-weight="700" text-anchor="middle">wg.Wait()</text>
+      <text x="765" y="110" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">chờ cleanup</text>
+      <text x="765" y="126" fill="#8b949e" font-family="'JetBrains Mono',monospace" font-size="10" text-anchor="middle">xong hết</text>
+
+      <line x1="670" y1="100" x2="698" y2="100" stroke="#7ee787" stroke-width="1.5" marker-end="url(#arr4)"/>
+    </svg>
+    <div class="diagram-caption">WaitGroup + Context: cancel() broadcast đến tất cả workers qua ctx.Done(), WaitGroup đảm bảo cleanup hoàn tất</div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">context_cancel.go — WaitGroup + Context cancellation</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">workerWithCtx</span>(ctx <span class="ty">context.Context</span>, id <span class="ty">int</span>, wg *<span class="ty">sync.WaitGroup</span>, results <span class="kw">chan</span><- <span class="ty">string</span>) {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+            <span class="cm">// Context bị cancel hoặc timeout — dọn dẹp và thoát</span>
+            fmt.<span class="fn">Printf</span>(<span class="st">"Worker %d: nhận tín hiệu dừng (%v)\n"</span>, id, ctx.<span class="fn">Err</span>())
+            <span class="kw">return</span>
+
+        <span class="kw">default</span>:
+            <span class="cm">// Tiếp tục làm việc</span>
+            time.<span class="fn">Sleep</span>(<span class="nm">200</span> * time.Millisecond)
+            <span class="kw">select</span> {
+            <span class="kw">case</span> results <- fmt.<span class="fn">Sprintf</span>(<span class="st">"worker-%d result"</span>, id):
+            <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            }
+        }
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// Context với timeout 1 giây</span>
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nm">1</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, <span class="nm">50</span>)
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+    <span class="cm">// Spawn 3 workers</span>
+    <span class="kw">for</span> i := <span class="nm">1</span>; i <= <span class="nm">3</span>; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="fn">workerWithCtx</span>(ctx, i, &wg, results)
+    }
+
+    <span class="cm">// Goroutine đóng channel khi tất cả workers xong</span>
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(results)
+    }()
+
+    <span class="cm">// Thu thập kết quả cho đến khi channel đóng</span>
+    count := <span class="nm">0</span>
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        count++
+        fmt.<span class="fn">Println</span>(<span class="st">"→"</span>, r)
+    }
+    fmt.<span class="fn">Printf</span>(<span class="st">"Tổng kết quả nhận được: %d\n"</span>, count)
+}</pre>
+  </div>
+
+  <!-- Graceful Shutdown -->
+  <div style="margin: 40px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-advanced">▲ Advanced</span>
+    <h3 style="font-size: 18px; font-weight: 600;">Graceful Shutdown Server với WaitGroup</h3>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">graceful_shutdown.go — HTTP server tắt sạch</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"net/http"</span>
+    <span class="st">"os"</span>
+    <span class="st">"os/signal"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"syscall"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="ty">Server</span> <span class="kw">struct</span> {
+    server   *<span class="ty">http.Server</span>
+    wg       <span class="ty">sync.WaitGroup</span> <span class="cm">// Theo dõi active requests</span>
+    shutdown <span class="kw">chan</span> <span class="kw">struct</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">NewServer</span>(addr <span class="ty">string</span>) *<span class="ty">Server</span> {
+    s := &<span class="ty">Server</span>{shutdown: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})}
+    mux := <span class="fn">http.NewServeMux</span>()
+
+    <span class="cm">// Middleware: đếm active requests bằng WaitGroup</span>
+    mux.<span class="fn">HandleFunc</span>(<span class="st">"/"</span>, <span class="kw">func</span>(w <span class="ty">http.ResponseWriter</span>, r *<span class="ty">http.Request</span>) {
+        s.wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">defer</span> s.wg.<span class="fn">Done</span>()
+
+        <span class="cm">// Kiểm tra đang shutdown không</span>
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-s.shutdown:
+            <span class="fn">http.Error</span>(w, <span class="st">"Server shutting down"</span>, <span class="nm">503</span>)
+            <span class="kw">return</span>
+        <span class="kw">default</span>:
+        }
+
+        <span class="cm">// Xử lý request bình thường</span>
+        time.<span class="fn">Sleep</span>(<span class="nm">100</span> * time.Millisecond) <span class="cm">// Giả lập xử lý</span>
+        fmt.<span class="fn">Fprintf</span>(w, <span class="st">"OK\n"</span>)
+    })
+
+    s.server = &<span class="ty">http.Server</span>{Addr: addr, Handler: mux}
+    <span class="kw">return</span> s
+}
+
+<span class="kw">func</span> (s *<span class="ty">Server</span>) <span class="fn">Shutdown</span>(timeout <span class="ty">time.Duration</span>) <span class="ty">error</span> {
+    <span class="cm">// 1. Báo hiệu bắt đầu shutdown</span>
+    <span class="fn">close</span>(s.shutdown)
+
+    <span class="cm">// 2. Dừng nhận request mới</span>
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), timeout)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// 3. Chờ requests đang xử lý hoàn thành</span>
+    done := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+    <span class="kw">go func</span>() {
+        s.wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(done)
+    }()
+
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <-done:
+        fmt.<span class="fn">Println</span>(<span class="st">"✅ Graceful shutdown hoàn tất"</span>)
+        <span class="kw">return</span> s.server.<span class="fn">Shutdown</span>(ctx)
+    <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+        fmt.<span class="fn">Println</span>(<span class="st">"⚠️  Shutdown timeout — force close"</span>)
+        <span class="kw">return</span> s.server.<span class="fn">Close</span>()
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    s := <span class="fn">NewServer</span>(<span class="st">":8080"</span>)
+
+    <span class="kw">go</span> s.server.<span class="fn">ListenAndServe</span>()
+    fmt.<span class="fn">Println</span>(<span class="st">"🚀 Server chạy tại :8080"</span>)
+
+    <span class="cm">// Lắng nghe tín hiệu OS</span>
+    sigCh := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">os.Signal</span>, <span class="nm">1</span>)
+    signal.<span class="fn">Notify</span>(sigCh, syscall.SIGINT, syscall.SIGTERM)
+    <-sigCh
+
+    fmt.<span class="fn">Println</span>(<span class="st">"\n🛑 Nhận tín hiệu dừng, đang shutdown..."</span>)
+    s.<span class="fn">Shutdown</span>(<span class="nm">30</span> * time.Second)
+}</pre>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: EXPERT -->
+<!-- ============================================================ -->
+<section class="section" id="expert">
+  <div class="section-header">
+    <div class="section-num">06</div>
+    <h2 class="section-title">Kỹ Thuật <span>Expert</span></h2>
+  </div>
+
+  <!-- errgroup -->
+  <div style="margin: 0 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-expert">★ Expert</span>
+    <h3 style="font-size: 18px; font-weight: 600;">errgroup — WaitGroup với Error Propagation</h3>
+  </div>
+
+  <div class="callout callout-info">
+    <div class="callout-title">💡 golang.org/x/sync/errgroup</div>
+    <p><code style="font-family:'JetBrains Mono'">errgroup.Group</code> là phiên bản nâng cao của WaitGroup, tích hợp thêm error handling và context cancellation. Khi một goroutine trả về lỗi, tất cả goroutines khác sẽ nhận được tín hiệu cancel qua context.</p>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">errgroup_advanced.go — errgroup với giới hạn concurrency</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">type</span> <span class="ty">DataPipeline</span> <span class="kw">struct</span> {
+    maxConcurrency <span class="ty">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewPipeline</span>(maxConcurrency <span class="ty">int</span>) *<span class="ty">DataPipeline</span> {
+    <span class="kw">return</span> &<span class="ty">DataPipeline</span>{maxConcurrency: maxConcurrency}
+}
+
+<span class="cm">// Process chạy tất cả tasks song song với giới hạn concurrency</span>
+<span class="kw">func</span> (p *<span class="ty">DataPipeline</span>) <span class="fn">Process</span>(ctx <span class="ty">context.Context</span>, tasks []<span class="ty">int</span>) ([]<span class="ty">int</span>, <span class="ty">error</span>) {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+    g.<span class="fn">SetLimit</span>(p.maxConcurrency) <span class="cm">// Giới hạn goroutines đồng thời</span>
+
+    results := <span class="fn">make</span>([]<span class="ty">int</span>, <span class="fn">len</span>(tasks))
+    <span class="kw">var</span> mu <span class="ty">sync.Mutex</span>
+
+    <span class="kw">for</span> i, task := <span class="kw">range</span> tasks {
+        i, task := i, task <span class="cm">// Capture loop variables</span>
+
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> ctx.<span class="fn">Err</span>()
+            <span class="kw">default</span>:
+            }
+
+            <span class="cm">// Giả lập xử lý với khả năng lỗi</span>
+            time.<span class="fn">Sleep</span>(time.Duration(task) * time.Millisecond)
+            result, err := <span class="fn">processTask</span>(task)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"task %d failed: %w"</span>, task, err)
+            }
+
+            mu.<span class="fn">Lock</span>()
+            results[i] = result
+            mu.<span class="fn">Unlock</span>()
+            <span class="kw">return</span> <span class="kw">nil</span>
+        })
+    }
+
+    <span class="cm">// g.Wait() trả về lỗi đầu tiên xảy ra</span>
+    <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="st">"pipeline failed: %w"</span>, err)
+    }
+
+    <span class="kw">return</span> results, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">processTask</span>(n <span class="ty">int</span>) (<span class="ty">int</span>, <span class="ty">error</span>) {
+    <span class="kw">if</span> n < <span class="nm">0</span> {
+        <span class="kw">return</span> <span class="nm">0</span>, fmt.<span class="fn">Errorf</span>(<span class="st">"giá trị âm không hợp lệ: %d"</span>, n)
+    }
+    <span class="kw">return</span> n * n, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nm">5</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    pipeline := <span class="fn">NewPipeline</span>(<span class="nm">4</span>) <span class="cm">// Tối đa 4 goroutines cùng lúc</span>
+    tasks := []<span class="ty">int</span>{<span class="nm">50</span>, <span class="nm">100</span>, <span class="nm">30</span>, <span class="nm">80</span>, <span class="nm">20</span>, <span class="nm">60</span>, <span class="nm">40</span>}
+
+    results, err := pipeline.<span class="fn">Process</span>(ctx, tasks)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="st">"Lỗi: %v\n"</span>, err)
+        <span class="kw">return</span>
+    }
+
+    <span class="kw">for</span> i, r := <span class="kw">range</span> results {
+        fmt.<span class="fn">Printf</span>(<span class="st">"%d² = %d\n"</span>, tasks[i], r)
+    }
+}</pre>
+  </div>
+
+  <!-- Dynamic WaitGroup pattern -->
+  <div style="margin: 40px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-expert">★ Expert</span>
+    <h3 style="font-size: 18px; font-weight: 600;">Dynamic Spawning — WaitGroup trong Recursive Tasks</h3>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">recursive_crawl.go — Web crawler với WaitGroup động</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+)
+
+<span class="cm">// Crawler sử dụng WaitGroup để theo dõi tất cả URLs đang xử lý</span>
+<span class="kw">type</span> <span class="ty">Crawler</span> <span class="kw">struct</span> {
+    wg      <span class="ty">sync.WaitGroup</span>
+    visited <span class="ty">sync.Map</span>
+    results <span class="kw">chan</span> <span class="ty">string</span>
+    count   <span class="ty">atomic.Int64</span>
+    depth   <span class="ty">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewCrawler</span>(maxDepth <span class="ty">int</span>) *<span class="ty">Crawler</span> {
+    <span class="kw">return</span> &<span class="ty">Crawler</span>{
+        results: <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, <span class="nm">1000</span>),
+        depth:   maxDepth,
+    }
+}
+
+<span class="cm">// crawl đệ quy — mỗi URL tìm thấy URL mới và spawn thêm goroutines</span>
+<span class="kw">func</span> (c *<span class="ty">Crawler</span>) <span class="fn">crawl</span>(url <span class="ty">string</span>, currentDepth <span class="ty">int</span>) {
+    <span class="kw">defer</span> c.wg.<span class="fn">Done</span>()
+
+    <span class="cm">// Kiểm tra đã visit chưa (thread-safe)</span>
+    <span class="kw">if</span> _, loaded := c.visited.<span class="fn">LoadOrStore</span>(url, <span class="kw">true</span>); loaded {
+        <span class="kw">return</span>
+    }
+
+    <span class="kw">if</span> currentDepth > c.depth {
+        <span class="kw">return</span>
+    }
+
+    c.count.<span class="fn">Add</span>(<span class="nm">1</span>)
+    c.results <- url
+
+    <span class="cm">// Giả lập tìm thấy 2 URLs mới từ mỗi trang</span>
+    childURLs := []<span class="ty">string</span>{
+        fmt.<span class="fn">Sprintf</span>(<span class="st">"%s/page1"</span>, url),
+        fmt.<span class="fn">Sprintf</span>(<span class="st">"%s/page2"</span>, url),
+    }
+
+    <span class="kw">for</span> _, childURL := <span class="kw">range</span> childURLs {
+        <span class="cm">// CRITICAL: Add phải được gọi từ goroutine cha,</span>
+        <span class="cm">// trước khi spawn goroutine con</span>
+        c.wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> c.<span class="fn">crawl</span>(childURL, currentDepth+<span class="nm">1</span>)
+    }
+}
+
+<span class="kw">func</span> (c *<span class="ty">Crawler</span>) <span class="fn">Run</span>(rootURL <span class="ty">string</span>) {
+    c.wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">go</span> c.<span class="fn">crawl</span>(rootURL, <span class="nm">0</span>)
+
+    <span class="cm">// Đóng channel khi tất cả crawlers hoàn thành</span>
+    <span class="kw">go func</span>() {
+        c.wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(c.results)
+    }()
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    crawler := <span class="fn">NewCrawler</span>(<span class="nm">3</span>)
+    crawler.<span class="fn">Run</span>(<span class="st">"https://example.com"</span>)
+
+    visited := <span class="nm">0</span>
+    <span class="kw">for</span> url := <span class="kw">range</span> crawler.results {
+        visited++
+        fmt.<span class="fn">Printf</span>(<span class="st">"[%3d] %s\n"</span>, visited, url)
+    }
+    fmt.<span class="fn">Printf</span>(<span class="st">"\nTổng: %d URLs đã crawl\n"</span>, crawler.count.<span class="fn">Load</span>())
+}
+
+<span class="cm">// ⚠️ Quy tắc quan trọng cho recursive WaitGroup:
+// wg.Add() phải được gọi TRƯỚC khi goroutine cha thoát (trước wg.Done())
+// Nếu gọi sau, wg.Wait() có thể return sớm khi counter tạm thời về 0</span></pre>
+  </div>
+
+  <div class="pro-tip">
+    <div class="pro-tip-icon">🧠</div>
+    <div class="pro-tip-content">
+      <strong>Expert Rule: Add() trước Done() trong recursive patterns</strong>
+      Khi spawn goroutines từ bên trong goroutine khác, luôn gọi <code style="font-family:'JetBrains Mono'; color: var(--accent3)">wg.Add(1)</code> trong goroutine cha, <strong>trước</strong> khi gọi <code style="font-family:'JetBrains Mono'; color: var(--accent2)">wg.Done()</code>. Nếu không, bộ đếm có thể tạm thời về 0 giữa lúc cha Done() và con Add(), khiến Wait() return sớm bất ngờ — đây là race condition tinh vi nhất của WaitGroup.
+    </div>
+  </div>
+
+  <!-- WaitGroup reuse pattern -->
+  <div style="margin: 40px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-expert">★ Expert</span>
+    <h3 style="font-size: 18px; font-weight: 600;">WaitGroup Tái Sử Dụng — Phase-based Execution</h3>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">phase_execution.go — Nhiều giai đoạn với cùng WaitGroup</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// PhaseRunner chạy công việc theo các giai đoạn tuần tự</span>
+<span class="kw">type</span> <span class="ty">PhaseRunner</span> <span class="kw">struct</span> {
+    wg <span class="ty">sync.WaitGroup</span>
+}
+
+<span class="cm">// runPhase chạy một tập tasks song song và chờ tất cả xong trước khi tiếp tục</span>
+<span class="kw">func</span> (pr *<span class="ty">PhaseRunner</span>) <span class="fn">runPhase</span>(phaseName <span class="ty">string</span>, tasks []<span class="kw">func</span>()) {
+    fmt.<span class="fn">Printf</span>(<span class="st">"🔷 Phase '%s' bắt đầu (%d tasks)\n"</span>, phaseName, <span class="fn">len</span>(tasks))
+    start := time.<span class="fn">Now</span>()
+
+    <span class="kw">for</span> _, task := <span class="kw">range</span> tasks {
+        pr.wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        task := task <span class="cm">// capture</span>
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> pr.wg.<span class="fn">Done</span>()
+            task()
+        }()
+    }
+
+    pr.wg.<span class="fn">Wait</span>() <span class="cm">// Chờ toàn bộ phase xong</span>
+    <span class="cm">// An toàn để tái sử dụng wg khi tất cả goroutines đã gọi Done()</span>
+    fmt.<span class="fn">Printf</span>(<span class="st">"  ✓ Phase '%s' xong trong %v\n"</span>, phaseName, time.<span class="fn">Since</span>(start))
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    pr := &<span class="ty">PhaseRunner</span>{}
+
+    <span class="cm">// Phase 1: Thu thập dữ liệu</span>
+    pr.<span class="fn">runPhase</span>(<span class="st">"Thu thập"</span>, []<span class="kw">func</span>(){
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">50</span> * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    fetch users"</span>) },
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">80</span> * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    fetch orders"</span>) },
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">30</span> * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    fetch products"</span>) },
+    })
+
+    <span class="cm">// Phase 2: Xử lý (chỉ bắt đầu sau khi Phase 1 xong)</span>
+    pr.<span class="fn">runPhase</span>(<span class="st">"Xử lý"</span>, []<span class="kw">func</span>(){
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">100</span> * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    process batch A"</span>) },
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">70</span>  * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    process batch B"</span>) },
+    })
+
+    <span class="cm">// Phase 3: Lưu trữ (chỉ sau khi Phase 2 xong)</span>
+    pr.<span class="fn">runPhase</span>(<span class="st">"Lưu trữ"</span>, []<span class="kw">func</span>(){
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">40</span> * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    save to DB"</span>) },
+        <span class="kw">func</span>() { time.<span class="fn">Sleep</span>(<span class="nm">60</span> * time.Millisecond); fmt.<span class="fn">Println</span>(<span class="st">"    update cache"</span>) },
+    })
+
+    fmt.<span class="fn">Println</span>(<span class="st">"\n🎉 Pipeline hoàn tất!"</span>)
+}</pre>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 7: PITFALLS -->
+<!-- ============================================================ -->
+<section class="section" id="pitfalls">
+  <div class="section-header">
+    <div class="section-num">07</div>
+    <h2 class="section-title">⚠️ Lỗi Thường Gặp (<span>Pitfalls</span>)</h2>
+  </div>
+
+  <div class="two-col">
+    <!-- Pitfall 1 -->
+    <div class="card">
+      <div class="card-title">
+        <div class="dot-red"></div>
+        Pitfall 1: Copy WaitGroup
+      </div>
+      <div class="code-wrap" style="margin: 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--red)">❌ Sai</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// SAI: truyền bằng giá trị</span>
+<span class="kw">func</span> <span class="fn">worker</span>(wg <span class="ty">sync.WaitGroup</span>) {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>() <span class="cm">// Copy! Không có tác dụng</span>
+}
+
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+<span class="kw">go</span> <span class="fn">worker</span>(wg) <span class="cm">// Truyền copy</span>
+wg.<span class="fn">Wait</span>()   <span class="cm">// Deadlock!</span></pre>
+      </div>
+      <div class="code-wrap" style="margin: 8px 0 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--accent2)">✅ Đúng</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// ĐÚNG: truyền con trỏ</span>
+<span class="kw">func</span> <span class="fn">worker</span>(wg *<span class="ty">sync.WaitGroup</span>) {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>() <span class="cm">// Đúng WaitGroup</span>
+}
+
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+<span class="kw">go</span> <span class="fn">worker</span>(&wg) <span class="cm">// Truyền pointer</span>
+wg.<span class="fn">Wait</span>()     <span class="cm">// ✓ OK</span></pre>
+      </div>
+    </div>
+
+    <!-- Pitfall 2 -->
+    <div class="card">
+      <div class="card-title">
+        <div class="dot-red"></div>
+        Pitfall 2: Add Sau Khi Wait
+      </div>
+      <div class="code-wrap" style="margin: 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--red)">❌ Sai</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// SAI: Add bên trong goroutine</span>
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+<span class="kw">go func</span>() {
+    wg.<span class="fn">Add</span>(<span class="nm">1</span>) <span class="cm">// Race! Wait có thể đã chạy</span>
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+    <span class="cm">// ... work ...</span>
+}()
+wg.<span class="fn">Wait</span>() <span class="cm">// Có thể return TRƯỚC Add()</span></pre>
+      </div>
+      <div class="code-wrap" style="margin: 8px 0 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--accent2)">✅ Đúng</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// ĐÚNG: Add TRƯỚC khi spawn</span>
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+wg.<span class="fn">Add</span>(<span class="nm">1</span>) <span class="cm">// Add trước go statement</span>
+<span class="kw">go func</span>() {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+    <span class="cm">// ... work ...</span>
+}()
+wg.<span class="fn">Wait</span>() <span class="cm">// ✓ Đảm bảo thấy Add</span></pre>
+      </div>
+    </div>
+
+    <!-- Pitfall 3 -->
+    <div class="card">
+      <div class="card-title">
+        <div class="dot-red"></div>
+        Pitfall 3: Counter Âm (Panic)
+      </div>
+      <div class="code-wrap" style="margin: 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--red)">❌ Panic</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// SAI: Done nhiều hơn Add</span>
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+wg.<span class="fn">Add</span>(<span class="nm">2</span>)
+wg.<span class="fn">Done</span>() <span class="cm">// counter = 1</span>
+wg.<span class="fn">Done</span>() <span class="cm">// counter = 0</span>
+wg.<span class="fn">Done</span>() <span class="cm">// PANIC: counter < 0</span>
+
+<span class="cm">// panic: sync: negative WaitGroup counter</span></pre>
+      </div>
+      <div class="code-wrap" style="margin: 8px 0 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--accent2)">✅ Đúng</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// ĐÚNG: Add = Done (luôn dùng defer)</span>
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+<span class="kw">for</span> i := <span class="nm">0</span>; i < <span class="nm">3</span>; i++ {
+    wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>() <span class="cm">// defer đảm bảo luôn chạy</span>
+        <span class="cm">// ... work ...</span>
+    }()
+}
+wg.<span class="fn">Wait</span>() <span class="cm">// ✓ Add(3) = Done×3</span></pre>
+      </div>
+    </div>
+
+    <!-- Pitfall 4 -->
+    <div class="card">
+      <div class="card-title">
+        <div class="dot-red"></div>
+        Pitfall 4: Loop Variable Capture
+      </div>
+      <div class="code-wrap" style="margin: 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--red)">❌ Sai (Go &lt; 1.22)</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// SAI: closure bắt biến vòng lặp</span>
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+<span class="kw">for</span> i := <span class="nm">0</span>; i < <span class="nm">5</span>; i++ {
+    wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        fmt.<span class="fn">Println</span>(i) <span class="cm">// Luôn in 5!</span>
+    }()
+}
+wg.<span class="fn">Wait</span>()</pre>
+      </div>
+      <div class="code-wrap" style="margin: 8px 0 0;">
+        <div class="code-header" style="padding: 7px 14px;">
+          <span class="code-lang">Go</span>
+          <span class="code-title-text" style="color: var(--accent2)">✅ Đúng</span>
+        </div>
+        <pre style="padding: 16px; font-size: 12px;"><span class="cm">// ĐÚNG: truyền qua parameter</span>
+<span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+<span class="kw">for</span> i := <span class="nm">0</span>; i < <span class="nm">5</span>; i++ {
+    wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">go func</span>(id <span class="ty">int</span>) {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        fmt.<span class="fn">Println</span>(id) <span class="cm">// In đúng giá trị</span>
+    }(i) <span class="cm">// Truyền i vào parameter</span>
+}
+wg.<span class="fn">Wait</span>()</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-danger">
+    <div class="callout-title">🚨 Race Condition Tinh Vi: Add Trong Goroutine Con</div>
+    <p>Khi goroutine <strong style="color: var(--text)">A</strong> đang chạy, nếu A gọi <code style="font-family:'JetBrains Mono'">wg.Done()</code> rồi mới spawn goroutine B với <code style="font-family:'JetBrains Mono'">wg.Add(1)</code>, có khoảnh khắc counter = 0 trong khi B chưa bắt đầu. Điều này khiến <code style="font-family:'JetBrains Mono'">wg.Wait()</code> return sớm. Luôn gọi <code style="font-family:'JetBrains Mono'">wg.Add(1)</code> <strong style="color: var(--red)">TRƯỚC</strong> khi spawn goroutine con, và <strong style="color: var(--red)">TRƯỚC</strong> khi gọi <code style="font-family:'JetBrains Mono'">wg.Done()</code> của goroutine cha.</p>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 8: SO SÁNH -->
+<!-- ============================================================ -->
+<section class="section" id="comparison">
+  <div class="section-header">
+    <div class="section-num">08</div>
+    <h2 class="section-title">So Sánh <span>Alternatives</span></h2>
+  </div>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Primitive</th>
+        <th>Khi Nào Dùng</th>
+        <th>Error Handling</th>
+        <th>Cancellation</th>
+        <th>Concurrency Limit</th>
+        <th>Reusable</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="font-family:'JetBrains Mono'; color: var(--go-blue2); font-weight: 600;">sync.WaitGroup</td>
+        <td>Chờ nhóm goroutines</td>
+        <td><span class="cross">✗</span> Không</td>
+        <td><span class="cross">✗</span> Cần context thêm</td>
+        <td><span class="cross">✗</span> Cần semaphore thêm</td>
+        <td><span class="check">✓</span> Sau Wait()</td>
+      </tr>
+      <tr>
+        <td style="font-family:'JetBrains Mono'; color: var(--accent5); font-weight: 600;">errgroup.Group</td>
+        <td>Goroutines có thể fail</td>
+        <td><span class="check">✓</span> Propagate lỗi đầu tiên</td>
+        <td><span class="check">✓</span> Auto-cancel trên lỗi</td>
+        <td><span class="check">✓</span> SetLimit()</td>
+        <td><span class="cross">✗</span> Dùng một lần</td>
+      </tr>
+      <tr>
+        <td style="font-family:'JetBrains Mono'; color: var(--accent3); font-weight: 600;">channel + close</td>
+        <td>Fan-out với results</td>
+        <td><span class="neut">△</span> Gửi trong message</td>
+        <td><span class="neut">△</span> Qua context/close</td>
+        <td><span class="check">✓</span> Buffered channel</td>
+        <td><span class="check">✓</span> Tạo channel mới</td>
+      </tr>
+      <tr>
+        <td style="font-family:'JetBrains Mono'; color: var(--accent2); font-weight: 600;">sync.Mutex</td>
+        <td>Bảo vệ shared state</td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="check">✓</span></td>
+      </tr>
+      <tr>
+        <td style="font-family:'JetBrains Mono'; color: var(--yellow); font-weight: 600;">sync.Once</td>
+        <td>Chạy một lần duy nhất</td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="cross">✗</span></td>
+        <td><span class="cross">✗</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="pro-tip">
+    <div class="pro-tip-icon">💡</div>
+    <div class="pro-tip-content">
+      <strong>Khi nào dùng WaitGroup vs errgroup?</strong>
+      Dùng <code style="font-family:'JetBrains Mono'; color: var(--go-blue2)">sync.WaitGroup</code> khi bạn chỉ cần chờ goroutines hoàn thành và không quan tâm đến lỗi. Dùng <code style="font-family:'JetBrains Mono'; color: var(--accent5)">errgroup.Group</code> khi các goroutines có thể thất bại và bạn muốn xử lý lỗi đầu tiên + tự động cancel các goroutines còn lại.
+    </div>
+  </div>
+
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 9: BEST PRACTICES -->
+<!-- ============================================================ -->
+<section class="section" id="best-practices">
+  <div class="section-header">
+    <div class="section-num">09</div>
+    <h2 class="section-title">Best Practices & <span>Checklist</span></h2>
+  </div>
+
+  <!-- Checklist -->
+  <div class="demo-box">
+    <div class="demo-header">
+      <span class="demo-title">✅ WaitGroup Safety Checklist</span>
+      <button class="btn btn-sm" onclick="resetChecklist()">↺ Reset</button>
+    </div>
+    <div class="demo-body">
+      <div id="checklist-items" style="display: flex; flex-direction: column; gap: 10px;">
+      </div>
+      <div style="margin-top: 16px; padding: 12px 16px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 13px; color: var(--text2)">Tiến độ:</span>
+        <span id="checklist-progress" style="font-family: 'JetBrains Mono'; font-size: 14px; font-weight: 700; color: var(--accent2)">0 / 8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Final example: Production-ready -->
+  <div style="margin: 32px 0 12px; display: flex; align-items: center; gap: 12px;">
+    <span class="level-badge level-expert">★ Expert</span>
+    <h3 style="font-size: 18px; font-weight: 600;">Production-Ready Pattern — Tổng Hợp</h3>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">Go</span>
+      <span class="code-title-text">production_pipeline.go — Pattern hoàn chỉnh cho production</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"errors"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"log/slog"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// Pipeline production-ready: WaitGroup + context + errors + metrics</span>
+<span class="kw">type</span> <span class="ty">Pipeline</span>[T <span class="ty">any</span>, R <span class="ty">any</span>] <span class="kw">struct</span> {
+    numWorkers   <span class="ty">int</span>
+    processor    <span class="kw">func</span>(ctx <span class="ty">context.Context</span>, item T) (R, <span class="ty">error</span>)
+    errorHandler <span class="kw">func</span>(item T, err <span class="ty">error</span>)
+
+    <span class="cm">// Metrics</span>
+    processed <span class="ty">atomic.Int64</span>
+    failed    <span class="ty">atomic.Int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewPipeline</span>[T <span class="ty">any</span>, R <span class="ty">any</span>](
+    numWorkers <span class="ty">int</span>,
+    processor <span class="kw">func</span>(<span class="ty">context.Context</span>, T) (R, <span class="ty">error</span>),
+    errorHandler <span class="kw">func</span>(T, <span class="ty">error</span>),
+) *<span class="ty">Pipeline</span>[T, R] {
+    <span class="kw">return</span> &<span class="ty">Pipeline</span>[T, R]{
+        numWorkers:   numWorkers,
+        processor:    processor,
+        errorHandler: errorHandler,
+    }
+}
+
+<span class="kw">type</span> <span class="ty">PipelineResult</span>[R <span class="ty">any</span>] <span class="kw">struct</span> {
+    Results   []R
+    Processed <span class="ty">int64</span>
+    Failed    <span class="ty">int64</span>
+    Duration  <span class="ty">time.Duration</span>
+}
+
+<span class="kw">func</span> (p *<span class="ty">Pipeline</span>[T, R]) <span class="fn">Run</span>(ctx <span class="ty">context.Context</span>, items []T) *<span class="ty">PipelineResult</span>[R] {
+    start := time.<span class="fn">Now</span>()
+
+    <span class="cm">// Channels</span>
+    jobsCh := <span class="fn">make</span>(<span class="kw">chan</span> T, p.numWorkers*<span class="nm">2</span>)
+    resultsCh := <span class="fn">make</span>(<span class="kw">chan</span> R, p.numWorkers*<span class="nm">2</span>)
+
+    <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+    <span class="cm">// Spawn workers</span>
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < p.numWorkers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        workerID := i
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">defer func</span>() {
+                <span class="kw">if</span> r := <span class="fn">recover</span>(); r != <span class="kw">nil</span> {
+                    slog.<span class="fn">Error</span>(<span class="st">"worker panic"</span>, <span class="st">"worker"</span>, workerID, <span class="st">"panic"</span>, r)
+                }
+            }()
+
+            <span class="kw">for</span> item := <span class="kw">range</span> jobsCh {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">default</span>:
+                }
+
+                result, err := p.<span class="fn">processor</span>(ctx, item)
+                <span class="kw">if</span> err != <span class="kw">nil</span> {
+                    <span class="kw">if</span> !errors.<span class="fn">Is</span>(err, context.Canceled) {
+                        p.failed.<span class="fn">Add</span>(<span class="nm">1</span>)
+                        p.<span class="fn">errorHandler</span>(item, err)
+                    }
+                    <span class="kw">continue</span>
+                }
+
+                p.processed.<span class="fn">Add</span>(<span class="nm">1</span>)
+                <span class="kw">select</span> {
+                <span class="kw">case</span> resultsCh <- result:
+                <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                }
+            }
+        }()
+    }
+
+    <span class="cm">// Goroutine đóng resultsCh khi workers xong</span>
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(resultsCh)
+    }()
+
+    <span class="cm">// Gửi jobs (trong goroutine riêng để không block)</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(jobsCh)
+        <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> jobsCh <- item:
+            <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            }
+        }
+    }()
+
+    <span class="cm">// Thu thập kết quả</span>
+    <span class="kw">var</span> results []R
+    <span class="kw">for</span> r := <span class="kw">range</span> resultsCh {
+        results = <span class="fn">append</span>(results, r)
+    }
+
+    <span class="kw">return</span> &<span class="ty">PipelineResult</span>[R]{
+        Results:   results,
+        Processed: p.processed.<span class="fn">Load</span>(),
+        Failed:    p.failed.<span class="fn">Load</span>(),
+        Duration:  time.<span class="fn">Since</span>(start),
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nm">10</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// Tạo pipeline xử lý số nguyên → bình phương</span>
+    pipeline := <span class="fn">NewPipeline</span>(
+        <span class="nm">4</span>,
+        <span class="kw">func</span>(ctx <span class="ty">context.Context</span>, n <span class="ty">int</span>) (<span class="ty">int</span>, <span class="ty">error</span>) {
+            <span class="kw">if</span> n < <span class="nm">0</span> { <span class="kw">return</span> <span class="nm">0</span>, fmt.<span class="fn">Errorf</span>(<span class="st">"số âm: %d"</span>, n) }
+            time.<span class="fn">Sleep</span>(<span class="nm">10</span> * time.Millisecond)
+            <span class="kw">return</span> n * n, <span class="kw">nil</span>
+        },
+        <span class="kw">func</span>(item <span class="ty">int</span>, err <span class="ty">error</span>) {
+            slog.<span class="fn">Warn</span>(<span class="st">"xử lý thất bại"</span>, <span class="st">"item"</span>, item, <span class="st">"error"</span>, err)
+        },
+    )
+
+    items := []<span class="ty">int</span>{<span class="nm">1</span>, -<span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, -<span class="nm">5</span>, <span class="nm">6</span>, <span class="nm">7</span>, <span class="nm">8</span>, <span class="nm">9</span>, <span class="nm">10</span>}
+    result := pipeline.<span class="fn">Run</span>(ctx, items)
+
+    fmt.<span class="fn">Printf</span>(<span class="st">"✅ Xử lý: %d | ❌ Lỗi: %d | ⏱ Thời gian: %v\n"</span>,
+        result.Processed, result.Failed, result.Duration)
+    fmt.<span class="fn">Printf</span>(<span class="st">"Kết quả: %v\n"</span>, result.Results)
+}</pre>
+  </div>
+
+</section>
+
+</div><!-- end container -->
+
+<!-- Footer -->
+<footer>
+  <p>📘 <strong>sync.WaitGroup</strong> — Hướng Dẫn Toàn Diện Go Concurrency</p>
+  <p style="margin-top: 8px;">Tài liệu tham khảo: <a href="https://pkg.go.dev/sync#WaitGroup" target="_blank">pkg.go.dev/sync</a> · <a href="https://pkg.go.dev/golang.org/x/sync/errgroup" target="_blank">errgroup</a></p>
+</footer>
+
+<script>
+// ============================================================
+// Interactive Demo
+// ============================================================
+let demoRunning = false;
+let demoTimer = null;
+
+function log(msg, cls = '') {
+  const area = document.getElementById('demo-log');
+  const div = document.createElement('div');
+  div.className = 'log-line ' + cls;
+  div.textContent = msg;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function setCounter(n) {
+  const el = document.getElementById('wg-counter');
+  el.textContent = n;
+  el.className = 'wg-counter-val ' + (n === 0 ? 'zero' : 'active');
+}
+
+function setMainStatus(waiting, text) {
+  const el = document.getElementById('main-status');
+  const textEl = document.getElementById('main-status-text');
+  el.className = 'main-goroutine ' + (waiting ? 'waiting' : 'released');
+  textEl.textContent = text;
+}
+
+function updateGoroutines(list) {
+  const container = document.getElementById('goroutine-list');
+  container.innerHTML = '';
+  list.forEach(g => {
+    const chip = document.createElement('div');
+    chip.className = 'goroutine-chip ' + g.state;
+    chip.innerHTML = `<div class="indicator"></div><span>g-${g.id}</span>`;
+    container.appendChild(chip);
+  });
+}
+
+async function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function runDemo() {
+  if (demoRunning) return;
+  demoRunning = true;
+
+  document.getElementById('demo-log').innerHTML = '';
+  setCounter(0);
+  setMainStatus(false, 'main goroutine: Bắt đầu...');
+  updateGoroutines([]);
+
+  await sleep(400);
+
+  // Add(3)
+  log('main: wg.Add(3) → counter = 3', 'add');
+  setCounter(3);
+  await sleep(500);
+
+  // Spawn goroutines
+  log('main: go worker(1)', 'wait');
+  log('main: go worker(2)', 'wait');
+  log('main: go worker(3)', 'wait');
+
+  const goroutines = [
+    { id: 1, state: 'running' },
+    { id: 2, state: 'running' },
+    { id: 3, state: 'running' },
+  ];
+  updateGoroutines(goroutines);
+  await sleep(400);
+
+  // Wait
+  log('main: wg.Wait() — đang block...', 'wait');
+  setMainStatus(true, 'main goroutine: wg.Wait() — đang block, chờ counter = 0...');
+  await sleep(600);
+
+  // Workers finish one by one
+  const delays = [900, 1400, 700];
+  let counter = 3;
+
+  const finishWorker = async (id, delay) => {
+    await sleep(delay);
+    log(`goroutine ${id}: wg.Done() → counter = ${counter - 1}`, 'done');
+    counter--;
+    setCounter(counter);
+    const g = goroutines.find(x => x.id === id);
+    if (g) g.state = 'done';
+    updateGoroutines([...goroutines]);
+    if (counter === 0) {
+      await sleep(300);
+      log('✅ counter = 0 → wg.Wait() được giải phóng!', 'release');
+      setMainStatus(false, 'main goroutine: ✅ Tất cả goroutines hoàn thành! Tiếp tục...');
+    }
+  };
+
+  await Promise.all(goroutines.map((g, i) => finishWorker(g.id, delays[i])));
+
+  demoRunning = false;
+}
+
+function resetDemo() {
+  demoRunning = false;
+  document.getElementById('demo-log').innerHTML = '<div class="log-line" style="color: var(--text3)">// Nhấn "Chạy Demo" để xem WaitGroup hoạt động...</div>';
+  setCounter(0);
+  setMainStatus(false, 'main goroutine: Sẵn sàng (chưa gọi Wait)');
+  document.getElementById('goroutine-list').innerHTML = '<span style="color: var(--text3); font-size: 12px; font-family: \'JetBrains Mono\'">Chưa khởi động...</span>';
+}
+
+// ============================================================
+// Checklist
+// ============================================================
+const checklistItems = [
+  { id: 'c1', text: 'Luôn truyền *sync.WaitGroup (con trỏ) vào goroutines, không dùng giá trị' },
+  { id: 'c2', text: 'Gọi wg.Add(n) TRƯỚC khi spawn goroutine, không bên trong goroutine' },
+  { id: 'c3', text: 'Luôn dùng "defer wg.Done()" thay vì gọi trực tiếp để đảm bảo chạy kể cả khi panic' },
+  { id: 'c4', text: 'Đảm bảo số lần Add() bằng số lần Done() — không thiếu, không dư' },
+  { id: 'c5', text: 'Trong recursive pattern: gọi wg.Add() trước wg.Done() của goroutine cha' },
+  { id: 'c6', text: 'Kết hợp WaitGroup với context.Context cho cancellation trong production code' },
+  { id: 'c7', text: 'Dùng errgroup thay vì WaitGroup khi cần xử lý lỗi từ goroutines' },
+  { id: 'c8', text: 'Chạy "go test -race ./..." để kiểm tra race conditions trong CI/CD' },
+];
+
+function renderChecklist() {
+  const container = document.getElementById('checklist-items');
+  container.innerHTML = '';
+
+  checklistItems.forEach(item => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;align-items:flex-start;gap:12px;padding:12px 14px;background:var(--bg);border-radius:8px;border:1px solid var(--border);cursor:pointer;transition:all 0.2s;';
+    div.onclick = () => toggleCheck(item.id);
+
+    const checked = localStorage.getItem ? (localStorage.getItem('wg_check_' + item.id) === '1') : false;
+
+    div.innerHTML = `
+      <div style="width:20px;height:20px;border-radius:5px;border:1.5px solid ${checked ? 'var(--accent2)' : 'var(--border)'};background:${checked ? 'rgba(126,231,135,0.15)' : 'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all 0.2s;" id="box-${item.id}">
+        ${checked ? '<span style="color:var(--accent2);font-size:13px;font-weight:700;">✓</span>' : ''}
+      </div>
+      <span style="font-size:13px;color:${checked ? 'var(--text)' : 'var(--text2)'};line-height:1.6;" id="text-${item.id}">${item.text}</span>
+    `;
+    container.appendChild(div);
+  });
+
+  updateProgress();
+}
+
+function toggleCheck(id) {
+  const current = localStorage.getItem ? (localStorage.getItem('wg_check_' + id) === '1') : false;
+  if (localStorage.getItem) localStorage.setItem('wg_check_' + id, current ? '0' : '1');
+  renderChecklist();
+}
+
+function resetChecklist() {
+  checklistItems.forEach(item => {
+    if (localStorage.setItem) localStorage.setItem('wg_check_' + item.id, '0');
+  });
+  renderChecklist();
+}
+
+function updateProgress() {
+  const done = checklistItems.filter(item => localStorage.getItem ? localStorage.getItem('wg_check_' + item.id) === '1' : false).length;
+  document.getElementById('checklist-progress').textContent = `${done} / ${checklistItems.length}`;
+  if (done === checklistItems.length) {
+    document.getElementById('checklist-progress').style.color = 'var(--accent2)';
+  }
+}
+
+// Init
+renderChecklist();
+</script>
+</body>
+</html>

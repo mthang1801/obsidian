@@ -1,0 +1,1251 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  
+  .doc-wrap { max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  
+  .hero { padding: 2.5rem 0 2rem; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 2.5rem; }
+  .hero-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 500; letter-spacing: .06em; text-transform: uppercase; background: var(--color-background-info); color: var(--color-text-info); padding: 4px 10px; border-radius: var(--border-radius-md); margin-bottom: 1rem; }
+  .hero h1 { font-size: 2rem; font-weight: 500; color: var(--color-text-primary); line-height: 1.2; margin-bottom: .75rem; }
+  .hero p { font-size: 15px; color: var(--color-text-secondary); line-height: 1.7; max-width: 640px; }
+  
+  .toc { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+  .toc-title { font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: .06em; color: var(--color-text-tertiary); margin-bottom: .75rem; }
+  .toc ol { padding-left: 1.25rem; }
+  .toc li { font-size: 14px; line-height: 2; color: var(--color-text-secondary); }
+  .toc a { color: var(--color-text-info); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  
+  .section { margin-bottom: 3rem; }
+  .section-anchor { display: block; height: 1px; margin-top: -1px; }
+  
+  h2 { font-size: 1.35rem; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1rem; padding-bottom: .5rem; border-bottom: 0.5px solid var(--color-border-tertiary); display: flex; align-items: center; gap: .5rem; }
+  h3 { font-size: 1.05rem; font-weight: 500; color: var(--color-text-primary); margin: 1.75rem 0 .75rem; }
+  h4 { font-size: .9rem; font-weight: 500; color: var(--color-text-secondary); margin: 1.25rem 0 .5rem; text-transform: uppercase; letter-spacing: .04em; }
+  
+  p { font-size: 15px; line-height: 1.75; color: var(--color-text-secondary); margin-bottom: 1rem; }
+  
+  .callout { border-left: 3px solid; border-radius: 0 var(--border-radius-md) var(--border-radius-md) 0; padding: .75rem 1rem; margin: 1.25rem 0; font-size: 14px; line-height: 1.6; }
+  .callout.info { border-color: var(--color-border-info); background: var(--color-background-info); color: var(--color-text-info); }
+  .callout.warn { border-color: var(--color-border-warning); background: var(--color-background-warning); color: var(--color-text-warning); }
+  .callout.success { border-color: var(--color-border-success); background: var(--color-background-success); color: var(--color-text-success); }
+  .callout.danger { border-color: var(--color-border-danger); background: var(--color-background-danger); color: var(--color-text-danger); }
+  .callout strong { font-weight: 500; }
+  
+  .code-block { position: relative; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; margin: 1rem 0 1.5rem; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: .5rem 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .code-filename { font-size: 12px; font-weight: 500; color: var(--color-text-tertiary); font-family: var(--font-mono); }
+  .copy-btn { font-size: 12px; color: var(--color-text-tertiary); background: none; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 3px 8px; cursor: pointer; }
+  .copy-btn:hover { color: var(--color-text-secondary); border-color: var(--color-border-secondary); }
+  pre { padding: 1rem 1.25rem; overflow-x: auto; font-size: 13px; line-height: 1.65; font-family: var(--font-mono); color: var(--color-text-primary); }
+  
+  .kw { color: #7c3aed; }
+  .fn { color: #0369a1; }
+  .str { color: #0f766e; }
+  .cmt { color: var(--color-text-tertiary); font-style: italic; }
+  .typ { color: #b45309; }
+  .num { color: #c2410c; }
+  
+  .diagram-wrap { margin: 1.5rem 0; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); overflow: hidden; background: var(--color-background-secondary); }
+  .diagram-caption { font-size: 12px; color: var(--color-text-tertiary); text-align: center; padding: .5rem 1rem; border-top: 0.5px solid var(--color-border-tertiary); }
+  
+  .concept-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 1.25rem 0; }
+  .concept-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1rem 1.125rem; }
+  .concept-card .icon { font-size: 20px; margin-bottom: .5rem; }
+  .concept-card h4 { font-size: 13px; font-weight: 500; color: var(--color-text-primary); text-transform: none; letter-spacing: 0; margin: 0 0 .4rem; }
+  .concept-card p { font-size: 13px; margin: 0; line-height: 1.55; }
+  
+  .comparison-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1rem 0 1.5rem; }
+  .comparison-table th { text-align: left; font-weight: 500; font-size: 12px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: .05em; padding: .5rem .75rem; border-bottom: 0.5px solid var(--color-border-tertiary); }
+  .comparison-table td { padding: .6rem .75rem; border-bottom: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); vertical-align: top; line-height: 1.5; }
+  .comparison-table tr:last-child td { border-bottom: none; }
+  .comparison-table tr:nth-child(even) td { background: var(--color-background-secondary); }
+  
+  .badge { display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; }
+  .badge.adv { background: var(--color-background-warning); color: var(--color-text-warning); }
+  .badge.exp { background: var(--color-background-danger); color: var(--color-text-danger); }
+  .badge.bas { background: var(--color-background-success); color: var(--color-text-success); }
+  
+  .step-list { counter-reset: step; list-style: none; padding: 0; margin: 1rem 0; }
+  .step-list li { counter-increment: step; display: flex; gap: 1rem; margin-bottom: 1rem; align-items: flex-start; }
+  .step-list li::before { content: counter(step); min-width: 28px; height: 28px; border-radius: 50%; background: var(--color-background-info); color: var(--color-text-info); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 500; flex-shrink: 0; margin-top: 2px; }
+  .step-list li p { margin: 0; font-size: 14px; line-height: 1.6; }
+  
+  .pill-row { display: flex; flex-wrap: wrap; gap: 8px; margin: .75rem 0; }
+  .pill { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 4px 10px; border-radius: 99px; border: 0.5px solid var(--color-border-tertiary); color: var(--color-text-secondary); background: var(--color-background-primary); }
+  
+  hr { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 2.5rem 0; }
+  
+  code { font-family: var(--font-mono); font-size: 12.5px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: 4px; padding: 1px 5px; color: var(--color-text-primary); }
+
+  .tabs { display: flex; gap: 0; border-bottom: 0.5px solid var(--color-border-tertiary); margin-bottom: 1rem; }
+  .tab-btn { font-size: 13px; padding: .5rem 1rem; cursor: pointer; border: none; background: none; color: var(--color-text-tertiary); border-bottom: 2px solid transparent; margin-bottom: -0.5px; }
+  .tab-btn.active { color: var(--color-text-info); border-bottom-color: currentColor; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  
+  .perf-meter { display: flex; align-items: center; gap: 12px; margin: .5rem 0; }
+  .perf-label { font-size: 12px; color: var(--color-text-secondary); min-width: 140px; }
+  .perf-bar-bg { flex: 1; height: 6px; background: var(--color-background-secondary); border-radius: 3px; overflow: hidden; }
+  .perf-bar { height: 100%; border-radius: 3px; transition: width .5s ease; }
+  .perf-val { font-size: 12px; color: var(--color-text-tertiary); min-width: 40px; text-align: right; }
+</style>
+
+<div class="doc-wrap">
+  <div class="hero">
+    <div class="hero-badge"><i class="ti ti-brand-golang" aria-hidden="true"></i> Go Concurrency</div>
+    <h1>Fan-in & Fan-out trong Go</h1>
+    <p>Tài liệu kỹ thuật toàn diện — từ khái niệm cơ bản đến các pattern nâng cao và expert-level, kèm theo sơ đồ và code samples thực tiễn.</p>
+    <div class="pill-row" style="margin-top:1rem">
+      <span class="pill"><i class="ti ti-tag" aria-hidden="true"></i> goroutine</span>
+      <span class="pill"><i class="ti ti-tag" aria-hidden="true"></i> channel</span>
+      <span class="pill"><i class="ti ti-tag" aria-hidden="true"></i> pipeline</span>
+      <span class="pill"><i class="ti ti-tag" aria-hidden="true"></i> worker pool</span>
+      <span class="pill"><i class="ti ti-tag" aria-hidden="true"></i> context</span>
+      <span class="pill"><i class="ti ti-tag" aria-hidden="true"></i> errgroup</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">Mục lục</div>
+    <ol>
+      <li><a href="#s1">1. Khái niệm & Định nghĩa</a></li>
+      <li><a href="#s2">2. Kiến trúc tổng quan — Sơ đồ minh họa</a></li>
+      <li><a href="#s3">3. Fan-out cơ bản</a></li>
+      <li><a href="#s4">4. Fan-in cơ bản</a></li>
+      <li><a href="#s5">5. Pipeline kết hợp Fan-out + Fan-in</a></li>
+      <li><a href="#s6">6. Bounded Fan-out — Kiểm soát concurrency</a></li>
+      <li><a href="#s7">7. Pattern nâng cao — Dynamic Fan-out</a></li>
+      <li><a href="#s8">8. Expert Pattern — Ordered Fan-in</a></li>
+      <li><a href="#s9">9. Expert Pattern — Error-aware Pipeline</a></li>
+      <li><a href="#s10">10. Benchmark & Anti-patterns</a></li>
+    </ol>
+  </div>
+
+  <!-- SECTION 1 -->
+  <div class="section" id="s1">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-book-2" aria-hidden="true"></i> 1. Khái niệm & Định nghĩa</h2>
+
+    <p>Fan-out và Fan-in là hai pattern concurrency cốt lõi trong Go, thường được sử dụng song hành để xây dựng các pipeline xử lý song song hiệu quả.</p>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="icon"><i class="ti ti-arrows-split-2" aria-hidden="true"></i></div>
+        <h4>Fan-out</h4>
+        <p>Phân phối công việc từ <strong>một nguồn</strong> sang <strong>nhiều worker</strong> goroutine chạy song song. Mỗi worker nhận một phần dữ liệu từ input channel và xử lý độc lập.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon"><i class="ti ti-arrows-join-2" aria-hidden="true"></i></div>
+        <h4>Fan-in</h4>
+        <p>Gộp kết quả từ <strong>nhiều channel</strong> vào <strong>một channel</strong> duy nhất. Người nhận không cần quan tâm kết quả đến từ worker nào.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon"><i class="ti ti-circuit-diode" aria-hidden="true"></i></div>
+        <h4>Pipeline</h4>
+        <p>Chuỗi các stage xử lý nối tiếp nhau qua channel. Mỗi stage nhận input, xử lý, rồi gửi output sang stage kế tiếp — tạo nên một luồng dữ liệu liên tục.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon"><i class="ti ti-users" aria-hidden="true"></i></div>
+        <h4>Worker Pool</h4>
+        <p>Tập hợp cố định các goroutine sẵn sàng nhận việc từ một job channel. Fan-out vào worker pool là pattern phổ biến nhất trong production.</p>
+      </div>
+    </div>
+
+    <h3>Khi nào nên dùng?</h3>
+    <table class="comparison-table">
+      <thead><tr><th>Tình huống</th><th>Pattern phù hợp</th><th>Lý do</th></tr></thead>
+      <tbody>
+        <tr><td>Gọi nhiều API song song</td><td>Fan-out + Fan-in</td><td>I/O bound, không cần thứ tự</td></tr>
+        <tr><td>Xử lý hàng nghìn tác vụ CPU</td><td>Bounded Fan-out (Worker Pool)</td><td>Tránh tạo quá nhiều goroutine</td></tr>
+        <tr><td>Streaming data transform</td><td>Pipeline nhiều stage</td><td>Mỗi stage chuyên biệt một việc</td></tr>
+        <tr><td>Kết quả cần giữ thứ tự</td><td>Ordered Fan-in</td><td>Track thứ tự bằng index</td></tr>
+        <tr><td>Cần hủy khi có lỗi</td><td>errgroup + context</td><td>Propagate cancellation</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <strong>Go mantra:</strong> "Don't communicate by sharing memory; share memory by communicating." — Fan-out/Fan-in là hiện thân của triết lý này: dữ liệu chảy qua channel, goroutine không chia sẻ trạng thái.
+    </div>
+  </div>
+
+  <!-- SECTION 2 -->
+  <div class="section" id="s2">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-topology-star-3" aria-hidden="true"></i> 2. Kiến trúc tổng quan</h2>
+    <p>Sơ đồ dưới đây minh họa luồng dữ liệu trong một hệ thống Fan-out + Fan-in điển hình:</p>
+
+    <div class="diagram-wrap">
+      <svg width="100%" viewBox="0 0 680 420" role="img">
+        <title>Sơ đồ Fan-out và Fan-in trong Go</title>
+        <desc>Dữ liệu từ Generator chảy qua Fan-out đến nhiều worker rồi được gộp lại qua Fan-in</desc>
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <!-- Generator box -->
+        <g class="node c-teal" onclick="">
+          <rect x="40" y="175" width="110" height="70" rx="10" stroke-width="0.5"/>
+          <text class="th" x="95" y="203" text-anchor="middle" dominant-baseline="central">Generator</text>
+          <text class="ts" x="95" y="223" text-anchor="middle" dominant-baseline="central">nguồn dữ liệu</text>
+        </g>
+
+        <!-- Arrow Generator -> Fan-out label -->
+        <line x1="150" y1="210" x2="195" y2="210" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+        <text class="ts" x="172" y="204" text-anchor="middle">chan T</text>
+
+        <!-- Fan-out box -->
+        <g class="node c-blue">
+          <rect x="195" y="175" width="100" height="70" rx="10" stroke-width="0.5"/>
+          <text class="th" x="245" y="203" text-anchor="middle" dominant-baseline="central">Fan-out</text>
+          <text class="ts" x="245" y="223" text-anchor="middle" dominant-baseline="central">phân phối</text>
+        </g>
+
+        <!-- Fan-out to workers -->
+        <line x1="295" y1="193" x2="360" y2="110" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+        <line x1="295" y1="210" x2="360" y2="210" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+        <line x1="295" y1="227" x2="360" y2="310" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+
+        <!-- Worker 1 -->
+        <g class="node c-amber">
+          <rect x="360" y="80" width="100" height="60" rx="10" stroke-width="0.5"/>
+          <text class="th" x="410" y="104" text-anchor="middle" dominant-baseline="central">Worker 1</text>
+          <text class="ts" x="410" y="122" text-anchor="middle" dominant-baseline="central">goroutine</text>
+        </g>
+
+        <!-- Worker 2 -->
+        <g class="node c-amber">
+          <rect x="360" y="180" width="100" height="60" rx="10" stroke-width="0.5"/>
+          <text class="th" x="410" y="204" text-anchor="middle" dominant-baseline="central">Worker 2</text>
+          <text class="ts" x="410" y="222" text-anchor="middle" dominant-baseline="central">goroutine</text>
+        </g>
+
+        <!-- Worker 3 -->
+        <g class="node c-amber">
+          <rect x="360" y="280" width="100" height="60" rx="10" stroke-width="0.5"/>
+          <text class="th" x="410" y="304" text-anchor="middle" dominant-baseline="central">Worker 3</text>
+          <text class="ts" x="410" y="322" text-anchor="middle" dominant-baseline="central">goroutine</text>
+        </g>
+
+        <!-- Worker dots -->
+        <text class="ts" x="410" y="360" text-anchor="middle" opacity=".5">⋯ N workers</text>
+
+        <!-- Workers to Fan-in -->
+        <line x1="460" y1="110" x2="530" y2="193" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+        <line x1="460" y1="210" x2="530" y2="210" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+        <line x1="460" y1="310" x2="530" y2="227" stroke="var(--t)" stroke-width="1" marker-end="url(#arr)" opacity=".5"/>
+
+        <!-- Fan-in box -->
+        <g class="node c-purple">
+          <rect x="530" y="175" width="100" height="70" rx="10" stroke-width="0.5"/>
+          <text class="th" x="580" y="203" text-anchor="middle" dominant-baseline="central">Fan-in</text>
+          <text class="ts" x="580" y="223" text-anchor="middle" dominant-baseline="central">gộp kết quả</text>
+        </g>
+
+        <!-- Fan-in output label -->
+        <text class="ts" x="645" y="204" text-anchor="start">chan Result</text>
+        <text class="ts" x="648" y="218" text-anchor="start">(merged)</text>
+
+        <!-- Channel labels on fan-out side -->
+        <text class="ts" x="327" y="144" text-anchor="middle" opacity=".7">ch₁</text>
+        <text class="ts" x="327" y="205" text-anchor="middle" opacity=".7">ch₂</text>
+        <text class="ts" x="327" y="268" text-anchor="middle" opacity=".7">ch₃</text>
+
+        <!-- sync.WaitGroup callout -->
+        <rect x="460" y="42" width="130" height="28" rx="6" fill="none" stroke="var(--t)" stroke-width="0.5" stroke-dasharray="4 3" opacity=".4"/>
+        <text class="ts" x="525" y="60" text-anchor="middle" opacity=".6">sync.WaitGroup</text>
+        <line x1="525" y1="70" x2="525" y2="175" stroke="var(--t)" stroke-width="0.5" stroke-dasharray="3 3" opacity=".3" marker-end="url(#arr)"/>
+
+        <!-- Context callout -->
+        <rect x="40" y="42" width="110" height="28" rx="6" fill="none" stroke="var(--t)" stroke-width="0.5" stroke-dasharray="4 3" opacity=".4"/>
+        <text class="ts" x="95" y="60" text-anchor="middle" opacity=".6">context.Context</text>
+        <line x1="95" y1="70" x2="95" y2="175" stroke="var(--t)" stroke-width="0.5" stroke-dasharray="3 3" opacity=".3" marker-end="url(#arr)"/>
+      </svg>
+      <div class="diagram-caption">Hình 1 — Luồng dữ liệu Fan-out + Fan-in: Generator → phân phối sang N worker → gộp kết quả về một channel</div>
+    </div>
+
+    <!-- Pipeline stages diagram -->
+    <h3>Sơ đồ Pipeline nhiều stage</h3>
+    <div class="diagram-wrap">
+      <svg width="100%" viewBox="0 0 680 200" role="img">
+        <title>Pipeline nhiều stage trong Go</title>
+        <desc>Các stage nối tiếp nhau qua channel, mỗi stage có thể fan-out thành nhiều worker</desc>
+        <defs>
+          <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <!-- Stage boxes -->
+        <g class="c-teal"><rect x="20" y="75" width="90" height="50" rx="8" stroke-width="0.5"/>
+          <text class="th" x="65" y="97" text-anchor="middle" dominant-baseline="central">Stage 1</text>
+          <text class="ts" x="65" y="113" text-anchor="middle" dominant-baseline="central">Generate</text></g>
+
+        <line x1="110" y1="100" x2="140" y2="100" stroke="var(--t)" stroke-width="1" marker-end="url(#arr2)" opacity=".5"/>
+
+        <g class="c-blue"><rect x="140" y="75" width="100" height="50" rx="8" stroke-width="0.5"/>
+          <text class="th" x="190" y="97" text-anchor="middle" dominant-baseline="central">Stage 2</text>
+          <text class="ts" x="190" y="113" text-anchor="middle" dominant-baseline="central">Transform</text></g>
+
+        <line x1="240" y1="100" x2="270" y2="100" stroke="var(--t)" stroke-width="1" marker-end="url(#arr2)" opacity=".5"/>
+
+        <!-- Fan-out indicator for stage 3 -->
+        <g class="c-amber">
+          <rect x="270" y="40" width="90" height="40" rx="8" stroke-width="0.5"/>
+          <text class="th" x="315" y="65" text-anchor="middle" dominant-baseline="central">Worker A</text>
+          <rect x="270" y="90" width="90" height="40" rx="8" stroke-width="0.5"/>
+          <text class="th" x="315" y="115" text-anchor="middle" dominant-baseline="central">Worker B</text>
+          <rect x="270" y="140" width="90" height="40" rx="8" stroke-width="0.5"/>
+          <text class="th" x="315" y="165" text-anchor="middle" dominant-baseline="central">Worker C</text>
+        </g>
+
+        <text class="ts" x="259" y="65" text-anchor="end" opacity=".6">fan-out</text>
+        <text class="ts" x="259" y="115" text-anchor="end" opacity=".4">→</text>
+
+        <!-- Fan-in -->
+        <line x1="360" y1="60" x2="390" y2="95" stroke="var(--t)" stroke-width="1" marker-end="url(#arr2)" opacity=".4"/>
+        <line x1="360" y1="110" x2="390" y2="100" stroke="var(--t)" stroke-width="1" marker-end="url(#arr2)" opacity=".4"/>
+        <line x1="360" y1="160" x2="390" y2="105" stroke="var(--t)" stroke-width="1" marker-end="url(#arr2)" opacity=".4"/>
+
+        <text class="ts" x="373" y="135" text-anchor="start" opacity=".6">fan-in</text>
+
+        <g class="c-purple"><rect x="390" y="75" width="100" height="50" rx="8" stroke-width="0.5"/>
+          <text class="th" x="440" y="97" text-anchor="middle" dominant-baseline="central">Stage 4</text>
+          <text class="ts" x="440" y="113" text-anchor="middle" dominant-baseline="central">Aggregate</text></g>
+
+        <line x1="490" y1="100" x2="520" y2="100" stroke="var(--t)" stroke-width="1" marker-end="url(#arr2)" opacity=".5"/>
+
+        <g class="c-coral"><rect x="520" y="75" width="110" height="50" rx="8" stroke-width="0.5"/>
+          <text class="th" x="575" y="97" text-anchor="middle" dominant-baseline="central">Stage 5</text>
+          <text class="ts" x="575" y="113" text-anchor="middle" dominant-baseline="central">Sink / Output</text></g>
+      </svg>
+      <div class="diagram-caption">Hình 2 — Pipeline 5 stage với Fan-out ở stage 3 và Fan-in trước stage 4</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3 -->
+  <div class="section" id="s3">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-arrows-split-2" aria-hidden="true"></i> 3. Fan-out cơ bản <span class="badge bas">Cơ bản</span></h2>
+
+    <p>Fan-out đơn giản nhất: khởi tạo N goroutine cùng đọc từ một input channel. Go runtime tự phân phối dữ liệu theo kiểu "first come, first served".</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">fanout_basic.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// fanOut phân phối công việc từ input channel sang numWorkers goroutine.</span>
+<span class="cmt">// Mỗi goroutine xử lý độc lập và gửi kết quả vào channel riêng.</span>
+<span class="kw">func</span> <span class="fn">fanOut</span>(ctx context.Context, input &lt;-<span class="kw">chan</span> <span class="typ">int</span>, numWorkers <span class="typ">int</span>) []&lt;-<span class="kw">chan</span> <span class="typ">string</span> {
+    channels := <span class="fn">make</span>([]&lt;-<span class="kw">chan</span> <span class="typ">string</span>, numWorkers)
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; numWorkers; i++ {
+        channels[i] = <span class="fn">worker</span>(ctx, i, input)
+    }
+    <span class="kw">return</span> channels
+}
+
+<span class="cmt">// worker là một goroutine xử lý: nhận job từ input, trả kết quả qua channel.</span>
+<span class="kw">func</span> <span class="fn">worker</span>(ctx context.Context, id <span class="typ">int</span>, input &lt;-<span class="kw">chan</span> <span class="typ">int</span>) &lt;-<span class="kw">chan</span> <span class="typ">string</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">string</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out) <span class="cmt">// LUÔN close channel khi goroutine kết thúc</span>
+        <span class="kw">for</span> n := <span class="kw">range</span> input {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> <span class="cmt">// Dừng khi context bị cancel</span>
+            <span class="kw">case</span> out &lt;- fmt.<span class="fn">Sprintf</span>(<span class="str">"worker-%d xử lý: %d"</span>, id, n):
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cmt">// Tạo generator gửi số 1..10 vào channel</span>
+    input := <span class="fn">generate</span>(ctx, <span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>, <span class="num">6</span>, <span class="num">7</span>, <span class="num">8</span>, <span class="num">9</span>, <span class="num">10</span>)
+
+    <span class="cmt">// Fan-out: 3 worker cùng đọc từ input</span>
+    workerChannels := <span class="fn">fanOut</span>(ctx, input, <span class="num">3</span>)
+
+    <span class="cmt">// Thu thập kết quả từ từng channel (chưa merge — chỉ để minh họa)</span>
+    <span class="kw">var</span> wg sync.WaitGroup
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> workerChannels {
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(c &lt;-<span class="kw">chan</span> <span class="typ">string</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> result := <span class="kw">range</span> c {
+                fmt.<span class="fn">Println</span>(result)
+            }
+        }(ch)
+    }
+    wg.<span class="fn">Wait</span>()
+}
+
+<span class="kw">func</span> <span class="fn">generate</span>(ctx context.Context, nums ...<span class="typ">int</span>) &lt;-<span class="kw">chan</span> <span class="typ">int</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">int</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> _, n := <span class="kw">range</span> nums {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> out &lt;- n:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}</pre>
+    </div>
+
+    <div class="callout warn">
+      <strong>Lưu ý:</strong> Khi nhiều goroutine cùng đọc từ một channel, thứ tự nhận job là <em>không xác định</em>. Nếu cần thứ tự, xem <a href="#s8">Section 8 — Ordered Fan-in</a>.
+    </div>
+  </div>
+
+  <!-- SECTION 4 -->
+  <div class="section" id="s4">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-arrows-join-2" aria-hidden="true"></i> 4. Fan-in cơ bản <span class="badge bas">Cơ bản</span></h2>
+
+    <p>Fan-in (hay <em>merge</em>) gộp nhiều channel thành một. Mỗi input channel chạy một goroutine forward, tất cả đều ghi vào output channel. WaitGroup đảm bảo output chỉ close sau khi tất cả input đã cạn.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">fanin_basic.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="cmt">// merge gộp nhiều channel &lt;-chan T thành một channel duy nhất.</span>
+<span class="cmt">// Hàm này là trung tâm của pattern Fan-in trong Go.</span>
+<span class="kw">func</span> <span class="fn">merge</span>(ctx context.Context, channels ...&lt;-<span class="kw">chan</span> <span class="typ">string</span>) &lt;-<span class="kw">chan</span> <span class="typ">string</span> {
+    <span class="kw">var</span> wg sync.WaitGroup
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">string</span>, <span class="fn">len</span>(channels)) <span class="cmt">// buffered để tránh block</span>
+
+    <span class="cmt">// forward: goroutine chuyển dữ liệu từ một channel vào output</span>
+    forward := <span class="kw">func</span>(c &lt;-<span class="kw">chan</span> <span class="typ">string</span>) {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        <span class="kw">for</span> val := <span class="kw">range</span> c {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out &lt;- val: <span class="cmt">// ghi vào output chung</span>
+            }
+        }
+    }
+
+    wg.<span class="fn">Add</span>(<span class="fn">len</span>(channels))
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> channels {
+        <span class="kw">go</span> <span class="fn">forward</span>(ch)
+    }
+
+    <span class="cmt">// Goroutine riêng để close output khi tất cả input đã cạn</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(out)
+    }()
+
+    <span class="kw">return</span> out
+}
+
+<span class="cmt">// Sử dụng — kết hợp fan-out và fan-in thành pipeline hoàn chỉnh</span>
+<span class="kw">func</span> <span class="fn">runPipeline</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    input := <span class="fn">generate</span>(ctx, <span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>)
+
+    <span class="cmt">// Fan-out sang 3 worker</span>
+    ch1 := <span class="fn">worker</span>(ctx, <span class="num">1</span>, input)
+    ch2 := <span class="fn">worker</span>(ctx, <span class="num">2</span>, input)
+    ch3 := <span class="fn">worker</span>(ctx, <span class="num">3</span>, input)
+
+    <span class="cmt">// Fan-in: gộp kết quả từ 3 worker</span>
+    merged := <span class="fn">merge</span>(ctx, ch1, ch2, ch3)
+
+    <span class="cmt">// Consumer: xử lý kết quả gộp</span>
+    <span class="kw">for</span> result := <span class="kw">range</span> merged {
+        fmt.<span class="fn">Println</span>(result)
+    }
+}</pre>
+    </div>
+  </div>
+
+  <!-- SECTION 5 -->
+  <div class="section" id="s5">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-circuit-diode" aria-hidden="true"></i> 5. Pipeline kết hợp Fan-out + Fan-in <span class="badge adv">Nâng cao</span></h2>
+
+    <p>Pattern đầy đủ: nhiều stage xử lý nối tiếp, với fan-out ở stage CPU-intensive và fan-in trước stage tiếp theo. Mỗi stage là một hàm trả về <code>&lt;-chan T</code>.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">pipeline_full.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"math"</span>
+    <span class="str">"runtime"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// ---- Stage 1: Generator ----</span>
+
+<span class="kw">func</span> <span class="fn">generateRange</span>(ctx context.Context, start, end <span class="typ">int</span>) &lt;-<span class="kw">chan</span> <span class="typ">float64</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">float64</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> i := start; i &lt; end; i++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> out &lt;- <span class="typ">float64</span>(i):
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cmt">// ---- Stage 2: Transform (CPU-bound, sẽ fan-out) ----</span>
+
+<span class="cmt">// computeHeavy mô phỏng tác vụ CPU nặng</span>
+<span class="kw">func</span> <span class="fn">computeHeavy</span>(ctx context.Context, in &lt;-<span class="kw">chan</span> <span class="typ">float64</span>) &lt;-<span class="kw">chan</span> <span class="typ">float64</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">float64</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> n := <span class="kw">range</span> in {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> out &lt;- math.<span class="fn">Sqrt</span>(n) * math.<span class="fn">Log</span>(n+<span class="num">1</span>):
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cmt">// ---- Fan-in (merge) ----</span>
+
+<span class="kw">func</span> <span class="fn">mergeFloat</span>(ctx context.Context, chs ...&lt;-<span class="kw">chan</span> <span class="typ">float64</span>) &lt;-<span class="kw">chan</span> <span class="typ">float64</span> {
+    <span class="kw">var</span> wg sync.WaitGroup
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">float64</span>, <span class="fn">len</span>(chs)*<span class="num">2</span>)
+    wg.<span class="fn">Add</span>(<span class="fn">len</span>(chs))
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> chs {
+        <span class="kw">go</span> <span class="kw">func</span>(c &lt;-<span class="kw">chan</span> <span class="typ">float64</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> v := <span class="kw">range</span> c {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">case</span> out &lt;- v:
+                }
+            }
+        }(ch)
+    }
+    <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(out) }()
+    <span class="kw">return</span> out
+}
+
+<span class="cmt">// ---- Stage 3: Sink ----</span>
+
+<span class="kw">func</span> <span class="fn">sum</span>(ctx context.Context, in &lt;-<span class="kw">chan</span> <span class="typ">float64</span>) <span class="typ">float64</span> {
+    <span class="kw">var</span> total <span class="typ">float64</span>
+    <span class="kw">for</span> v := <span class="kw">range</span> in {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span> total
+        <span class="kw">default</span>: total += v
+        }
+    }
+    <span class="kw">return</span> total
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cmt">// Stage 1: tạo dữ liệu</span>
+    numbers := <span class="fn">generateRange</span>(ctx, <span class="num">1</span>, <span class="num">1000</span>)
+
+    <span class="cmt">// Stage 2: fan-out sang runtime.NumCPU() worker</span>
+    numCPU := runtime.<span class="fn">NumCPU</span>()
+    workers := <span class="fn">make</span>([]&lt;-<span class="kw">chan</span> <span class="typ">float64</span>, numCPU)
+    <span class="kw">for</span> i := <span class="kw">range</span> workers {
+        workers[i] = <span class="fn">computeHeavy</span>(ctx, numbers)
+    }
+
+    <span class="cmt">// Fan-in: gộp kết quả</span>
+    merged := <span class="fn">mergeFloat</span>(ctx, workers...)
+
+    <span class="cmt">// Stage 3: tính tổng</span>
+    total := <span class="fn">sum</span>(ctx, merged)
+    fmt.<span class="fn">Printf</span>(<span class="str">"Tổng = %.4f (dùng %d CPU)\n"</span>, total, numCPU)
+}</pre>
+    </div>
+
+    <div class="callout success">
+      <strong>Best practice:</strong> Số worker tối ưu cho CPU-bound tasks thường là <code>runtime.NumCPU()</code>. Với I/O-bound, có thể tăng lên gấp 10-20 lần mà không sợ thrashing.
+    </div>
+  </div>
+
+  <!-- SECTION 6 -->
+  <div class="section" id="s6">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-adjustments-horizontal" aria-hidden="true"></i> 6. Bounded Fan-out — Kiểm soát concurrency <span class="badge adv">Nâng cao</span></h2>
+
+    <p>Worker Pool là cách fan-out có kiểm soát: thay vì tạo goroutine cho mỗi job, ta tạo N goroutine cố định và để chúng cạnh tranh nhận job từ channel chung.</p>
+
+    <div class="diagram-wrap">
+      <svg width="100%" viewBox="0 0 680 250" role="img">
+        <title>Bounded Fan-out — Worker Pool</title>
+        <desc>Job channel phân phối công việc cho pool N worker cố định</desc>
+        <defs>
+          <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+
+        <!-- Job queue -->
+        <g class="c-teal">
+          <rect x="20" y="95" width="120" height="60" rx="10" stroke-width="0.5"/>
+          <text class="th" x="80" y="118" text-anchor="middle" dominant-baseline="central">Job Queue</text>
+          <text class="ts" x="80" y="138" text-anchor="middle" dominant-baseline="central">chan Job (buffered)</text>
+        </g>
+
+        <!-- Arrow to semaphore -->
+        <line x1="140" y1="125" x2="175" y2="125" stroke="var(--t)" stroke-width="1" marker-end="url(#arr3)" opacity=".5"/>
+
+        <!-- Worker pool container -->
+        <rect x="175" y="30" width="280" height="190" rx="12" fill="none" stroke="var(--t)" stroke-width="0.5" stroke-dasharray="5 3" opacity=".35"/>
+        <text class="ts" x="315" y="50" text-anchor="middle" opacity=".5">Worker Pool (N = 5)</text>
+
+        <!-- Workers inside pool -->
+        <g class="c-amber">
+          <rect x="195" y="58" width="100" height="36" rx="8" stroke-width="0.5"/>
+          <text class="th" x="245" y="80" text-anchor="middle" dominant-baseline="central">Worker 1</text>
+        </g>
+        <g class="c-amber">
+          <rect x="195" y="103" width="100" height="36" rx="8" stroke-width="0.5"/>
+          <text class="th" x="245" y="125" text-anchor="middle" dominant-baseline="central">Worker 2</text>
+        </g>
+        <g class="c-amber">
+          <rect x="195" y="148" width="100" height="36" rx="8" stroke-width="0.5"/>
+          <text class="th" x="245" y="170" text-anchor="middle" dominant-baseline="central">Worker 3</text>
+        </g>
+        <g class="c-gray">
+          <rect x="325" y="80" width="100" height="36" rx="8" stroke-width="0.5"/>
+          <text class="th" x="375" y="102" text-anchor="middle" dominant-baseline="central">Worker 4 (idle)</text>
+        </g>
+        <g class="c-gray">
+          <rect x="325" y="125" width="100" height="36" rx="8" stroke-width="0.5"/>
+          <text class="th" x="375" y="147" text-anchor="middle" dominant-baseline="central">Worker 5 (idle)</text>
+        </g>
+
+        <!-- Results channel -->
+        <line x1="455" y1="125" x2="490" y2="125" stroke="var(--t)" stroke-width="1" marker-end="url(#arr3)" opacity=".5"/>
+
+        <g class="c-purple">
+          <rect x="490" y="95" width="120" height="60" rx="10" stroke-width="0.5"/>
+          <text class="th" x="550" y="118" text-anchor="middle" dominant-baseline="central">Results</text>
+          <text class="ts" x="550" y="138" text-anchor="middle" dominant-baseline="central">chan Result</text>
+        </g>
+
+        <!-- sync.WaitGroup indicator -->
+        <text class="ts" x="315" y="218" text-anchor="middle" opacity=".5">sync.WaitGroup đảm bảo close(results) đúng lúc</text>
+      </svg>
+      <div class="diagram-caption">Hình 3 — Worker Pool: N goroutine cố định cạnh tranh lấy job từ channel chung</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">worker_pool.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="typ">Job</span> <span class="kw">struct</span> {
+    ID   <span class="typ">int</span>
+    Data <span class="typ">string</span>
+}
+
+<span class="kw">type</span> <span class="typ">Result</span> <span class="kw">struct</span> {
+    JobID   <span class="typ">int</span>
+    Output  <span class="typ">string</span>
+    Err     <span class="typ">error</span>
+    Worker  <span class="typ">int</span>
+}
+
+<span class="cmt">// WorkerPool tạo numWorkers goroutine cố định,</span>
+<span class="cmt">// mỗi goroutine đọc job từ jobs channel và trả về Result.</span>
+<span class="kw">func</span> <span class="fn">WorkerPool</span>(
+    ctx context.Context,
+    numWorkers <span class="typ">int</span>,
+    jobs &lt;-<span class="kw">chan</span> <span class="typ">Job</span>,
+    process <span class="kw">func</span>(<span class="typ">Job</span>) (<span class="typ">string</span>, <span class="typ">error</span>),
+) &lt;-<span class="kw">chan</span> <span class="typ">Result</span> {
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">Result</span>, numWorkers)
+
+    <span class="kw">var</span> wg sync.WaitGroup
+    wg.<span class="fn">Add</span>(numWorkers)
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; numWorkers; i++ {
+        workerID := i
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+
+            <span class="kw">for</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+
+                <span class="kw">case</span> job, ok := &lt;-jobs:
+                    <span class="kw">if</span> !ok {
+                        <span class="kw">return</span> <span class="cmt">// channel đóng → worker dừng</span>
+                    }
+                    output, err := <span class="fn">process</span>(job)
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> results &lt;- <span class="typ">Result</span>{
+                        JobID:  job.ID,
+                        Output: output,
+                        Err:    err,
+                        Worker: workerID,
+                    }:
+                    <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+                        <span class="kw">return</span>
+                    }
+                }
+            }
+        }()
+    }
+
+    <span class="cmt">// Close results khi tất cả worker đã dừng</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(results)
+    }()
+
+    <span class="kw">return</span> results
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">10</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">Job</span>, <span class="num">100</span>)
+
+    <span class="cmt">// Gửi 50 job vào channel</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">50</span>; i++ {
+            jobs &lt;- <span class="typ">Job</span>{ID: i, Data: fmt.<span class="fn">Sprintf</span>(<span class="str">"task-%d"</span>, i)}
+        }
+        <span class="fn">close</span>(jobs)
+    }()
+
+    <span class="cmt">// Hàm xử lý (mô phỏng I/O latency)</span>
+    processJob := <span class="kw">func</span>(j <span class="typ">Job</span>) (<span class="typ">string</span>, <span class="typ">error</span>) {
+        time.<span class="fn">Sleep</span>(<span class="num">50</span> * time.Millisecond)
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"✓ %s"</span>, j.Data), <span class="kw">nil</span>
+    }
+
+    <span class="cmt">// Chạy pool 5 worker</span>
+    results := <span class="fn">WorkerPool</span>(ctx, <span class="num">5</span>, jobs, processJob)
+
+    <span class="kw">var</span> count <span class="typ">int</span>
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err != <span class="kw">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="str">"[worker-%d] LỖI job %d: %v\n"</span>, r.Worker, r.JobID, r.Err)
+        } <span class="kw">else</span> {
+            count++
+        }
+    }
+    fmt.<span class="fn">Printf</span>(<span class="str">"Hoàn thành %d job\n"</span>, count)
+}</pre>
+    </div>
+  </div>
+
+  <!-- SECTION 7 -->
+  <div class="section" id="s7">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-transform" aria-hidden="true"></i> 7. Dynamic Fan-out — Số worker linh hoạt <span class="badge adv">Nâng cao</span></h2>
+
+    <p>Đôi khi số worker cần được điều chỉnh theo tải. Pattern này dùng semaphore (channel) để giới hạn concurrency mà không cần biết trước số lượng.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">dynamic_fanout.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+)
+
+<span class="cmt">// Semaphore dựa trên channel — giới hạn số goroutine đồng thời</span>
+<span class="kw">type</span> <span class="typ">Semaphore</span> <span class="kw">chan</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> <span class="fn">NewSemaphore</span>(n <span class="typ">int</span>) <span class="typ">Semaphore</span> { <span class="kw">return</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, n) }
+
+<span class="kw">func</span> (s <span class="typ">Semaphore</span>) <span class="fn">Acquire</span>(ctx context.Context) <span class="typ">error</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> s &lt;- <span class="kw">struct</span>{}{}:
+        <span class="kw">return</span> <span class="kw">nil</span>
+    <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> ctx.<span class="fn">Err</span>()
+    }
+}
+<span class="kw">func</span> (s <span class="typ">Semaphore</span>) <span class="fn">Release</span>() { &lt;-s }
+
+<span class="cmt">// DynamicFanOut khởi tạo goroutine mới cho mỗi item nhưng giới hạn</span>
+<span class="cmt">// bằng semaphore — phù hợp khi số job không biết trước.</span>
+<span class="kw">func</span> <span class="fn">DynamicFanOut</span>[T, R any](
+    ctx context.Context,
+    items []T,
+    maxConcurrency <span class="typ">int</span>,
+    process <span class="kw">func</span>(context.Context, T) (R, <span class="typ">error</span>),
+) ([]R, []<span class="typ">error</span>) {
+    sem := <span class="fn">NewSemaphore</span>(maxConcurrency)
+    results := <span class="fn">make</span>([]R, <span class="fn">len</span>(items))
+    errors  := <span class="fn">make</span>([]<span class="typ">error</span>, <span class="fn">len</span>(items))
+
+    <span class="kw">var</span> wg sync.WaitGroup
+    <span class="kw">var</span> errCount atomic.<span class="typ">Int32</span>
+
+    <span class="kw">for</span> i, item := <span class="kw">range</span> items {
+        <span class="kw">if</span> err := sem.<span class="fn">Acquire</span>(ctx); err != <span class="kw">nil</span> {
+            errors[i] = err
+            errCount.<span class="fn">Add</span>(<span class="num">1</span>)
+            <span class="kw">continue</span>
+        }
+
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(idx <span class="typ">int</span>, it T) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">defer</span> sem.<span class="fn">Release</span>()
+
+            result, err := <span class="fn">process</span>(ctx, it)
+            results[idx] = result
+            errors[idx]  = err
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                errCount.<span class="fn">Add</span>(<span class="num">1</span>)
+            }
+        }(i, item)
+    }
+
+    wg.<span class="fn">Wait</span>()
+
+    <span class="kw">if</span> errCount.<span class="fn">Load</span>() == <span class="num">0</span> {
+        <span class="kw">return</span> results, <span class="kw">nil</span>
+    }
+    <span class="kw">return</span> results, errors
+}
+
+<span class="cmt">// Ví dụ: fetch nhiều URL song song, tối đa 10 goroutine</span>
+<span class="kw">func</span> <span class="fn">exampleFetch</span>() {
+    urls := []<span class="typ">string</span>{
+        <span class="str">"https://api.example.com/user/1"</span>,
+        <span class="str">"https://api.example.com/user/2"</span>,
+        <span class="cmt">// ... hàng trăm URL</span>
+    }
+
+    ctx := context.<span class="fn">Background</span>()
+    results, errs := <span class="fn">DynamicFanOut</span>(ctx, urls, <span class="num">10</span>,
+        <span class="kw">func</span>(ctx context.Context, url <span class="typ">string</span>) (<span class="typ">string</span>, <span class="typ">error</span>) {
+            <span class="cmt">// Thực tế: dùng http.NewRequestWithContext</span>
+            <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"response from %s"</span>, url), <span class="kw">nil</span>
+        },
+    )
+    fmt.<span class="fn">Println</span>(results, errs)
+}</pre>
+    </div>
+
+    <div class="callout info">
+      <strong>Go 1.18+ Generics:</strong> Hàm <code>DynamicFanOut[T, R any]</code> dùng generics để hoạt động với mọi kiểu dữ liệu mà không cần type assertion.
+    </div>
+  </div>
+
+  <!-- SECTION 8 -->
+  <div class="section" id="s8">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-sort-ascending-numbers" aria-hidden="true"></i> 8. Ordered Fan-in — Giữ thứ tự kết quả <span class="badge exp">Expert</span></h2>
+
+    <p>Fan-in thông thường không giữ thứ tự. Khi kết quả cần khớp với thứ tự input (ví dụ: transform từng dòng file CSV), dùng pattern <em>indexed result</em> + sắp xếp.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">ordered_fanin.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"sort"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="kw">type</span> <span class="typ">IndexedResult</span>[T any] <span class="kw">struct</span> {
+    Index  <span class="typ">int</span>
+    Value  T
+    Err    <span class="typ">error</span>
+}
+
+<span class="cmt">// OrderedFanOut xử lý items song song nhưng trả kết quả theo đúng thứ tự.</span>
+<span class="cmt">// Mỗi goroutine đính kèm index vào result để sắp xếp sau.</span>
+<span class="kw">func</span> <span class="fn">OrderedFanOut</span>[T, R any](
+    ctx context.Context,
+    items []T,
+    maxConcurrency <span class="typ">int</span>,
+    process <span class="kw">func</span>(context.Context, T) (R, <span class="typ">error</span>),
+) ([]R, <span class="typ">error</span>) {
+    sem     := <span class="fn">NewSemaphore</span>(maxConcurrency)
+    resultCh := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">IndexedResult</span>[R], <span class="fn">len</span>(items))
+
+    <span class="kw">var</span> wg sync.WaitGroup
+
+    <span class="kw">for</span> i, item := <span class="kw">range</span> items {
+        <span class="kw">if</span> err := sem.<span class="fn">Acquire</span>(ctx); err != <span class="kw">nil</span> {
+            <span class="kw">break</span>
+        }
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(idx <span class="typ">int</span>, it T) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">defer</span> sem.<span class="fn">Release</span>()
+
+            val, err := <span class="fn">process</span>(ctx, it)
+            resultCh &lt;- <span class="typ">IndexedResult</span>[R]{Index: idx, Value: val, Err: err}
+        }(i, item)
+    }
+
+    <span class="cmt">// Đóng channel sau khi tất cả worker xong</span>
+    <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(resultCh) }()
+
+    <span class="cmt">// Thu thập tất cả kết quả</span>
+    raw := <span class="fn">make</span>([]<span class="typ">IndexedResult</span>[R], <span class="num">0</span>, <span class="fn">len</span>(items))
+    <span class="kw">for</span> r := <span class="kw">range</span> resultCh {
+        <span class="kw">if</span> r.Err != <span class="kw">nil</span> {
+            <span class="kw">return</span> <span class="kw">nil</span>, r.Err
+        }
+        raw = <span class="fn">append</span>(raw, r)
+    }
+
+    <span class="cmt">// Sắp xếp theo Index để khôi phục thứ tự gốc</span>
+    sort.<span class="fn">Slice</span>(raw, <span class="kw">func</span>(i, j <span class="typ">int</span>) <span class="typ">bool</span> {
+        <span class="kw">return</span> raw[i].Index &lt; raw[j].Index
+    })
+
+    results := <span class="fn">make</span>([]R, <span class="fn">len</span>(raw))
+    <span class="kw">for</span> i, r := <span class="kw">range</span> raw {
+        results[i] = r.Value
+    }
+    <span class="kw">return</span> results, <span class="kw">nil</span>
+}</pre>
+    </div>
+
+    <h3>Variant: Ordered fan-in với heap (streaming)</h3>
+    <p>Nếu danh sách quá lớn để thu thập toàn bộ vào memory, dùng min-heap để emit theo thứ tự ngay khi có kết quả.</p>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">heap_ordered_fanin.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">import</span> <span class="str">"container/heap"</span>
+
+<span class="cmt">// resultHeap là min-heap theo Index</span>
+<span class="kw">type</span> <span class="typ">resultHeap</span> []<span class="typ">IndexedResult</span>[<span class="typ">string</span>]
+
+<span class="kw">func</span> (h <span class="typ">resultHeap</span>) <span class="fn">Len</span>() <span class="typ">int</span>            { <span class="kw">return</span> <span class="fn">len</span>(h) }
+<span class="kw">func</span> (h <span class="typ">resultHeap</span>) <span class="fn">Less</span>(i, j <span class="typ">int</span>) <span class="typ">bool</span> { <span class="kw">return</span> h[i].Index &lt; h[j].Index }
+<span class="kw">func</span> (h <span class="typ">resultHeap</span>) <span class="fn">Swap</span>(i, j <span class="typ">int</span>)      { h[i], h[j] = h[j], h[i] }
+<span class="kw">func</span> (h *<span class="typ">resultHeap</span>) <span class="fn">Push</span>(x <span class="kw">any</span>)        { *h = <span class="fn">append</span>(*h, x.(<span class="typ">IndexedResult</span>[<span class="typ">string</span>])) }
+<span class="kw">func</span> (h *<span class="typ">resultHeap</span>) <span class="fn">Pop</span>() <span class="kw">any</span> {
+    old := *h; n := <span class="fn">len</span>(old)
+    x := old[n-<span class="num">1</span>]; *h = old[:n-<span class="num">1</span>]
+    <span class="kw">return</span> x
+}
+
+<span class="cmt">// OrderedFanInStreaming emit kết quả đúng thứ tự qua out channel</span>
+<span class="kw">func</span> <span class="fn">OrderedFanInStreaming</span>(
+    resultCh &lt;-<span class="kw">chan</span> <span class="typ">IndexedResult</span>[<span class="typ">string</span>],
+    total <span class="typ">int</span>,
+) &lt;-<span class="kw">chan</span> <span class="typ">string</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">string</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        h    := &amp;<span class="typ">resultHeap</span>{}
+        next := <span class="num">0</span>
+
+        <span class="kw">for</span> r := <span class="kw">range</span> resultCh {
+            heap.<span class="fn">Push</span>(h, r)
+            <span class="cmt">// Emit liên tục khi top of heap là item tiếp theo cần gửi</span>
+            <span class="kw">for</span> h.<span class="fn">Len</span>() &gt; <span class="num">0</span> &amp;&amp; (*h)[<span class="num">0</span>].Index == next {
+                out &lt;- heap.<span class="fn">Pop</span>(h).(<span class="typ">IndexedResult</span>[<span class="typ">string</span>]).Value
+                next++
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}</pre>
+    </div>
+  </div>
+
+  <!-- SECTION 9 -->
+  <div class="section" id="s9">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-alert-triangle" aria-hidden="true"></i> 9. Error-aware Pipeline với errgroup <span class="badge exp">Expert</span></h2>
+
+    <p><code>golang.org/x/sync/errgroup</code> là công cụ chuẩn cho fan-out cần xử lý lỗi: khi một goroutine trả về error, toàn bộ context bị cancel và các goroutine còn lại dừng lại.</p>
+
+    <div class="diagram-wrap">
+      <svg width="100%" viewBox="0 0 680 200" role="img">
+        <title>Luồng xử lý lỗi với errgroup</title>
+        <desc>Khi một worker gặp lỗi, context cancel lan truyền đến tất cả worker</desc>
+        <defs>
+          <marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </marker>
+        </defs>
+        <g class="c-teal"><rect x="20" y="80" width="100" height="44" rx="8" stroke-width="0.5"/>
+          <text class="th" x="70" y="106" text-anchor="middle" dominant-baseline="central">errgroup</text></g>
+        <line x1="120" y1="102" x2="150" y2="65" stroke="var(--t)" stroke-width="1" marker-end="url(#arr4)" opacity=".5"/>
+        <line x1="120" y1="102" x2="150" y2="102" stroke="var(--t)" stroke-width="1" marker-end="url(#arr4)" opacity=".5"/>
+        <line x1="120" y1="102" x2="150" y2="139" stroke="var(--t)" stroke-width="1" marker-end="url(#arr4)" opacity=".5"/>
+        <g class="c-amber"><rect x="150" y="42" width="110" height="44" rx="8" stroke-width="0.5"/>
+          <text class="th" x="205" y="68" text-anchor="middle" dominant-baseline="central">Worker A (ok)</text></g>
+        <g class="c-red"><rect x="150" y="80" width="110" height="44" rx="8" stroke-width="0.5"/>
+          <text class="th" x="205" y="98" text-anchor="middle" dominant-baseline="central">Worker B ✗ error</text>
+          <text class="ts" x="205" y="114" text-anchor="middle" dominant-baseline="central">trả lỗi đầu tiên</text></g>
+        <g class="c-gray"><rect x="150" y="118" width="110" height="44" rx="8" stroke-width="0.5"/>
+          <text class="th" x="205" y="144" text-anchor="middle" dominant-baseline="central">Worker C (idle)</text></g>
+
+        <!-- cancel arrow -->
+        <line x1="260" y1="102" x2="360" y2="102" stroke="#E24B4A" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arr4)" opacity=".7"/>
+        <text class="ts" x="310" y="95" text-anchor="middle" opacity=".8" style="fill:#E24B4A">ctx.Cancel()</text>
+
+        <g class="c-gray"><rect x="360" y="80" width="130" height="44" rx="8" stroke-width="0.5"/>
+          <text class="th" x="425" y="106" text-anchor="middle" dominant-baseline="central">All goroutines stop</text></g>
+
+        <line x1="490" y1="102" x2="540" y2="102" stroke="var(--t)" stroke-width="1" marker-end="url(#arr4)" opacity=".4"/>
+        <g class="c-purple"><rect x="540" y="80" width="120" height="44" rx="8" stroke-width="0.5"/>
+          <text class="th" x="600" y="98" text-anchor="middle" dominant-baseline="central">g.Wait()</text>
+          <text class="ts" x="600" y="114" text-anchor="middle" dominant-baseline="central">trả về error đầu tiên</text></g>
+      </svg>
+      <div class="diagram-caption">Hình 4 — errgroup: một goroutine lỗi → cancel context → tất cả dừng → g.Wait() trả error</div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">errgroup_pipeline.go</span><button class="copy-btn" onclick="copyCode(this)">Copy</button></div>
+      <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"net/http"</span>
+
+    <span class="str">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">type</span> <span class="typ">FetchResult</span> <span class="kw">struct</span> {
+    URL    <span class="typ">string</span>
+    Status <span class="typ">int</span>
+}
+
+<span class="cmt">// FetchAll fetch nhiều URL song song với giới hạn concurrency.</span>
+<span class="cmt">// Nếu bất kỳ request nào lỗi, tất cả bị cancel ngay lập tức.</span>
+<span class="kw">func</span> <span class="fn">FetchAll</span>(ctx context.Context, urls []<span class="typ">string</span>, limit <span class="typ">int</span>) ([]<span class="typ">FetchResult</span>, <span class="typ">error</span>) {
+    g, gCtx := errgroup.<span class="fn">WithContext</span>(ctx)
+    g.<span class="fn">SetLimit</span>(limit) <span class="cmt">// Go 1.20+: giới hạn số goroutine đồng thời</span>
+
+    results := <span class="fn">make</span>([]<span class="typ">FetchResult</span>, <span class="fn">len</span>(urls))
+
+    <span class="kw">for</span> i, url := <span class="kw">range</span> urls {
+        i, url := i, url <span class="cmt">// capture loop variable (bắt buộc trước Go 1.22)</span>
+
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="typ">error</span> {
+            req, err := http.<span class="fn">NewRequestWithContext</span>(gCtx, http.MethodGet, url, <span class="kw">nil</span>)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"tạo request %s: %w"</span>, url, err)
+            }
+
+            resp, err := http.DefaultClient.<span class="fn">Do</span>(req)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"fetch %s: %w"</span>, url, err)
+            }
+            <span class="kw">defer</span> resp.Body.<span class="fn">Close</span>()
+
+            results[i] = <span class="typ">FetchResult</span>{URL: url, Status: resp.StatusCode}
+            <span class="kw">return</span> <span class="kw">nil</span>
+        })
+    }
+
+    <span class="cmt">// Wait chờ tất cả goroutine, trả về error đầu tiên gặp phải</span>
+    <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, err
+    }
+    <span class="kw">return</span> results, <span class="kw">nil</span>
+}
+
+<span class="cmt">// ---- Expert variant: pipeline với error propagation qua channel ----</span>
+
+<span class="kw">type</span> <span class="typ">PipelineResult</span>[T any] <span class="kw">struct</span> {
+    Value T
+    Err   <span class="typ">error</span>
+}
+
+<span class="cmt">// ErrorPipeline: fan-out với lỗi được truyền qua channel thay vì cancel ngay.</span>
+<span class="cmt">// Consumer quyết định cách xử lý: bỏ qua, log, hoặc abort.</span>
+<span class="kw">func</span> <span class="fn">ErrorPipeline</span>[T, R any](
+    ctx context.Context,
+    items &lt;-<span class="kw">chan</span> T,
+    numWorkers <span class="typ">int</span>,
+    process <span class="kw">func</span>(context.Context, T) (R, <span class="typ">error</span>),
+) &lt;-<span class="kw">chan</span> <span class="typ">PipelineResult</span>[R] {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">PipelineResult</span>[R], numWorkers)
+
+    <span class="kw">var</span> wg sync.WaitGroup
+    wg.<span class="fn">Add</span>(numWorkers)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; numWorkers; i++ {
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> item := <span class="kw">range</span> items {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">default</span>:
+                    val, err := <span class="fn">process</span>(ctx, item)
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> out &lt;- <span class="typ">PipelineResult</span>[R]{Value: val, Err: err}:
+                    <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                    }
+                }
+            }
+        }()
+    }
+    <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(out) }()
+    <span class="kw">return</span> out
+}</pre>
+    </div>
+
+    <div class="callout success">
+      <strong>errgroup vs WaitGroup:</strong> Dùng <code>errgroup</code> khi bất kỳ goroutine nào lỗi thì cần hủy tất cả. Dùng <code>WaitGroup</code> khi muốn thu thập <em>tất cả</em> lỗi rồi xử lý sau.
+    </div>
+  </div>
+
+  <!-- SECTION 10 -->
+  <div class="section" id="s10">
+    <span class="section-anchor"></span>
+    <h2><i class="ti ti-chart-bar" aria-hidden="true"></i> 10. Benchmark & Anti-patterns</h2>
+
+    <h3>Hiệu năng tương đối</h3>
+    <div style="margin:1rem 0 1.5rem">
+      <div class="perf-meter"><span class="perf-label">Sequential (baseline)</span><div class="perf-bar-bg"><div class="perf-bar" style="width:15%;background:#9FE1CB"></div></div><span class="perf-val">1×</span></div>
+      <div class="perf-meter"><span class="perf-label">Fan-out (2 worker)</span><div class="perf-bar-bg"><div class="perf-bar" style="width:28%;background:#5DCAA5"></div></div><span class="perf-val">~1.8×</span></div>
+      <div class="perf-meter"><span class="perf-label">Fan-out (NumCPU)</span><div class="perf-bar-bg"><div class="perf-bar" style="width:55%;background:#1D9E75"></div></div><span class="perf-val">~3.5×</span></div>
+      <div class="perf-meter"><span class="perf-label">Worker Pool (bounded)</span><div class="perf-bar-bg"><div class="perf-bar" style="width:75%;background:#0F6E56"></div></div><span class="perf-val">~5×</span></div>
+      <div class="perf-meter"><span class="perf-label">errgroup (I/O bound)</span><div class="perf-bar-bg"><div class="perf-bar" style="width:100%;background:#085041"></div></div><span class="perf-val">~10×</span></div>
+    </div>
+    <p style="font-size:12px;color:var(--color-text-tertiary);margin-top:-.5rem">* Số liệu mang tính minh họa. Kết quả thực tế phụ thuộc vào workload và phần cứng.</p>
+
+    <h3>Checklist Anti-patterns <span class="badge exp">Expert</span></h3>
+
+    <table class="comparison-table">
+      <thead><tr><th>Anti-pattern</th><th>Vấn đề</th><th>Cách khắc phục</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>go func() {}</code> không có exit path</td>
+          <td>Goroutine leak — tồn tại mãi mãi, rò rỉ memory</td>
+          <td>Luôn có <code>ctx.Done()</code> hoặc channel close để thoát</td>
+        </tr>
+        <tr>
+          <td>Close channel từ phía receiver</td>
+          <td>Panic nếu sender vẫn đang ghi</td>
+          <td>Chỉ close từ phía sender; dùng <code>sync.Once</code> nếu cần</td>
+        </tr>
+        <tr>
+          <td>Fan-out không giới hạn (1 goroutine/item)</td>
+          <td>Khi có triệu item → hết RAM, context switching overhead</td>
+          <td>Dùng Worker Pool hoặc Semaphore để giới hạn</td>
+        </tr>
+        <tr>
+          <td>Bỏ qua <code>ctx.Done()</code> trong select</td>
+          <td>Goroutine không dừng khi context cancel → leak</td>
+          <td>Mọi <code>select</code> trong goroutine đều phải có case <code>ctx.Done()</code></td>
+        </tr>
+        <tr>
+          <td>Dùng <code>time.Sleep</code> để đồng bộ</td>
+          <td>Race condition nếu sleep quá ngắn, lãng phí nếu quá dài</td>
+          <td>Dùng <code>WaitGroup</code>, <code>errgroup</code>, hoặc channel để sync</td>
+        </tr>
+        <tr>
+          <td>Shared mutable state không có mutex</td>
+          <td>Data race — undefined behavior</td>
+          <td>Dùng <code>sync.Mutex</code>, <code>sync/atomic</code>, hoặc channel</td>
+        </tr>
+        <tr>
+          <td>Unbuffered channel + single goroutine sender/receiver</td>
+          <td>Deadlock nếu logic không khớp</td>
+          <td>Dùng buffered channel hoặc tách sender vào goroutine riêng</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Phát hiện lỗi với Race Detector</h3>
+    <div class="code-block">
+      <div class="code-header"><span class="code-filename">terminal</span></div>
+      <pre><span class="cmt"># Chạy test với race detector</span>
+go test -race ./...
+
+<span class="cmt"># Build với race detector</span>
+go build -race .
+
+<span class="cmt"># Chạy trực tiếp</span>
+go run -race main.go
+
+<span class="cmt"># Benchmark với profiling</span>
+go test -bench=. -benchmem -cpuprofile=cpu.prof ./...
+go tool pprof cpu.prof</pre>
+    </div>
+
+    <h3>Tóm tắt quyết định</h3>
+    <div class="concept-grid">
+      <div class="concept-card">
+        <div class="icon" style="color:var(--color-text-success)"><i class="ti ti-check" aria-hidden="true"></i></div>
+        <h4>Dùng Fan-out khi</h4>
+        <p>Cần xử lý song song nhiều item độc lập. Số lượng worker biết trước. Tác vụ I/O hoặc CPU-bound rõ ràng.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon" style="color:var(--color-text-success)"><i class="ti ti-check" aria-hidden="true"></i></div>
+        <h4>Dùng Worker Pool khi</h4>
+        <p>Tổng số job lớn/không biết trước. Cần kiểm soát memory và CPU. Tác vụ có thể xử lý theo lô.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon" style="color:var(--color-text-success)"><i class="ti ti-check" aria-hidden="true"></i></div>
+        <h4>Dùng errgroup khi</h4>
+        <p>Cần fail-fast: một lỗi hủy tất cả. Tất cả kết quả đều cần thiết (all-or-nothing). Timeout toàn bộ operation.</p>
+      </div>
+      <div class="concept-card">
+        <div class="icon" style="color:var(--color-text-warning)"><i class="ti ti-alert-triangle" aria-hidden="true"></i></div>
+        <h4>Tránh khi</h4>
+        <p>Tác vụ quá nhỏ (overhead goroutine &gt; lợi ích). Cần thứ tự nghiêm ngặt mà không track index. Dữ liệu chia sẻ phức tạp.</p>
+      </div>
+    </div>
+
+    <hr>
+    <p style="font-size:13px;color:var(--color-text-tertiary);text-align:center;margin:0">
+      <i class="ti ti-brand-golang" aria-hidden="true"></i> &nbsp;Go Fan-in / Fan-out Guide — Advanced to Expert &nbsp;·&nbsp; v2025 &nbsp;·&nbsp; Ngôn ngữ: Tiếng Việt
+    </p>
+  </div>
+</div>
+
+<script>
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1800);
+  });
+}
+</script>
