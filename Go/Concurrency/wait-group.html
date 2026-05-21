@@ -2638,6 +2638,21 @@ function updateProgress() {
 
 // Init
 renderChecklist();
+
+// Smooth scroll for Table of Contents and Navigation Links
+document.querySelectorAll('.nav-links a, .toc-pill a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const href = a.getAttribute('href');
+    if (href === '#') return;
+    const target = document.querySelector(href);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Update browser hash cleanly
+      history.pushState(null, null, href);
+    }
+  });
+});
 </script>
 </body>
 </html>

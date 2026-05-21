@@ -2064,6 +2064,8 @@
   let sendCount = 0;
   const maxLog = 30;
   let logEntries = [];
+  let senderWaiting = []; // Hàng đợi các giá trị của sender bị block (unbuffered)
+  let receiverWaitingCount = 0; // Số lượng receiver đang block chờ (unbuffered)
 
   function renderSlots() {
     const container = document.getElementById('demo-slots');
@@ -2079,12 +2081,36 @@
       }
       lenCap.textContent = `len=${buffer.length}, cap=${capacity}`;
     } else {
-      const slot = document.createElement('div');
-      slot.className = 'demo-slot';
-      slot.textContent = '∅';
-      slot.title = 'Unbuffered: no storage';
-      container.appendChild(slot);
-      lenCap.textContent = 'len=0, cap=0';
+      // Unbuffered Rendezvous visualization
+      if (senderWaiting.length > 0) {
+        senderWaiting.forEach(val => {
+          const slot = document.createElement('div');
+          slot.className = 'demo-slot has-val';
+          slot.style.borderColor = 'var(--red)';
+          slot.textContent = `⚡${val}`;
+          slot.title = `Sender bị block khi đang gửi giá trị ${val}`;
+          container.appendChild(slot);
+        });
+        lenCap.textContent = `blocked senders = ${senderWaiting.length}`;
+      } else if (receiverWaitingCount > 0) {
+        for (let i = 0; i < receiverWaitingCount; i++) {
+          const slot = document.createElement('div');
+          slot.className = 'demo-slot';
+          slot.style.borderStyle = 'dashed';
+          slot.style.borderColor = 'var(--blue)';
+          slot.textContent = '?';
+          slot.title = `Receiver bị block chờ dữ liệu`;
+          container.appendChild(slot);
+        }
+        lenCap.textContent = `blocked receivers = ${receiverWaitingCount}`;
+      } else {
+        const slot = document.createElement('div');
+        slot.className = 'demo-slot';
+        slot.textContent = '∅';
+        slot.title = 'Unbuffered: Không có bộ lưu trữ';
+        container.appendChild(slot);
+        lenCap.textContent = 'len=0, cap=0';
+      }
     }
   }
 
@@ -2102,7 +2128,13 @@
       else if (buffer.length === capacity) el.textContent = `Buffer đầy (${capacity}/${capacity}) — Send: BLOCK | Receive: không block`;
       else el.textContent = `Buffer ${buffer.length}/${capacity} — Send: không block | Receive: không block`;
     } else {
-      el.textContent = 'Unbuffered — Cả Send và Receive đều BLOCK cho đến khi có goroutine tương ứng';
+      if (senderWaiting.length > 0) {
+        el.textContent = `Có ${senderWaiting.length} sender bị BLOCK chờ receiver nhận hàng`;
+      } else if (receiverWaitingCount > 0) {
+        el.textContent = `Có ${receiverWaitingCount} receiver bị BLOCK chờ sender gửi hàng`;
+      } else {
+        el.textContent = 'Unbuffered (Rendezvous) — Sẵn sàng: chưa có sender hay receiver nào';
+      }
     }
   }
 
@@ -2117,7 +2149,14 @@
         addLog('block', `← ch ← ${val}  ✗ BLOCK! Buffer đầy (${capacity}/${capacity})`);
       }
     } else {
-      addLog('block', `← ch ← ${val}  ⚡ Unbuffered: goroutine này sẽ BLOCK cho đến khi có receiver`);
+      // Unbuffered Rendezvous logic
+      if (receiverWaitingCount > 0) {
+        receiverWaitingCount--;
+        addLog('send', `← ch ← ${val}  🤝 Rendezvous! Gặp receiver đang chờ — Truyền dữ liệu trực tiếp thành công!`);
+      } else {
+        senderWaiting.push(val);
+        addLog('block', `← ch ← ${val}  ⚡ BLOCK! Không có receiver nào sẵn sàng — Sender phải đợi...`);
+      }
     }
     renderSlots();
     updateStatus();
@@ -2132,7 +2171,14 @@
         addLog('block', `→ v := ←ch  ✗ BLOCK! Buffer trống — chờ sender...`);
       }
     } else {
-      addLog('block', `→ v := ←ch  ⚡ Unbuffered: goroutine này sẽ BLOCK cho đến khi có sender`);
+      // Unbuffered Rendezvous logic
+      if (senderWaiting.length > 0) {
+        const val = senderWaiting.shift();
+        addLog('recv', `→ v := ←ch  🤝 Rendezvous! Nhận trực tiếp giá trị ${val} từ blocked sender đang chờ!`);
+      } else {
+        receiverWaitingCount++;
+        addLog('block', `→ v := ←ch  ⚡ BLOCK! Không có sender nào sẵn sàng — Receiver phải đợi...`);
+      }
     }
     renderSlots();
     updateStatus();
@@ -2141,6 +2187,8 @@
   function demoReset() {
     buffer = [];
     sendCount = 0;
+    senderWaiting = [];
+    receiverWaitingCount = 0;
     logEntries = [];
     document.getElementById('demo-log').innerHTML = '<span class="log-info">// Reset — bắt đầu lại...</span>';
     renderSlots();
@@ -2151,6 +2199,8 @@
     isBuffered = !isBuffered;
     buffer = [];
     sendCount = 0;
+    senderWaiting = [];
+    receiverWaitingCount = 0;
     const btn = document.querySelector('.btn-toggle');
     const label = document.getElementById('mode-label');
     const chLabel = document.getElementById('ch-label');
@@ -2167,6 +2217,21 @@
     renderSlots();
     updateStatus();
   }
+
+  // Smooth scroll for Table of Contents
+  document.querySelectorAll('.toc-item').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const href = a.getAttribute('href');
+      if (href === '#') return;
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update browser hash cleanly
+        history.pushState(null, null, href);
+      }
+    });
+  });
 
   // Init
   renderSlots();

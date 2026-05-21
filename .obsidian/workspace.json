@@ -13,10 +13,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/wait-group.html"
+                "file": "Go/Concurrency/mutex-and-confinement.html"
               },
               "icon": "lucide-file",
-              "title": "wait-group"
+              "title": "mutex-and-confinement"
             }
           }
         ]
@@ -183,10 +183,11 @@
   },
   "active": "f13b0062a2cef275",
   "lastOpenFiles": [
-    "Go/Concurrency/context.html",
-    "Go/Concurrency/select-statement.html",
-    "Go/Concurrency/wait-group.html",
     "Go/Concurrency/go-channels-guide.html",
+    "Go/Concurrency/mutex-and-confinement.html",
+    "Go/Concurrency/context.html",
+    "Go/Concurrency/wait-group.html",
+    "Go/Concurrency/select-statement.html",
     "public/images/go-buffered-vs-unbuffered.png",
     "public/images/go-channels-concept.png",
     "public/images/go-worker-pool.png",
@@ -202,7 +203,6 @@
     "public/docs",
     "public/images",
     "public",
-    "Go/Concurrency/mutex-and-confinement.html",
     "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
     "go-channels-guilde.html.md",
     "Go/Concurrency/Context.html",
