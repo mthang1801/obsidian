@@ -48,18 +48,6 @@ Performance tuning:
 
 ---
 
-### 📌 Concepts Bạn Còn Thiếu (Đã Bổ Sung)
-
-1. **WaitGroup** - Essential, không thể thiếu
-2. **Select Statement** - Core multiplexing primitive
-3. **Rate Limiting** - Critical cho API rate limits
-4. **Semaphore** - Alternative cho worker pool
-5. **Circuit Breaker** - Microservices resilience
-6. **Retry with Backoff** - Error recovery strategy
-7. **Bounded Parallelism** - Control resource usage
-
----
-
 ### 💡 Best Practices Từ Background Node.js Của Bạn
 
 #### So Sánh Patterns:
