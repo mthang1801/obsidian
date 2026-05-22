@@ -19,7 +19,7 @@ Patterns thực tế cho production:
 7. [**Context**](./context.html) - Cancellation, timeout, request-scoped values (giống AbortController)
 8. [**Select Statement**](./select-statement.html) - Multiplexing channels (unique trong Go)
 9. [**Or-Done Pattern** ](./go-or-done-pattern.html)- Kết hợp context với channel cleanup
-10. **Pipeline Pattern** - Chain processing stages (như Stream API)
+10. [**Pipeline Pattern**](./go-pipeline-pattern.html) - Chain processing stages (như Stream API)
 
 #### **LEVEL 3: Advanced Patterns (11-15)**
 

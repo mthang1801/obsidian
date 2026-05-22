@@ -4,21 +4,37 @@
     "type": "split",
     "children": [
       {
-        "id": "6714304b09b1c312",
+        "id": "f19c62c59159104a",
         "type": "tabs",
+        "dimension": 48.84910485933504,
         "children": [
           {
-            "id": "f13b0062a2cef275",
+            "id": "f16c608ce27bda0c",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      },
+      {
+        "id": "9a127dca0d5e2be4",
+        "type": "tabs",
+        "dimension": 51.150895140664964,
+        "children": [
+          {
+            "id": "098699c8beb08fbe",
+            "type": "leaf",
+            "state": {
+              "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
-                "mode": "source",
-                "source": false
+                "file": "Go/Concurrency/buffered-unbuffered-channels.html"
               },
               "icon": "lucide-file",
-              "title": "🎯 Roadmap Go Concurrency"
+              "title": "buffered-unbuffered-channels"
             }
           }
         ]
@@ -183,19 +199,20 @@
       "bases:Create new base": false
     }
   },
-  "active": "f13b0062a2cef275",
+  "active": "f16c608ce27bda0c",
   "lastOpenFiles": [
-    "Go/Concurrency/go-race-conditions.html",
     "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
+    "Go/Concurrency/wait-group.html",
+    "Go/Concurrency/buffered-unbuffered-channels.html",
     "Go/Concurrency/go-or-done-pattern.html",
+    "Go/Concurrency/go-pipeline-pattern.html",
+    "Go/Concurrency/go-race-conditions.html",
     "Go/Concurrency/context.html",
     "Go/Concurrency/goroutines-guide.html",
     "public/images/go-happens-before.png",
     "public/images/go-goroutine-leak-mechanics.png",
     "public/images/go-goroutine-stack-growth.png",
-    "Go/Concurrency/buffered-unbuffered-channels.html",
     "Go/Concurrency/mutex-and-confinement.html",
-    "Go/Concurrency/wait-group.html",
     "Go/Concurrency/select-statement.html",
     "Glosarry/AI glossary.md",
     "Untitled.canvas",
@@ -209,7 +226,6 @@
     "public/images/go-done-channel.png",
     "LENDING/2026-04-24.md",
     "public/docs",
-    "public/images",
     "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
     "go-channels-guilde.html.md",
     "Go/Concurrency/Go Select Statement — Hướng Dẫn Toàn Diện.md",
