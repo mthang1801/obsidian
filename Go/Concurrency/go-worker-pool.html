@@ -1,0 +1,2484 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Worker Pool Pattern</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #1c2333;
+  --bg-code: #0d1117;
+  --border: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent-green: #3fb950;
+  --accent-blue: #58a6ff;
+  --accent-purple: #bc8cff;
+  --accent-orange: #ff9f43;
+  --accent-red: #f85149;
+  --accent-cyan: #56d4dd;
+  --accent-yellow: #e3b341;
+  --tag-expert: #f0883e;
+  --tag-advanced: #58a6ff;
+  --tag-basic: #3fb950;
+  --sidebar-width: 260px;
+  --header-height: 50px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+/* ── HEADER ── */
+.top-nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--header-height);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 100;
+  gap: 0;
+}
+.logo {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+  margin-right: 32px;
+  white-space: nowrap;
+}
+.logo span { color: var(--accent-blue); }
+.nav-links { display: flex; gap: 0; flex-wrap: wrap; }
+.nav-links a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 12px;
+  padding: 6px 12px;
+  border-radius: 4px;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.nav-links a:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+
+/* ── LAYOUT ── */
+.layout {
+  display: flex;
+  margin-top: var(--header-height);
+  min-height: calc(100vh - var(--header-height));
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  width: var(--sidebar-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  position: fixed;
+  top: var(--header-height);
+  bottom: 0;
+  overflow-y: auto;
+  padding: 16px 0;
+}
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+.sidebar-group { margin-bottom: 20px; }
+.sidebar-group-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 0 16px 6px;
+}
+.sidebar-item {
+  display: block;
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-size: 12.5px;
+  padding: 5px 16px;
+  border-left: 2px solid transparent;
+  transition: all .15s;
+  cursor: pointer;
+}
+.sidebar-item:hover { color: var(--text-primary); background: rgba(255,255,255,.04); }
+.sidebar-item.active {
+  color: var(--accent-blue);
+  border-left-color: var(--accent-blue);
+  background: rgba(88,166,255,.06);
+}
+
+/* ── MAIN CONTENT ── */
+.main {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  padding: 40px 48px;
+  max-width: 1000px;
+}
+
+/* ── SECTION ── */
+.section { margin-bottom: 60px; scroll-margin-top: 70px; }
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.section-num {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.tag {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.tag-expert { background: rgba(240,136,62,.15); color: var(--tag-expert); border: 1px solid rgba(240,136,62,.3); }
+.tag-advanced { background: rgba(88,166,255,.12); color: var(--tag-advanced); border: 1px solid rgba(88,166,255,.25); }
+.tag-basic { background: rgba(63,185,80,.12); color: var(--tag-basic); border: 1px solid rgba(63,185,80,.25); }
+
+.desc {
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* ── CODE BLOCK ── */
+.code-block {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 16px 0;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border);
+}
+.code-lang {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(86,212,221,.1);
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+.code-filename {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.code-body {
+  padding: 20px 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.65;
+  tab-size: 4;
+}
+.code-body::-webkit-scrollbar { height: 4px; }
+.code-body::-webkit-scrollbar-track { background: transparent; }
+.code-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* Syntax highlighting */
+.kw  { color: #ff7b72; }   /* keyword */
+.fn  { color: #d2a8ff; }   /* function */
+.tp  { color: #79c0ff; }   /* type */
+.st  { color: #a5d6ff; }   /* string */
+.cm  { color: #8b949e; font-style: italic; } /* comment */
+.nm  { color: #ffa657; }   /* number */
+.pk  { color: #3fb950; }   /* package */
+.op  { color: #ff7b72; }   /* operator */
+.va  { color: #e6edf3; }   /* variable */
+.dc  { color: #79c0ff; }   /* decorator/directive */
+
+/* ── DIAGRAM ── */
+.diagram-box {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 28px 20px;
+  margin: 16px 0;
+  text-align: center;
+}
+.diagram-title {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 20px;
+}
+
+/* ── CONCEPT TABLE ── */
+.concept-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  font-size: 13px;
+}
+.concept-table th {
+  text-align: left;
+  padding: 8px 14px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.concept-table td {
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+.concept-table tr:hover td { background: rgba(255,255,255,.02); }
+.mono { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--accent-cyan); }
+
+/* ── CALLOUT ── */
+.callout {
+  border-radius: 6px;
+  padding: 14px 16px;
+  margin: 16px 0;
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.callout-info { background: rgba(88,166,255,.08); border: 1px solid rgba(88,166,255,.2); color: var(--text-secondary); }
+.callout-warn { background: rgba(255,159,67,.08); border: 1px solid rgba(255,159,67,.2); color: var(--text-secondary); }
+.callout-tip  { background: rgba(63,185,80,.08);  border: 1px solid rgba(63,185,80,.2);  color: var(--text-secondary); }
+.callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+/* ── GRID ── */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+.card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+.card-title { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 8px; }
+.card-body { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+/* ── METRICS BADGES ── */
+.badges { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid;
+}
+.badge-green  { color: var(--accent-green);  border-color: rgba(63,185,80,.3);  background: rgba(63,185,80,.08); }
+.badge-blue   { color: var(--accent-blue);   border-color: rgba(88,166,255,.3); background: rgba(88,166,255,.08); }
+.badge-orange { color: var(--accent-orange); border-color: rgba(255,159,67,.3); background: rgba(255,159,67,.08); }
+.badge-purple { color: var(--accent-purple); border-color: rgba(188,140,255,.3); background: rgba(188,140,255,.08); }
+
+/* ── REFERENCE CARD ── */
+.ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 16px 0; }
+.ref-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  transition: border-color .2s;
+}
+.ref-card:hover { border-color: var(--accent-blue); }
+.ref-card a { text-decoration: none; }
+.ref-title { font-size: 13px; font-weight: 600; color: var(--accent-blue); margin-bottom: 4px; }
+.ref-desc  { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.5; }
+.ref-stars { font-size: 11px; color: var(--accent-yellow); }
+.ref-lang  { font-size: 10px; color: var(--accent-cyan); font-family: 'JetBrains Mono', monospace; }
+
+/* ── DIVIDER ── */
+hr.section-divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+/* ── FLOW NODE STYLES ── */
+.flow-node {
+  fill: var(--bg-tertiary);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+.flow-node-green  { fill: rgba(63,185,80,.15);  stroke: rgba(63,185,80,.6); }
+.flow-node-blue   { fill: rgba(88,166,255,.15); stroke: rgba(88,166,255,.6); }
+.flow-node-orange { fill: rgba(255,159,67,.15); stroke: rgba(255,159,67,.6); }
+.flow-node-purple { fill: rgba(188,140,255,.15); stroke: rgba(188,140,255,.6); }
+.flow-node-cyan   { fill: rgba(86,212,221,.15); stroke: rgba(86,212,221,.6); }
+.flow-text { fill: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 11px; }
+.flow-text-sm { fill: var(--text-secondary); font-family: 'JetBrains Mono', monospace; font-size: 9.5px; }
+.flow-arrow { stroke: var(--text-muted); stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+.flow-arrow-green  { stroke: rgba(63,185,80,.7); stroke-width: 1.5; fill: none; marker-end: url(#arrow-green); }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg-secondary);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="top-nav">
+  <div class="logo">Go <span>Worker Pool</span></div>
+  <div class="nav-links">
+    <a href="#intro">Giới thiệu</a>
+    <a href="#concept">Khái niệm</a>
+    <a href="#basic">Cơ bản</a>
+    <a href="#stages">Các biến thể</a>
+    <a href="#priority">Priority Queue</a>
+    <a href="#dynamic">Dynamic Scaling</a>
+    <a href="#advanced">Nâng cao</a>
+    <a href="#expert">Expert</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-group">
+      <div class="sidebar-group-title">Cơ Bản</div>
+      <a class="sidebar-item active" href="#intro">Giới thiệu</a>
+      <a class="sidebar-item" href="#concept">Worker Pool là gì?</a>
+      <a class="sidebar-item" href="#anatomy">Cấu trúc một Worker</a>
+      <a class="sidebar-item" href="#basic">Worker Pool cơ bản</a>
+      <a class="sidebar-item" href="#buffered">Buffered Channel Pool</a>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-title">Biến Thể & Mở Rộng</div>
+      <a class="sidebar-item" href="#stages">Multi-Stage Worker Pool</a>
+      <a class="sidebar-item" href="#priority">Priority Worker Pool</a>
+      <a class="sidebar-item" href="#retry">Retry + Dead Letter</a>
+      <a class="sidebar-item" href="#ratelimit">Rate Limiting</a>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-title">Nâng Cao</div>
+      <a class="sidebar-item" href="#dynamic">Dynamic Scaling</a>
+      <a class="sidebar-item" href="#backpressure">Backpressure Control</a>
+      <a class="sidebar-item" href="#graceful">Graceful Shutdown</a>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-title">Expert</div>
+      <a class="sidebar-item" href="#generic">Generic Worker Pool</a>
+      <a class="sidebar-item" href="#metrics">Metrics & Observability</a>
+      <a class="sidebar-item" href="#production">Production-Ready Pool</a>
+      <a class="sidebar-item" href="#bullmq">So sánh với BullMQ</a>
+    </div>
+    <div class="sidebar-group">
+      <div class="sidebar-group-title">Tài Nguyên</div>
+      <a class="sidebar-item" href="#refs">References</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 1. GIỚI THIỆU -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="intro">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <h2 class="section-title">Giới thiệu Worker Pool Pattern</h2>
+        <span class="tag tag-basic">Cơ bản</span>
+      </div>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-worker-pool.png" alt="Go Concurrency: Bounded Worker Pool Pattern" loading="lazy">
+        <div class="concept-img-caption">Hình 1.1: Sơ đồ hoạt động của Bounded Worker Pool Pattern — Các Producer ghi công việc vào hàng đợi (Buffered Job Channel), điều phối song song cho các Worker Goroutine tái sử dụng và kiểm soát bằng WaitGroup để Janitor Goroutine đóng kết quả an toàn.</div>
+      </div>
+      <p class="desc">
+        Worker Pool (hay Thread Pool) là một pattern concurrency kinh điển: thay vì spawn một goroutine mới cho mỗi task (tốn memory, không kiểm soát được), ta tạo sẵn một tập cố định các <strong>worker goroutine</strong> và phân phối công việc qua <strong>job channel</strong>. Pattern này là nền tảng của nhiều hệ thống xử lý tác vụ song song — tương đương với <code style="color:var(--accent-cyan)">BullMQ</code> (Node.js) nhưng được triển khai thuần Go với goroutine và channel.
+      </p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div><strong>Go Concurrency Mantra:</strong> "Don't communicate by sharing memory; share memory by communicating." Worker Pool hiện thực hóa triết lý này: các worker không share state — chúng nhận job qua channel và trả result qua channel.</div>
+      </div>
+
+      <div class="badges">
+        <span class="badge badge-green">goroutine-safe</span>
+        <span class="badge badge-blue">channel-based</span>
+        <span class="badge badge-orange">bounded concurrency</span>
+        <span class="badge badge-purple">load balancing</span>
+      </div>
+
+      <!-- Overview diagram -->
+      <div class="diagram-box">
+        <div class="diagram-title">Worker Pool — Tổng Quan Kiến Trúc</div>
+        <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;">
+          <defs>
+            <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#6e7681"/>
+            </marker>
+            <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="rgba(63,185,80,.7)"/>
+            </marker>
+            <marker id="arrow-orange" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="rgba(255,159,67,.7)"/>
+            </marker>
+          </defs>
+
+          <!-- Producer -->
+          <rect x="20" y="70" width="110" height="60" rx="6" class="flow-node flow-node-green"/>
+          <text x="75" y="97" text-anchor="middle" class="flow-text" fill="#3fb950">Producer</text>
+          <text x="75" y="113" text-anchor="middle" class="flow-text-sm">send jobs</text>
+
+          <!-- Job Channel -->
+          <rect x="170" y="70" width="120" height="60" rx="6" class="flow-node flow-node-blue"/>
+          <text x="230" y="93" text-anchor="middle" class="flow-text" fill="#58a6ff">Job Channel</text>
+          <text x="230" y="109" text-anchor="middle" class="flow-text-sm">chan Job (buf=N)</text>
+          <text x="230" y="123" text-anchor="middle" class="flow-text-sm">⬛⬛⬛⬜⬜</text>
+
+          <!-- Workers -->
+          <rect x="340" y="20"  width="130" height="38" rx="6" class="flow-node flow-node-orange"/>
+          <text x="405" y="38" text-anchor="middle" class="flow-text" fill="#ff9f43">Worker 1</text>
+          <text x="405" y="52" text-anchor="middle" class="flow-text-sm">goroutine</text>
+
+          <rect x="340" y="81"  width="130" height="38" rx="6" class="flow-node flow-node-orange"/>
+          <text x="405" y="99" text-anchor="middle" class="flow-text" fill="#ff9f43">Worker 2</text>
+          <text x="405" y="113" text-anchor="middle" class="flow-text-sm">goroutine</text>
+
+          <rect x="340" y="142" width="130" height="38" rx="6" class="flow-node flow-node-orange"/>
+          <text x="405" y="160" text-anchor="middle" class="flow-text" fill="#ff9f43">Worker N</text>
+          <text x="405" y="174" text-anchor="middle" class="flow-text-sm">goroutine</text>
+
+          <!-- Result Channel -->
+          <rect x="520" y="70" width="130" height="60" rx="6" class="flow-node flow-node-purple"/>
+          <text x="585" y="93" text-anchor="middle" class="flow-text" fill="#bc8cff">Result Channel</text>
+          <text x="585" y="109" text-anchor="middle" class="flow-text-sm">chan Result</text>
+          <text x="585" y="123" text-anchor="middle" class="flow-text-sm">⬛⬛⬛⬛⬜</text>
+
+          <!-- Consumer -->
+          <rect x="700" y="70" width="110" height="60" rx="6" class="flow-node flow-node-cyan"/>
+          <text x="755" y="97" text-anchor="middle" class="flow-text" fill="#56d4dd">Consumer</text>
+          <text x="755" y="113" text-anchor="middle" class="flow-text-sm">collect results</text>
+
+          <!-- Arrows -->
+          <line x1="130" y1="100" x2="168" y2="100" class="flow-arrow-green"/>
+          <line x1="290" y1="90"  x2="338" y2="40"  class="flow-arrow-orange"/>
+          <line x1="290" y1="100" x2="338" y2="100" class="flow-arrow-orange"/>
+          <line x1="290" y1="110" x2="338" y2="160" class="flow-arrow-orange"/>
+          <line x1="470" y1="40"  x2="518" y2="90"  class="flow-arrow"/>
+          <line x1="470" y1="100" x2="518" y2="100" class="flow-arrow"/>
+          <line x1="470" y1="160" x2="518" y2="110" class="flow-arrow"/>
+          <line x1="650" y1="100" x2="698" y2="100" class="flow-arrow"/>
+
+          <!-- WaitGroup label -->
+          <rect x="330" y="3" width="150" height="15" rx="3" fill="rgba(188,140,255,.1)" stroke="rgba(188,140,255,.2)" stroke-width="1"/>
+          <text x="405" y="14" text-anchor="middle" class="flow-text-sm" fill="#bc8cff">sync.WaitGroup</text>
+        </svg>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 2. KHÁI NIỆM -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="concept">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <h2 class="section-title">Khái niệm cốt lõi</h2>
+      </div>
+      <p class="desc">Trước khi viết code, cần nắm rõ các thành phần tạo nên một Worker Pool trong Go:</p>
+
+      <table class="concept-table">
+        <thead>
+          <tr>
+            <th>Thành phần</th>
+            <th>Kiểu dữ liệu Go</th>
+            <th>Vai trò</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Job</strong></td>
+            <td><span class="mono">chan Job</span></td>
+            <td>Đơn vị công việc được phân phối cho worker. Producer ghi vào channel này.</td>
+          </tr>
+          <tr>
+            <td><strong>Worker</strong></td>
+            <td><span class="mono">goroutine</span></td>
+            <td>Vòng lặp vô hạn đọc job từ channel, xử lý, ghi kết quả ra result channel.</td>
+          </tr>
+          <tr>
+            <td><strong>Result</strong></td>
+            <td><span class="mono">chan Result</span></td>
+            <td>Kết quả xử lý (bao gồm lỗi nếu có). Consumer đọc từ channel này.</td>
+          </tr>
+          <tr>
+            <td><strong>WaitGroup</strong></td>
+            <td><span class="mono">sync.WaitGroup</span></td>
+            <td>Đồng bộ: chờ tất cả worker hoàn thành trước khi đóng result channel.</td>
+          </tr>
+          <tr>
+            <td><strong>Context</strong></td>
+            <td><span class="mono">context.Context</span></td>
+            <td>Cancellation signal: worker kiểm tra <code>ctx.Done()</code> để dừng gracefully.</td>
+          </tr>
+          <tr>
+            <td><strong>Pool Size</strong></td>
+            <td><span class="mono">int (numWorkers)</span></td>
+            <td>Số lượng worker cố định. Thường = <code>runtime.NumCPU()</code> hoặc bội số.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div><strong>Vì sao KHÔNG spawn goroutine cho mỗi task?</strong> Mỗi goroutine tốn ~2KB stack ban đầu. 100,000 task = ~200MB chỉ riêng stack. Ngoài ra scheduler overhead tăng đáng kể. Worker Pool giải quyết bằng cách tái sử dụng goroutine đã có.</div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 3. CẤU TRÚC WORKER -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="anatomy">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <h2 class="section-title">Cấu trúc một Worker</h2>
+        <span class="tag tag-basic">Cơ bản</span>
+      </div>
+      <p class="desc">Một worker trong Go có cấu trúc vòng lặp <code>for-select</code> chuẩn, xử lý 3 sự kiện chính:</p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">Vòng Lặp Xử Lý Của Một Worker Goroutine</div>
+        <svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;">
+          <defs>
+            <marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#6e7681"/>
+            </marker>
+          </defs>
+          <!-- Start -->
+          <ellipse cx="350" cy="28" rx="60" ry="18" fill="rgba(63,185,80,.2)" stroke="rgba(63,185,80,.5)" stroke-width="1.5"/>
+          <text x="350" y="33" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3fb950">START</text>
+
+          <!-- for loop -->
+          <rect x="270" y="68" width="160" height="36" rx="6" fill="rgba(88,166,255,.12)" stroke="rgba(88,166,255,.35)" stroke-width="1.5"/>
+          <text x="350" y="87" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#58a6ff">for { select {</text>
+          <text x="350" y="99" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">main event loop</text>
+
+          <!-- 3 branches -->
+          <!-- Branch 1: ctx.Done -->
+          <rect x="30" y="160" width="160" height="50" rx="6" fill="rgba(248,81,73,.12)" stroke="rgba(248,81,73,.35)" stroke-width="1.5"/>
+          <text x="110" y="181" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#f85149">case &lt;-ctx.Done()</text>
+          <text x="110" y="196" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">cancellation signal</text>
+          <text x="110" y="209" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">→ cleanup &amp; return</text>
+
+          <!-- Branch 2: jobs -->
+          <rect x="270" y="160" width="160" height="50" rx="6" fill="rgba(255,159,67,.12)" stroke="rgba(255,159,67,.35)" stroke-width="1.5"/>
+          <text x="350" y="181" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#ff9f43">case job := &lt;-jobs</text>
+          <text x="350" y="196" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">receive job</text>
+          <text x="350" y="209" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">→ process(job)</text>
+
+          <!-- Branch 3: jobs closed -->
+          <rect x="510" y="160" width="160" height="50" rx="6" fill="rgba(188,140,255,.12)" stroke="rgba(188,140,255,.35)" stroke-width="1.5"/>
+          <text x="590" y="181" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#bc8cff">if !ok { return }</text>
+          <text x="590" y="196" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">channel closed</text>
+          <text x="590" y="209" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">→ graceful exit</text>
+
+          <!-- Process box -->
+          <rect x="270" y="250" width="160" height="40" rx="6" fill="rgba(86,212,221,.12)" stroke="rgba(86,212,221,.35)" stroke-width="1.5"/>
+          <text x="350" y="267" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#56d4dd">results &lt;- Result</text>
+          <text x="350" y="280" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">send to result channel</text>
+
+          <!-- END -->
+          <ellipse cx="110" cy="310" rx="60" ry="18" fill="rgba(248,81,73,.2)" stroke="rgba(248,81,73,.5)" stroke-width="1.5"/>
+          <text x="110" y="315" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#f85149">STOP</text>
+
+          <!-- Arrows -->
+          <line x1="350" y1="46" x2="350" y2="66" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a2)"/>
+          <line x1="350" y1="104" x2="110" y2="158" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a2)"/>
+          <line x1="350" y1="104" x2="350" y2="158" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a2)"/>
+          <line x1="350" y1="104" x2="590" y2="158" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a2)"/>
+          <line x1="350" y1="210" x2="350" y2="248" stroke="#ff9f43" stroke-width="1.5" marker-end="url(#a2)"/>
+          <!-- back loop -->
+          <path d="M430 270 Q 480 270 480 135 Q 480 68 432 86" stroke="#58a6ff" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#a2)"/>
+          <text x="490" y="185" font-family="JetBrains Mono,monospace" font-size="9" fill="#58a6ff">loop</text>
+          <!-- ctx exit -->
+          <line x1="110" y1="210" x2="110" y2="290" stroke="#f85149" stroke-width="1.5" marker-end="url(#a2)"/>
+          <!-- closed exit -->
+          <path d="M590 210 Q 590 310 172 312" stroke="#bc8cff" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#a2)"/>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">worker_anatomy.go — Cấu trúc chuẩn của một worker</span>
+        </div>
+        <div class="code-body"><pre><span class="cm">// worker là goroutine sống suốt vòng đời của pool.
+// Nó chỉ kết thúc khi: (1) ctx bị cancel, (2) jobs channel bị đóng.</span>
+<span class="kw">func</span> <span class="fn">worker</span>(
+    ctx    <span class="tp">context.Context</span>,
+    id     <span class="tp">int</span>,
+    jobs   <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">Job</span>,
+    results <span class="kw">chan</span><span class="op">&lt;-</span> <span class="tp">Result</span>,
+    wg     <span class="op">*</span><span class="tp">sync.WaitGroup</span>,
+) {
+    <span class="kw">defer</span> wg.<span class="fn">Done</span>() <span class="cm">// báo hiệu khi worker kết thúc</span>
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="cm">// Sự kiện 1: context bị cancel (timeout / shutdown)</span>
+        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+
+        <span class="cm">// Sự kiện 2: nhận job từ channel</span>
+        <span class="kw">case</span> job, ok <span class="op">:=</span> <span class="op">&lt;-</span>jobs:
+            <span class="kw">if</span> <span class="op">!</span>ok {
+                <span class="kw">return</span> <span class="cm">// jobs channel đã đóng → thoát gracefully</span>
+            }
+            result <span class="op">:=</span> <span class="fn">processJob</span>(ctx, job)
+            <span class="kw">select</span> {
+            <span class="kw">case</span> results <span class="op">&lt;-</span> result:
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> <span class="cm">// tránh block khi ghi result</span>
+            }
+        }
+    }
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 4. WORKER POOL CƠ BẢN -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="basic">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <h2 class="section-title">Worker Pool cơ bản</h2>
+        <span class="tag tag-basic">Cơ bản</span>
+      </div>
+      <p class="desc">Implementation đơn giản nhất: N workers cố định, một job channel, một result channel. Đây là nền tảng của mọi biến thể phức tạp hơn.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">worker_pool_basic.go</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">workerpool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// Job đại diện cho một đơn vị công việc.</span>
+<span class="kw">type</span> <span class="tp">Job</span> <span class="kw">struct</span> {
+    ID      <span class="tp">int</span>
+    Payload <span class="tp">string</span>
+}
+
+<span class="cm">// Result chứa kết quả xử lý của một Job.</span>
+<span class="kw">type</span> <span class="tp">Result</span> <span class="kw">struct</span> {
+    JobID    <span class="tp">int</span>
+    Output   <span class="tp">string</span>
+    Duration <span class="tp">time.Duration</span>
+    Err      <span class="tp">error</span>
+}
+
+<span class="cm">// WorkerPool khởi động numWorkers goroutine và trả về result channel.</span>
+<span class="kw">func</span> <span class="fn">WorkerPool</span>(ctx <span class="tp">context.Context</span>, numWorkers <span class="tp">int</span>, jobs <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">Job</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">Result</span> {
+    results <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Result</span>, numWorkers) <span class="cm">// buffered: không block worker khi ghi</span>
+
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> numWorkers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(workerID <span class="tp">int</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> job, ok <span class="op">:=</span> <span class="op">&lt;-</span>jobs:
+                    <span class="kw">if</span> <span class="op">!</span>ok {
+                        <span class="kw">return</span>
+                    }
+                    start <span class="op">:=</span> time.<span class="fn">Now</span>()
+                    output, err <span class="op">:=</span> <span class="fn">process</span>(ctx, job)
+                    results <span class="op">&lt;-</span> <span class="tp">Result</span>{
+                        JobID:    job.ID,
+                        Output:   output,
+                        Duration: time.<span class="fn">Since</span>(start),
+                        Err:      err,
+                    }
+                }
+            }
+        }(i)
+    }
+
+    <span class="cm">// Goroutine "janitor": đóng result channel sau khi tất cả worker xong</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(results)
+    }()
+
+    <span class="kw">return</span> results
+}
+
+<span class="kw">func</span> <span class="fn">process</span>(ctx <span class="tp">context.Context</span>, job <span class="tp">Job</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="cm">// Mô phỏng công việc tốn thời gian</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>time.<span class="fn">After</span>(<span class="nm">100</span> <span class="op">*</span> time.Millisecond):
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"processed:%s"</span>, job.Payload), <span class="kw">nil</span>
+    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> <span class="st">""</span>, ctx.<span class="fn">Err</span>()
+    }
+}
+
+<span class="cm">// ── USAGE ───────────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel <span class="op">:=</span> context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nm">10</span><span class="op">*</span>time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// Tạo job channel và gửi 20 jobs</span>
+    jobs <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Job</span>, <span class="nm">20</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(jobs) <span class="cm">// QUAN TRỌNG: chỉ đóng từ phía sender</span>
+        <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">1</span>; i <span class="op">&lt;=</span> <span class="nm">20</span>; i++ {
+            jobs <span class="op">&lt;-</span> <span class="tp">Job</span>{ID: i, Payload: fmt.<span class="fn">Sprintf</span>(<span class="st">"task-%d"</span>, i)}
+        }
+    }()
+
+    <span class="cm">// Khởi động pool với 5 workers</span>
+    results <span class="op">:=</span> <span class="fn">WorkerPool</span>(ctx, <span class="nm">5</span>, jobs)
+
+    <span class="cm">// Collect results</span>
+    <span class="kw">for</span> r <span class="op">:=</span> <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err <span class="op">!=</span> <span class="kw">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="st">"Job %d FAILED: %v\n"</span>, r.JobID, r.Err)
+            <span class="kw">continue</span>
+        }
+        fmt.<span class="fn">Printf</span>(<span class="st">"Job %d OK: %s (%v)\n"</span>, r.JobID, r.Output, r.Duration)
+    }
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 5. MULTI-STAGE -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="stages">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <h2 class="section-title">Multi-Stage Worker Pool</h2>
+        <span class="tag tag-advanced">Nâng cao</span>
+      </div>
+      <p class="desc">Kết hợp nhiều Worker Pool thành pipeline: output của stage trước là input của stage sau. Pattern này phù hợp với các luồng xử lý ETL, image processing, event streaming.</p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">Multi-Stage Pipeline Architecture</div>
+        <svg viewBox="0 0 820 140" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;">
+          <defs>
+            <marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#6e7681"/>
+            </marker>
+          </defs>
+          <!-- Stage 1 -->
+          <rect x="20"  y="40" width="140" height="60" rx="6" fill="rgba(63,185,80,.12)" stroke="rgba(63,185,80,.4)" stroke-width="1.5"/>
+          <text x="90" y="65" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3fb950">Stage 1</text>
+          <text x="90" y="80" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">Extract / Fetch</text>
+          <text x="90" y="93" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">workers=2</text>
+
+          <rect x="200" y="55" width="60" height="30" rx="4" fill="rgba(88,166,255,.1)" stroke="rgba(88,166,255,.3)" stroke-width="1"/>
+          <text x="230" y="68" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#58a6ff">chan</text>
+          <text x="230" y="79" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">buf=50</text>
+
+          <!-- Stage 2 -->
+          <rect x="300" y="40" width="140" height="60" rx="6" fill="rgba(255,159,67,.12)" stroke="rgba(255,159,67,.4)" stroke-width="1.5"/>
+          <text x="370" y="65" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#ff9f43">Stage 2</text>
+          <text x="370" y="80" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">Transform</text>
+          <text x="370" y="93" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">workers=4</text>
+
+          <rect x="480" y="55" width="60" height="30" rx="4" fill="rgba(88,166,255,.1)" stroke="rgba(88,166,255,.3)" stroke-width="1"/>
+          <text x="510" y="68" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#58a6ff">chan</text>
+          <text x="510" y="79" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">buf=50</text>
+
+          <!-- Stage 3 -->
+          <rect x="580" y="40" width="140" height="60" rx="6" fill="rgba(188,140,255,.12)" stroke="rgba(188,140,255,.4)" stroke-width="1.5"/>
+          <text x="650" y="65" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#bc8cff">Stage 3</text>
+          <text x="650" y="80" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">Load / Store</text>
+          <text x="650" y="93" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">workers=2</text>
+
+          <!-- Output -->
+          <rect x="750" y="55" width="60" height="30" rx="4" fill="rgba(86,212,221,.1)" stroke="rgba(86,212,221,.3)" stroke-width="1"/>
+          <text x="780" y="68" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#56d4dd">Done</text>
+          <text x="780" y="79" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">✓</text>
+
+          <!-- Arrows -->
+          <line x1="160" y1="70" x2="198" y2="70" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a3)"/>
+          <line x1="260" y1="70" x2="298" y2="70" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a3)"/>
+          <line x1="440" y1="70" x2="478" y2="70" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a3)"/>
+          <line x1="540" y1="70" x2="578" y2="70" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a3)"/>
+          <line x1="720" y1="70" x2="748" y2="70" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a3)"/>
+
+          <!-- Context cancel bar -->
+          <rect x="20" y="115" width="790" height="16" rx="4" fill="rgba(248,81,73,.07)" stroke="rgba(248,81,73,.2)" stroke-width="1"/>
+          <text x="415" y="127" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#f85149">context.Context — propagates cancellation across all stages</text>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">multi_stage_pool.go</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">pipeline</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="kw">type</span> <span class="tp">RawData</span>   <span class="kw">struct</span> { ID <span class="tp">int</span>; Source <span class="tp">string</span> }
+<span class="kw">type</span> <span class="tp">Processed</span> <span class="kw">struct</span> { ID <span class="tp">int</span>; Value  <span class="tp">float64</span> }
+<span class="kw">type</span> <span class="tp">Stored</span>    <span class="kw">struct</span> { ID <span class="tp">int</span>; Saved  <span class="tp">bool</span> }
+
+<span class="cm">// stage tạo một pool worker chạy hàm fn trên mỗi input item.
+// Generic helper để tái sử dụng pattern.</span>
+<span class="kw">func</span> stage[<span class="tp">In</span>, <span class="tp">Out</span> <span class="tp">any</span>](
+    ctx     <span class="tp">context.Context</span>,
+    workers <span class="tp">int</span>,
+    in      <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">In</span>,
+    fn      <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="tp">In</span>) (<span class="tp">Out</span>, <span class="tp">error</span>),
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">Out</span> {
+    out <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Out</span>, workers)
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> workers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> item <span class="op">:=</span> <span class="kw">range</span> in {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">default</span>:
+                }
+                result, err <span class="op">:=</span> <span class="fn">fn</span>(ctx, item)
+                <span class="kw">if</span> err <span class="op">!=</span> <span class="kw">nil</span> {
+                    <span class="kw">continue</span> <span class="cm">// hoặc gửi sang error channel</span>
+                }
+                <span class="kw">select</span> {
+                <span class="kw">case</span> out <span class="op">&lt;-</span> result:
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                }
+            }
+        }()
+    }
+
+    <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(out) }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// RunPipeline kết hợp 3 stage thành một pipeline hoàn chỉnh.</span>
+<span class="kw">func</span> <span class="fn">RunPipeline</span>(ctx <span class="tp">context.Context</span>, raw <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">RawData</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">Stored</span> {
+    <span class="cm">// Stage 1: Extract (2 workers)</span>
+    extracted <span class="op">:=</span> stage(ctx, <span class="nm">2</span>, raw, extractFn)
+
+    <span class="cm">// Stage 2: Transform (4 workers — bottleneck thường ở đây)</span>
+    transformed <span class="op">:=</span> stage(ctx, <span class="nm">4</span>, extracted, transformFn)
+
+    <span class="cm">// Stage 3: Load (2 workers)</span>
+    stored <span class="op">:=</span> stage(ctx, <span class="nm">2</span>, transformed, loadFn)
+
+    <span class="kw">return</span> stored
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 6. PRIORITY WORKER POOL -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="priority">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <h2 class="section-title">Priority Worker Pool</h2>
+        <span class="tag tag-advanced">Nâng cao</span>
+      </div>
+      <p class="desc">Tương tự priority queue trong BullMQ, các job có độ ưu tiên cao được xử lý trước. Trong Go, ta dùng heap (container/heap) hoặc multiple channel với select để implement priority.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">priority_pool.go</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">priority</span>
+
+<span class="kw">import</span> (
+    <span class="st">"container/heap"</span>
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="kw">type</span> <span class="tp">Priority</span> <span class="tp">int</span>
+
+<span class="kw">const</span> (
+    <span class="tp">Low</span>      <span class="tp">Priority</span> <span class="op">=</span> <span class="nm">1</span>
+    <span class="tp">Normal</span>   <span class="tp">Priority</span> <span class="op">=</span> <span class="nm">5</span>
+    <span class="tp">High</span>     <span class="tp">Priority</span> <span class="op">=</span> <span class="nm">10</span>
+    <span class="tp">Critical</span> <span class="tp">Priority</span> <span class="op">=</span> <span class="nm">100</span>
+)
+
+<span class="kw">type</span> <span class="tp">PriorityJob</span> <span class="kw">struct</span> {
+    ID       <span class="tp">int</span>
+    Priority <span class="tp">Priority</span>
+    Payload  <span class="tp">any</span>
+    index    <span class="tp">int</span> <span class="cm">// heap internal</span>
+}
+
+<span class="cm">// Implement heap.Interface</span>
+<span class="kw">type</span> <span class="tp">jobHeap</span> [<span class="op">*</span><span class="tp">PriorityJob</span>]
+
+<span class="kw">func</span> (h <span class="tp">jobHeap</span>) <span class="fn">Len</span>() <span class="tp">int</span>           { <span class="kw">return</span> <span class="fn">len</span>(h) }
+<span class="kw">func</span> (h <span class="tp">jobHeap</span>) <span class="fn">Less</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> h[i].Priority <span class="op">&gt;</span> h[j].Priority } <span class="cm">// max-heap</span>
+<span class="kw">func</span> (h <span class="tp">jobHeap</span>) <span class="fn">Swap</span>(i, j <span class="tp">int</span>)      { h[i], h[j] <span class="op">=</span> h[j], h[i]; h[i].index, h[j].index <span class="op">=</span> i, j }
+<span class="kw">func</span> (h <span class="op">*</span><span class="tp">jobHeap</span>) <span class="fn">Push</span>(x <span class="tp">any</span>) {
+    n <span class="op">:=</span> <span class="fn">len</span>(<span class="op">*</span>h)
+    item <span class="op">:=</span> x.(<span class="op">*</span><span class="tp">PriorityJob</span>)
+    item.index <span class="op">=</span> n
+    <span class="op">*</span>h <span class="op">=</span> <span class="fn">append</span>(<span class="op">*</span>h, item)
+}
+<span class="kw">func</span> (h <span class="op">*</span><span class="tp">jobHeap</span>) <span class="fn">Pop</span>() <span class="tp">any</span> {
+    old <span class="op">:=</span> <span class="op">*</span>h
+    n <span class="op">:=</span> <span class="fn">len</span>(old)
+    item <span class="op">:=</span> old[n<span class="op">-</span><span class="nm">1</span>]
+    old[n<span class="op">-</span><span class="nm">1</span>] <span class="op">=</span> <span class="kw">nil</span>
+    item.index <span class="op">=</span> <span class="op">-</span><span class="nm">1</span>
+    <span class="op">*</span>h <span class="op">=</span> old[<span class="nm">0</span> : n<span class="op">-</span><span class="nm">1</span>]
+    <span class="kw">return</span> item
+}
+
+<span class="cm">// PriorityPool phân phối job theo priority, worker được ready thì nhận job cao nhất.</span>
+<span class="kw">type</span> <span class="tp">PriorityPool</span> <span class="kw">struct</span> {
+    mu      <span class="tp">sync.Mutex</span>
+    cond    <span class="op">*</span><span class="tp">sync.Cond</span>
+    heap    <span class="tp">jobHeap</span>
+    closed  <span class="tp">bool</span>
+    workers <span class="tp">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewPriorityPool</span>(workers <span class="tp">int</span>) <span class="op">*</span><span class="tp">PriorityPool</span> {
+    p <span class="op">:=</span> <span class="op">&amp;</span><span class="tp">PriorityPool</span>{workers: workers}
+    p.cond <span class="op">=</span> sync.<span class="fn">NewCond</span>(<span class="op">&amp;</span>p.mu)
+    <span class="kw">return</span> p
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">PriorityPool</span>) <span class="fn">Submit</span>(job <span class="op">*</span><span class="tp">PriorityJob</span>) {
+    p.mu.<span class="fn">Lock</span>()
+    heap.<span class="fn">Push</span>(<span class="op">&amp;</span>p.heap, job)
+    p.mu.<span class="fn">Unlock</span>()
+    p.cond.<span class="fn">Signal</span>() <span class="cm">// đánh thức một worker đang chờ</span>
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">PriorityPool</span>) <span class="fn">next</span>() (<span class="op">*</span><span class="tp">PriorityJob</span>, <span class="tp">bool</span>) {
+    p.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> p.mu.<span class="fn">Unlock</span>()
+    <span class="kw">for</span> p.heap.<span class="fn">Len</span>() <span class="op">==</span> <span class="nm">0</span> <span class="op">&amp;&amp;</span> <span class="op">!</span>p.closed {
+        p.cond.<span class="fn">Wait</span>() <span class="cm">// ngủ cho đến khi có job mới</span>
+    }
+    <span class="kw">if</span> p.heap.<span class="fn">Len</span>() <span class="op">==</span> <span class="nm">0</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="kw">false</span>
+    }
+    <span class="kw">return</span> heap.<span class="fn">Pop</span>(<span class="op">&amp;</span>p.heap).(<span class="op">*</span><span class="tp">PriorityJob</span>), <span class="kw">true</span>
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">PriorityPool</span>) <span class="fn">Run</span>(ctx <span class="tp">context.Context</span>, handler <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="op">*</span><span class="tp">PriorityJob</span>)) {
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> p.workers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> {
+                job, ok <span class="op">:=</span> p.<span class="fn">next</span>()
+                <span class="kw">if</span> <span class="op">!</span>ok {
+                    <span class="kw">return</span>
+                }
+                <span class="fn">handler</span>(ctx, job)
+            }
+        }()
+    }
+    wg.<span class="fn">Wait</span>()
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">PriorityPool</span>) <span class="fn">Close</span>() {
+    p.mu.<span class="fn">Lock</span>()
+    p.closed <span class="op">=</span> <span class="kw">true</span>
+    p.mu.<span class="fn">Unlock</span>()
+    p.cond.<span class="fn">Broadcast</span>() <span class="cm">// đánh thức tất cả workers để thoát</span>
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 7. RETRY + DEAD LETTER -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="retry">
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <h2 class="section-title">Retry + Dead Letter Queue</h2>
+        <span class="tag tag-advanced">Nâng cao</span>
+      </div>
+      <p class="desc">Khi job thất bại, ta thử lại với exponential backoff. Sau số lần retry tối đa, job được chuyển sang Dead Letter Queue (DLQ) để phân tích sau — pattern tương đương BullMQ <code style="color:var(--accent-cyan)">failedJobsHistory</code>.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">retry_pool.go — Exponential Backoff + Dead Letter</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">retry</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"math"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="tp">RetryJob</span> <span class="kw">struct</span> {
+    ID         <span class="tp">int</span>
+    Payload    <span class="tp">any</span>
+    Attempts   <span class="tp">int</span>       <span class="cm">// số lần đã thử</span>
+    MaxRetries <span class="tp">int</span>       <span class="cm">// tối đa</span>
+    LastError  <span class="tp">error</span>     <span class="cm">// lỗi gần nhất</span>
+    NextRetry  <span class="tp">time.Time</span> <span class="cm">// thời điểm retry tiếp theo</span>
+}
+
+<span class="cm">// backoff tính thời gian chờ theo exponential: 2^attempt * base</span>
+<span class="kw">func</span> <span class="fn">backoff</span>(attempt <span class="tp">int</span>, base <span class="tp">time.Duration</span>) <span class="tp">time.Duration</span> {
+    exp <span class="op">:=</span> <span class="tp">time.Duration</span>(math.<span class="fn">Pow</span>(<span class="nm">2</span>, <span class="tp">float64</span>(attempt)))
+    d <span class="op">:=</span> base <span class="op">*</span> exp
+    <span class="kw">if</span> d <span class="op">&gt;</span> <span class="nm">30</span><span class="op">*</span>time.Second {
+        <span class="kw">return</span> <span class="nm">30</span> <span class="op">*</span> time.Second <span class="cm">// cap ở 30s</span>
+    }
+    <span class="kw">return</span> d
+}
+
+<span class="kw">type</span> <span class="tp">RetryPool</span> <span class="kw">struct</span> {
+    jobs    <span class="kw">chan</span> <span class="op">*</span><span class="tp">RetryJob</span>
+    dlq     <span class="kw">chan</span> <span class="op">*</span><span class="tp">RetryJob</span> <span class="cm">// Dead Letter Queue</span>
+    workers <span class="tp">int</span>
+    base    <span class="tp">time.Duration</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewRetryPool</span>(workers, queueSize <span class="tp">int</span>, base <span class="tp">time.Duration</span>) <span class="op">*</span><span class="tp">RetryPool</span> {
+    <span class="kw">return</span> <span class="op">&amp;</span><span class="tp">RetryPool</span>{
+        jobs:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="op">*</span><span class="tp">RetryJob</span>, queueSize),
+        dlq:     <span class="fn">make</span>(<span class="kw">chan</span> <span class="op">*</span><span class="tp">RetryJob</span>, queueSize),
+        workers: workers,
+        base:    base,
+    }
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">RetryPool</span>) <span class="fn">Submit</span>(job <span class="op">*</span><span class="tp">RetryJob</span>) { p.jobs <span class="op">&lt;-</span> job }
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">RetryPool</span>) <span class="fn">DLQ</span>() <span class="op">&lt;-</span><span class="kw">chan</span> <span class="op">*</span><span class="tp">RetryJob</span>   { <span class="kw">return</span> p.dlq }
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">RetryPool</span>) <span class="fn">Run</span>(ctx <span class="tp">context.Context</span>, handler <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="op">*</span><span class="tp">RetryJob</span>) <span class="tp">error</span>) {
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> p.workers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> job, ok <span class="op">:=</span> <span class="op">&lt;-</span>p.jobs:
+                    <span class="kw">if</span> <span class="op">!</span>ok {
+                        <span class="kw">return</span>
+                    }
+                    <span class="cm">// Chờ đến thời điểm retry</span>
+                    <span class="kw">if</span> wait <span class="op">:=</span> time.<span class="fn">Until</span>(job.NextRetry); wait <span class="op">&gt;</span> <span class="nm">0</span> {
+                        <span class="kw">select</span> {
+                        <span class="kw">case</span> <span class="op">&lt;-</span>time.<span class="fn">After</span>(wait):
+                        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                            <span class="kw">return</span>
+                        }
+                    }
+                    err <span class="op">:=</span> <span class="fn">handler</span>(ctx, job)
+                    <span class="kw">if</span> err <span class="op">==</span> <span class="kw">nil</span> {
+                        <span class="kw">continue</span> <span class="cm">// thành công</span>
+                    }
+                    job.Attempts++
+                    job.LastError <span class="op">=</span> err
+                    <span class="kw">if</span> job.Attempts <span class="op">&gt;=</span> job.MaxRetries {
+                        <span class="cm">// Hết retry → gửi vào DLQ</span>
+                        <span class="kw">select</span> {
+                        <span class="kw">case</span> p.dlq <span class="op">&lt;-</span> job:
+                        <span class="kw">default</span>:
+                            fmt.<span class="fn">Printf</span>(<span class="st">"DLQ full, dropping job %d\n"</span>, job.ID)
+                        }
+                        <span class="kw">continue</span>
+                    }
+                    <span class="cm">// Lên lịch retry với backoff</span>
+                    job.NextRetry <span class="op">=</span> time.<span class="fn">Now</span>().<span class="fn">Add</span>(<span class="fn">backoff</span>(job.Attempts, p.base))
+                    <span class="kw">go</span> <span class="kw">func</span>(j <span class="op">*</span><span class="tp">RetryJob</span>) { p.jobs <span class="op">&lt;-</span> j }(job)
+                }
+            }
+        }()
+    }
+    wg.<span class="fn">Wait</span>()
+    <span class="fn">close</span>(p.dlq)
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 8. RATE LIMITING -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="ratelimit">
+      <div class="section-header">
+        <div class="section-num">8</div>
+        <h2 class="section-title">Rate Limiting Worker Pool</h2>
+        <span class="tag tag-advanced">Nâng cao</span>
+      </div>
+      <p class="desc">Kiểm soát throughput bằng Token Bucket hoặc golang.org/x/time/rate. Hữu ích khi gọi external API có rate limit, tránh overwhelming downstream services.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">rate_limited_pool.go — Token Bucket Rate Limiting</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"golang.org/x/time/rate"</span>
+)
+
+<span class="kw">type</span> <span class="tp">RateLimitedPool</span> <span class="kw">struct</span> {
+    limiter <span class="op">*</span><span class="tp">rate.Limiter</span>
+    workers <span class="tp">int</span>
+    jobs    <span class="kw">chan</span> <span class="tp">Job</span>
+    results <span class="kw">chan</span> <span class="tp">Result</span>
+}
+
+<span class="cm">// NewRateLimitedPool tạo pool với rate limit rps requests/giây,
+// burst = số request tối đa được phép burst.</span>
+<span class="kw">func</span> <span class="fn">NewRateLimitedPool</span>(workers, rps, burst <span class="tp">int</span>) <span class="op">*</span><span class="tp">RateLimitedPool</span> {
+    <span class="kw">return</span> <span class="op">&amp;</span><span class="tp">RateLimitedPool</span>{
+        limiter: rate.<span class="fn">NewLimiter</span>(<span class="tp">rate.Limit</span>(rps), burst),
+        workers: workers,
+        jobs:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Job</span>, workers<span class="op">*</span><span class="nm">2</span>),
+        results: <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Result</span>, workers<span class="op">*</span><span class="nm">2</span>),
+    }
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">RateLimitedPool</span>) <span class="fn">Run</span>(ctx <span class="tp">context.Context</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">Result</span> {
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> p.workers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> job <span class="op">:=</span> <span class="kw">range</span> p.jobs {
+                <span class="cm">// Chờ token từ rate limiter</span>
+                <span class="kw">if</span> err <span class="op">:=</span> p.limiter.<span class="fn">Wait</span>(ctx); err <span class="op">!=</span> <span class="kw">nil</span> {
+                    <span class="kw">return</span> <span class="cm">// ctx cancelled</span>
+                }
+                result <span class="op">:=</span> <span class="fn">processJob</span>(ctx, job)
+                <span class="kw">select</span> {
+                <span class="kw">case</span> p.results <span class="op">&lt;-</span> result:
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                }
+            }
+        }()
+    }
+    <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(p.results) }()
+    <span class="kw">return</span> p.results
+}
+
+<span class="cm">// Cách dùng: pool tối đa 10 req/s, burst 20, với 5 workers</span>
+<span class="cm">// p := NewRateLimitedPool(5, 10, 20)</span></pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 9. DYNAMIC SCALING -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="dynamic">
+      <div class="section-header">
+        <div class="section-num">9</div>
+        <h2 class="section-title">Dynamic Scaling Worker Pool</h2>
+        <span class="tag tag-advanced">Nâng cao</span>
+      </div>
+      <p class="desc">Tự động điều chỉnh số lượng worker dựa theo queue depth. Khi load tăng, spawn thêm worker. Khi nhàn, thu hồi worker để tiết kiệm tài nguyên.</p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">Dynamic Scaling — Vòng Điều Chỉnh Tự Động</div>
+        <svg viewBox="0 0 700 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;">
+          <defs>
+            <marker id="a4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#6e7681"/>
+            </marker>
+          </defs>
+          <!-- Monitor -->
+          <rect x="20" y="60" width="130" height="60" rx="6" fill="rgba(88,166,255,.12)" stroke="rgba(88,166,255,.4)" stroke-width="1.5"/>
+          <text x="85" y="85" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#58a6ff">Queue Monitor</text>
+          <text x="85" y="99" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">len(jobs) / cap</text>
+          <text x="85" y="113" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">tick: 500ms</text>
+
+          <!-- Scaler -->
+          <rect x="210" y="60" width="130" height="60" rx="6" fill="rgba(255,159,67,.12)" stroke="rgba(255,159,67,.4)" stroke-width="1.5"/>
+          <text x="275" y="82" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#ff9f43">Auto Scaler</text>
+          <text x="275" y="96" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">&gt;80% → scale up</text>
+          <text x="275" y="110" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">&lt;20% → scale down</text>
+
+          <!-- Worker Pool -->
+          <rect x="400" y="40" width="130" height="100" rx="6" fill="rgba(63,185,80,.1)" stroke="rgba(63,185,80,.35)" stroke-width="1.5"/>
+          <text x="465" y="62" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#3fb950">Worker Pool</text>
+          <text x="465" y="78" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">min=2, max=20</text>
+          <text x="465" y="93" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">current: dynamic</text>
+          <rect x="415" y="102" width="100" height="10" rx="3" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+          <rect x="415" y="102" width="65"  height="10" rx="3" fill="rgba(63,185,80,.4)"/>
+          <text x="465" y="125" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">utilization: 65%</text>
+
+          <!-- Metrics -->
+          <rect x="590" y="60" width="100" height="60" rx="6" fill="rgba(188,140,255,.1)" stroke="rgba(188,140,255,.35)" stroke-width="1.5"/>
+          <text x="640" y="82" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#bc8cff">Metrics</text>
+          <text x="640" y="96" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#8b949e">Prometheus</text>
+          <text x="640" y="110" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#6e7681">worker_count</text>
+
+          <!-- Arrows -->
+          <line x1="150" y1="90" x2="208" y2="90" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a4)"/>
+          <line x1="340" y1="90" x2="398" y2="90" stroke="#ff9f43" stroke-width="1.5" marker-end="url(#a4)"/>
+          <line x1="530" y1="90" x2="588" y2="90" stroke="#6e7681" stroke-width="1.5" marker-end="url(#a4)"/>
+          <!-- feedback loop -->
+          <path d="M465 140 Q 465 160 275 160 Q 85 160 85 122" stroke="#58a6ff" stroke-width="1" stroke-dasharray="4,3" fill="none" marker-end="url(#a4)"/>
+          <text x="275" y="173" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#58a6ff">feedback loop</text>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">dynamic_pool.go — Auto-scaling Worker Pool</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">dynamic</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"runtime"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="tp">DynamicPool</span> <span class="kw">struct</span> {
+    jobs        <span class="kw">chan</span> <span class="tp">Job</span>
+    results     <span class="kw">chan</span> <span class="tp">Result</span>
+    minWorkers  <span class="tp">int</span>
+    maxWorkers  <span class="tp">int</span>
+    activeCount <span class="tp">atomic.Int64</span>
+    mu          <span class="tp">sync.Mutex</span>
+    cancel      <span class="kw">map</span>[<span class="tp">int64</span>]<span class="tp">context.CancelFunc</span>
+    nextID      <span class="tp">atomic.Int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewDynamicPool</span>(min, max, queueSize <span class="tp">int</span>) <span class="op">*</span><span class="tp">DynamicPool</span> {
+    p <span class="op">:=</span> <span class="op">&amp;</span><span class="tp">DynamicPool</span>{
+        jobs:       <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Job</span>, queueSize),
+        results:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Result</span>, queueSize),
+        minWorkers: min,
+        maxWorkers: max,
+        cancel:     <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int64</span>]<span class="tp">context.CancelFunc</span>),
+    }
+    <span class="kw">return</span> p
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">DynamicPool</span>) <span class="fn">spawnWorker</span>(ctx <span class="tp">context.Context</span>) {
+    id <span class="op">:=</span> p.nextID.<span class="fn">Add</span>(<span class="nm">1</span>)
+    wCtx, wCancel <span class="op">:=</span> context.<span class="fn">WithCancel</span>(ctx)
+
+    p.mu.<span class="fn">Lock</span>()
+    p.cancel[id] <span class="op">=</span> wCancel
+    p.mu.<span class="fn">Unlock</span>()
+
+    p.activeCount.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            p.activeCount.<span class="fn">Add</span>(<span class="op">-</span><span class="nm">1</span>)
+            p.mu.<span class="fn">Lock</span>()
+            <span class="kw">delete</span>(p.cancel, id)
+            p.mu.<span class="fn">Unlock</span>()
+        }()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>wCtx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> job, ok <span class="op">:=</span> <span class="op">&lt;-</span>p.jobs:
+                <span class="kw">if</span> <span class="op">!</span>ok {
+                    <span class="kw">return</span>
+                }
+                p.results <span class="op">&lt;-</span> <span class="fn">processJob</span>(wCtx, job)
+            }
+        }
+    }()
+}
+
+<span class="cm">// scaleDown dừng một worker tùy ý (không phá hủy job đang chạy).</span>
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">DynamicPool</span>) <span class="fn">scaleDown</span>() {
+    p.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> p.mu.<span class="fn">Unlock</span>()
+    <span class="kw">for</span> id, cancel <span class="op">:=</span> <span class="kw">range</span> p.cancel {
+        <span class="fn">cancel</span>()
+        <span class="kw">delete</span>(p.cancel, id)
+        <span class="kw">return</span> <span class="cm">// chỉ xóa 1 worker mỗi lần</span>
+    }
+}
+
+<span class="cm">// autoScale chạy vòng lặp điều chỉnh theo queue depth.</span>
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">DynamicPool</span>) <span class="fn">autoScale</span>(ctx <span class="tp">context.Context</span>) {
+    ticker <span class="op">:=</span> time.<span class="fn">NewTicker</span>(<span class="nm">500</span> <span class="op">*</span> time.Millisecond)
+    <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">case</span> <span class="op">&lt;-</span>ticker.C:
+            queueLen <span class="op">:=</span> <span class="fn">len</span>(p.jobs)
+            queueCap <span class="op">:=</span> <span class="fn">cap</span>(p.jobs)
+            load <span class="op">:=</span> <span class="tp">float64</span>(queueLen) <span class="op">/</span> <span class="tp">float64</span>(queueCap)
+            active <span class="op">:=</span> p.activeCount.<span class="fn">Load</span>()
+
+            <span class="kw">switch</span> {
+            <span class="kw">case</span> load <span class="op">&gt;</span> <span class="nm">0.8</span> <span class="op">&amp;&amp;</span> active <span class="op">&lt;</span> <span class="tp">int64</span>(p.maxWorkers):
+                <span class="cm">// Scale up: spawn thêm worker</span>
+                toAdd <span class="op">:=</span> <span class="tp">int64</span>(runtime.<span class="fn">NumCPU</span>())
+                <span class="kw">if</span> active<span class="op">+</span>toAdd <span class="op">&gt;</span> <span class="tp">int64</span>(p.maxWorkers) {
+                    toAdd <span class="op">=</span> <span class="tp">int64</span>(p.maxWorkers) <span class="op">-</span> active
+                }
+                <span class="kw">for</span> i <span class="op">:=</span> <span class="tp">int64</span>(<span class="nm">0</span>); i <span class="op">&lt;</span> toAdd; i++ {
+                    p.<span class="fn">spawnWorker</span>(ctx)
+                }
+
+            <span class="kw">case</span> load <span class="op">&lt;</span> <span class="nm">0.2</span> <span class="op">&amp;&amp;</span> active <span class="op">&gt;</span> <span class="tp">int64</span>(p.minWorkers):
+                <span class="cm">// Scale down: dừng một worker</span>
+                p.<span class="fn">scaleDown</span>()
+            }
+        }
+    }
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 10. GRACEFUL SHUTDOWN -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="graceful">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <h2 class="section-title">Graceful Shutdown</h2>
+        <span class="tag tag-advanced">Nâng cao</span>
+      </div>
+      <p class="desc">Khi nhận SIGTERM/SIGINT, pool cần: (1) không nhận job mới, (2) chờ job đang xử lý hoàn thành, (3) thoát sạch. Đây là yêu cầu bắt buộc trong production.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">graceful_shutdown.go — Production-grade Shutdown</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">pool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"os"</span>
+    <span class="st">"os/signal"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"syscall"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="tp">GracefulPool</span> <span class="kw">struct</span> {
+    jobs        <span class="kw">chan</span> <span class="tp">Job</span>
+    results     <span class="kw">chan</span> <span class="tp">Result</span>
+    wg          <span class="tp">sync.WaitGroup</span>
+    once        <span class="tp">sync.Once</span> <span class="cm">// đảm bảo close(jobs) chỉ gọi 1 lần</span>
+    shutdownCh  <span class="kw">chan</span> <span class="kw">struct</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">NewGracefulPool</span>(workers, queueSize <span class="tp">int</span>) <span class="op">*</span><span class="tp">GracefulPool</span> {
+    p <span class="op">:=</span> <span class="op">&amp;</span><span class="tp">GracefulPool</span>{
+        jobs:       <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Job</span>, queueSize),
+        results:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Result</span>, queueSize),
+        shutdownCh: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}),
+    }
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> workers; i++ {
+        p.wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> p.<span class="fn">worker</span>()
+    }
+    <span class="kw">go</span> <span class="kw">func</span>() { p.wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(p.results) }()
+    <span class="kw">return</span> p
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">GracefulPool</span>) <span class="fn">worker</span>() {
+    <span class="kw">defer</span> p.wg.<span class="fn">Done</span>()
+    <span class="kw">for</span> job <span class="op">:=</span> <span class="kw">range</span> p.jobs { <span class="cm">// range tự thoát khi channel đóng</span>
+        p.results <span class="op">&lt;-</span> <span class="fn">processJob</span>(context.<span class="fn">Background</span>(), job)
+    }
+}
+
+<span class="cm">// Submit gửi job vào pool, trả về false nếu pool đã shutdown.</span>
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">GracefulPool</span>) <span class="fn">Submit</span>(job <span class="tp">Job</span>) <span class="tp">bool</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>p.shutdownCh:
+        <span class="kw">return</span> <span class="kw">false</span> <span class="cm">// pool đã shutdown, reject job</span>
+    <span class="kw">case</span> p.jobs <span class="op">&lt;-</span> job:
+        <span class="kw">return</span> <span class="kw">true</span>
+    }
+}
+
+<span class="cm">// Shutdown dừng pool, chờ tối đa timeout để jobs hoàn thành.</span>
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">GracefulPool</span>) <span class="fn">Shutdown</span>(timeout <span class="tp">time.Duration</span>) <span class="tp">error</span> {
+    p.once.<span class="fn">Do</span>(<span class="kw">func</span>() {
+        <span class="fn">close</span>(p.shutdownCh) <span class="cm">// chặn Submit mới</span>
+        <span class="fn">close</span>(p.jobs)      <span class="cm">// báo workers không còn job mới</span>
+    })
+
+    done <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+    <span class="kw">go</span> <span class="kw">func</span>() { p.wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(done) }()
+
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>done:
+        <span class="kw">return</span> <span class="kw">nil</span>
+    <span class="kw">case</span> <span class="op">&lt;-</span>time.<span class="fn">After</span>(timeout):
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"pool shutdown timed out after %v"</span>, timeout)
+    }
+}
+
+<span class="cm">// ── MAIN: Signal-aware graceful shutdown ─────────────────────────</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    pool <span class="op">:=</span> <span class="fn">NewGracefulPool</span>(<span class="nm">5</span>, <span class="nm">100</span>)
+
+    <span class="cm">// Lắng nghe OS signal</span>
+    sigCh <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> os.Signal, <span class="nm">1</span>)
+    signal.<span class="fn">Notify</span>(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+    <span class="cm">// Producer goroutine</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; ; i++ {
+            <span class="kw">if</span> <span class="op">!</span>pool.<span class="fn">Submit</span>(<span class="tp">Job</span>{ID: i}) {
+                <span class="kw">return</span>
+            }
+            time.<span class="fn">Sleep</span>(<span class="nm">10</span> <span class="op">*</span> time.Millisecond)
+        }
+    }()
+
+    <span class="cm">// Chờ signal</span>
+    sig <span class="op">:=</span> <span class="op">&lt;-</span>sigCh
+    fmt.<span class="fn">Printf</span>(<span class="st">"received %v, shutting down...\n"</span>, sig)
+
+    <span class="kw">if</span> err <span class="op">:=</span> pool.<span class="fn">Shutdown</span>(<span class="nm">30</span> <span class="op">*</span> time.Second); err <span class="op">!=</span> <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="st">"shutdown error: %v\n"</span>, err)
+    }
+    fmt.<span class="fn">Println</span>(<span class="st">"shutdown complete"</span>)
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 11. GENERIC WORKER POOL -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="generic">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <h2 class="section-title">Generic Worker Pool (Go 1.18+)</h2>
+        <span class="tag tag-expert">Expert</span>
+      </div>
+      <p class="desc">Sử dụng type parameters để tạo Worker Pool hoàn toàn generic, type-safe, tái sử dụng cho mọi kiểu dữ liệu mà không cần interface{} hay reflection.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">generic_pool.go — Type-safe Generic Worker Pool (Go 1.21+)</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">pool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// Pool là generic worker pool.
+// I = Input type, O = Output type.</span>
+<span class="kw">type</span> <span class="tp">Pool</span>[<span class="tp">I</span>, <span class="tp">O</span> <span class="tp">any</span>] <span class="kw">struct</span> {
+    numWorkers <span class="tp">int</span>
+    fn         <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="tp">I</span>) (<span class="tp">O</span>, <span class="tp">error</span>)
+}
+
+<span class="kw">type</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span> <span class="tp">any</span>] <span class="kw">struct</span> {
+    Input  <span class="tp">I</span>
+    Output <span class="tp">O</span>
+    Err    <span class="tp">error</span>
+}
+
+<span class="cm">// New tạo một Pool với fn là hàm xử lý.</span>
+<span class="kw">func</span> <span class="fn">New</span>[<span class="tp">I</span>, <span class="tp">O</span> <span class="tp">any</span>](workers <span class="tp">int</span>, fn <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="tp">I</span>) (<span class="tp">O</span>, <span class="tp">error</span>)) <span class="op">*</span><span class="tp">Pool</span>[<span class="tp">I</span>, <span class="tp">O</span>] {
+    <span class="kw">return</span> <span class="op">&amp;</span><span class="tp">Pool</span>[<span class="tp">I</span>, <span class="tp">O</span>]{numWorkers: workers, fn: fn}
+}
+
+<span class="cm">// Process nhận vào slice input, trả về channel kết quả (type-safe).</span>
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">Pool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">Process</span>(ctx <span class="tp">context.Context</span>, inputs []<span class="tp">I</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>] {
+    jobs <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">I</span>, <span class="fn">len</span>(inputs))
+    <span class="kw">for</span> _, in <span class="op">:=</span> <span class="kw">range</span> inputs {
+        jobs <span class="op">&lt;-</span> in
+    }
+    <span class="fn">close</span>(jobs)
+
+    results <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>], <span class="fn">len</span>(inputs))
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> p.numWorkers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> input <span class="op">:=</span> <span class="kw">range</span> jobs {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">default</span>:
+                }
+                output, err <span class="op">:=</span> p.<span class="fn">fn</span>(ctx, input)
+                results <span class="op">&lt;-</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>]{
+                    Input: input, Output: output, Err: err,
+                }
+            }
+        }()
+    }
+
+    <span class="kw">go</span> <span class="kw">func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(results) }()
+    <span class="kw">return</span> results
+}
+
+<span class="cm">// Collect thu thập tất cả results thành slice (blocking).</span>
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">Pool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">Collect</span>(ctx <span class="tp">context.Context</span>, inputs []<span class="tp">I</span>) ([]<span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>], <span class="tp">error</span>) {
+    results <span class="op">:=</span> <span class="fn">make</span>([]<span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>], <span class="nm">0</span>, <span class="fn">len</span>(inputs))
+    <span class="kw">for</span> r <span class="op">:=</span> <span class="kw">range</span> p.<span class="fn">Process</span>(ctx, inputs) {
+        <span class="kw">if</span> r.Err <span class="op">!=</span> <span class="kw">nil</span> {
+            <span class="kw">return</span> results, r.Err
+        }
+        results <span class="op">=</span> <span class="fn">append</span>(results, r)
+    }
+    <span class="kw">return</span> results, <span class="kw">nil</span>
+}
+
+<span class="cm">// ── SỬ DỤNG ─────────────────────────────────────────────────────────</span>
+
+<span class="kw">type</span> <span class="tp">UserID</span>   <span class="tp">int</span>
+<span class="kw">type</span> <span class="tp">UserInfo</span> <span class="kw">struct</span> { ID <span class="tp">UserID</span>; Name <span class="tp">string</span>; Email <span class="tp">string</span> }
+
+<span class="kw">func</span> <span class="fn">ExampleUsage</span>() {
+    ctx <span class="op">:=</span> context.<span class="fn">Background</span>()
+
+    <span class="cm">// Pool xử lý UserID → UserInfo, hoàn toàn type-safe</span>
+    userPool <span class="op">:=</span> <span class="fn">New</span>(<span class="nm">10</span>, <span class="kw">func</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">UserID</span>) (<span class="tp">UserInfo</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="fn">fetchUserFromDB</span>(ctx, id)
+    })
+
+    userIDs <span class="op">:=</span> []<span class="tp">UserID</span>{<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>, <span class="nm">6</span>, <span class="nm">7</span>, <span class="nm">8</span>, <span class="nm">9</span>, <span class="nm">10</span>}
+    results, err <span class="op">:=</span> userPool.<span class="fn">Collect</span>(ctx, userIDs)
+    <span class="kw">if</span> err <span class="op">!=</span> <span class="kw">nil</span> {
+        <span class="cm">// handle error</span>
+    }
+    _ <span class="op">=</span> results <span class="cm">// []WorkResult[UserID, UserInfo]</span>
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 12. METRICS & OBSERVABILITY -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="metrics">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <h2 class="section-title">Metrics &amp; Observability</h2>
+        <span class="tag tag-expert">Expert</span>
+      </div>
+      <p class="desc">Pool production cần expose metrics để monitoring và alerting. Tích hợp Prometheus để track: queue depth, worker utilization, job latency, error rate, throughput.</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">instrumented_pool.go — Prometheus Metrics Integration</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">pool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"github.com/prometheus/client_golang/prometheus"</span>
+    <span class="st">"github.com/prometheus/client_golang/prometheus/promauto"</span>
+)
+
+<span class="kw">type</span> <span class="tp">PoolMetrics</span> <span class="kw">struct</span> {
+    jobsTotal     <span class="op">*</span><span class="tp">prometheus.CounterVec</span>   <span class="cm">// total jobs by status</span>
+    jobDuration   <span class="tp">prometheus.Histogram</span>      <span class="cm">// processing latency</span>
+    queueDepth    <span class="tp">prometheus.Gauge</span>          <span class="cm">// current queue length</span>
+    activeWorkers <span class="tp">prometheus.Gauge</span>          <span class="cm">// workers in use</span>
+    workerUtil    <span class="tp">prometheus.Gauge</span>          <span class="cm">// utilization %</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewPoolMetrics</span>(namespace, poolName <span class="tp">string</span>) <span class="op">*</span><span class="tp">PoolMetrics</span> {
+    labels <span class="op">:=</span> prometheus.Labels{<span class="st">"pool"</span>: poolName}
+    <span class="kw">return</span> <span class="op">&amp;</span><span class="tp">PoolMetrics</span>{
+        jobsTotal: promauto.<span class="fn">NewCounterVec</span>(prometheus.CounterOpts{
+            Namespace: namespace, Name: <span class="st">"jobs_total"</span>,
+            Help: <span class="st">"Total jobs processed by status"</span>,
+            ConstLabels: labels,
+        }, []<span class="tp">string</span>{<span class="st">"status"</span>}),
+
+        jobDuration: promauto.<span class="fn">NewHistogram</span>(prometheus.HistogramOpts{
+            Namespace:   namespace, Name: <span class="st">"job_duration_seconds"</span>,
+            Help:        <span class="st">"Job processing latency"</span>,
+            ConstLabels: labels,
+            Buckets:     []<span class="tp">float64</span>{.<span class="nm">001</span>, .<span class="nm">005</span>, .<span class="nm">01</span>, .<span class="nm">05</span>, .<span class="nm">1</span>, .<span class="nm">5</span>, <span class="nm">1</span>, <span class="nm">5</span>},
+        }),
+
+        queueDepth: promauto.<span class="fn">NewGauge</span>(prometheus.GaugeOpts{
+            Namespace: namespace, Name: <span class="st">"queue_depth"</span>,
+            Help: <span class="st">"Current number of jobs in queue"</span>,
+            ConstLabels: labels,
+        }),
+
+        activeWorkers: promauto.<span class="fn">NewGauge</span>(prometheus.GaugeOpts{
+            Namespace: namespace, Name: <span class="st">"active_workers"</span>,
+            Help: <span class="st">"Number of workers currently processing"</span>,
+            ConstLabels: labels,
+        }),
+    }
+}
+
+<span class="kw">type</span> <span class="tp">InstrumentedPool</span> <span class="kw">struct</span> {
+    jobs    <span class="kw">chan</span> <span class="tp">Job</span>
+    results <span class="kw">chan</span> <span class="tp">Result</span>
+    metrics <span class="op">*</span><span class="tp">PoolMetrics</span>
+    workers <span class="tp">int</span>
+    wg      <span class="tp">sync.WaitGroup</span>
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">InstrumentedPool</span>) <span class="fn">worker</span>(ctx <span class="tp">context.Context</span>) {
+    <span class="kw">defer</span> p.wg.<span class="fn">Done</span>()
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">case</span> job, ok <span class="op">:=</span> <span class="op">&lt;-</span>p.jobs:
+            <span class="kw">if</span> <span class="op">!</span>ok {
+                <span class="kw">return</span>
+            }
+            <span class="cm">// Track metrics</span>
+            p.metrics.queueDepth.<span class="fn">Dec</span>()
+            p.metrics.activeWorkers.<span class="fn">Inc</span>()
+
+            start <span class="op">:=</span> time.<span class="fn">Now</span>()
+            result <span class="op">:=</span> <span class="fn">processJob</span>(ctx, job)
+            elapsed <span class="op">:=</span> time.<span class="fn">Since</span>(start)
+
+            p.metrics.jobDuration.<span class="fn">Observe</span>(elapsed.<span class="fn">Seconds</span>())
+            p.metrics.activeWorkers.<span class="fn">Dec</span>()
+
+            status <span class="op">:=</span> <span class="st">"success"</span>
+            <span class="kw">if</span> result.Err <span class="op">!=</span> <span class="kw">nil</span> {
+                status <span class="op">=</span> <span class="st">"error"</span>
+            }
+            p.metrics.jobsTotal.<span class="fn">WithLabelValues</span>(status).<span class="fn">Inc</span>()
+
+            <span class="kw">select</span> {
+            <span class="kw">case</span> p.results <span class="op">&lt;-</span> result:
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            }
+        }
+    }
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">InstrumentedPool</span>) <span class="fn">Submit</span>(job <span class="tp">Job</span>) {
+    p.jobs <span class="op">&lt;-</span> job
+    p.metrics.queueDepth.<span class="fn">Inc</span>()
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 13. PRODUCTION-READY POOL -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="production">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <h2 class="section-title">Real-World: Production-Ready Worker Pool</h2>
+        <span class="tag tag-expert">★ Expert</span>
+      </div>
+      <p class="desc">
+        Kết hợp tất cả pattern: Generic type-safe, Context cancellation, Graceful shutdown, Metrics, Retry với backoff, Circuit Breaker, Rate limiting. Đây là implementation có thể deploy thẳng vào production hệ thống lending/fintech.
+      </p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">Production Worker Pool — Full Architecture</div>
+        <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:820px;">
+          <defs>
+            <marker id="a5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#6e7681"/>
+            </marker>
+          </defs>
+          <!-- Input -->
+          <rect x="10" y="75" width="100" height="50" rx="5" fill="rgba(63,185,80,.12)" stroke="rgba(63,185,80,.4)" stroke-width="1.5"/>
+          <text x="60" y="97" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#3fb950">Producer</text>
+          <text x="60" y="110" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">API / Kafka</text>
+          <text x="60" y="121" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">Cron</text>
+
+          <!-- Rate Limiter -->
+          <rect x="130" y="78" width="80" height="44" rx="5" fill="rgba(255,159,67,.1)" stroke="rgba(255,159,67,.35)" stroke-width="1.5"/>
+          <text x="170" y="96" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#ff9f43">Rate</text>
+          <text x="170" y="108" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#ff9f43">Limiter</text>
+          <text x="170" y="118" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">token bucket</text>
+
+          <!-- Circuit Breaker -->
+          <rect x="230" y="78" width="90" height="44" rx="5" fill="rgba(248,81,73,.1)" stroke="rgba(248,81,73,.35)" stroke-width="1.5"/>
+          <text x="275" y="96" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#f85149">Circuit</text>
+          <text x="275" y="108" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#f85149">Breaker</text>
+          <text x="275" y="118" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">open/closed</text>
+
+          <!-- Job Queue -->
+          <rect x="340" y="68" width="90" height="64" rx="5" fill="rgba(88,166,255,.1)" stroke="rgba(88,166,255,.35)" stroke-width="1.5"/>
+          <text x="385" y="87" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#58a6ff">Job Queue</text>
+          <text x="385" y="100" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#8b949e">buffered chan</text>
+          <text x="385" y="112" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">priority heap</text>
+          <text x="385" y="124" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7" fill="#6e7681">deadlock-free</text>
+
+          <!-- Workers -->
+          <rect x="455" y="20" width="85" height="30" rx="4" fill="rgba(255,159,67,.1)" stroke="rgba(255,159,67,.3)" stroke-width="1"/>
+          <text x="497" y="39" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#ff9f43">Worker ×N</text>
+
+          <rect x="455" y="85" width="85" height="30" rx="4" fill="rgba(255,159,67,.1)" stroke="rgba(255,159,67,.3)" stroke-width="1"/>
+          <text x="497" y="104" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#ff9f43">Worker ×N</text>
+
+          <rect x="455" y="150" width="85" height="30" rx="4" fill="rgba(255,159,67,.1)" stroke="rgba(255,159,67,.3)" stroke-width="1"/>
+          <text x="497" y="169" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#ff9f43">Worker ×N</text>
+
+          <!-- Retry -->
+          <rect x="565" y="68" width="80" height="40" rx="5" fill="rgba(227,179,65,.1)" stroke="rgba(227,179,65,.35)" stroke-width="1.5"/>
+          <text x="605" y="85" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e3b341">Retry</text>
+          <text x="605" y="97" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#8b949e">exp backoff</text>
+          <text x="605" y="108" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7" fill="#6e7681">max 3 attempts</text>
+
+          <!-- DLQ -->
+          <rect x="565" y="130" width="80" height="35" rx="5" fill="rgba(248,81,73,.08)" stroke="rgba(248,81,73,.25)" stroke-width="1"/>
+          <text x="605" y="146" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#f85149">DLQ</text>
+          <text x="605" y="158" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#6e7681">dead letter</text>
+
+          <!-- Output -->
+          <rect x="675" y="68" width="80" height="40" rx="5" fill="rgba(86,212,221,.1)" stroke="rgba(86,212,221,.35)" stroke-width="1.5"/>
+          <text x="715" y="85" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#56d4dd">Output</text>
+          <text x="715" y="97" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#8b949e">DB / Event</text>
+          <text x="715" y="108" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="7" fill="#6e7681">Webhook / Kafka</text>
+
+          <!-- Metrics (bottom) -->
+          <rect x="130" y="155" width="500" height="22" rx="4" fill="rgba(188,140,255,.07)" stroke="rgba(188,140,255,.2)" stroke-width="1"/>
+          <text x="380" y="170" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#bc8cff">Prometheus Metrics → Grafana Dashboard → PagerDuty Alert</text>
+
+          <!-- Arrows -->
+          <line x1="110" y1="100" x2="128" y2="100" stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="210" y1="100" x2="228" y2="100" stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="320" y1="100" x2="338" y2="100" stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="430" y1="88"  x2="453" y2="36"  stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="430" y1="100" x2="453" y2="100" stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="430" y1="112" x2="453" y2="163" stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="540" y1="36"  x2="563" y2="82"  stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="540" y1="100" x2="563" y2="88"  stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="540" y1="163" x2="563" y2="145" stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <line x1="645" y1="88"  x2="673" y2="88"  stroke="#6e7681" stroke-width="1.2" marker-end="url(#a5)"/>
+          <!-- retry back to queue -->
+          <path d="M605 68 Q 605 50 385 50 Q 385 66" stroke="rgba(227,179,65,.5)" stroke-width="1" stroke-dasharray="3,2" fill="none" marker-end="url(#a5)"/>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">production_pool.go — Full Production Implementation</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">pool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"errors"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"log/slog"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// ── CIRCUIT BREAKER ──────────────────────────────────────────────────</span>
+
+<span class="kw">type</span> <span class="tp">CBState</span> <span class="tp">int32</span>
+
+<span class="kw">const</span> (
+    <span class="tp">CBClosed</span>   <span class="tp">CBState</span> <span class="op">=</span> <span class="nm">0</span> <span class="cm">// bình thường</span>
+    <span class="tp">CBOpen</span>     <span class="tp">CBState</span> <span class="op">=</span> <span class="nm">1</span> <span class="cm">// từ chối mọi request</span>
+    <span class="tp">CBHalfOpen</span> <span class="tp">CBState</span> <span class="op">=</span> <span class="nm">2</span> <span class="cm">// thử recovery</span>
+)
+
+<span class="kw">type</span> <span class="tp">CircuitBreaker</span> <span class="kw">struct</span> {
+    state       <span class="tp">atomic.Int32</span>
+    failures    <span class="tp">atomic.Int32</span>
+    threshold   <span class="tp">int32</span>
+    timeout     <span class="tp">time.Duration</span>
+    lastFailure <span class="tp">atomic.Int64</span> <span class="cm">// unix nano</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewCircuitBreaker</span>(threshold <span class="tp">int</span>, timeout <span class="tp">time.Duration</span>) <span class="op">*</span><span class="tp">CircuitBreaker</span> {
+    <span class="kw">return</span> <span class="op">&amp;</span><span class="tp">CircuitBreaker</span>{threshold: <span class="tp">int32</span>(threshold), timeout: timeout}
+}
+
+<span class="kw">func</span> (cb <span class="op">*</span><span class="tp">CircuitBreaker</span>) <span class="fn">Allow</span>() <span class="tp">bool</span> {
+    state <span class="op">:=</span> <span class="tp">CBState</span>(cb.state.<span class="fn">Load</span>())
+    <span class="kw">switch</span> state {
+    <span class="kw">case</span> <span class="tp">CBClosed</span>:
+        <span class="kw">return</span> <span class="kw">true</span>
+    <span class="kw">case</span> <span class="tp">CBOpen</span>:
+        <span class="cm">// Kiểm tra nếu timeout đã qua → chuyển half-open</span>
+        lastFail <span class="op">:=</span> time.<span class="fn">Unix</span>(<span class="nm">0</span>, cb.lastFailure.<span class="fn">Load</span>())
+        <span class="kw">if</span> time.<span class="fn">Since</span>(lastFail) <span class="op">&gt;</span> cb.timeout {
+            cb.state.<span class="fn">CompareAndSwap</span>(<span class="tp">int32</span>(<span class="tp">CBOpen</span>), <span class="tp">int32</span>(<span class="tp">CBHalfOpen</span>))
+            <span class="kw">return</span> <span class="kw">true</span>
+        }
+        <span class="kw">return</span> <span class="kw">false</span>
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="kw">true</span>
+    }
+}
+
+<span class="kw">func</span> (cb <span class="op">*</span><span class="tp">CircuitBreaker</span>) <span class="fn">RecordSuccess</span>() {
+    cb.failures.<span class="fn">Store</span>(<span class="nm">0</span>)
+    cb.state.<span class="fn">Store</span>(<span class="tp">int32</span>(<span class="tp">CBClosed</span>))
+}
+
+<span class="kw">func</span> (cb <span class="op">*</span><span class="tp">CircuitBreaker</span>) <span class="fn">RecordFailure</span>() {
+    cb.lastFailure.<span class="fn">Store</span>(time.<span class="fn">Now</span>().<span class="fn">UnixNano</span>())
+    <span class="kw">if</span> cb.failures.<span class="fn">Add</span>(<span class="nm">1</span>) <span class="op">&gt;=</span> cb.threshold {
+        cb.state.<span class="fn">Store</span>(<span class="tp">int32</span>(<span class="tp">CBOpen</span>))
+    }
+}
+
+<span class="cm">// ── PRODUCTION POOL ──────────────────────────────────────────────────</span>
+
+<span class="kw">type</span> <span class="tp">Config</span> <span class="kw">struct</span> {
+    Workers     <span class="tp">int</span>
+    QueueSize   <span class="tp">int</span>
+    MaxRetries  <span class="tp">int</span>
+    RetryBase   <span class="tp">time.Duration</span>
+    RateRPS     <span class="tp">int</span>
+    RateBurst   <span class="tp">int</span>
+    CBThreshold <span class="tp">int</span>
+    CBTimeout   <span class="tp">time.Duration</span>
+    ShutTimeout <span class="tp">time.Duration</span>
+}
+
+<span class="kw">var</span> <span class="tp">DefaultConfig</span> <span class="op">=</span> <span class="tp">Config</span>{
+    Workers: <span class="nm">10</span>, QueueSize: <span class="nm">1000</span>, MaxRetries: <span class="nm">3</span>,
+    RetryBase: <span class="nm">500</span> <span class="op">*</span> time.Millisecond,
+    RateRPS: <span class="nm">100</span>, RateBurst: <span class="nm">20</span>,
+    CBThreshold: <span class="nm">5</span>, CBTimeout: <span class="nm">30</span> <span class="op">*</span> time.Second,
+    ShutTimeout: <span class="nm">30</span> <span class="op">*</span> time.Second,
+}
+
+<span class="kw">type</span> <span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span> <span class="tp">any</span>] <span class="kw">struct</span> {
+    cfg      <span class="tp">Config</span>
+    jobs     <span class="kw">chan</span> <span class="op">*</span><span class="tp">retryItem</span>[<span class="tp">I</span>]
+    results  <span class="kw">chan</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>]
+    dlq      <span class="kw">chan</span> <span class="op">*</span><span class="tp">retryItem</span>[<span class="tp">I</span>]
+    handler  <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="tp">I</span>) (<span class="tp">O</span>, <span class="tp">error</span>)
+    limiter  <span class="op">*</span><span class="tp">rate.Limiter</span>
+    cb       <span class="op">*</span><span class="tp">CircuitBreaker</span>
+    logger   <span class="op">*</span><span class="tp">slog.Logger</span>
+    wg       <span class="tp">sync.WaitGroup</span>
+    once     <span class="tp">sync.Once</span>
+    shutdown <span class="kw">chan</span> <span class="kw">struct</span>{}
+}
+
+<span class="kw">type</span> <span class="tp">retryItem</span>[<span class="tp">I</span> <span class="tp">any</span>] <span class="kw">struct</span> {
+    input    <span class="tp">I</span>
+    attempts <span class="tp">int</span>
+    nextAt   <span class="tp">time.Time</span>
+    lastErr  <span class="tp">error</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span> <span class="tp">any</span>](
+    cfg     <span class="tp">Config</span>,
+    handler <span class="kw">func</span>(<span class="tp">context.Context</span>, <span class="tp">I</span>) (<span class="tp">O</span>, <span class="tp">error</span>),
+    logger  <span class="op">*</span><span class="tp">slog.Logger</span>,
+) <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>] {
+    <span class="kw">return</span> <span class="op">&amp;</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]{
+        cfg:      cfg,
+        jobs:     <span class="fn">make</span>(<span class="kw">chan</span> <span class="op">*</span><span class="tp">retryItem</span>[<span class="tp">I</span>], cfg.QueueSize),
+        results:  <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>], cfg.QueueSize),
+        dlq:      <span class="fn">make</span>(<span class="kw">chan</span> <span class="op">*</span><span class="tp">retryItem</span>[<span class="tp">I</span>], cfg.QueueSize),
+        handler:  handler,
+        limiter:  rate.<span class="fn">NewLimiter</span>(<span class="tp">rate.Limit</span>(cfg.RateRPS), cfg.RateBurst),
+        cb:       <span class="fn">NewCircuitBreaker</span>(cfg.CBThreshold, cfg.CBTimeout),
+        logger:   logger,
+        shutdown: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}),
+    }
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">Start</span>(ctx <span class="tp">context.Context</span>) {
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> p.cfg.Workers; i++ {
+        p.wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+        <span class="kw">go</span> p.<span class="fn">worker</span>(ctx)
+    }
+    <span class="kw">go</span> <span class="kw">func</span>() { p.wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(p.results); <span class="fn">close</span>(p.dlq) }()
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">worker</span>(ctx <span class="tp">context.Context</span>) {
+    <span class="kw">defer</span> p.wg.<span class="fn">Done</span>()
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">case</span> item, ok <span class="op">:=</span> <span class="op">&lt;-</span>p.jobs:
+            <span class="kw">if</span> <span class="op">!</span>ok {
+                <span class="kw">return</span>
+            }
+            p.<span class="fn">processItem</span>(ctx, item)
+        }
+    }
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">processItem</span>(ctx <span class="tp">context.Context</span>, item <span class="op">*</span><span class="tp">retryItem</span>[<span class="tp">I</span>]) {
+    <span class="cm">// 1. Rate limit</span>
+    <span class="kw">if</span> err <span class="op">:=</span> p.limiter.<span class="fn">Wait</span>(ctx); err <span class="op">!=</span> <span class="kw">nil</span> {
+        <span class="kw">return</span>
+    }
+    <span class="cm">// 2. Circuit breaker</span>
+    <span class="kw">if</span> <span class="op">!</span>p.cb.<span class="fn">Allow</span>() {
+        p.logger.<span class="fn">Warn</span>(<span class="st">"circuit breaker open, skipping"</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() { p.jobs <span class="op">&lt;-</span> item }() <span class="cm">// requeue</span>
+        time.<span class="fn">Sleep</span>(<span class="nm">1</span> <span class="op">*</span> time.Second)
+        <span class="kw">return</span>
+    }
+    <span class="cm">// 3. Process</span>
+    output, err <span class="op">:=</span> p.<span class="fn">handler</span>(ctx, item.input)
+    <span class="kw">if</span> err <span class="op">==</span> <span class="kw">nil</span> {
+        p.cb.<span class="fn">RecordSuccess</span>()
+        p.results <span class="op">&lt;-</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>]{Input: item.input, Output: output}
+        <span class="kw">return</span>
+    }
+    <span class="cm">// 4. Handle error</span>
+    p.cb.<span class="fn">RecordFailure</span>()
+    item.attempts++
+    item.lastErr <span class="op">=</span> err
+
+    <span class="kw">if</span> item.attempts <span class="op">&gt;=</span> p.cfg.MaxRetries {
+        p.logger.<span class="fn">Error</span>(<span class="st">"job moved to DLQ"</span>,
+            <span class="st">"attempts"</span>, item.attempts,
+            <span class="st">"err"</span>, err)
+        <span class="kw">select</span> {
+        <span class="kw">case</span> p.dlq <span class="op">&lt;-</span> item:
+        <span class="kw">default</span>:
+            p.logger.<span class="fn">Error</span>(<span class="st">"DLQ full"</span>)
+        }
+        <span class="kw">return</span>
+    }
+    <span class="cm">// 5. Schedule retry</span>
+    delay <span class="op">:=</span> <span class="fn">backoff</span>(item.attempts, p.cfg.RetryBase)
+    p.logger.<span class="fn">Info</span>(<span class="st">"retrying job"</span>, <span class="st">"attempt"</span>, item.attempts, <span class="st">"delay"</span>, delay)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        time.<span class="fn">Sleep</span>(delay)
+        <span class="kw">select</span> {
+        <span class="kw">case</span> p.jobs <span class="op">&lt;-</span> item:
+        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+        }
+    }()
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">Submit</span>(input <span class="tp">I</span>) <span class="tp">error</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>p.shutdown:
+        <span class="kw">return</span> errors.<span class="fn">New</span>(<span class="st">"pool is shut down"</span>)
+    <span class="kw">case</span> p.jobs <span class="op">&lt;-</span> <span class="op">&amp;</span><span class="tp">retryItem</span>[<span class="tp">I</span>]{input: input}:
+        <span class="kw">return</span> <span class="kw">nil</span>
+    <span class="kw">default</span>:
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"queue full (len=%d)"</span>, <span class="fn">len</span>(p.jobs))
+    }
+}
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">Results</span>() <span class="op">&lt;-</span><span class="kw">chan</span> <span class="tp">WorkResult</span>[<span class="tp">I</span>, <span class="tp">O</span>] { <span class="kw">return</span> p.results }
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">DLQ</span>()     <span class="op">&lt;-</span><span class="kw">chan</span> <span class="op">*</span><span class="tp">retryItem</span>[<span class="tp">I</span>]             { <span class="kw">return</span> p.dlq }
+
+<span class="kw">func</span> (p <span class="op">*</span><span class="tp">ProductionPool</span>[<span class="tp">I</span>, <span class="tp">O</span>]) <span class="fn">Shutdown</span>() <span class="tp">error</span> {
+    p.once.<span class="fn">Do</span>(<span class="kw">func</span>() {
+        <span class="fn">close</span>(p.shutdown)
+        <span class="fn">close</span>(p.jobs)
+    })
+    done <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+    <span class="kw">go</span> <span class="kw">func</span>() { p.wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(done) }()
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>done:
+        <span class="kw">return</span> <span class="kw">nil</span>
+    <span class="kw">case</span> <span class="op">&lt;-</span>time.<span class="fn">After</span>(p.cfg.ShutTimeout):
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"shutdown timeout after %v"</span>, p.cfg.ShutTimeout)
+    }
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- 14. SO SÁNH VỚI BULLMQ -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="bullmq">
+      <div class="section-header">
+        <div class="section-num">14</div>
+        <h2 class="section-title">So sánh với BullMQ (Node.js)</h2>
+      </div>
+
+      <table class="concept-table">
+        <thead>
+          <tr>
+            <th>Tính năng</th>
+            <th>BullMQ (Node.js)</th>
+            <th>Go Worker Pool</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Storage</strong></td>
+            <td>Redis (persistent)</td>
+            <td>In-memory channel (cần tự persist nếu cần)</td>
+          </tr>
+          <tr>
+            <td><strong>Priority Queue</strong></td>
+            <td>Built-in <span class="mono">priority</span> option</td>
+            <td><span class="mono">container/heap</span> + custom dispatcher</td>
+          </tr>
+          <tr>
+            <td><strong>Retry</strong></td>
+            <td>Built-in <span class="mono">attempts</span>, <span class="mono">backoff</span></td>
+            <td>Custom retry loop + exponential backoff</td>
+          </tr>
+          <tr>
+            <td><strong>Dead Letter</strong></td>
+            <td>Failed jobs queue tự động</td>
+            <td>Custom DLQ channel</td>
+          </tr>
+          <tr>
+            <td><strong>Rate Limiting</strong></td>
+            <td>Built-in <span class="mono">limiter</span></td>
+            <td><span class="mono">golang.org/x/time/rate</span></td>
+          </tr>
+          <tr>
+            <td><strong>Concurrency</strong></td>
+            <td>Worker option per queue</td>
+            <td>numWorkers goroutines</td>
+          </tr>
+          <tr>
+            <td><strong>Horizontal Scaling</strong></td>
+            <td>Multiple processes via Redis</td>
+            <td>Multiple replicas + shared Kafka/Nats/DB</td>
+          </tr>
+          <tr>
+            <td><strong>Dashboard</strong></td>
+            <td>Bull Board built-in</td>
+            <td>Prometheus + Grafana</td>
+          </tr>
+          <tr>
+            <td><strong>Throughput</strong></td>
+            <td>~50k jobs/s (single node)</td>
+            <td>>500k jobs/s (goroutine overhead ~2KB)</td>
+          </tr>
+          <tr>
+            <td><strong>Latency</strong></td>
+            <td>Redis RTT + event loop</td>
+            <td>Nanosecond channel ops</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="callout callout-tip">
+        <span class="callout-icon">✅</span>
+        <div><strong>Khi nào dùng Go Worker Pool thay BullMQ?</strong> Khi cần throughput cao (>100k jobs/s), latency thấp (<1ms), không cần persistence cross-process, chạy trong cùng một binary, hoặc hệ thống đã là Go microservice. Dùng BullMQ khi cần multi-process workers, persistent queue khi service restart, hoặc dashboard sẵn có.</div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- BENCHMARKS -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="bench">
+      <div class="section-header">
+        <div class="section-num">15</div>
+        <h2 class="section-title">Benchmarks &amp; Testing</h2>
+        <span class="tag tag-expert">Expert</span>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">pool_bench_test.go — Table-driven Benchmarks</span>
+        </div>
+        <div class="code-body"><pre><span class="kw">package</span> <span class="pk">pool_test</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"testing"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">BenchmarkWorkerPool</span>(b <span class="op">*</span><span class="tp">testing.B</span>) {
+    cases <span class="op">:=</span> []<span class="kw">struct</span> {
+        name    <span class="tp">string</span>
+        workers <span class="tp">int</span>
+        jobs    <span class="tp">int</span>
+    }{
+        {<span class="st">"1w-100j"</span>,   <span class="nm">1</span>,   <span class="nm">100</span>},
+        {<span class="st">"4w-1000j"</span>,  <span class="nm">4</span>,  <span class="nm">1000</span>},
+        {<span class="st">"8w-1000j"</span>,  <span class="nm">8</span>,  <span class="nm">1000</span>},
+        {<span class="st">"16w-10000j"</span>, <span class="nm">16</span>, <span class="nm">10000</span>},
+        {<span class="st">"32w-10000j"</span>, <span class="nm">32</span>, <span class="nm">10000</span>},
+    }
+
+    <span class="kw">for</span> _, tc <span class="op">:=</span> <span class="kw">range</span> cases {
+        b.<span class="fn">Run</span>(tc.name, <span class="kw">func</span>(b <span class="op">*</span><span class="tp">testing.B</span>) {
+            b.<span class="fn">ResetTimer</span>()
+            <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> b.N; i++ {
+                ctx, cancel <span class="op">:=</span> context.<span class="fn">WithTimeout</span>(
+                    context.<span class="fn">Background</span>(), <span class="nm">30</span><span class="op">*</span>time.Second)
+                jobs <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Job</span>, tc.jobs)
+                <span class="kw">for</span> j <span class="op">:=</span> <span class="nm">0</span>; j <span class="op">&lt;</span> tc.jobs; j++ {
+                    jobs <span class="op">&lt;-</span> <span class="tp">Job</span>{ID: j}
+                }
+                <span class="fn">close</span>(jobs)
+                results <span class="op">:=</span> <span class="fn">WorkerPool</span>(ctx, tc.workers, jobs)
+                <span class="kw">for</span> <span class="kw">range</span> results {}
+                <span class="fn">cancel</span>()
+            }
+        })
+    }
+}
+
+<span class="cm">// Chạy với: go test -bench=. -benchmem -race ./...</span>
+<span class="cm">// Kết quả mẫu (M1 Pro, 10 cores):
+// BenchmarkWorkerPool/1w-100j     12000   95234 ns/op    2048 B/op
+// BenchmarkWorkerPool/4w-1000j    2400   498432 ns/op    8192 B/op
+// BenchmarkWorkerPool/16w-10000j   280  4218000 ns/op   65536 B/op
+// BenchmarkWorkerPool/32w-10000j   310  3876000 ns/op   65536 B/op</span>
+
+<span class="kw">func</span> <span class="fn">TestWorkerPool_GracefulShutdown</span>(t <span class="op">*</span><span class="tp">testing.T</span>) {
+    ctx, cancel <span class="op">:=</span> context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+
+    jobs <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">Job</span>, <span class="nm">10</span>)
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> <span class="nm">10</span>; i++ {
+        jobs <span class="op">&lt;-</span> <span class="tp">Job</span>{ID: i}
+    }
+    <span class="fn">close</span>(jobs)
+
+    results <span class="op">:=</span> <span class="fn">WorkerPool</span>(ctx, <span class="nm">3</span>, jobs)
+
+    processed <span class="op">:=</span> <span class="nm">0</span>
+    <span class="kw">for</span> r <span class="op">:=</span> <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err <span class="op">!=</span> <span class="kw">nil</span> {
+            t.<span class="fn">Errorf</span>(<span class="st">"unexpected error: %v"</span>, r.Err)
+        }
+        processed++
+    }
+    <span class="fn">cancel</span>()
+
+    <span class="kw">if</span> processed <span class="op">!=</span> <span class="nm">10</span> {
+        t.<span class="fn">Errorf</span>(<span class="st">"expected 10 results, got %d"</span>, processed)
+    }
+}</pre></div>
+      </div>
+    </section>
+
+    <hr class="section-divider">
+
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <!-- REFERENCES -->
+    <!-- ═══════════════════════════════════════════════════════ -->
+    <section class="section" id="refs">
+      <div class="section-header">
+        <div class="section-num">16</div>
+        <h2 class="section-title">References &amp; Resources</h2>
+      </div>
+      <p class="desc">Tài nguyên chất lượng cao được chọn lọc từ cộng đồng Go:</p>
+
+      <div class="ref-grid">
+        <div class="ref-card">
+          <a href="https://github.com/panjf2000/ants" target="_blank">
+            <div class="ref-title">panjf2000/ants</div>
+            <div class="ref-desc">Goroutine pool có hiệu năng cao nhất trong Go ecosystem. Hỗ trợ dynamic/fixed pool, pre-alloc, non-blocking submit.</div>
+            <div class="ref-stars">⭐ 13k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/sourcegraph/conc" target="_blank">
+            <div class="ref-title">sourcegraph/conc</div>
+            <div class="ref-desc">Better structured concurrency for Go. API đơn giản hơn sync.WaitGroup, bắt panic tự động, từ Sourcegraph.</div>
+            <div class="ref-stars">⭐ 9k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://pkg.go.dev/golang.org/x/sync/errgroup" target="_blank">
+            <div class="ref-title">golang.org/x/sync/errgroup</div>
+            <div class="ref-desc">Official Go extended library. errgroup.WithContext + SetLimit() = rate-limited concurrent goroutines chính thức.</div>
+            <div class="ref-stars">✅ Official</div>
+            <div class="ref-lang">Go · BSD License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/gammazero/workerpool" target="_blank">
+            <div class="ref-title">gammazero/workerpool</div>
+            <div class="ref-desc">Simple, battle-tested worker pool. API tường minh: Submit(), StopWait(), Pause(). Phù hợp với production nhỏ.</div>
+            <div class="ref-stars">⭐ 1.3k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/alitto/pond" target="_blank">
+            <div class="ref-title">alitto/pond</div>
+            <div class="ref-desc">Minimalistic, high-performance, easy-to-use goroutine pool. Dynamic resizing, task groups, context support.</div>
+            <div class="ref-stars">⭐ 1.5k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/Jeffail/tunny" target="_blank">
+            <div class="ref-title">Jeffail/tunny</div>
+            <div class="ref-desc">Goroutine pool với blocking API, timeout support. Phù hợp khi cần call pool synchronously từ nhiều goroutine.</div>
+            <div class="ref-stars">⭐ 3.8k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://pkg.go.dev/golang.org/x/time/rate" target="_blank">
+            <div class="ref-title">golang.org/x/time/rate</div>
+            <div class="ref-desc">Official Token Bucket rate limiter. rate.NewLimiter(rps, burst) + limiter.Wait(ctx). Dùng cho rate-limited pools.</div>
+            <div class="ref-stars">✅ Official</div>
+            <div class="ref-lang">Go · BSD License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://go.dev/blog/pipelines" target="_blank">
+            <div class="ref-title">Go Blog: Pipelines &amp; Cancellation</div>
+            <div class="ref-desc">Bài viết kinh điển của Rob Pike về pipeline pattern, fan-out/fan-in, và cancellation trong Go. Nền tảng của mọi Worker Pool.</div>
+            <div class="ref-stars">📖 Official Blog</div>
+            <div class="ref-lang">Article · golang.org</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/uber-go/goleak" target="_blank">
+            <div class="ref-title">uber-go/goleak</div>
+            <div class="ref-desc">Goroutine leak detector từ Uber. Dùng trong test để đảm bảo Worker Pool không leak goroutine sau shutdown.</div>
+            <div class="ref-stars">⭐ 4k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/prometheus/client_golang" target="_blank">
+            <div class="ref-title">prometheus/client_golang</div>
+            <div class="ref-desc">Official Go Prometheus client. Dùng để instrument Worker Pool với Counter, Gauge, Histogram metrics.</div>
+            <div class="ref-stars">⭐ 5.3k+ stars</div>
+            <div class="ref-lang">Go · Apache 2.0</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://github.com/sony/gobreaker" target="_blank">
+            <div class="ref-title">sony/gobreaker</div>
+            <div class="ref-desc">Circuit Breaker từ Sony. Three-state machine (Closed/Open/Half-Open), configurable thresholds, production-proven.</div>
+            <div class="ref-stars">⭐ 2.4k+ stars</div>
+            <div class="ref-lang">Go · MIT License</div>
+          </a>
+        </div>
+        <div class="ref-card">
+          <a href="https://www.youtube.com/watch?v=f6kdp27TYZs" target="_blank">
+            <div class="ref-title">GopherCon: Concurrency Patterns</div>
+            <div class="ref-desc">Rob Pike – "Concurrency is not parallelism" + Go concurrency patterns talk. Video bắt buộc xem trước khi viết Worker Pool.</div>
+            <div class="ref-stars">🎬 GopherCon Talk</div>
+            <div class="ref-lang">Video · YouTube</div>
+          </a>
+        </div>
+      </div>
+
+      <!-- Quick commands -->
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">BASH</span>
+          <span class="code-filename">Các lệnh cài đặt dependencies</span>
+        </div>
+        <div class="code-body"><pre><span class="cm"># Khởi tạo module</span>
+go mod init github.com/yourorg/workerpool
+
+<span class="cm"># Rate limiter (official)</span>
+go get golang.org/x/time/rate
+go get golang.org/x/sync/errgroup
+
+<span class="cm"># High-performance pool</span>
+go get github.com/panjf2000/ants/v2
+
+<span class="cm"># Better concurrency API</span>
+go get github.com/sourcegraph/conc
+
+<span class="cm"># Metrics</span>
+go get github.com/prometheus/client_golang/prometheus
+
+<span class="cm"># Circuit Breaker</span>
+go get github.com/sony/gobreaker
+
+<span class="cm"># Goroutine leak test</span>
+go get go.uber.org/goleak
+
+<span class="cm"># Chạy test với race detector</span>
+go test -race -count=1 ./...
+
+<span class="cm"># Chạy benchmark</span>
+go test -bench=. -benchmem -cpuprofile=cpu.prof ./...
+go tool pprof cpu.prof</pre></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Active sidebar tracking
+const sections = document.querySelectorAll('.section');
+const items = document.querySelectorAll('.sidebar-item');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      items.forEach(i => i.classList.remove('active'));
+      const id = entry.target.id;
+      const link = document.querySelector(`.sidebar-item[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+sections.forEach(s => observer.observe(s));
+
+// Robust smooth scroll for all anchor links starting with #
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+</script>
+</body>
+</html>

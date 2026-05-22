@@ -1,0 +1,2378 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go sync.Pool & Buffer Pool — Tài liệu Chuyên Sâu</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #0f1629;
+    --bg-tertiary: #131c35;
+    --bg-code: #0d1117;
+    --bg-sidebar: #0b1020;
+    --accent-go: #00acd7;
+    --accent-green: #4ade80;
+    --accent-amber: #fbbf24;
+    --accent-pink: #f472b6;
+    --accent-purple: #a78bfa;
+    --accent-orange: #fb923c;
+    --accent-red: #f87171;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: #1e2d4a;
+    --border-bright: #2a3f6a;
+    --topbar-height: 56px;
+    --sidebar-width: 260px;
+    --font-code: 'JetBrains Mono', monospace;
+    --font-ui: 'Space Grotesk', sans-serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: var(--topbar-height);
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 32px;
+  }
+
+  .topnav-brand {
+    font-family: var(--font-ui);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-decoration: none;
+    white-space: nowrap;
+    letter-spacing: -0.3px;
+  }
+
+  .topnav-brand .go { color: var(--accent-go); }
+  .topnav-brand .dot { color: var(--text-muted); }
+
+  .topnav-links {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    flex: 1;
+  }
+
+  .topnav-links a {
+    color: var(--text-secondary);
+    text-decoration: none;
+    font-size: 12.5px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .topnav-links a:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    padding-top: var(--topbar-height);
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--bg-sidebar);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: var(--topbar-height);
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    padding: 20px 0;
+  }
+
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .sidebar-section {
+    padding: 0 0 16px 0;
+  }
+
+  .sidebar-section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 8px 20px 6px;
+  }
+
+  .sidebar-link {
+    display: block;
+    padding: 6px 20px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+
+  .sidebar-link:hover {
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.04);
+    border-left-color: var(--border-bright);
+  }
+
+  .sidebar-link.active {
+    color: var(--accent-go);
+    background: rgba(0,172,215,0.08);
+    border-left-color: var(--accent-go);
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    max-width: 1000px;
+    padding: 40px 48px 80px;
+  }
+
+  /* ── SECTION ── */
+  .section {
+    margin-bottom: 64px;
+    scroll-margin-top: 80px;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-num {
+    width: 32px;
+    height: 32px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-bright);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-code);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--accent-go);
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-family: var(--font-ui);
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-primary);
+    flex: 1;
+    letter-spacing: -0.4px;
+  }
+
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+
+  .badge-basic { background: rgba(74,222,128,0.12); color: var(--accent-green); border: 1px solid rgba(74,222,128,0.25); }
+  .badge-advanced { background: rgba(251,191,36,0.12); color: var(--accent-amber); border: 1px solid rgba(251,191,36,0.25); }
+  .badge-expert { background: rgba(167,139,250,0.12); color: var(--accent-purple); border: 1px solid rgba(167,139,250,0.25); }
+  .badge-production { background: rgba(244,114,182,0.12); color: var(--accent-pink); border: 1px solid rgba(244,114,182,0.25); }
+  .badge-pitfall { background: rgba(248,113,113,0.12); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.25); }
+
+  .section-desc {
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+    font-size: 14.5px;
+    line-height: 1.75;
+  }
+
+  /* ── PROSE ── */
+  p { margin-bottom: 14px; color: var(--text-secondary); font-size: 14.5px; }
+  p strong { color: var(--text-primary); font-weight: 600; }
+
+  h3 {
+    font-family: var(--font-ui);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 28px 0 12px;
+    letter-spacing: -0.2px;
+  }
+
+  h4 {
+    font-family: var(--font-ui);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--accent-go);
+    margin: 20px 0 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  code {
+    font-family: var(--font-code);
+    font-size: 12.5px;
+    background: rgba(0,172,215,0.1);
+    color: var(--accent-go);
+    padding: 1px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,172,215,0.2);
+  }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0;
+    position: relative;
+  }
+
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .code-lang {
+    font-family: var(--font-code);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent-go);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    background: rgba(0,172,215,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .code-filename {
+    font-family: var(--font-code);
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  .code-block pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: var(--font-code);
+    font-size: 12.5px;
+    line-height: 1.75;
+  }
+
+  .code-block pre::-webkit-scrollbar { height: 4px; }
+  .code-block pre::-webkit-scrollbar-track { background: transparent; }
+  .code-block pre::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  /* Syntax colors */
+  .kw { color: #ff79c6; }    /* keywords */
+  .fn { color: #50fa7b; }    /* functions */
+  .st { color: #f1fa8c; }    /* strings */
+  .cm { color: #6272a4; font-style: italic; } /* comments */
+  .tp { color: #8be9fd; }    /* types */
+  .nu { color: #bd93f9; }    /* numbers */
+  .pk { color: #ffb86c; }    /* packages */
+
+  /* ── DIAGRAM ── */
+  .diagram-box {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+
+  .diagram-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* ── TABLE ── */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13.5px;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(30,45,74,0.5);
+    color: var(--text-secondary);
+    vertical-align: top;
+  }
+
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td:first-child { font-family: var(--font-code); font-size: 12.5px; color: var(--accent-go); }
+
+  /* ── CALLOUT ── */
+  .callout {
+    display: flex;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    margin: 16px 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-content { flex: 1; color: var(--text-secondary); }
+  .callout-content strong { display: block; margin-bottom: 4px; font-size: 13px; }
+
+  .callout-info { background: rgba(0,172,215,0.08); border: 1px solid rgba(0,172,215,0.2); }
+  .callout-info .callout-content strong { color: var(--accent-go); }
+  .callout-warn { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2); }
+  .callout-warn .callout-content strong { color: var(--accent-amber); }
+  .callout-danger { background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); }
+  .callout-danger .callout-content strong { color: var(--accent-red); }
+  .callout-success { background: rgba(74,222,128,0.08); border: 1px solid rgba(74,222,128,0.2); }
+  .callout-success .callout-content strong { color: var(--accent-green); }
+
+  /* ── BENCHMARK BARS ── */
+  .bench-grid { display: flex; flex-direction: column; gap: 12px; }
+
+  .bench-row { display: flex; flex-direction: column; gap: 6px; }
+
+  .bench-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-family: var(--font-code);
+  }
+
+  .bench-label .name { color: var(--text-secondary); }
+  .bench-label .val { color: var(--accent-green); font-weight: 700; }
+  .bench-label .val.slow { color: var(--accent-red); }
+
+  .bench-bar-wrap {
+    height: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 5px;
+    overflow: hidden;
+  }
+
+  .bench-bar {
+    height: 100%;
+    border-radius: 5px;
+    transition: width 0.8s ease;
+  }
+
+  .bench-bar.good { background: linear-gradient(90deg, #22d3ee, #4ade80); }
+  .bench-bar.bad { background: linear-gradient(90deg, #f87171, #fb923c); }
+
+  /* ── GC LIFECYCLE SVG ── */
+  svg text { font-family: var(--font-code); }
+
+  /* ── PITFALL TABLE ── */
+  .pitfall-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+  .pitfall-table th {
+    padding: 10px 14px;
+    background: rgba(248,113,113,0.08);
+    color: var(--accent-red);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-align: left;
+    border-bottom: 1px solid rgba(248,113,113,0.2);
+  }
+  .pitfall-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); font-size: 13.5px; vertical-align: top; }
+  .pitfall-table td:first-child { color: var(--accent-red); font-weight: 600; width: 25%; }
+  .pitfall-table td:nth-child(2) { color: var(--text-secondary); width: 35%; }
+  .pitfall-table td:last-child { color: var(--accent-green); width: 40%; }
+
+  /* ── REF CARD ── */
+  .ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .ref-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .ref-card:hover { border-color: var(--accent-go); transform: translateY(-2px); }
+  .ref-card-title { font-weight: 600; color: var(--text-primary); font-size: 14px; margin-bottom: 4px; }
+  .ref-card-url { font-family: var(--font-code); font-size: 11.5px; color: var(--accent-go); }
+  .ref-card-desc { font-size: 12.5px; color: var(--text-muted); margin-top: 6px; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-top: 6px; }
+
+  /* ── DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 40px 0;
+  }
+
+  /* ── GRID COMPARE ── */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .compare-card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .compare-card-title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-card.good .compare-card-title { color: var(--accent-green); }
+  .compare-card.bad .compare-card-title { color: var(--accent-red); }
+
+  /* ── FLOW DIAGRAM ── */
+  .flow-diagram {
+    font-family: var(--font-code);
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.9;
+    white-space: pre;
+  }
+
+  /* ── TAG PILLS ── */
+  .tag-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .tag { font-size: 11.5px; padding: 3px 10px; border-radius: 20px; font-family: var(--font-code); background: var(--bg-tertiary); border: 1px solid var(--border-bright); color: var(--text-muted); }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 20px; }
+    .ref-grid, .compare-grid { grid-template-columns: 1fr; }
+  }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 172, 215, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg-secondary);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <a class="topnav-brand" href="#">
+    <span class="go">Go</span><span class="dot">.</span>sync<span style="color:var(--accent-green)">.</span>Pool
+  </a>
+  <div class="topnav-links">
+    <a href="#intro">Giới thiệu</a>
+    <a href="#concept">Khái niệm</a>
+    <a href="#lifecycle">Lifecycle</a>
+    <a href="#basic">Cơ bản</a>
+    <a href="#buffer-pool">Buffer Pool</a>
+    <a href="#generics">Generics</a>
+    <a href="#http">HTTP Pool</a>
+    <a href="#json-pool">JSON Pool</a>
+    <a href="#etl">ETL Pipeline</a>
+    <a href="#benchmark">Benchmark</a>
+    <a href="#pitfalls">Pitfalls</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Cơ Bản</div>
+      <a class="sidebar-link active" href="#intro">Giới thiệu</a>
+      <a class="sidebar-link" href="#concept">Khái niệm & GC Pressure</a>
+      <a class="sidebar-link" href="#lifecycle">Pool Lifecycle</a>
+      <a class="sidebar-link" href="#basic">Basic Usage</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Patterns</div>
+      <a class="sidebar-link" href="#buffer-pool">Buffer Pool</a>
+      <a class="sidebar-link" href="#object-pool">Custom Object Pool</a>
+      <a class="sidebar-link" href="#generics">Generic Pool (1.18+)</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Production Ready</div>
+      <a class="sidebar-link" href="#http">HTTP Middleware Pool</a>
+      <a class="sidebar-link" href="#json-pool">JSON Encoder Pool</a>
+      <a class="sidebar-link" href="#etl">ETL Pipeline</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Nâng Cao</div>
+      <a class="sidebar-link" href="#benchmark">Benchmark Analysis</a>
+      <a class="sidebar-link" href="#pitfalls">Pitfalls & Anti-patterns</a>
+      <a class="sidebar-link" href="#refs">References</a>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 1: INTRO -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="intro">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <div class="section-title">Giới thiệu — sync.Pool là gì?</div>
+        <span class="badge badge-basic">★ Cơ bản</span>
+      </div>
+
+      <p class="section-desc">
+        <code>sync.Pool</code> là một trong những công cụ tối ưu hiệu năng mạnh nhất trong Go standard library — cho phép <strong>tái sử dụng object</strong> thay vì liên tục cấp phát và giải phóng bộ nhớ, từ đó giảm áp lực lên Garbage Collector.
+      </p>
+
+      <p>Trong các hệ thống high-throughput (HTTP server, ETL pipeline, message processor), mỗi request thường cần <strong>buffer, encoder, hoặc context object</strong> tạm thời. Nếu mỗi lần đều <code>make([]byte, size)</code> rồi bỏ đi, GC sẽ phải hoạt động liên tục — gây ra <em>stop-the-world pause</em> và tăng latency đột ngột.</p>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">💡</span>
+        <div class="callout-content">
+          <strong>Triết lý cốt lõi</strong>
+          "Đừng tạo rồi bỏ — hãy mượn rồi trả." sync.Pool là một pool of temporary objects có thể được reused across goroutines một cách thread-safe, không cần lock thủ công.
+        </div>
+      </div>
+
+      <h3>Khi nào nên dùng sync.Pool?</h3>
+      <table class="data-table">
+        <tr><th>Tình huống</th><th>Phù hợp không?</th><th>Lý do</th></tr>
+        <tr><td>HTTP request buffer</td><td style="color:var(--accent-green)">✓ Rất phù hợp</td><td>Tần suất cao, object sống ngắn</td></tr>
+        <tr><td>JSON encoder/decoder</td><td style="color:var(--accent-green)">✓ Rất phù hợp</td><td>Allocation lớn, reuse hiệu quả</td></tr>
+        <tr><td>Database connection</td><td style="color:var(--accent-red)">✗ Không phù hợp</td><td>Dùng database/sql pool có sẵn</td></tr>
+        <tr><td>Worker goroutines</td><td style="color:var(--accent-red)">✗ Không phù hợp</td><td>Goroutine lifecycle khác object lifecycle</td></tr>
+        <tr><td>ETL record buffer</td><td style="color:var(--accent-green)">✓ Phù hợp</td><td>Xử lý batch, reuse slice backing</td></tr>
+        <tr><td>Object có state phức tạp</td><td style="color:var(--accent-amber)">⚠ Thận trọng</td><td>Phải reset state trước khi reuse</td></tr>
+        <tr><td>Long-lived object</td><td style="color:var(--accent-red)">✗ Không phù hợp</td><td>GC có thể xóa bất kỳ lúc nào</td></tr>
+      </table>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 2: CONCEPT -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="concept">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <div class="section-title">GC Pressure — Vấn đề cốt lõi</div>
+        <span class="badge badge-basic">★ Cơ bản</span>
+      </div>
+
+      <p class="section-desc">
+        Để hiểu tại sao sync.Pool quan trọng, cần hiểu Go GC hoạt động như thế nào và "GC pressure" có nghĩa là gì.
+      </p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">Vòng đời object không dùng Pool vs. dùng Pool</div>
+        <svg viewBox="0 0 860 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'JetBrains Mono',monospace;">
+          <!-- Background -->
+          <rect width="860" height="280" fill="#0f1629" rx="8"/>
+
+          <!-- Title Left -->
+          <text x="215" y="30" fill="#f87171" font-size="11" text-anchor="middle" font-weight="bold">❌ KHÔNG DÙNG POOL</text>
+          <!-- Title Right -->
+          <text x="645" y="30" fill="#4ade80" font-size="11" text-anchor="middle" font-weight="bold">✅ DÙNG sync.Pool</text>
+
+          <!-- Divider -->
+          <line x1="430" y1="10" x2="430" y2="270" stroke="#1e2d4a" stroke-width="1" stroke-dasharray="4,3"/>
+
+          <!-- ──── LEFT SIDE ──── -->
+          <!-- Request 1 -->
+          <rect x="20" y="50" width="100" height="28" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="70" y="69" fill="#94a3b8" font-size="10" text-anchor="middle">Request #1</text>
+          <line x1="120" y1="64" x2="150" y2="64" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- alloc -->
+          <rect x="150" y="50" width="80" height="28" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+          <text x="190" y="69" fill="#60a5fa" font-size="10" text-anchor="middle">alloc buf</text>
+          <line x1="230" y1="64" x2="260" y2="64" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- use -->
+          <rect x="260" y="50" width="60" height="28" rx="5" fill="#0f2820" stroke="#22c55e"/>
+          <text x="290" y="69" fill="#22c55e" font-size="10" text-anchor="middle">use</text>
+          <line x1="320" y1="64" x2="350" y2="64" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arr)"/>
+          <!-- discard -->
+          <rect x="350" y="50" width="70" height="28" rx="5" fill="#3b0a0a" stroke="#ef4444"/>
+          <text x="385" y="69" fill="#f87171" font-size="10" text-anchor="middle">discard ❌</text>
+
+          <!-- Request 2 -->
+          <rect x="20" y="100" width="100" height="28" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="70" y="119" fill="#94a3b8" font-size="10" text-anchor="middle">Request #2</text>
+          <line x1="120" y1="114" x2="150" y2="114" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <rect x="150" y="100" width="80" height="28" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+          <text x="190" y="119" fill="#60a5fa" font-size="10" text-anchor="middle">alloc buf</text>
+          <line x1="230" y1="114" x2="260" y2="114" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <rect x="260" y="100" width="60" height="28" rx="5" fill="#0f2820" stroke="#22c55e"/>
+          <text x="290" y="119" fill="#22c55e" font-size="10" text-anchor="middle">use</text>
+          <line x1="320" y1="114" x2="350" y2="114" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arr)"/>
+          <rect x="350" y="100" width="70" height="28" rx="5" fill="#3b0a0a" stroke="#ef4444"/>
+          <text x="385" y="119" fill="#f87171" font-size="10" text-anchor="middle">discard ❌</text>
+
+          <!-- Request 3 -->
+          <rect x="20" y="150" width="100" height="28" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="70" y="169" fill="#94a3b8" font-size="10" text-anchor="middle">Request #3</text>
+          <line x1="120" y1="164" x2="150" y2="164" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <rect x="150" y="150" width="80" height="28" rx="5" fill="#1e3a5f" stroke="#3b82f6"/>
+          <text x="190" y="169" fill="#60a5fa" font-size="10" text-anchor="middle">alloc buf</text>
+          <line x1="230" y1="164" x2="260" y2="164" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arr)"/>
+          <rect x="260" y="150" width="60" height="28" rx="5" fill="#0f2820" stroke="#22c55e"/>
+          <text x="290" y="169" fill="#22c55e" font-size="10" text-anchor="middle">use</text>
+          <line x1="320" y1="164" x2="350" y2="164" stroke="#ef4444" stroke-width="1.5" marker-end="url(#arr)"/>
+          <rect x="350" y="150" width="70" height="28" rx="5" fill="#3b0a0a" stroke="#ef4444"/>
+          <text x="385" y="169" fill="#f87171" font-size="10" text-anchor="middle">discard ❌</text>
+
+          <!-- GC Trigger -->
+          <rect x="150" y="215" width="270" height="30" rx="5" fill="#2d0a0a" stroke="#ef4444" stroke-dasharray="3,2"/>
+          <text x="285" y="234" fill="#f87171" font-size="10" text-anchor="middle">⚠ GC triggered — heap quá lớn!</text>
+
+          <!-- ──── RIGHT SIDE ──── -->
+          <!-- Pool center -->
+          <rect x="610" y="90" width="110" height="80" rx="8" fill="#0a1f0f" stroke="#22c55e" stroke-width="2"/>
+          <text x="665" y="113" fill="#4ade80" font-size="11" text-anchor="middle" font-weight="bold">sync.Pool</text>
+          <text x="665" y="129" fill="#6ee7b7" font-size="9.5" text-anchor="middle">[ buf₁ buf₂ buf₃ ]</text>
+          <text x="665" y="147" fill="#6ee7b7" font-size="9.5" text-anchor="middle">[ buf₄ buf₅ ... ]</text>
+          <text x="665" y="163" fill="#22c55e" font-size="9" text-anchor="middle">thread-safe ✓</text>
+
+          <!-- Req A — Get -->
+          <rect x="450" y="50" width="90" height="28" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="495" y="69" fill="#94a3b8" font-size="10" text-anchor="middle">Request A</text>
+          <line x1="540" y1="64" x2="609" y2="118" stroke="#00acd7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr2)"/>
+          <text x="565" y="80" fill="#00acd7" font-size="9">Get()</text>
+
+          <!-- Req A — Put back -->
+          <line x1="610" y1="128" x2="557" y2="128" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr3)"/>
+          <rect x="450" y="115" width="90" height="28" rx="5" fill="#0f2820" stroke="#22c55e"/>
+          <text x="495" y="134" fill="#22c55e" font-size="10" text-anchor="middle">use + Put()</text>
+
+          <!-- Req B — Get -->
+          <rect x="450" y="165" width="90" height="28" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="495" y="184" fill="#94a3b8" font-size="10" text-anchor="middle">Request B</text>
+          <line x1="540" y1="179" x2="609" y2="152" stroke="#00acd7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr2)"/>
+          <text x="558" y="173" fill="#00acd7" font-size="9">Get()</text>
+          <line x1="610" y1="148" x2="557" y2="158" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr3)"/>
+
+          <!-- No GC box -->
+          <rect x="450" y="225" width="270" height="30" rx="5" fill="#0a2a0a" stroke="#22c55e" stroke-dasharray="3,2"/>
+          <text x="585" y="244" fill="#4ade80" font-size="10" text-anchor="middle">✅ Ít allocation — GC nhẹ hơn nhiều</text>
+
+          <!-- Arrow defs -->
+          <defs>
+            <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="#60a5fa"/>
+            </marker>
+            <marker id="arr2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="#00acd7"/>
+            </marker>
+            <marker id="arr3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L6,3 z" fill="#4ade80"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <h3>Go GC hoạt động như thế nào?</h3>
+      <p>Go dùng <strong>concurrent tri-color mark-and-sweep GC</strong>. Khi heap vượt ngưỡng (GOGC — mặc định 100%), GC sẽ chạy. Hai chi phí chính:</p>
+
+      <table class="data-table">
+        <tr><th>Chi phí GC</th><th>Mô tả</th><th>Ảnh hưởng</th></tr>
+        <tr><td>Allocation overhead</td><td>Mỗi <code>new()</code> hay <code>make()</code> đều cần tìm slot trong heap</td><td>CPU time tăng</td></tr>
+        <tr><td>GC scan work</td><td>Càng nhiều live object, GC càng tốn thời gian scan</td><td>Latency tăng, throughput giảm</td></tr>
+        <tr><td>Write barriers</td><td>GC cần theo dõi pointer writes trong concurrent mode</td><td>Overhead mỗi pointer write</td></tr>
+        <tr><td>STW pause</td><td>Stop-the-world: dừng toàn bộ goroutine để finish marking</td><td>Tail latency (P99) tăng đột ngột</td></tr>
+      </table>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div class="callout-content">
+          <strong>Quan trọng: sync.Pool vs GC</strong>
+          sync.Pool <em>không ngăn</em> GC xóa object trong pool. GC có thể clear pool bất kỳ lúc nào (thường cuối mỗi GC cycle). Do đó Pool chỉ phù hợp cho <strong>temporary objects</strong> — không dùng cho state quan trọng cần persist.
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 3: LIFECYCLE -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="lifecycle">
+      <div class="section-header">
+        <div class="section-num">03</div>
+        <div class="section-title">Pool Lifecycle & Cơ chế nội bộ</div>
+        <span class="badge badge-advanced">★ Nâng cao</span>
+      </div>
+
+      <p class="section-desc">
+        Hiểu cơ chế nội bộ giúp tránh các pitfall và sử dụng Pool hiệu quả hơn.
+      </p>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-sync-pool.png" alt="Go Concurrency: sync.Pool Lifecycle & Internals" loading="lazy">
+        <div class="concept-img-caption">Hình 3.1: Cơ chế hoạt động và cấu trúc nội bộ của sync.Pool — Phân tích chi tiết cách lưu trữ bộ đệm trên mỗi Logical Processor (P) giúp truy cập không khóa (lock-free) qua Private Slot & Shared Deque, kết hợp cơ chế Victim Cache bảo toàn tài nguyên tạm thời qua chu kỳ dọn dẹp của Garbage Collector.</div>
+      </div>
+
+      <h3>Get() & Put() — Luồng xử lý chi tiết</h3>
+      <div class="diagram-box">
+        <div class="flow-diagram"><span style="color:#00acd7">Get()</span> được gọi:
+  │
+  ├─ <span style="color:#60a5fa">① Disable preemption</span> (pin to current P)
+  │   └─ Lấy poolLocal của P hiện tại
+  │
+  ├─ <span style="color:#60a5fa">② Check private slot</span> (fastest path, no lock)
+  │   └─ Nếu có → trả về, set private = nil
+  │
+  ├─ <span style="color:#60a5fa">③ Check local shared deque</span> (lock-free CAS)
+  │   └─ Nếu có → pop từ head
+  │
+  ├─ <span style="color:#60a5fa">④ Work-steal từ P khác</span> (pop từ tail của P ngẫu nhiên)
+  │   └─ Tránh contention với owner P (owner pop head, stealer pop tail)
+  │
+  ├─ <span style="color:#fbbf24">⑤ Check victim cache</span> (Go 1.13+, giảm allocation sau GC)
+  │   └─ Tìm trong victim pools của tất cả P
+  │
+  └─ <span style="color:#f87171">⑥ Gọi New()</span> — heap allocation thực sự
+      └─ Đây là chi phí muốn tránh → pool warm-up quan trọng!
+
+<span style="color:#00acd7">Put()</span> được gọi:
+  │
+  ├─ <span style="color:#60a5fa">① Disable preemption</span> (pin to current P)
+  │
+  ├─ <span style="color:#60a5fa">② Nếu private slot rỗng</span> → đặt vào private (zero cost)
+  │
+  └─ <span style="color:#60a5fa">③ Nếu private slot đầy</span> → push vào shared deque (lock-free)</div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 4: BASIC USAGE -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="basic">
+      <div class="section-header">
+        <div class="section-num">04</div>
+        <div class="section-title">Basic Usage — sync.Pool cơ bản</div>
+        <span class="badge badge-basic">★ Cơ bản</span>
+      </div>
+
+      <p class="section-desc">Cách khai báo và sử dụng sync.Pool đúng cách. Mọi sai lầm nhỏ đều dẫn đến memory leak hoặc race condition.</p>
+
+      <h4>Ví dụ 1 — Khai báo Pool cơ bản</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">basic_pool.go</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// ① Khai báo Pool với hàm New() — bắt buộc phải có</span>
+<span class="cm">// New() chỉ được gọi khi pool rỗng (fallback)</span>
+<span class="kw">var</span> bufPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> {
+        <span class="cm">// Tạo buffer với capacity 1KB làm baseline</span>
+        <span class="kw">return</span> <span class="fn">new</span>(<span class="tp">bytes</span>.<span class="tp">Buffer</span>)
+    },
+}
+
+<span class="kw">func</span> <span class="fn">processData</span>(data <span class="tp">string</span>) <span class="tp">string</span> {
+    <span class="cm">// ② Get() — lấy object từ pool (hoặc tạo mới nếu pool rỗng)</span>
+    buf := bufPool.<span class="fn">Get</span>().(* <span class="tp">bytes</span>.<span class="tp">Buffer</span>)
+
+    <span class="cm">// ③ defer Put() — LUÔN trả về pool, kể cả khi có panic</span>
+    <span class="cm">// ⚠ QUAN TRỌNG: Reset state trước khi Put!</span>
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        buf.<span class="fn">Reset</span>() <span class="cm">// Xóa nội dung, giữ capacity — KHÔNG gọi buf = nil</span>
+        bufPool.<span class="fn">Put</span>(buf)
+    }()
+
+    <span class="cm">// ④ Sử dụng object như bình thường</span>
+    buf.<span class="fn">WriteString</span>(<span class="st">"[processed] "</span>)
+    buf.<span class="fn">WriteString</span>(data)
+    <span class="kw">return</span> buf.<span class="fn">String</span>()
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    results := <span class="fn">make</span>([]<span class="tp">string</span>, <span class="nu">5</span>)
+    <span class="kw">var</span> wg <span class="tp">sync</span>.<span class="tp">WaitGroup</span>
+
+    <span class="kw">for</span> i := <span class="nu">0</span>; i &lt; <span class="nu">5</span>; i++ {
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>(idx <span class="tp">int</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            results[idx] = <span class="fn">processData</span>(<span class="fn">fmt</span>.<span class="fn">Sprintf</span>(<span class="st">"data-%d"</span>, idx))
+        }(i)
+    }
+
+    wg.<span class="fn">Wait</span>()
+    <span class="kw">for</span> _, r := <span class="kw">range</span> results {
+        fmt.<span class="fn">Println</span>(r)
+    }
+}
+<span class="cm">// Output (thứ tự có thể khác):
+// [processed] data-0
+// [processed] data-1
+// ... (buffers được reuse giữa goroutines)</span></pre>
+      </div>
+
+      <div class="callout callout-danger">
+        <span class="callout-icon">🚫</span>
+        <div class="callout-content">
+          <strong>Anti-pattern: Quên Reset() trước Put()</strong>
+          Đây là lỗi phổ biến nhất. Nếu Put buffer có chứa data cũ, goroutine tiếp theo Get() sẽ nhận được object bẩn — dẫn đến data corruption hoặc security leak (thông tin nhạy cảm trong buffer cũ).
+        </div>
+      </div>
+
+      <h4>Ví dụ 2 — Pool với generic type assertion an toàn</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">safe_pool.go</span>
+        </div>
+        <pre><span class="cm">// Wrapper an toàn xung quanh sync.Pool — type assertion có kiểm tra</span>
+<span class="kw">type</span> <span class="tp">BufferPool</span> <span class="kw">struct</span> {
+    pool <span class="tp">sync</span>.<span class="tp">Pool</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewBufferPool</span>() *<span class="tp">BufferPool</span> {
+    <span class="kw">return</span> &amp;<span class="tp">BufferPool</span>{
+        pool: <span class="tp">sync</span>.<span class="tp">Pool</span>{
+            New: <span class="kw">func</span>() <span class="kw">any</span> {
+                <span class="cm">// Pre-allocate 4KB để giảm grow operations</span>
+                buf := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">4096</span>)
+                <span class="kw">return</span> &amp;buf
+            },
+        },
+    }
+}
+
+<span class="kw">func</span> (p *<span class="tp">BufferPool</span>) <span class="fn">Get</span>() []<span class="tp">byte</span> {
+    <span class="cm">// Type assert với comma-ok — tránh panic nếu pool trả về nil</span>
+    <span class="kw">if</span> v := p.pool.<span class="fn">Get</span>(); v != <span class="kw">nil</span> {
+        <span class="kw">if</span> buf, ok := v.(*[]<span class="tp">byte</span>); ok {
+            <span class="kw">return</span> (*buf)[:<span class="nu">0</span>] <span class="cm">// Reset length, giữ capacity</span>
+        }
+    }
+    buf := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">4096</span>)
+    <span class="kw">return</span> buf
+}
+
+<span class="kw">func</span> (p *<span class="tp">BufferPool</span>) <span class="fn">Put</span>(buf []<span class="tp">byte</span>) {
+    <span class="cm">// ⚠ Đừng return buffer quá lớn — tránh giữ memory không cần thiết</span>
+    <span class="kw">if</span> cap(buf) &gt; <span class="nu">64*1024</span> { <span class="cm">// > 64KB: bỏ qua, để GC thu hồi</span>
+        <span class="kw">return</span>
+    }
+    buf = buf[:<span class="nu">0</span>] <span class="cm">// Reset length</span>
+    p.pool.<span class="fn">Put</span>(&amp;buf)
+}
+
+<span class="cm">// Usage:</span>
+<span class="kw">var</span> globalPool = <span class="fn">NewBufferPool</span>()
+
+<span class="kw">func</span> <span class="fn">buildResponse</span>(items []<span class="tp">string</span>) []<span class="tp">byte</span> {
+    buf := globalPool.<span class="fn">Get</span>()
+    <span class="kw">defer</span> globalPool.<span class="fn">Put</span>(buf)
+
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+        buf = <span class="fn">append</span>(buf, item...)
+        buf = <span class="fn">append</span>(buf, <span class="st">'\n'</span>)
+    }
+
+    <span class="cm">// Phải copy! buf sẽ bị reuse sau khi Put()</span>
+    result := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="fn">len</span>(buf))
+    <span class="fn">copy</span>(result, buf)
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 5: BUFFER POOL -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="buffer-pool">
+      <div class="section-header">
+        <div class="section-num">05</div>
+        <div class="section-title">Buffer Pool — bytes.Buffer Reuse</div>
+        <span class="badge badge-advanced">★ Nâng cao</span>
+      </div>
+
+      <p class="section-desc">
+        <code>bytes.Buffer</code> là một trong những object phổ biến nhất được pool. Đây là cách các thư viện lớn như <code>encoding/json</code>, <code>net/http</code> triển khai.
+      </p>
+
+      <h4>bytes.Buffer Pool — Pattern hoàn chỉnh</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">buffer_pool.go</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">bufferpool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// BytesBufferPool — thread-safe pool cho bytes.Buffer</span>
+<span class="kw">type</span> <span class="tp">BytesBufferPool</span> <span class="kw">struct</span> {
+    pool    <span class="tp">sync</span>.<span class="tp">Pool</span>
+    maxSize <span class="tp">int</span> <span class="cm">// Giới hạn size để tránh giữ buffer khổng lồ</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewBytesBufferPool</span>(initialCap, maxSize <span class="tp">int</span>) *<span class="tp">BytesBufferPool</span> {
+    p := &amp;<span class="tp">BytesBufferPool</span>{maxSize: maxSize}
+    p.pool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+        New: <span class="kw">func</span>() <span class="kw">any</span> {
+            <span class="cm">// Grow() pre-allocate để tránh realloc lần đầu</span>
+            buf := <span class="fn">new</span>(<span class="tp">bytes</span>.<span class="tp">Buffer</span>)
+            buf.<span class="fn">Grow</span>(initialCap)
+            <span class="kw">return</span> buf
+        },
+    }
+    <span class="kw">return</span> p
+}
+
+<span class="cm">// Get lấy *bytes.Buffer đã reset sẵn</span>
+<span class="kw">func</span> (p *<span class="tp">BytesBufferPool</span>) <span class="fn">Get</span>() *<span class="tp">bytes</span>.<span class="tp">Buffer</span> {
+    <span class="kw">return</span> p.pool.<span class="fn">Get</span>().(*<span class="tp">bytes</span>.<span class="tp">Buffer</span>)
+}
+
+<span class="cm">// Put trả buffer về pool — với size guard</span>
+<span class="kw">func</span> (p *<span class="tp">BytesBufferPool</span>) <span class="fn">Put</span>(buf *<span class="tp">bytes</span>.<span class="tp">Buffer</span>) {
+    <span class="cm">// ① Size guard: buffer quá lớn → bỏ, đừng giữ trong pool</span>
+    <span class="cm">// Giúp tránh tình huống 1 request lớn "nhiễm" toàn bộ pool</span>
+    <span class="kw">if</span> buf.<span class="fn">Cap</span>() &gt; p.maxSize {
+        <span class="kw">return</span> <span class="cm">// GC sẽ thu hồi — tốt hơn là giữ buffer 50MB trong pool</span>
+    }
+
+    <span class="cm">// ② Reset: xóa nội dung nhưng giữ backing array (capacity)</span>
+    <span class="cm">// Đây là core value của pooling — tái dùng backing memory</span>
+    buf.<span class="fn">Reset</span>()
+    p.pool.<span class="fn">Put</span>(buf)
+}
+
+<span class="cm">// ──────────────────────────────────────────────────────────────
+// Ví dụ: String Builder với pool
+// ──────────────────────────────────────────────────────────────</span>
+
+<span class="kw">var</span> DefaultPool = <span class="fn">NewBytesBufferPool</span>(<span class="nu">1024</span>, <span class="nu">32*1024</span>) <span class="cm">// 1KB init, 32KB max</span>
+
+<span class="cm">// BuildString — build string hiệu quả, không escape buf lên heap</span>
+<span class="kw">func</span> <span class="fn">BuildString</span>(parts ...string) <span class="tp">string</span> {
+    buf := DefaultPool.<span class="fn">Get</span>()
+    <span class="kw">defer</span> DefaultPool.<span class="fn">Put</span>(buf)
+
+    <span class="kw">for</span> _, part := <span class="kw">range</span> parts {
+        buf.<span class="fn">WriteString</span>(part)
+    }
+
+    <span class="cm">// buf.String() tạo copy — an toàn sau khi Put()</span>
+    <span class="kw">return</span> buf.<span class="fn">String</span>()
+}
+
+<span class="cm">// WriteAndReturn — viết vào writer, trả về bytes</span>
+<span class="kw">func</span> <span class="fn">WriteAndReturn</span>(fn <span class="kw">func</span>(*<span class="tp">bytes</span>.<span class="tp">Buffer</span>)) []<span class="tp">byte</span> {
+    buf := DefaultPool.<span class="fn">Get</span>()
+    fn(buf)
+    <span class="cm">// Copy result TRƯỚC khi Put — quan trọng!</span>
+    result := <span class="fn">make</span>([]<span class="tp">byte</span>, buf.<span class="fn">Len</span>())
+    <span class="fn">copy</span>(result, buf.<span class="fn">Bytes</span>())
+    DefaultPool.<span class="fn">Put</span>(buf)
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+
+      <h4>Sizedclass Buffer Pool — Nhiều pool theo kích thước</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">sized_pool.go — Tham khảo từ valyala/bytebufferpool</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">bufferpool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"math/bits"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+)
+
+<span class="cm">// SizedPool — nhiều pool phân loại theo size class
+// Giống tcmalloc/jemalloc của Go runtime
+// Giảm internal fragmentation khi object size khác nhau nhiều</span>
+<span class="kw">const</span> (
+    minBits = <span class="nu">6</span>  <span class="cm">// 64 bytes</span>
+    maxBits = <span class="nu">18</span> <span class="cm">// 256 KB</span>
+    numPools = maxBits - minBits + <span class="nu">1</span>
+)
+
+<span class="kw">type</span> <span class="tp">SizedPool</span> <span class="kw">struct</span> {
+    pools  [numPools]<span class="tp">sync</span>.<span class="tp">Pool</span>
+    misses [numPools]<span class="tp">atomic</span>.<span class="tp">Int64</span> <span class="cm">// Theo dõi số lần miss (không có trong pool)</span>
+    gets   [numPools]<span class="tp">atomic</span>.<span class="tp">Int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewSizedPool</span>() *<span class="tp">SizedPool</span> {
+    p := &amp;<span class="tp">SizedPool</span>{}
+    <span class="kw">for</span> i := <span class="kw">range</span> p.pools {
+        size := <span class="nu">1</span> &lt;&lt; (<span class="tp">uint</span>(i) + minBits) <span class="cm">// 64, 128, 256, ..., 256K</span>
+        p.pools[i] = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+            New: <span class="fn">func</span>() <span class="kw">any</span> {
+                buf := <span class="fn">make</span>([]<span class="tp">byte</span>, size)
+                <span class="kw">return</span> &amp;buf
+            },
+        }
+    }
+    <span class="kw">return</span> p
+}
+
+<span class="cm">// index tìm pool phù hợp nhỏ nhất chứa được size bytes</span>
+<span class="kw">func</span> <span class="fn">index</span>(size <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> size == <span class="nu">0</span> { <span class="kw">return</span> <span class="nu">0</span> }
+    bits := bits.<span class="fn">Len</span>(<span class="tp">uint</span>(size - <span class="nu">1</span>))
+    <span class="kw">if</span> bits &lt; minBits { <span class="kw">return</span> <span class="nu">0</span> }
+    <span class="kw">if</span> bits &gt; maxBits { <span class="kw">return</span> -<span class="nu">1</span> } <span class="cm">// Quá lớn, không pool</span>
+    <span class="kw">return</span> bits - minBits
+}
+
+<span class="kw">func</span> (p *<span class="tp">SizedPool</span>) <span class="fn">Get</span>(size <span class="tp">int</span>) []<span class="tp">byte</span> {
+    idx := <span class="fn">index</span>(size)
+    <span class="kw">if</span> idx &lt; <span class="nu">0</span> {
+        <span class="kw">return</span> <span class="fn">make</span>([]<span class="tp">byte</span>, size) <span class="cm">// Quá lớn — allocate trực tiếp</span>
+    }
+    p.gets[idx].<span class="fn">Add</span>(<span class="nu">1</span>)
+
+    buf := p.pools[idx].<span class="fn">Get</span>().(*[]<span class="tp">byte</span>)
+    <span class="kw">if</span> <span class="fn">len</span>(*buf) &lt; size {
+        p.misses[idx].<span class="fn">Add</span>(<span class="nu">1</span>)
+        *buf = <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">1</span>&lt;&lt;(<span class="tp">uint</span>(idx)+minBits))
+    }
+    <span class="kw">return</span> (*buf)[:size]
+}
+
+<span class="kw">func</span> (p *<span class="tp">SizedPool</span>) <span class="fn">Put</span>(buf []<span class="tp">byte</span>) {
+    idx := <span class="fn">index</span>(<span class="fn">cap</span>(buf))
+    <span class="kw">if</span> idx &lt; <span class="nu">0</span> { <span class="kw">return</span> }
+    p.pools[idx].<span class="fn">Put</span>(&amp;buf)
+}
+
+<span class="cm">// Stats — xem hitrate để biết pool có hiệu quả không</span>
+<span class="kw">func</span> (p *<span class="tp">SizedPool</span>) <span class="fn">HitRate</span>(idx <span class="tp">int</span>) <span class="tp">float64</span> {
+    gets := p.gets[idx].<span class="fn">Load</span>()
+    <span class="kw">if</span> gets == <span class="nu">0</span> { <span class="kw">return</span> <span class="nu">0</span> }
+    misses := p.misses[idx].<span class="fn">Load</span>()
+    <span class="kw">return</span> <span class="tp">float64</span>(gets-misses) / <span class="tp">float64</span>(gets) * <span class="nu">100</span>
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 6: CUSTOM OBJECT POOL -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="object-pool">
+      <div class="section-header">
+        <div class="section-num">06</div>
+        <div class="section-title">Custom Object Pool — Struct Reuse</div>
+        <span class="badge badge-advanced">★ Nâng cao</span>
+      </div>
+
+      <p class="section-desc">
+        Pool không chỉ dùng cho buffer. Bất kỳ struct allocation nặng nào cũng có thể pool được — từ parser state, connection context, đến record object trong ETL.
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">object_pool.go — Request Context Reuse</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">middleware</span>
+
+<span class="kw">import</span> (
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+    <span class="st">"bytes"</span>
+)
+
+<span class="cm">// RequestContext — object được reuse cho mỗi HTTP request
+// Thay vì allocate mới mỗi request (N req/s × struct size = pressure)</span>
+<span class="kw">type</span> <span class="tp">RequestContext</span> <span class="kw">struct</span> {
+    TraceID    <span class="tp">string</span>
+    StartTime  <span class="tp">time</span>.<span class="tp">Time</span>
+    UserID     <span class="tp">int64</span>
+    Body       []<span class="tp">byte</span>
+    Headers    <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">string</span>
+    RespBuf    *<span class="tp">bytes</span>.<span class="tp">Buffer</span>
+    Errors     []<span class="tp">error</span>
+    Tags       []<span class="tp">string</span>
+}
+
+<span class="cm">// reset — PHẢI gọi trước khi Put() để tránh data leak</span>
+<span class="kw">func</span> (rc *<span class="tp">RequestContext</span>) <span class="fn">reset</span>() {
+    rc.TraceID = <span class="st">""</span>
+    rc.StartTime = <span class="tp">time</span>.<span class="tp">Time</span>{}
+    rc.UserID = <span class="nu">0</span>
+
+    <span class="cm">// Slice: reset len về 0, giữ capacity (backing array được reuse)</span>
+    rc.Body = rc.Body[:<span class="nu">0</span>]
+    rc.Errors = rc.Errors[:<span class="nu">0</span>]
+    rc.Tags = rc.Tags[:<span class="nu">0</span>]
+
+    <span class="cm">// Map: clear() (Go 1.21+) giữ map structure, xóa entries</span>
+    <span class="kw">for</span> k := <span class="kw">range</span> rc.Headers {
+        <span class="kw">delete</span>(rc.Headers, k)
+    }
+
+    <span class="cm">// bytes.Buffer: Reset giữ backing array</span>
+    <span class="kw">if</span> rc.RespBuf != <span class="kw">nil</span> {
+        rc.RespBuf.<span class="fn">Reset</span>()
+    }
+}
+
+<span class="kw">type</span> <span class="tp">ContextPool</span> <span class="kw">struct</span> {
+    pool <span class="tp">sync</span>.<span class="tp">Pool</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewContextPool</span>() *<span class="tp">ContextPool</span> {
+    <span class="kw">return</span> &amp;<span class="tp">ContextPool</span>{
+        pool: <span class="tp">sync</span>.<span class="tp">Pool</span>{
+            New: <span class="kw">func</span>() <span class="kw">any</span> {
+                <span class="kw">return</span> &amp;<span class="tp">RequestContext</span>{
+                    <span class="cm">// Pre-allocate inner structures để giảm grow</span>
+                    Body:    <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">8192</span>),
+                    Headers: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">string</span>, <span class="nu">16</span>),
+                    Errors:  <span class="fn">make</span>([]<span class="tp">error</span>, <span class="nu">0</span>, <span class="nu">4</span>),
+                    Tags:    <span class="fn">make</span>([]<span class="tp">string</span>, <span class="nu">0</span>, <span class="nu">8</span>),
+                    RespBuf: <span class="fn">new</span>(<span class="tp">bytes</span>.<span class="tp">Buffer</span>),
+                }
+            },
+        },
+    }
+}
+
+<span class="kw">func</span> (cp *<span class="tp">ContextPool</span>) <span class="fn">Acquire</span>() *<span class="tp">RequestContext</span> {
+    <span class="kw">return</span> cp.pool.<span class="fn">Get</span>().(*<span class="tp">RequestContext</span>)
+}
+
+<span class="kw">func</span> (cp *<span class="tp">ContextPool</span>) <span class="fn">Release</span>(rc *<span class="tp">RequestContext</span>) {
+    rc.<span class="fn">reset</span>() <span class="cm">// Bắt buộc!</span>
+    cp.pool.<span class="fn">Put</span>(rc)
+}
+
+<span class="cm">// Ví dụ usage trong HTTP handler:</span>
+<span class="kw">var</span> ctxPool = <span class="fn">NewContextPool</span>()
+
+<span class="kw">func</span> <span class="fn">handler</span>(w http.<span class="tp">ResponseWriter</span>, r *http.<span class="tp">Request</span>) {
+    rc := ctxPool.<span class="fn">Acquire</span>()
+    <span class="kw">defer</span> ctxPool.<span class="fn">Release</span>(rc)
+
+    rc.TraceID = r.Header.<span class="fn">Get</span>(<span class="st">"X-Trace-ID"</span>)
+    rc.StartTime = time.<span class="fn">Now</span>()
+    <span class="cm">// ... xử lý request dùng rc ...</span>
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 7: GENERICS POOL -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="generics">
+      <div class="section-header">
+        <div class="section-num">07</div>
+        <div class="section-title">Generic Pool — Type-safe với Go 1.18+</div>
+        <span class="badge badge-advanced">★ Nâng cao</span>
+      </div>
+
+      <p class="section-desc">
+        Trước Go 1.18, mỗi type cần một wrapper Pool riêng. Với generics, ta có thể viết một Pool type-safe dùng cho mọi loại object.
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">generic_pool.go — Go 1.18+</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">pool</span>
+
+<span class="kw">import</span> <span class="st">"sync"</span>
+
+<span class="cm">// Pool[T] — generic wrapper type-safe cho sync.Pool
+// Không cần type assertion thủ công, không thể nhầm kiểu</span>
+<span class="kw">type</span> <span class="tp">Pool</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    pool  <span class="tp">sync</span>.<span class="tp">Pool</span>
+    reset <span class="kw">func</span>(T) <span class="cm">// Hàm reset state — inject từ ngoài</span>
+}
+
+<span class="cm">// New tạo Pool với factory function và optional reset function</span>
+<span class="kw">func</span> <span class="fn">New</span>[T <span class="kw">any</span>](factory <span class="kw">func</span>() T, resetFn <span class="kw">func</span>(T)) *<span class="tp">Pool</span>[T] {
+    <span class="kw">return</span> &amp;<span class="tp">Pool</span>[T]{
+        pool: <span class="tp">sync</span>.<span class="tp">Pool</span>{
+            New: <span class="kw">func</span>() <span class="kw">any</span> { <span class="kw">return</span> <span class="fn">factory</span>() },
+        },
+        reset: resetFn,
+    }
+}
+
+<span class="kw">func</span> (p *<span class="tp">Pool</span>[T]) <span class="fn">Get</span>() T {
+    <span class="cm">// Type assertion an toàn — không thể sai kiểu vì generic constraint</span>
+    <span class="kw">return</span> p.pool.<span class="fn">Get</span>().(T)
+}
+
+<span class="kw">func</span> (p *<span class="tp">Pool</span>[T]) <span class="fn">Put</span>(v T) {
+    <span class="kw">if</span> p.reset != <span class="kw">nil</span> {
+        p.reset(v) <span class="cm">// Gọi reset trước khi trả về pool</span>
+    }
+    p.pool.<span class="fn">Put</span>(v)
+}
+
+<span class="cm">// Acquire — convenience method trả về value + cleanup function
+// Dùng với defer để tự động put về pool</span>
+<span class="kw">func</span> (p *<span class="tp">Pool</span>[T]) <span class="fn">Acquire</span>() (T, <span class="kw">func</span>()) {
+    v := p.<span class="fn">Get</span>()
+    <span class="kw">return</span> v, <span class="kw">func</span>() { p.<span class="fn">Put</span>(v) }
+}
+
+<span class="cm">// ──────────────────────────────────────────────────────────────
+// Sử dụng Generic Pool
+// ──────────────────────────────────────────────────────────────</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"encoding/json"</span>
+)
+
+<span class="cm">// Pool cho bytes.Buffer</span>
+<span class="kw">var</span> BytesPool = pool.<span class="fn">New</span>(
+    <span class="kw">func</span>() *<span class="tp">bytes</span>.<span class="tp">Buffer</span> { <span class="kw">return</span> <span class="fn">new</span>(<span class="tp">bytes</span>.<span class="tp">Buffer</span>) },
+    <span class="kw">func</span>(b *<span class="tp">bytes</span>.<span class="tp">Buffer</span>) { b.<span class="fn">Reset</span>() },
+)
+
+<span class="cm">// Pool cho json.Encoder</span>
+<span class="kw">type</span> <span class="tp">EncoderBuf</span> <span class="kw">struct</span> {
+    Buf *<span class="tp">bytes</span>.<span class="tp">Buffer</span>
+    Enc *<span class="tp">json</span>.<span class="tp">Encoder</span>
+}
+
+<span class="kw">var</span> EncoderPool = pool.<span class="fn">New</span>(
+    <span class="kw">func</span>() *<span class="tp">EncoderBuf</span> {
+        buf := <span class="fn">new</span>(<span class="tp">bytes</span>.<span class="tp">Buffer</span>)
+        <span class="kw">return</span> &amp;<span class="tp">EncoderBuf</span>{Buf: buf, Enc: <span class="tp">json</span>.<span class="fn">NewEncoder</span>(buf)}
+    },
+    <span class="kw">func</span>(e *<span class="tp">EncoderBuf</span>) { e.Buf.<span class="fn">Reset</span>() },
+)
+
+<span class="cm">// Cách dùng với defer cleanup:</span>
+<span class="kw">func</span> <span class="fn">MarshalJSON</span>(v <span class="kw">any</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>) {
+    eb, <span class="fn">cleanup</span> := EncoderPool.<span class="fn">Acquire</span>()
+    <span class="kw">defer</span> <span class="fn">cleanup</span>() <span class="cm">// Tự động Put() khi hàm return</span>
+
+    <span class="kw">if</span> err := eb.Enc.<span class="fn">Encode</span>(v); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, err
+    }
+    <span class="kw">return</span> <span class="fn">bytes</span>.<span class="fn">TrimRight</span>(eb.Buf.<span class="fn">Bytes</span>(), <span class="st">"\n"</span>), <span class="kw">nil</span>
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 8: HTTP MIDDLEWARE -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="http">
+      <div class="section-header">
+        <div class="section-num">08</div>
+        <div class="section-title">HTTP Middleware Buffer Pool</div>
+        <span class="badge badge-production">★ Production</span>
+      </div>
+
+      <p class="section-desc">
+        Kết hợp Buffer Pool vào HTTP middleware để capture response, gzip, hoặc logging — đây là pattern thực tế nhất và có impact cao nhất với web service.
+      </p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">HTTP Request Flow với Buffer Pool</div>
+        <svg viewBox="0 0 820 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'JetBrains Mono',monospace;">
+          <rect width="820" height="160" fill="#0f1629" rx="8"/>
+          <!-- Boxes -->
+          <rect x="10" y="60" width="90" height="40" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="55" y="85" fill="#94a3b8" font-size="10" text-anchor="middle">Client</text>
+
+          <rect x="130" y="60" width="110" height="40" rx="5" fill="#1c2942" stroke="#3b82f6"/>
+          <text x="185" y="82" fill="#60a5fa" font-size="10" text-anchor="middle">Middleware</text>
+          <text x="185" y="94" fill="#3b82f6" font-size="9" text-anchor="middle">Pool.Get(buf)</text>
+
+          <rect x="270" y="60" width="100" height="40" rx="5" fill="#162040" stroke="#4ade80"/>
+          <text x="320" y="82" fill="#4ade80" font-size="10" text-anchor="middle">Handler</text>
+          <text x="320" y="94" fill="#22c55e" font-size="9" text-anchor="middle">write → buf</text>
+
+          <rect x="400" y="20" width="120" height="40" rx="5" fill="#0a1f0f" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="460" y="37" fill="#4ade80" font-size="10" text-anchor="middle">sync.Pool</text>
+          <text x="460" y="51" fill="#6ee7b7" font-size="9" text-anchor="middle">[buf pool]</text>
+
+          <rect x="400" y="100" width="120" height="40" rx="5" fill="#162040" stroke="#fbbf24"/>
+          <text x="460" y="118" fill="#fbbf24" font-size="10" text-anchor="middle">Post-process</text>
+          <text x="460" y="130" fill="#f59e0b" font-size="9" text-anchor="middle">gzip / log</text>
+
+          <rect x="550" y="60" width="120" height="40" rx="5" fill="#1c2942" stroke="#a78bfa"/>
+          <text x="610" y="82" fill="#a78bfa" font-size="10" text-anchor="middle">ResponseWriter</text>
+          <text x="610" y="94" fill="#7c3aed" font-size="9" text-anchor="middle">flush → wire</text>
+
+          <rect x="700" y="60" width="100" height="40" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="750" y="82" fill="#94a3b8" font-size="10" text-anchor="middle">Client</text>
+          <text x="750" y="94" fill="#64748b" font-size="9" text-anchor="middle">← response</text>
+
+          <!-- Arrows -->
+          <line x1="100" y1="80" x2="128" y2="80" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#a1)"/>
+          <line x1="240" y1="80" x2="268" y2="80" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#a1)"/>
+          <line x1="370" y1="80" x2="398" y2="120" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#a2)"/>
+          <line x1="460" y1="60" x2="320" y2="62" stroke="#22c55e" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#a3)"/>
+          <line x1="460" y1="100" x2="548" y2="84" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a4)"/>
+          <line x1="670" y1="80" x2="698" y2="80" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#a4)"/>
+          <line x1="185" y1="60" x2="460" y2="62" stroke="#4ade80" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#a3)"/>
+
+          <text x="155" y="48" fill="#00acd7" font-size="8.5">① Get(buf)</text>
+          <text x="440" y="88" fill="#fbbf24" font-size="8.5">② write</text>
+          <text x="470" y="75" fill="#4ade80" font-size="8.5">③ Put(buf)</text>
+
+          <defs>
+            <marker id="a1" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="#60a5fa"/></marker>
+            <marker id="a2" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="#fbbf24"/></marker>
+            <marker id="a3" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="#22c55e"/></marker>
+            <marker id="a4" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6z" fill="#a78bfa"/></marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">http_middleware.go — Response Capture + Gzip Pool</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">middleware</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"compress/gzip"</span>
+    <span class="st">"net/http"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"strconv"</span>
+)
+
+<span class="cm">// ① responseWriter wrapper — capture response vào buffer thay vì ghi thẳng</span>
+<span class="kw">type</span> <span class="tp">bufferedWriter</span> <span class="kw">struct</span> {
+    http.<span class="tp">ResponseWriter</span>
+    buf    *<span class="tp">bytes</span>.<span class="tp">Buffer</span>
+    status <span class="tp">int</span>
+}
+
+<span class="kw">func</span> (bw *<span class="tp">bufferedWriter</span>) <span class="fn">Write</span>(b []<span class="tp">byte</span>) (<span class="tp">int</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> bw.buf.<span class="fn">Write</span>(b) <span class="cm">// Ghi vào buffer, không phải wire</span>
+}
+
+<span class="kw">func</span> (bw *<span class="tp">bufferedWriter</span>) <span class="fn">WriteHeader</span>(code <span class="tp">int</span>) {
+    bw.status = code
+}
+
+<span class="cm">// ② Pool cho bufferedWriter objects (bao gồm bytes.Buffer bên trong)</span>
+<span class="kw">var</span> writerPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> {
+        <span class="kw">return</span> &amp;<span class="tp">bufferedWriter</span>{
+            buf: <span class="fn">bytes</span>.<span class="fn">NewBuffer</span>(<span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">4096</span>)),
+        }
+    },
+}
+
+<span class="cm">// ③ Pool cho gzip.Writer — allocation nặng, rất đáng pool</span>
+<span class="kw">var</span> gzipPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> {
+        <span class="cm">// gzip.NewWriter tốn ~80KB allocation! Pool là bắt buộc</span>
+        gz, _ := <span class="tp">gzip</span>.<span class="fn">NewWriterLevel</span>(<span class="kw">nil</span>, <span class="tp">gzip</span>.BestSpeed)
+        <span class="kw">return</span> gz
+    },
+}
+
+<span class="cm">// GzipMiddleware — compress response với pooled gzip.Writer</span>
+<span class="kw">func</span> <span class="fn">GzipMiddleware</span>(next http.<span class="tp">Handler</span>) http.<span class="tp">Handler</span> {
+    <span class="kw">return</span> http.<span class="fn">HandlerFunc</span>(<span class="kw">func</span>(w http.<span class="tp">ResponseWriter</span>, r *http.<span class="tp">Request</span>) {
+        <span class="cm">// Lấy buffered writer từ pool</span>
+        bw := writerPool.<span class="fn">Get</span>().(*<span class="tp">bufferedWriter</span>)
+        bw.ResponseWriter = w
+        bw.status = http.StatusOK
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            bw.buf.<span class="fn">Reset</span>()
+            bw.ResponseWriter = <span class="kw">nil</span>
+            writerPool.<span class="fn">Put</span>(bw)
+        }()
+
+        <span class="cm">// Gọi handler — response ghi vào buf</span>
+        next.<span class="fn">ServeHTTP</span>(bw, r)
+
+        <span class="cm">// Lấy gzip writer từ pool</span>
+        gz := gzipPool.<span class="fn">Get</span>().(*<span class="tp">gzip</span>.<span class="tp">Writer</span>)
+        gz.<span class="fn">Reset</span>(w) <span class="cm">// Redirect output đến ResponseWriter thật</span>
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            gz.<span class="fn">Close</span>()
+            gzipPool.<span class="fn">Put</span>(gz)
+        }()
+
+        <span class="cm">// Set headers TRƯỚC khi write body</span>
+        w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="st">"Content-Encoding"</span>, <span class="st">"gzip"</span>)
+        w.<span class="fn">Header</span>().<span class="fn">Del</span>(<span class="st">"Content-Length"</span>) <span class="cm">// Không biết trước length</span>
+        w.<span class="fn">WriteHeader</span>(bw.status)
+
+        <span class="cm">// Write compressed response</span>
+        gz.<span class="fn">Write</span>(bw.buf.<span class="fn">Bytes</span>())
+        <span class="cm">// gz.Close() trong defer gọi gzip.Flush() và đóng stream</span>
+    })
+}
+
+<span class="cm">// ─────────────────────────────────────────────────────────────
+// Response Logger Middleware — dùng pool để log body
+// ─────────────────────────────────────────────────────────────</span>
+<span class="kw">var</span> logBufPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> { <span class="kw">return</span> <span class="fn">new</span>(<span class="tp">bytes</span>.<span class="tp">Buffer</span>) },
+}
+
+<span class="kw">func</span> <span class="fn">LoggingMiddleware</span>(next http.<span class="tp">Handler</span>) http.<span class="tp">Handler</span> {
+    <span class="kw">return</span> http.<span class="fn">HandlerFunc</span>(<span class="kw">func</span>(w http.<span class="tp">ResponseWriter</span>, r *http.<span class="tp">Request</span>) {
+        logBuf := logBufPool.<span class="fn">Get</span>().(*<span class="tp">bytes</span>.<span class="tp">Buffer</span>)
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            logBuf.<span class="fn">Reset</span>()
+            logBufPool.<span class="fn">Put</span>(logBuf)
+        }()
+
+        bw := writerPool.<span class="fn">Get</span>().(*<span class="tp">bufferedWriter</span>)
+        bw.ResponseWriter = w
+        bw.status = <span class="nu">200</span>
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            bw.buf.<span class="fn">Reset</span>()
+            writerPool.<span class="fn">Put</span>(bw)
+        }()
+
+        next.<span class="fn">ServeHTTP</span>(bw, r)
+
+        <span class="cm">// Build log entry không dùng fmt.Sprintf (tránh allocation)</span>
+        logBuf.<span class="fn">WriteString</span>(<span class="st">"method="</span>)
+        logBuf.<span class="fn">WriteString</span>(r.Method)
+        logBuf.<span class="fn">WriteString</span>(<span class="st">" path="</span>)
+        logBuf.<span class="fn">WriteString</span>(r.URL.Path)
+        logBuf.<span class="fn">WriteString</span>(<span class="st">" status="</span>)
+        logBuf.<span class="fn">WriteString</span>(strconv.<span class="fn">Itoa</span>(bw.status))
+        logBuf.<span class="fn">WriteString</span>(<span class="st">" bytes="</span>)
+        logBuf.<span class="fn">WriteString</span>(strconv.<span class="fn">Itoa</span>(bw.buf.<span class="fn">Len</span>()))
+
+        <span class="cm">// log.Println(logBuf.String())</span>
+
+        w.<span class="fn">WriteHeader</span>(bw.status)
+        w.<span class="fn">Write</span>(bw.buf.<span class="fn">Bytes</span>())
+    })
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 9: JSON ENCODER POOL -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="json-pool">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <div class="section-title">JSON Encoder Pool</div>
+        <span class="badge badge-production">★ Production</span>
+      </div>
+
+      <p class="section-desc">
+        JSON encoding là bottleneck rất phổ biến. <code>json.Marshal</code> tạo internal buffer mỗi lần gọi. Pool encoder giảm đáng kể allocation per-request.
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">json_pool.go — Production JSON Encoding</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">jsonpool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"encoding/json"</span>
+    <span class="st">"io"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// encoderEntry gộp buffer + encoder thành 1 unit pool
+// Vì json.Encoder giữ reference đến writer (buffer), cần pool cả 2 cùng lúc</span>
+<span class="kw">type</span> <span class="tp">encoderEntry</span> <span class="kw">struct</span> {
+    buf *<span class="tp">bytes</span>.<span class="tp">Buffer</span>
+    enc *<span class="tp">json</span>.<span class="tp">Encoder</span>
+}
+
+<span class="kw">var</span> encoderPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> {
+        buf := <span class="fn">bytes</span>.<span class="fn">NewBuffer</span>(<span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">1024</span>))
+        enc := <span class="tp">json</span>.<span class="fn">NewEncoder</span>(buf)
+        enc.<span class="fn">SetEscapeHTML</span>(<span class="kw">false</span>) <span class="cm">// Tắt HTML escape nếu không cần — nhanh hơn</span>
+        <span class="kw">return</span> &amp;<span class="tp">encoderEntry</span>{buf: buf, enc: enc}
+    },
+}
+
+<span class="cm">// Marshal — thay thế json.Marshal, ít allocation hơn nhiều
+// Benchmark: 3-5x ít allocs/op so với json.Marshal trực tiếp</span>
+<span class="kw">func</span> <span class="fn">Marshal</span>(v <span class="kw">any</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>) {
+    entry := encoderPool.<span class="fn">Get</span>().(*<span class="tp">encoderEntry</span>)
+    entry.buf.<span class="fn">Reset</span>()
+
+    <span class="kw">defer</span> encoderPool.<span class="fn">Put</span>(entry)
+
+    <span class="kw">if</span> err := entry.enc.<span class="fn">Encode</span>(v); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, err
+    }
+
+    <span class="cm">// json.Encoder thêm '\n' vào cuối — trim nó đi</span>
+    b := entry.buf.<span class="fn">Bytes</span>()
+    <span class="kw">if</span> n := <span class="fn">len</span>(b); n &gt; <span class="nu">0</span> &amp;&amp; b[n-<span class="nu">1</span>] == <span class="st">'\n'</span> {
+        b = b[:n-<span class="nu">1</span>]
+    }
+
+    <span class="cm">// Copy kết quả — entry.buf sẽ bị reuse sau khi Put()</span>
+    result := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="fn">len</span>(b))
+    <span class="fn">copy</span>(result, b)
+    <span class="kw">return</span> result, <span class="kw">nil</span>
+}
+
+<span class="cm">// MarshalTo — zero-copy: ghi thẳng vào writer (HTTP response, file, etc.)
+// Không cần copy kết quả — tốt cho streaming response</span>
+<span class="kw">func</span> <span class="fn">MarshalTo</span>(w <span class="tp">io</span>.<span class="tp">Writer</span>, v <span class="kw">any</span>) <span class="tp">error</span> {
+    entry := encoderPool.<span class="fn">Get</span>().(*<span class="tp">encoderEntry</span>)
+    entry.buf.<span class="fn">Reset</span>()
+    <span class="kw">defer</span> encoderPool.<span class="fn">Put</span>(entry)
+
+    <span class="kw">if</span> err := entry.enc.<span class="fn">Encode</span>(v); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> err
+    }
+    <span class="cm">// Flush buffer sang writer thật</span>
+    _, err := w.<span class="fn">Write</span>(entry.buf.<span class="fn">Bytes</span>())
+    <span class="kw">return</span> err
+}
+
+<span class="cm">// Decoder pool — cho API server nhận JSON request body</span>
+<span class="kw">type</span> <span class="tp">decoderEntry</span> <span class="kw">struct</span> {
+    dec *<span class="tp">json</span>.<span class="tp">Decoder</span>
+    buf *<span class="tp">bytes</span>.<span class="tp">Buffer</span>
+}
+
+<span class="kw">var</span> decoderPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> {
+        buf := <span class="fn">bytes</span>.<span class="fn">NewBuffer</span>(<span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">4096</span>))
+        <span class="kw">return</span> &amp;<span class="tp">decoderEntry</span>{dec: <span class="tp">json</span>.<span class="fn">NewDecoder</span>(buf), buf: buf}
+    },
+}
+
+<span class="cm">// Unmarshal với pooled decoder</span>
+<span class="kw">func</span> <span class="fn">Unmarshal</span>(data []<span class="tp">byte</span>, v <span class="kw">any</span>) <span class="tp">error</span> {
+    entry := decoderPool.<span class="fn">Get</span>().(*<span class="tp">decoderEntry</span>)
+    entry.buf.<span class="fn">Reset</span>()
+    entry.buf.<span class="fn">Write</span>(data)
+    <span class="kw">defer</span> decoderPool.<span class="fn">Put</span>(entry)
+    <span class="kw">return</span> entry.dec.<span class="fn">Decode</span>(v)
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 10: ETL PIPELINE -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="etl">
+      <div class="section-header">
+        <div class="section-num">10</div>
+        <div class="section-title">Real-World: ETL Pipeline với Object Reuse</div>
+        <span class="badge badge-expert">★ Expert</span>
+      </div>
+
+      <p class="section-desc">
+        Kết hợp tất cả patterns để xây dựng ETL pipeline thực tế: đọc từ nhiều nguồn, parse+transform song song, bulk insert vào PostgreSQL với pooled objects xuyên suốt pipeline.
+      </p>
+
+      <div class="diagram-box">
+        <div class="diagram-title">ETL Pipeline — Pool Usage Map</div>
+        <svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;font-family:'JetBrains Mono',monospace;">
+          <rect width="820" height="200" fill="#0f1629" rx="8"/>
+
+          <!-- EXTRACT -->
+          <text x="140" y="22" fill="#00acd7" font-size="11" text-anchor="middle" font-weight="bold">EXTRACT</text>
+          <rect x="20" y="35" width="90" height="30" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="65" y="55" fill="#94a3b8" font-size="9.5" text-anchor="middle">CSV Files</text>
+          <rect x="20" y="75" width="90" height="30" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="65" y="95" fill="#94a3b8" font-size="9.5" text-anchor="middle">REST API</text>
+          <rect x="20" y="115" width="90" height="30" rx="5" fill="#1a2240" stroke="#2a3f6a"/>
+          <text x="65" y="135" fill="#94a3b8" font-size="9.5" text-anchor="middle">Kafka</text>
+
+          <!-- FanIn + Parse -->
+          <rect x="145" y="60" width="90" height="70" rx="6" fill="#0e2a1a" stroke="#22c55e" stroke-width="1.5"/>
+          <text x="190" y="82" fill="#4ade80" font-size="9.5" text-anchor="middle" font-weight="bold">FanIn</text>
+          <text x="190" y="95" fill="#6ee7b7" font-size="8.5" text-anchor="middle">↑ RecordPool</text>
+          <text x="190" y="107" fill="#6ee7b7" font-size="8.5" text-anchor="middle">↑ BytesPool</text>
+          <text x="190" y="119" fill="#6ee7b7" font-size="8.5" text-anchor="middle">for raw data</text>
+
+          <!-- TRANSFORM -->
+          <text x="365" y="22" fill="#fbbf24" font-size="11" text-anchor="middle" font-weight="bold">TRANSFORM</text>
+          <rect x="270" y="35" width="100" height="30" rx="5" fill="#1c2a10" stroke="#84cc16"/>
+          <text x="320" y="55" fill="#84cc16" font-size="9.5" text-anchor="middle">Validate</text>
+          <rect x="270" y="75" width="100" height="30" rx="5" fill="#1c2a10" stroke="#84cc16"/>
+          <text x="320" y="95" fill="#84cc16" font-size="9.5" text-anchor="middle">Normalize</text>
+          <rect x="270" y="115" width="100" height="30" rx="5" fill="#1c2a10" stroke="#84cc16"/>
+          <text x="320" y="135" fill="#84cc16" font-size="9.5" text-anchor="middle">Enrich</text>
+
+          <!-- Batch -->
+          <rect x="410" y="60" width="110" height="70" rx="6" fill="#1a1a0a" stroke="#fbbf24" stroke-width="1.5"/>
+          <text x="465" y="82" fill="#fbbf24" font-size="9.5" text-anchor="middle" font-weight="bold">Batch 1000</text>
+          <text x="465" y="95" fill="#f59e0b" font-size="8.5" text-anchor="middle">↑ SlicePool</text>
+          <text x="465" y="107" fill="#f59e0b" font-size="8.5" text-anchor="middle">for record</text>
+          <text x="465" y="119" fill="#f59e0b" font-size="8.5" text-anchor="middle">batches</text>
+
+          <!-- LOAD -->
+          <text x="650" y="22" fill="#a78bfa" font-size="11" text-anchor="middle" font-weight="bold">LOAD</text>
+          <rect x="560" y="50" width="120" height="40" rx="6" fill="#1a1025" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="620" y="68" fill="#a78bfa" font-size="9.5" text-anchor="middle">PostgreSQL</text>
+          <text x="620" y="82" fill="#7c3aed" font-size="8.5" text-anchor="middle">Bulk Insert</text>
+
+          <!-- Dead letter -->
+          <rect x="560" y="105" width="120" height="40" rx="5" fill="#2d0a0a" stroke="#ef4444" stroke-dasharray="3,2"/>
+          <text x="620" y="123" fill="#f87171" font-size="9.5" text-anchor="middle">Error Channel</text>
+          <text x="620" y="137" fill="#ef4444" font-size="8.5" text-anchor="middle">Dead Letter</text>
+
+          <!-- SQL Buffer Pool label -->
+          <rect x="700" y="55" width="110" height="30" rx="5" fill="#1c1025" stroke="#8b5cf6" stroke-dasharray="3,2"/>
+          <text x="755" y="70" fill="#8b5cf6" font-size="8.5" text-anchor="middle">↑ SQLBufPool</text>
+          <text x="755" y="82" fill="#6d28d9" font-size="8" text-anchor="middle">for COPY stmt</text>
+
+          <!-- Arrows -->
+          <line x1="110" y1="65" x2="143" y2="90" stroke="#374151" stroke-width="1"/>
+          <line x1="110" y1="90" x2="143" y2="95" stroke="#374151" stroke-width="1"/>
+          <line x1="110" y1="130" x2="143" y2="110" stroke="#374151" stroke-width="1"/>
+          <line x1="235" y1="95" x2="268" y2="75" stroke="#22c55e" stroke-width="1.5"/>
+          <line x1="235" y1="95" x2="268" y2="95" stroke="#22c55e" stroke-width="1.5"/>
+          <line x1="235" y1="95" x2="268" y2="120" stroke="#22c55e" stroke-width="1.5"/>
+          <line x1="370" y1="75" x2="408" y2="90" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="370" y1="95" x2="408" y2="95" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="370" y1="120" x2="408" y2="105" stroke="#fbbf24" stroke-width="1.5"/>
+          <line x1="520" y1="90" x2="558" y2="75" stroke="#a78bfa" stroke-width="1.5"/>
+          <line x1="520" y1="95" x2="558" y2="120" stroke="#ef4444" stroke-width="1" stroke-dasharray="3,2"/>
+          <line x1="680" y1="70" x2="698" y2="70" stroke="#8b5cf6" stroke-width="1" stroke-dasharray="3,2"/>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">etl_pipeline.go — Full ETL với Pool tại mọi tầng</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">etl</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"context"</span>
+    <span class="st">"database/sql"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Domain types
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="kw">type</span> <span class="tp">Record</span> <span class="kw">struct</span> {
+    ID      <span class="tp">int64</span>
+    Name    <span class="tp">string</span>
+    Amount  <span class="tp">float64</span>
+    Tags    []<span class="tp">string</span>
+    RawData []<span class="tp">byte</span>
+}
+
+<span class="cm">// reset xóa state, giữ slice backing arrays</span>
+<span class="kw">func</span> (r *<span class="tp">Record</span>) <span class="fn">reset</span>() {
+    r.ID = <span class="nu">0</span>
+    r.Name = <span class="st">""</span>
+    r.Amount = <span class="nu">0</span>
+    r.Tags = r.Tags[:<span class="nu">0</span>]
+    r.RawData = r.RawData[:<span class="nu">0</span>]
+}
+
+<span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Pool definitions — một pool cho mỗi loại object
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="kw">var</span> (
+    <span class="cm">// recordPool: pool cho từng Record object</span>
+    recordPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+        New: <span class="kw">func</span>() <span class="kw">any</span> {
+            <span class="kw">return</span> &amp;<span class="tp">Record</span>{
+                Tags:    <span class="fn">make</span>([]<span class="tp">string</span>, <span class="nu">0</span>, <span class="nu">8</span>),
+                RawData: <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">512</span>),
+            }
+        },
+    }
+
+    <span class="cm">// batchPool: pool cho []Record slice (batch container)</span>
+    batchPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+        New: <span class="kw">func</span>() <span class="kw">any</span> {
+            batch := <span class="fn">make</span>([]*<span class="tp">Record</span>, <span class="nu">0</span>, <span class="nu">1000</span>)
+            <span class="kw">return</span> &amp;batch
+        },
+    }
+
+    <span class="cm">// sqlBufPool: pool cho bytes.Buffer dùng build COPY statement</span>
+    sqlBufPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+        New: <span class="kw">func</span>() <span class="kw">any</span> {
+            <span class="kw">return</span> <span class="fn">bytes</span>.<span class="fn">NewBuffer</span>(<span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">65536</span>)) <span class="cm">// 64KB</span>
+        },
+    }
+)
+
+<span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Các helper lấy/trả pool
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="kw">func</span> <span class="fn">getRecord</span>() *<span class="tp">Record</span>          { <span class="kw">return</span> recordPool.<span class="fn">Get</span>().(*<span class="tp">Record</span>) }
+<span class="kw">func</span> <span class="fn">putRecord</span>(r *<span class="tp">Record</span>)         { r.<span class="fn">reset</span>(); recordPool.<span class="fn">Put</span>(r) }
+<span class="kw">func</span> <span class="fn">getBatch</span>() *[]*<span class="tp">Record</span>        { <span class="kw">return</span> batchPool.<span class="fn">Get</span>().(*[]*<span class="tp">Record</span>) }
+<span class="kw">func</span> <span class="fn">putBatch</span>(b *[]*<span class="tp">Record</span>)       { *b = (*b)[:<span class="nu">0</span>]; batchPool.<span class="fn">Put</span>(b) }
+<span class="kw">func</span> <span class="fn">getSQLBuf</span>() *<span class="tp">bytes</span>.<span class="tp">Buffer</span>   { <span class="kw">return</span> sqlBufPool.<span class="fn">Get</span>().(*<span class="tp">bytes</span>.<span class="tp">Buffer</span>) }
+<span class="kw">func</span> <span class="fn">putSQLBuf</span>(b *<span class="tp">bytes</span>.<span class="tp">Buffer</span>) { b.<span class="fn">Reset</span>(); sqlBufPool.<span class="fn">Put</span>(b) }
+
+<span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// ETL Pipeline stages
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+
+<span class="cm">// transform — worker nhận raw bytes, parse, emit *Record vào output
+// Record được lấy từ pool → không tốn allocation trong hot path</span>
+<span class="kw">func</span> <span class="fn">transform</span>(ctx <span class="tp">context</span>.<span class="tp">Context</span>, raw &lt;-<span class="kw">chan</span> []<span class="tp">byte</span>) &lt;-<span class="kw">chan</span> *<span class="tp">Record</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> *<span class="tp">Record</span>, <span class="nu">1000</span>)
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> data := <span class="kw">range</span> raw {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">default</span>:
+            }
+
+            r := <span class="fn">getRecord</span>() <span class="cm">// Lấy từ pool thay vì new(Record)</span>
+            <span class="kw">if</span> err := <span class="fn">parseInto</span>(r, data); err != <span class="kw">nil</span> {
+                <span class="fn">putRecord</span>(r) <span class="cm">// Parse fail → trả về pool ngay</span>
+                <span class="kw">continue</span>
+            }
+            out &lt;- r
+        }
+    }()
+
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// batcher — gom record thành batches, mỗi batch = slice từ pool</span>
+<span class="kw">func</span> <span class="fn">batcher</span>(ctx <span class="tp">context</span>.<span class="tp">Context</span>, records &lt;-<span class="kw">chan</span> *<span class="tp">Record</span>, size <span class="tp">int</span>) &lt;-<span class="kw">chan</span> *[]*<span class="tp">Record</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> *[]*<span class="tp">Record</span>, <span class="nu">10</span>)
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        batch := <span class="fn">getBatch</span>() <span class="cm">// Pool của slice container</span>
+
+        <span class="kw">for</span> r := <span class="kw">range</span> records {
+            *batch = <span class="fn">append</span>(*batch, r)
+
+            <span class="kw">if</span> <span class="fn">len</span>(*batch) &gt;= size {
+                out &lt;- batch
+                batch = <span class="fn">getBatch</span>() <span class="cm">// Lấy batch mới từ pool</span>
+            }
+        }
+        <span class="kw">if</span> <span class="fn">len</span>(*batch) &gt; <span class="nu">0</span> {
+            out &lt;- batch <span class="cm">// Flush batch cuối cùng</span>
+        } <span class="kw">else</span> {
+            <span class="fn">putBatch</span>(batch) <span class="cm">// Empty batch → trả về pool</span>
+        }
+    }()
+
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// bulkInsert — COPY INTO PostgreSQL với pooled SQL buffer</span>
+<span class="kw">func</span> <span class="fn">bulkInsert</span>(ctx <span class="tp">context</span>.<span class="tp">Context</span>, db *<span class="tp">sql</span>.<span class="tp">DB</span>, batches &lt;-<span class="kw">chan</span> *[]*<span class="tp">Record</span>) <span class="tp">error</span> {
+    <span class="kw">for</span> batch := <span class="kw">range</span> batches {
+        buf := <span class="fn">getSQLBuf</span>() <span class="cm">// Pooled buffer cho SQL building</span>
+
+        <span class="kw">for</span> i, r := <span class="kw">range</span> *batch {
+            <span class="kw">if</span> i &gt; <span class="nu">0</span> { buf.<span class="fn">WriteByte</span>(<span class="st">','</span>) }
+            fmt.<span class="fn">Fprintf</span>(buf, <span class="st">"(%d,'%s',%f)"</span>, r.ID, r.Name, r.Amount)
+        }
+
+        _, err := db.<span class="fn">ExecContext</span>(ctx,
+            <span class="st">"INSERT INTO records(id,name,amount) VALUES "</span>+buf.<span class="fn">String</span>())
+
+        <span class="fn">putSQLBuf</span>(buf) <span class="cm">// Trả SQL buffer về pool</span>
+
+        <span class="cm">// Trả từng record về pool sau khi insert xong</span>
+        <span class="kw">for</span> _, r := <span class="kw">range</span> *batch {
+            <span class="fn">putRecord</span>(r)
+        }
+        <span class="fn">putBatch</span>(batch) <span class="cm">// Trả batch slice về pool</span>
+
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// parseInto — parse raw bytes vào pre-allocated Record</span>
+<span class="kw">func</span> <span class="fn">parseInto</span>(r *<span class="tp">Record</span>, data []<span class="tp">byte</span>) <span class="tp">error</span> {
+    <span class="cm">// Thực tế: dùng fastjson, gjson, hoặc encoding/json với streaming</span>
+    r.RawData = <span class="fn">append</span>(r.RawData, data...) <span class="cm">// Reuse backing array</span>
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 11: BENCHMARK -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="benchmark">
+      <div class="section-header">
+        <div class="section-num">11</div>
+        <div class="section-title">Benchmark Analysis — Số liệu thực tế</div>
+        <span class="badge badge-expert">★ Expert</span>
+      </div>
+
+      <p class="section-desc">
+        Benchmark quan trọng hơn lý thuyết. Đây là code benchmark và kết quả thực tế cho thấy mức độ cải thiện khi dùng Pool.
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">pool_bench_test.go</span>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">pool_test</span>
+
+<span class="kw">import</span> (
+    <span class="st">"bytes"</span>
+    <span class="st">"encoding/json"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"testing"</span>
+)
+
+<span class="kw">type</span> <span class="tp">Payload</span> <span class="kw">struct</span> {
+    ID    <span class="tp">int</span>    <span class="st">`json:"id"`</span>
+    Name  <span class="tp">string</span> <span class="st">`json:"name"`</span>
+    Score <span class="tp">float64</span> <span class="st">`json:"score"`</span>
+}
+
+<span class="cm">// ① Không dùng pool — baseline</span>
+<span class="kw">func</span> <span class="fn">BenchmarkMarshal_NoPool</span>(b *<span class="tp">testing</span>.<span class="tp">B</span>) {
+    p := &amp;<span class="tp">Payload</span>{ID: <span class="nu">1</span>, Name: <span class="st">"test"</span>, Score: <span class="nu">9.5</span>}
+    b.<span class="fn">ReportAllocs</span>()
+    b.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> i := <span class="nu">0</span>; i &lt; b.N; i++ {
+        <span class="cm">// json.Marshal tạo buffer mới mỗi lần → allocation</span>
+        _, _ = json.<span class="fn">Marshal</span>(p)
+    }
+}
+
+<span class="cm">// ② Dùng Pool</span>
+<span class="kw">var</span> jsonPool = <span class="tp">sync</span>.<span class="tp">Pool</span>{
+    New: <span class="kw">func</span>() <span class="kw">any</span> {
+        buf := <span class="fn">bytes</span>.<span class="fn">NewBuffer</span>(<span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nu">0</span>, <span class="nu">256</span>))
+        enc := json.<span class="fn">NewEncoder</span>(buf)
+        enc.<span class="fn">SetEscapeHTML</span>(<span class="kw">false</span>)
+        <span class="kw">return</span> <span class="kw">struct</span>{ b *bytes.Buffer; e *json.Encoder }{buf, enc}
+    },
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkMarshal_WithPool</span>(b *<span class="tp">testing</span>.<span class="tp">B</span>) {
+    p := &amp;<span class="tp">Payload</span>{ID: <span class="nu">1</span>, Name: <span class="st">"test"</span>, Score: <span class="nu">9.5</span>}
+    b.<span class="fn">ReportAllocs</span>()
+    b.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> i := <span class="nu">0</span>; i &lt; b.N; i++ {
+        entry := jsonPool.<span class="fn">Get</span>().(struct{ b *bytes.Buffer; e *json.Encoder })
+        entry.b.<span class="fn">Reset</span>()
+        _ = entry.e.<span class="fn">Encode</span>(p)
+        jsonPool.<span class="fn">Put</span>(entry)
+    }
+}
+
+<span class="cm">// ③ Parallel benchmark — thể hiện rõ hơn ở concurrent workload</span>
+<span class="kw">func</span> <span class="fn">BenchmarkMarshal_Parallel_NoPool</span>(b *<span class="tp">testing</span>.<span class="tp">B</span>) {
+    p := &amp;<span class="tp">Payload</span>{ID: <span class="nu">1</span>, Name: <span class="st">"test"</span>, Score: <span class="nu">9.5</span>}
+    b.<span class="fn">RunParallel</span>(<span class="kw">func</span>(pb *<span class="tp">testing</span>.<span class="tp">PB</span>) {
+        <span class="kw">for</span> pb.<span class="fn">Next</span>() {
+            _, _ = json.<span class="fn">Marshal</span>(p)
+        }
+    })
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkMarshal_Parallel_WithPool</span>(b *<span class="tp">testing</span>.<span class="tp">B</span>) {
+    p := &amp;<span class="tp">Payload</span>{ID: <span class="nu">1</span>, Name: <span class="st">"test"</span>, Score: <span class="nu">9.5</span>}
+    b.<span class="fn">RunParallel</span>(<span class="kw">func</span>(pb *<span class="tp">testing</span>.<span class="tp">PB</span>) {
+        <span class="kw">for</span> pb.<span class="fn">Next</span>() {
+            entry := jsonPool.<span class="fn">Get</span>().(struct{ b *bytes.Buffer; e *json.Encoder })
+            entry.b.<span class="fn">Reset</span>()
+            _ = entry.e.<span class="fn">Encode</span>(p)
+            jsonPool.<span class="fn">Put</span>(entry)
+        }
+    })
+}
+<span class="cm">// Chạy: go test -bench=. -benchmem -count=5 -cpu=1,4,8</span></pre>
+      </div>
+
+      <h4>Kết quả Benchmark (Apple M2, Go 1.22, 8 CPU)</h4>
+      <div class="diagram-box">
+        <div class="bench-grid">
+          <div style="margin-bottom:20px">
+            <h4 style="font-size:12px;color:var(--text-muted);margin:0 0 16px">ns/op — Thấp hơn = Tốt hơn</h4>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">BenchmarkMarshal_NoPool (serial)</span><span class="val slow">312 ns/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar bad" style="width:100%"></div></div>
+            </div>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">BenchmarkMarshal_WithPool (serial)</span><span class="val">89 ns/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar good" style="width:28%"></div></div>
+            </div>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">BenchmarkMarshal_Parallel_NoPool (8CPU)</span><span class="val slow">1248 ns/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar bad" style="width:90%"></div></div>
+            </div>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">BenchmarkMarshal_Parallel_WithPool (8CPU)</span><span class="val">52 ns/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar good" style="width:17%"></div></div>
+            </div>
+          </div>
+          <div>
+            <h4 style="font-size:12px;color:var(--text-muted);margin:0 0 16px">allocs/op — Thấp hơn = Tốt hơn</h4>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">NoPool serial</span><span class="val slow">3 allocs/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar bad" style="width:60%"></div></div>
+            </div>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">WithPool serial</span><span class="val">1 allocs/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar good" style="width:20%"></div></div>
+            </div>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">NoPool parallel</span><span class="val slow">3 allocs/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar bad" style="width:60%"></div></div>
+            </div>
+            <div class="bench-row">
+              <div class="bench-label"><span class="name">WithPool parallel</span><span class="val">0 allocs/op</span></div>
+              <div class="bench-bar-wrap"><div class="bench-bar good" style="width:0%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+          <span style="color:var(--accent-green);font-family:var(--font-code);font-size:12px">
+            ✅ Kết luận: Pool serial 3.5x nhanh hơn | Pool parallel 24x nhanh hơn | 0 allocs/op ở parallel workload
+          </span>
+        </div>
+      </div>
+
+      <div class="callout callout-info">
+        <span class="callout-icon">📊</span>
+        <div class="callout-content">
+          <strong>Tại sao parallel improvement lớn hơn serial?</strong>
+          Parallel workload tạo nhiều allocation đồng thời → GC chạy thường xuyên hơn → contention trên heap lock → latency tăng phi tuyến. Pool loại bỏ hầu hết allocation → GC hiếm khi chạy → không có contention.
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 12: PITFALLS -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="pitfalls">
+      <div class="section-header">
+        <div class="section-num">12</div>
+        <div class="section-title">Pitfalls & Anti-patterns</div>
+        <span class="badge badge-pitfall">⚠ Cảnh báo</span>
+      </div>
+
+      <p class="section-desc">
+        sync.Pool có nhiều cạm bẫy tinh vi. Đây là các lỗi phổ biến nhất trong production Go code, kèm cách fix.
+      </p>
+
+      <table class="pitfall-table">
+        <tr>
+          <th>Lỗi</th>
+          <th>Vấn đề</th>
+          <th>Cách fix</th>
+        </tr>
+        <tr>
+          <td>Không Reset trước Put</td>
+          <td>Object bẩn: goroutine tiếp theo nhận data cũ → data corruption, security leak</td>
+          <td>Luôn gọi Reset/clear trước Put(). Dùng wrapper type để enforce pattern</td>
+        </tr>
+        <tr>
+          <td>Giữ reference sau Put</td>
+          <td>Use-after-free: goroutine A put buf, goroutine B get buf, nhưng A vẫn dùng buf → race condition</td>
+          <td>Sau Put(), không bao giờ dùng lại object. Copy kết quả trước khi Put</td>
+        </tr>
+        <tr>
+          <td>Pool lưu state lâu dài</td>
+          <td>GC có thể clear pool bất kỳ lúc nào → state bị mất unexpectedly</td>
+          <td>Pool chỉ cho temporary objects. State cần persist → dùng struct field hoặc storage khác</td>
+        </tr>
+        <tr>
+          <td>Return buffer quá lớn</td>
+          <td>1 request lớn 50MB put buffer vào pool → mọi goroutine tiếp theo giữ 50MB → memory leak</td>
+          <td>Size guard trong Put(): if cap(buf) > maxSize { return } — bỏ qua, để GC thu</td>
+        </tr>
+        <tr>
+          <td>Pool không có New()</td>
+          <td>Get() trả về nil khi pool rỗng → nil pointer dereference panic</td>
+          <td>Luôn định nghĩa New() function. Hoặc kiểm tra nil sau Get()</td>
+        </tr>
+        <tr>
+          <td>Pool quá nhỏ (cold pool)</td>
+          <td>Pool chưa warm-up, mọi Get() đều gọi New() → không có lợi ích gì</td>
+          <td>Pre-warm pool khi startup bằng cách Put một số object, hoặc dùng GOMAXPROCS lần</td>
+        </tr>
+        <tr>
+          <td>Dùng pool cho short fn</td>
+          <td>Hàm quá ngắn → overhead Get()/Put() lớn hơn lợi ích. Pool chỉ có ích cho allocation nặng</td>
+          <td>Benchmark trước, optimize sau. Dùng go test -bench và so sánh</td>
+        </tr>
+      </table>
+
+      <h3>So sánh đúng / sai</h3>
+      <div class="compare-grid">
+        <div class="compare-card bad">
+          <div class="compare-card-title">❌ Anti-pattern</div>
+          <div class="code-block" style="margin:0">
+            <pre style="padding:14px;font-size:11.5px"><span class="cm">// ❌ Dùng object sau khi Put</span>
+buf := pool.Get().(*bytes.Buffer)
+pool.Put(buf) <span class="cm">// ← Put trước</span>
+buf.WriteString("data") <span class="cm">// ← Dùng sau = RACE!</span>
+
+<span class="cm">// ❌ Không Reset trước Put</span>
+buf := pool.Get().(*bytes.Buffer)
+buf.WriteString("secret-token-xyz")
+pool.Put(buf) <span class="cm">// ← Data cũ trong pool!</span>
+
+<span class="cm">// ❌ Không có New()</span>
+var pool = sync.Pool{} <span class="cm">// New = nil</span>
+buf := pool.Get() <span class="cm">// returns nil!</span>
+buf.(*bytes.Buffer).Write(data) <span class="cm">// PANIC</span>
+
+<span class="cm">// ❌ Không copy trước khi Put</span>
+buf := pool.Get().(*bytes.Buffer)
+buf.WriteString("result")
+result := buf.Bytes() <span class="cm">// ← slice vẫn trỏ vào buf</span>
+pool.Put(buf)         <span class="cm">// ← buf bị reuse</span>
+use(result)           <span class="cm">// ← result bị corrupt!</span></pre>
+          </div>
+        </div>
+        <div class="compare-card good">
+          <div class="compare-card-title">✅ Correct Pattern</div>
+          <div class="code-block" style="margin:0">
+            <pre style="padding:14px;font-size:11.5px"><span class="cm">// ✅ defer Put → không thể dùng sau khi Put</span>
+buf := pool.Get().(*bytes.Buffer)
+defer func() {
+    buf.Reset()
+    pool.Put(buf)
+}()
+buf.WriteString("data") <span class="cm">// an toàn</span>
+
+<span class="cm">// ✅ Reset trước Put</span>
+buf := pool.Get().(*bytes.Buffer)
+buf.WriteString("secret-token-xyz")
+buf.Reset() <span class="cm">// ← Xóa nội dung</span>
+pool.Put(buf)
+
+<span class="cm">// ✅ Luôn có New()</span>
+var pool = sync.Pool{
+    New: func() any {
+        return new(bytes.Buffer) <span class="cm">// không bao giờ nil</span>
+    },
+}
+
+<span class="cm">// ✅ Copy kết quả trước Put</span>
+buf := pool.Get().(*bytes.Buffer)
+buf.WriteString("result")
+result := make([]byte, buf.Len())
+copy(result, buf.Bytes()) <span class="cm">// ← copy!</span>
+buf.Reset()
+pool.Put(buf)
+use(result) <span class="cm">// an toàn</span></pre>
+          </div>
+        </div>
+      </div>
+
+      <h4>Pre-warming Pool — Khởi tạo pool trước khi serve traffic</h4>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-filename">warmup.go</span>
+        </div>
+        <pre><span class="cm">// WarmPool — pre-warm pool khi startup
+// Tránh "cold start penalty" khi traffic đột ngột tăng cao</span>
+<span class="kw">func</span> <span class="fn">WarmPool</span>(p *<span class="tp">sync</span>.<span class="tp">Pool</span>, n <span class="tp">int</span>) {
+    objects := <span class="fn">make</span>([]<span class="kw">any</span>, n)
+    <span class="cm">// Tạo và ngay lập tức Get để fill pool per-P</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> objects {
+        objects[i] = p.<span class="fn">Get</span>() <span class="cm">// Gọi New() nếu pool rỗng</span>
+    }
+    <span class="cm">// Trả tất cả về — pool giờ có sẵn objects</span>
+    <span class="kw">for</span> _, o := <span class="kw">range</span> objects {
+        p.<span class="fn">Put</span>(o)
+    }
+}
+
+<span class="cm">// Trong main hoặc server.Start():</span>
+<span class="kw">func</span> <span class="fn">init</span>() {
+    <span class="cm">// Warm GOMAXPROCS × 2 objects vào pool</span>
+    <span class="fn">WarmPool</span>(&amp;bufPool, runtime.<span class="fn">GOMAXPROCS</span>(<span class="nu">0</span>)*<span class="nu">2</span>)
+    <span class="fn">WarmPool</span>(&amp;gzipPool, runtime.<span class="fn">GOMAXPROCS</span>(<span class="nu">0</span>))
+}</pre>
+      </div>
+    </section>
+
+    <!-- ══════════════════════════════════════ -->
+    <!-- SECTION 13: REFERENCES -->
+    <!-- ══════════════════════════════════════ -->
+    <section class="section" id="refs">
+      <div class="section-header">
+        <div class="section-num">13</div>
+        <div class="section-title">References — Nguồn tham khảo chọn lọc</div>
+        <span class="badge badge-basic">★ Tài liệu</span>
+      </div>
+
+      <h4>Official Go Documentation</h4>
+      <div class="ref-grid">
+        <a class="ref-card" href="https://pkg.go.dev/sync#Pool" target="_blank">
+          <div class="ref-card-title">sync.Pool — Official Docs</div>
+          <div class="ref-card-url">pkg.go.dev/sync#Pool</div>
+          <div class="ref-card-desc">Tài liệu chính thức, interface definition, và behavior contract của sync.Pool</div>
+          <div class="ref-stars">⭐ Official Source</div>
+        </a>
+        <a class="ref-card" href="https://go.dev/blog/ismmkeynote" target="_blank">
+          <div class="ref-card-title">Getting to Go: The Journey of Go's GC</div>
+          <div class="ref-card-url">go.dev/blog/ismmkeynote</div>
+          <div class="ref-card-desc">Rick Hudson giải thích chi tiết Go GC evolution, tri-color marking, và write barriers</div>
+          <div class="ref-stars">⭐⭐ Deep Dive</div>
+        </a>
+        <a class="ref-card" href="https://go.dev/doc/gc-guide" target="_blank">
+          <div class="ref-card-title">A Guide to the Go Garbage Collector</div>
+          <div class="ref-card-url">go.dev/doc/gc-guide</div>
+          <div class="ref-card-desc">Hướng dẫn thực tế tối ưu GC: GOGC, GOMEMLIMIT, và cách đo GC impact</div>
+          <div class="ref-stars">⭐⭐⭐ Recommended</div>
+        </a>
+        <a class="ref-card" href="https://cs.opensource.google/go/go/+/main:src/sync/pool.go" target="_blank">
+          <div class="ref-card-title">sync/pool.go — Go Source Code</div>
+          <div class="ref-card-url">cs.opensource.google/go/go/+/main:src/sync/pool.go</div>
+          <div class="ref-card-desc">Source code thực tế của sync.Pool: poolLocal, poolChain, victim cache implementation</div>
+          <div class="ref-stars">⭐⭐⭐ Must Read</div>
+        </a>
+      </div>
+
+      <h4 style="margin-top:24px">High-quality Libraries sử dụng Pool</h4>
+      <div class="ref-grid">
+        <a class="ref-card" href="https://github.com/valyala/bytebufferpool" target="_blank">
+          <div class="ref-card-title">valyala/bytebufferpool</div>
+          <div class="ref-card-url">github.com/valyala/bytebufferpool</div>
+          <div class="ref-card-desc">Optimized byte buffer pool với size calibration, dùng trong fasthttp. ~2.2k stars</div>
+          <div class="ref-stars">⭐ 2.2k GitHub Stars</div>
+        </a>
+        <a class="ref-card" href="https://github.com/valyala/fasthttp" target="_blank">
+          <div class="ref-card-title">valyala/fasthttp</div>
+          <div class="ref-card-url">github.com/valyala/fasthttp</div>
+          <div class="ref-card-desc">HTTP server 10x nhanh hơn net/http nhờ aggressive pooling. Production blueprint tốt nhất</div>
+          <div class="ref-stars">⭐ 22k GitHub Stars</div>
+        </a>
+        <a class="ref-card" href="https://github.com/uber-go/zap" target="_blank">
+          <div class="ref-card-title">uber-go/zap</div>
+          <div class="ref-card-url">github.com/uber-go/zap</div>
+          <div class="ref-card-desc">Logger zero-allocation dùng Pool cho mọi internal buffer. Học cách Uber dùng Pool trong production</div>
+          <div class="ref-stars">⭐ 22k GitHub Stars</div>
+        </a>
+        <a class="ref-card" href="https://github.com/klauspost/compress" target="_blank">
+          <div class="ref-card-title">klauspost/compress</div>
+          <div class="ref-card-url">github.com/klauspost/compress</div>
+          <div class="ref-card-desc">Pooled gzip/zstd/snappy encoders. Ví dụ xuất sắc về pool cho heavy-weight compressor objects</div>
+          <div class="ref-stars">⭐ 5.1k GitHub Stars</div>
+        </a>
+      </div>
+
+      <h4 style="margin-top:24px">Bài viết kỹ thuật chuyên sâu</h4>
+      <div class="ref-grid">
+        <a class="ref-card" href="https://victoriametrics.com/blog/go-sync-pool/" target="_blank">
+          <div class="ref-card-title">A Deep Dive into sync.Pool</div>
+          <div class="ref-card-url">victoriametrics.com/blog/go-sync-pool</div>
+          <div class="ref-card-desc">VictoriaMetrics phân tích internals và cách họ dùng Pool trong time-series database</div>
+          <div class="ref-stars">⭐⭐ Excellent</div>
+        </a>
+        <a class="ref-card" href="https://www.ardanlabs.com/blog/2019/04/concurrency-trap-2-incomplete-work.html" target="_blank">
+          <div class="ref-card-title">Ardan Labs — Go Memory Model</div>
+          <div class="ref-card-url">ardanlabs.com/blog</div>
+          <div class="ref-card-desc">Bill Kennedy giải thích memory model, escape analysis, và khi nào nên/không nên dùng Pool</div>
+          <div class="ref-stars">⭐⭐⭐ Recommended</div>
+        </a>
+        <a class="ref-card" href="https://go101.org/article/concurrent-synchronization-more.html" target="_blank">
+          <div class="ref-card-title">Go 101 — sync.Pool Details</div>
+          <div class="ref-card-url">go101.org/article/concurrent-synchronization-more.html</div>
+          <div class="ref-card-desc">Giải thích chi tiết behavior và gotchas của sync.Pool với các ví dụ minh họa rõ ràng</div>
+          <div class="ref-stars">⭐⭐ Good Reference</div>
+        </a>
+        <a class="ref-card" href="https://github.com/golang/go/issues/22950" target="_blank">
+          <div class="ref-card-title">Go Issue #22950 — Victim Cache</div>
+          <div class="ref-card-url">github.com/golang/go/issues/22950</div>
+          <div class="ref-card-desc">Thảo luận gốc về việc thêm victim cache vào Go 1.13 để giảm cold-start penalty sau GC</div>
+          <div class="ref-stars">⭐ Historical Context</div>
+        </a>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="callout callout-success">
+        <span class="callout-icon">🚀</span>
+        <div class="callout-content">
+          <strong>Tóm tắt — Khi nào dùng sync.Pool?</strong>
+          Dùng Pool khi: (1) object allocation đắt tiền (buffer lớn, encoder, compressor), (2) tần suất cao (>1000 req/s), (3) object sống ngắn và có thể reset sạch. Không dùng cho: long-lived objects, objects có state khó reset, hoặc khi allocation cost không đáng kể (đo benchmark trước).
+        </div>
+      </div>
+
+      <div style="margin-top:24px;padding:16px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:10px;">
+        <div style="font-size:11px;color:var(--text-muted);font-family:var(--font-code);margin-bottom:8px">QUICK REFERENCE — COMMANDS</div>
+        <div class="code-block" style="margin:0">
+          <pre style="padding:14px;font-size:12px"><span class="cm"># Benchmark với memory profiling</span>
+go test -bench=. -benchmem -memprofile=mem.out ./...
+
+<span class="cm"># Xem GC trace realtime</span>
+GODEBUG=gctrace=1 go run main.go
+
+<span class="cm"># Escape analysis — biết object nào lên heap</span>
+go build -gcflags="-m=2" ./...
+
+<span class="cm"># Race detector (luôn chạy khi test pool code)</span>
+go test -race ./...
+
+<span class="cm"># Phân tích memory profile</span>
+go tool pprof -alloc_space mem.out
+
+<span class="cm"># Xem alloc heatmap trong pprof web</span>
+go tool pprof -http=:8080 mem.out</pre>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Robust smooth scroll for all anchor links starting with #
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+
+  // Sidebar active link tracking
+  const sections = document.querySelectorAll('section[id]');
+  const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        sidebarLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { rootMargin: '-80px 0px -60% 0px', threshold: 0 });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

@@ -26,16 +26,16 @@ Patterns thực tế cho production:
 Scale và optimize:
 
 11. [**Fan-Out/Fan-In**](./fan-out-fan-in-go.html) - Distribute work + merge results
-12. **Worker Pool** - Fixed workers cho load balancing (như BullMQ trong Node)
-13. **Tunny Worker Pool** - Production-ready pool với library
-14. **Tee Channel** - Duplicate stream cho nhiều consumers
-15. **ErrorGroup** - Coordinated error handling (`golang.org/x/sync/errgroup`)
+12. [**Worker Pool**](./go-worker-pool.html) - Fixed workers cho load balancing (như BullMQ trong Node)
+13. [**Tunny Worker Pool**](./tunny-worker-pool.html) - Production-ready pool với library
+14. [**Tee Channel**](./tee-channel-go-pattern.html) - Duplicate stream cho nhiều consumers
+15. [**ErrorGroup**](./errgroup-guide.html) - Coordinated error handling (`golang.org/x/sync/errgroup`)
 
 #### **LEVEL 4: Optimization & Resource Management (16-20)**
 
 Performance tuning:
 
-16. **sync.Pool & Buffer Pool** - Object reuse, giảm GC pressure
+16. [**sync.Pool & Buffer Pool**](./go-sync-pool.html) - Object reuse, giảm GC pressure
 17. **Resource Manager** - Quản lý connections, file handles
 18. **Rate Limiting** - Token bucket, leaky bucket patterns
 19. **Semaphore** - Limit concurrent operations (`golang.org/x/sync/semaphore`)

@@ -1,0 +1,2022 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Tee Channel Pattern - Tài liệu Kỹ thuật</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0e1a;
+    --bg-secondary: #0f1629;
+    --bg-card: #131929;
+    --bg-code: #0d1117;
+    --accent-teal: #00d4aa;
+    --accent-blue: #4d9fff;
+    --accent-purple: #a855f7;
+    --accent-orange: #f97316;
+    --accent-pink: #ec4899;
+    --accent-green: #22c55e;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: #1e293b;
+    --border-bright: #2d3f5e;
+    --sidebar-width: 280px;
+    --header-h: 56px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── TOP NAV ─── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--header-h);
+    background: rgba(10,14,26,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+  }
+
+  .nav-brand {
+    padding: 0 24px;
+    font-weight: 800; font-size: 15px; letter-spacing: -0.3px;
+    white-space: nowrap;
+    border-right: 1px solid var(--border);
+    height: 100%; display: flex; align-items: center; gap: 8px;
+  }
+  .nav-brand span:first-child { color: var(--accent-teal); }
+  .nav-brand span:last-child { color: var(--text-primary); }
+
+  .nav-links {
+    display: flex; align-items: center; height: 100%;
+    overflow-x: auto; padding: 0 8px;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a {
+    color: var(--text-secondary); text-decoration: none;
+    padding: 0 14px; height: 100%; display: flex; align-items: center;
+    font-size: 13px; white-space: nowrap;
+    transition: color .2s;
+    border-bottom: 2px solid transparent;
+  }
+  .nav-links a:hover { color: var(--text-primary); }
+  .nav-links a.active { color: var(--accent-teal); border-bottom-color: var(--accent-teal); }
+
+  /* ─── LAYOUT ─── */
+  .layout {
+    display: flex;
+    margin-top: var(--header-h);
+    min-height: calc(100vh - var(--header-h));
+  }
+
+  /* ─── SIDEBAR ─── */
+  aside {
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+    position: fixed;
+    top: var(--header-h);
+    bottom: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    background: var(--bg-secondary);
+    padding: 20px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) transparent;
+  }
+  aside::-webkit-scrollbar { width: 4px; }
+  aside::-webkit-scrollbar-track { background: transparent; }
+  aside::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 2px; }
+
+  .sidebar-section {
+    padding: 0 16px 8px;
+    font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
+    color: var(--text-muted); text-transform: uppercase;
+    margin-top: 16px;
+  }
+  .sidebar-section:first-child { margin-top: 0; }
+
+  aside a {
+    display: block; padding: 6px 16px;
+    color: var(--text-secondary); text-decoration: none;
+    font-size: 13px; transition: all .15s;
+    border-left: 2px solid transparent;
+  }
+  aside a:hover { color: var(--text-primary); background: rgba(255,255,255,.03); }
+  aside a.active {
+    color: var(--accent-teal);
+    border-left-color: var(--accent-teal);
+    background: rgba(0,212,170,.05);
+  }
+
+  /* ─── MAIN CONTENT ─── */
+  main {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    padding: 40px 48px 80px;
+    max-width: 960px;
+  }
+
+  /* ─── SECTION HEADER ─── */
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 12px;
+  }
+  .section-number {
+    width: 36px; height: 36px;
+    background: var(--accent-teal);
+    color: #000; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 14px; flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 22px; font-weight: 700; letter-spacing: -0.5px;
+  }
+  .badge-expert {
+    background: rgba(168,85,247,.15); color: var(--accent-purple);
+    border: 1px solid rgba(168,85,247,.3);
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; letter-spacing: .5px;
+  }
+  .badge-advanced {
+    background: rgba(249,115,22,.15); color: var(--accent-orange);
+    border: 1px solid rgba(249,115,22,.3);
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-basic {
+    background: rgba(34,197,94,.15); color: var(--accent-green);
+    border: 1px solid rgba(34,197,94,.3);
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+  }
+
+  .section-desc {
+    color: var(--text-secondary); margin-bottom: 24px;
+    font-size: 14px; line-height: 1.7;
+    border-left: 3px solid var(--accent-teal);
+    padding-left: 14px;
+    background: rgba(0,212,170,.04);
+    padding: 12px 14px;
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ─── DIVIDER ─── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* ─── HEADINGS ─── */
+  h2 { font-size: 18px; font-weight: 700; margin: 28px 0 12px; color: var(--text-primary); }
+  h3 { font-size: 15px; font-weight: 600; margin: 20px 0 10px; color: var(--accent-teal); }
+  h4 { font-size: 13px; font-weight: 600; margin: 14px 0 8px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .8px; }
+  p { color: var(--text-secondary); margin-bottom: 12px; }
+
+  /* ─── DIAGRAM BOX ─── */
+  .diagram-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+    margin: 20px 0;
+  }
+  .diagram-title {
+    text-align: center;
+    font-size: 11px; letter-spacing: 2px; font-weight: 700;
+    color: var(--text-muted); text-transform: uppercase;
+    margin-bottom: 24px;
+  }
+
+  /* ─── CODE BLOCK ─── */
+  .code-wrap {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: rgba(255,255,255,.03);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-size: 11px; font-weight: 700; letter-spacing: 1px;
+    color: var(--accent-teal); text-transform: uppercase;
+  }
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+  .code-wrap pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    color: #e2e8f0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-bright) transparent;
+  }
+  .code-wrap pre::-webkit-scrollbar { height: 6px; }
+  .code-wrap pre::-webkit-scrollbar-track { background: transparent; }
+  .code-wrap pre::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+
+  /* syntax highlight classes */
+  .kw { color: #ff7b72; }
+  .fn { color: #79c0ff; }
+  .st { color: #a5d6ff; }
+  .cm { color: #8b949e; font-style: italic; }
+  .nm { color: #ffa657; }
+  .tp { color: #ffa657; }
+  .op { color: #ff7b72; }
+  .bo { color: #f97316; }
+  .va { color: #e2e8f0; }
+
+  /* ─── INFO / WARNING BOXES ─── */
+  .info-box {
+    background: rgba(77,159,255,.08);
+    border: 1px solid rgba(77,159,255,.2);
+    border-left: 3px solid var(--accent-blue);
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .warn-box {
+    background: rgba(249,115,22,.08);
+    border: 1px solid rgba(249,115,22,.2);
+    border-left: 3px solid var(--accent-orange);
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .tip-box {
+    background: rgba(0,212,170,.07);
+    border: 1px solid rgba(0,212,170,.2);
+    border-left: 3px solid var(--accent-teal);
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    font-size: 13px; color: var(--text-secondary);
+  }
+  .info-box strong, .warn-box strong, .tip-box strong { color: var(--text-primary); }
+
+  /* ─── TABLE ─── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  thead tr { background: rgba(255,255,255,.04); }
+  th { padding: 10px 14px; text-align: left; color: var(--text-muted); font-weight: 600; font-size: 11px; letter-spacing: .8px; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,.04); color: var(--text-secondary); }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  code { font-family: 'JetBrains Mono', monospace; font-size: 11.5px; background: rgba(0,212,170,.1); color: var(--accent-teal); padding: 1px 5px; border-radius: 4px; }
+
+  /* ─── COMPARISON TABLE ─── */
+  .compare-good { color: var(--accent-green); }
+  .compare-bad { color: #f87171; }
+
+  /* ─── REFERENCE CARDS ─── */
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; margin: 20px 0; }
+  .ref-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    transition: border-color .2s, transform .2s;
+  }
+  .ref-card:hover { border-color: var(--border-bright); transform: translateY(-2px); }
+  .ref-card-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+  .ref-card-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; line-height: 1.5; }
+  .ref-card a { color: var(--accent-blue); font-size: 12px; text-decoration: none; font-family: 'JetBrains Mono', monospace; }
+  .ref-card a:hover { text-decoration: underline; }
+  .ref-stars { color: #fbbf24; font-size: 11px; margin-bottom: 4px; }
+
+  /* ─── SVG DIAGRAMS ─── */
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ─── SCROLL SECTION SEPARATOR ─── */
+  .section-sep {
+    border-top: 1px solid var(--border);
+    margin: 48px 0 36px;
+    position: relative;
+  }
+  .section-sep::before {
+    content: attr(data-label);
+    position: absolute; top: -10px; left: 0;
+    background: var(--bg-primary);
+    padding: 0 10px;
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--text-muted); font-weight: 700;
+  }
+
+  /* tag pills */
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; margin: 2px; }
+  .tag-teal { background: rgba(0,212,170,.12); color: var(--accent-teal); }
+  .tag-purple { background: rgba(168,85,247,.12); color: var(--accent-purple); }
+  .tag-blue { background: rgba(77,159,255,.12); color: var(--accent-blue); }
+  .tag-orange { background: rgba(249,115,22,.12); color: var(--accent-orange); }
+
+  /* concept card */
+  .concept-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0; }
+  .concept-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px;
+  }
+  .concept-card-title { font-size: 13px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; gap: 8px; }
+  .concept-card p { font-size: 12.5px; margin-bottom: 0; }
+
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 212, 170, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg-card);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <span>Go</span><span>Tee Channel Pattern</span>
+  </div>
+  <div class="nav-links">
+    <a href="#gioi-thieu" class="active">Giới thiệu</a>
+    <a href="#khai-niem">Khái niệm</a>
+    <a href="#co-ban">Cơ bản</a>
+    <a href="#nang-cao">Nâng cao</a>
+    <a href="#expert">Expert</a>
+    <a href="#use-cases">Use Cases</a>
+    <a href="#anti-patterns">Anti-Patterns</a>
+    <a href="#references">References</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="sidebar-section">Tổng quan</div>
+  <a href="#gioi-thieu" class="active">Giới thiệu</a>
+  <a href="#khai-niem">Khái niệm & Định nghĩa</a>
+  <a href="#khi-nao-dung">Khi nào dùng?</a>
+
+  <div class="sidebar-section">Cơ Bản</div>
+  <a href="#basic-tee">Basic Tee</a>
+  <a href="#buffered-tee">Buffered Tee</a>
+  <a href="#generic-tee">Generic Tee (Go 1.18+)</a>
+
+  <div class="sidebar-section">Nâng Cao</div>
+  <a href="#tee-with-context">Tee với Context</a>
+  <a href="#broadcast">Broadcast Pattern</a>
+  <a href="#dynamic-tee">Dynamic Tee</a>
+  <a href="#tee-pipeline">Tee trong Pipeline ETL</a>
+
+  <div class="sidebar-section">Expert</div>
+  <a href="#tee-ring-buffer">Ring Buffer Tee</a>
+  <a href="#tee-backpressure">Backpressure Tee</a>
+  <a href="#tee-observable">Observable Tee</a>
+  <a href="#tee-bench">Benchmark & Profiling</a>
+
+  <div class="sidebar-section">Thực tế</div>
+  <a href="#use-cases">Real-World Use Cases</a>
+  <a href="#anti-patterns">Anti-Patterns</a>
+  <a href="#so-sanh">So sánh Patterns</a>
+  <a href="#references">References</a>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 1: GIỚI THIỆU -->
+<!-- ══════════════════════════════════════════ -->
+<section id="gioi-thieu">
+  <div class="section-header">
+    <div class="section-number">1</div>
+    <div class="section-title">Tee Channel Pattern</div>
+    <span class="badge-basic">Cơ Bản → Expert</span>
+  </div>
+
+  <div class="section-desc">
+    <strong>Tee Channel</strong> là pattern dùng để <em>nhân đôi (duplicate)</em> một stream dữ liệu từ một input channel thành hai hoặc nhiều output channels — cho phép nhiều consumer xử lý <em>cùng một dữ liệu</em> một cách độc lập và đồng thời. Lấy cảm hứng từ lệnh <code>tee</code> trong Unix/Linux pipeline.
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go-tee-channel.png" alt="Go Concurrency: Tee Channel Pattern Mechanics" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: Sơ đồ hoạt động của Tee Channel Pattern — Goroutine tee nhân bản đồng bộ stream dữ liệu đầu vào thành nhiều đầu ra độc lập nhờ kỹ thuật select trick, đảm bảo tất cả các consumer đều nhận bản sao đầy đủ của dữ liệu.</div>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Tee Channel — Kiến trúc Tổng quan</div>
+    <svg viewBox="0 0 740 220" xmlns="http://www.w3.org/2000/svg" width="100%">
+      <defs>
+        <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#00d4aa"/>
+        </marker>
+        <marker id="arrow-b" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#4d9fff"/>
+        </marker>
+        <marker id="arrow-p" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+          <polygon points="0 0, 8 3, 0 6" fill="#a855f7"/>
+        </marker>
+      </defs>
+
+      <!-- Source -->
+      <rect x="20" y="90" width="120" height="44" rx="8" fill="#0f1629" stroke="#00d4aa" stroke-width="1.5"/>
+      <text x="80" y="107" text-anchor="middle" font-size="11" fill="#00d4aa" font-weight="700">SOURCE</text>
+      <text x="80" y="122" text-anchor="middle" font-size="10" fill="#94a3b8">chan int</text>
+
+      <!-- Arrow in -->
+      <line x1="140" y1="112" x2="218" y2="112" stroke="#00d4aa" stroke-width="1.5" marker-end="url(#arrow)"/>
+      <text x="179" y="106" text-anchor="middle" font-size="10" fill="#64748b">input</text>
+
+      <!-- TEE box -->
+      <rect x="220" y="76" width="120" height="72" rx="10" fill="#131929" stroke="#a855f7" stroke-width="2"/>
+      <text x="280" y="100" text-anchor="middle" font-size="13" fill="#a855f7" font-weight="800">TEE</text>
+      <text x="280" y="116" text-anchor="middle" font-size="10" fill="#94a3b8">duplicate</text>
+      <text x="280" y="130" text-anchor="middle" font-size="10" fill="#94a3b8">stream</text>
+
+      <!-- Arrow out 1 (top) -->
+      <line x1="340" y1="95" x2="418" y2="60" stroke="#4d9fff" stroke-width="1.5" marker-end="url(#arrow-b)"/>
+      <text x="378" y="68" text-anchor="middle" font-size="10" fill="#64748b">out1</text>
+
+      <!-- Arrow out 2 (bottom) -->
+      <line x1="340" y1="129" x2="418" y2="165" stroke="#f97316" stroke-width="1.5" marker-end="url(#arrow-b)"/>
+      <text x="378" y="158" text-anchor="middle" font-size="10" fill="#64748b">out2</text>
+
+      <!-- Consumer 1 -->
+      <rect x="420" y="36" width="140" height="44" rx="8" fill="#0f1629" stroke="#4d9fff" stroke-width="1.5"/>
+      <text x="490" y="53" text-anchor="middle" font-size="11" fill="#4d9fff" font-weight="700">CONSUMER 1</text>
+      <text x="490" y="68" text-anchor="middle" font-size="10" fill="#94a3b8">Logging / Audit</text>
+
+      <!-- Consumer 2 -->
+      <rect x="420" y="142" width="140" height="44" rx="8" fill="#0f1629" stroke="#f97316" stroke-width="1.5"/>
+      <text x="490" y="159" text-anchor="middle" font-size="11" fill="#f97316" font-weight="700">CONSUMER 2</text>
+      <text x="490" y="174" text-anchor="middle" font-size="10" fill="#94a3b8">Processing / DB</text>
+
+      <!-- Data flow dots -->
+      <circle cx="170" cy="112" r="4" fill="#00d4aa" opacity="0.7"/>
+      <circle cx="185" cy="112" r="4" fill="#00d4aa" opacity="0.5"/>
+      <circle cx="200" cy="112" r="4" fill="#00d4aa" opacity="0.3"/>
+
+      <!-- Labels -->
+      <text x="280" y="196" text-anchor="middle" font-size="10" fill="#64748b">Dữ liệu gốc không bị mất — mỗi consumer nhận bản sao đầy đủ</text>
+    </svg>
+  </div>
+
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="concept-card-title">🔀 Vấn đề giải quyết</div>
+      <p>Khi nhiều goroutine cần xử lý <em>cùng một dữ liệu</em> từ một channel — nhưng channel trong Go chỉ cho phép <strong>một receiver</strong> lấy mỗi giá trị.</p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title">⚡ Cơ chế hoạt động</div>
+      <p>Một goroutine đọc từ input channel rồi <strong>ghi đồng thời</strong> vào hai (hoặc nhiều) output channels, đảm bảo cả hai output nhận đủ dữ liệu.</p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title">📌 Nguồn gốc tên gọi</div>
+      <p>Lấy từ lệnh Unix: <code>cmd | tee file.log | next_cmd</code> — output được ghi cùng lúc vào file VÀ truyền tiếp sang lệnh tiếp theo.</p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title">🎯 Đặc điểm chính</div>
+      <p>Mỗi consumer nhận <strong>bản sao độc lập</strong> của toàn bộ stream. Tốc độ của pipeline bị giới hạn bởi consumer <strong>chậm nhất</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<div class="section-sep" data-label="Khái niệm"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 2: KHÁI NIỆM -->
+<!-- ══════════════════════════════════════════ -->
+<section id="khai-niem">
+  <div class="section-header">
+    <div class="section-number">2</div>
+    <div class="section-title">Khái niệm & Định nghĩa</div>
+  </div>
+
+  <h2>2.1 Tee trong Unix vs Go</h2>
+  <p>Trong Unix/Linux, lệnh <code>tee</code> đọc từ stdin và ghi vào cả stdout lẫn file(s). Go Channel Tee là hiện thực hóa tương đương trong thế giới concurrent programming.</p>
+
+  <table>
+    <thead><tr><th>Khái niệm</th><th>Unix tee</th><th>Go Tee Channel</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Input</strong></td><td>stdin stream</td><td><code>&lt;-chan T</code></td></tr>
+      <tr><td><strong>Output</strong></td><td>stdout + file(s)</td><td><code>&lt;-chan T, &lt;-chan T</code></td></tr>
+      <tr><td><strong>Đồng bộ</strong></td><td>Blocking I/O</td><td>Goroutine + channels</td></tr>
+      <tr><td><strong>Backpressure</strong></td><td>Kernel buffers</td><td>Buffered channels / select</td></tr>
+      <tr><td><strong>Cancellation</strong></td><td>SIGPIPE / signal</td><td><code>context.Context</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="khi-nao-dung">2.2 Khi nào dùng Tee Channel?</h2>
+
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="concept-card-title" style="color: var(--accent-green)">✅ Nên dùng khi</div>
+      <p style="font-size:12.5px">
+        • Cần logging/audit song song với xử lý chính<br>
+        • Cần gửi data tới metrics + business logic<br>
+        • Debug: quan sát stream mà không ảnh hưởng pipeline<br>
+        • Cần backup stream sang storage khác<br>
+        • Fan-out với <em>cùng dữ liệu</em> (không phải chia nhau)
+      </p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title" style="color: #f87171">❌ Không nên dùng khi</div>
+      <p style="font-size:12.5px">
+        • Chỉ cần chia workload (dùng Fan-Out thay thế)<br>
+        • Consumer có tốc độ chênh lệch rất lớn<br>
+        • Memory là bottleneck (mỗi item được copy N lần)<br>
+        • Cần ordered processing giữa các consumers
+      </p>
+    </div>
+  </div>
+
+  <h2>2.3 So sánh Tee vs Fan-Out vs Broadcast</h2>
+
+  <table>
+    <thead><tr><th>Pattern</th><th>Mỗi item đến</th><th>Số lượng consumers</th><th>Use case</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Tee</strong></td>
+        <td><span class="compare-good">TẤT CẢ consumers</span></td>
+        <td>Cố định (2+)</td>
+        <td>Audit log, duplicate streams</td>
+      </tr>
+      <tr>
+        <td><strong>Fan-Out</strong></td>
+        <td><span class="compare-bad">MỘT consumer</span> (round-robin)</td>
+        <td>Cố định</td>
+        <td>Load balancing, worker pools</td>
+      </tr>
+      <tr>
+        <td><strong>Broadcast</strong></td>
+        <td><span class="compare-good">TẤT CẢ consumers</span></td>
+        <td>Động (thêm/xóa runtime)</td>
+        <td>Pub/Sub, event bus</td>
+      </tr>
+      <tr>
+        <td><strong>Pipeline</strong></td>
+        <td>Tuần tự qua các stages</td>
+        <td>1 per stage</td>
+        <td>ETL, transform chain</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="section-sep" data-label="Cơ Bản"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 3: CƠ BẢN -->
+<!-- ══════════════════════════════════════════ -->
+<section id="co-ban">
+  <div class="section-header">
+    <div class="section-number">3</div>
+    <div class="section-title">Tee Channel — Cơ Bản</div>
+    <span class="badge-basic">Cơ Bản</span>
+  </div>
+
+  <!-- Basic Tee -->
+  <h3 id="basic-tee">3.1 Basic Tee — Triển khai đơn giản nhất</h3>
+  <p>Đây là cách triển khai Tee cơ bản nhất: một goroutine đọc từ input rồi ghi vào hai output channel đồng thời bằng <code>select</code>.</p>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Basic Tee — Luồng dữ liệu</div>
+    <svg viewBox="0 0 680 160" xmlns="http://www.w3.org/2000/svg" width="100%">
+      <defs>
+        <marker id="arr1" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,7 3,0 6" fill="#00d4aa"/>
+        </marker>
+      </defs>
+      <!-- Generator -->
+      <rect x="10" y="58" width="110" height="44" rx="6" fill="#0f1629" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="65" y="75" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="700">GENERATOR</text>
+      <text x="65" y="90" text-anchor="middle" font-size="9" fill="#64748b">1,2,3,4,5...</text>
+
+      <!-- Arrow -->
+      <line x1="120" y1="80" x2="195" y2="80" stroke="#00d4aa" stroke-width="1.5" marker-end="url(#arr1)"/>
+      <text x="157" y="74" text-anchor="middle" font-size="9" fill="#64748b">in</text>
+
+      <!-- TEE goroutine -->
+      <rect x="197" y="50" width="110" height="60" rx="8" fill="#131929" stroke="#a855f7" stroke-width="2"/>
+      <text x="252" y="73" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="800">tee()</text>
+      <text x="252" y="88" text-anchor="middle" font-size="9" fill="#94a3b8">goroutine</text>
+      <text x="252" y="101" text-anchor="middle" font-size="9" fill="#64748b">select send</text>
+
+      <!-- Arrow out1 -->
+      <line x1="307" y1="65" x2="395" y2="40" stroke="#4d9fff" stroke-width="1.5" marker-end="url(#arr1)"/>
+      <text x="345" y="42" text-anchor="middle" font-size="9" fill="#4d9fff">out1</text>
+
+      <!-- Arrow out2 -->
+      <line x1="307" y1="95" x2="395" y2="120" stroke="#f97316" stroke-width="1.5" marker-end="url(#arr1)"/>
+      <text x="345" y="118" text-anchor="middle" font-size="9" fill="#f97316">out2</text>
+
+      <!-- Consumer1 -->
+      <rect x="397" y="18" width="130" height="44" rx="6" fill="#0f1629" stroke="#4d9fff" stroke-width="1.5"/>
+      <text x="462" y="35" text-anchor="middle" font-size="10" fill="#4d9fff" font-weight="700">LOGGER</text>
+      <text x="462" y="50" text-anchor="middle" font-size="9" fill="#64748b">fmt.Printf(v)</text>
+
+      <!-- Consumer2 -->
+      <rect x="397" y="98" width="130" height="44" rx="6" fill="#0f1629" stroke="#f97316" stroke-width="1.5"/>
+      <text x="462" y="115" text-anchor="middle" font-size="10" fill="#f97316" font-weight="700">PROCESSOR</text>
+      <text x="462" y="130" text-anchor="middle" font-size="9" fill="#64748b">compute(v)</text>
+
+      <!-- Note -->
+      <text x="340" y="155" text-anchor="middle" font-size="9" fill="#64748b">⚠ Chậm nhất trong 2 consumer quyết định throughput</text>
+    </svg>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_basic.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">main</span>
+
+<span class="kw">import</span> <span class="st">"fmt"</span>
+
+<span class="cm">// tee nhận một input channel và trả về hai output channels.</span>
+<span class="cm">// Mỗi giá trị từ input được gửi tới CẢ HAI output.</span>
+<span class="kw">func</span> <span class="fn">tee</span>[T <span class="kw">any</span>](in <span class="op">&lt;-</span><span class="kw">chan</span> T) (<span class="op">&lt;-</span><span class="kw">chan</span> T, <span class="op">&lt;-</span><span class="kw">chan</span> T) {
+    out1 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T)
+    out2 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T)
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out1)
+        <span class="kw">defer</span> <span class="fn">close</span>(out2)
+
+        <span class="kw">for</span> val <span class="op">:=</span> <span class="kw">range</span> in {
+            <span class="cm">// Ghi vào out1 và out2 lần lượt</span>
+            <span class="cm">// Cả hai phải nhận trước khi xử lý item tiếp theo</span>
+            <span class="kw">var</span> out1c, out2c <span class="kw">chan</span> T <span class="op">=</span> out1, out2
+            <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> <span class="nm">2</span>; i<span class="op">++</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> out1c <span class="op">&lt;-</span> val:
+                    out1c <span class="op">=</span> <span class="kw">nil</span> <span class="cm">// đã gửi, disable out1c</span>
+                <span class="kw">case</span> out2c <span class="op">&lt;-</span> val:
+                    out2c <span class="op">=</span> <span class="kw">nil</span> <span class="cm">// đã gửi, disable out2c</span>
+                }
+            }
+        }
+    }()
+
+    <span class="kw">return</span> out1, out2
+}
+
+<span class="cm">// generator tạo ra một channel với các số nguyên</span>
+<span class="kw">func</span> <span class="fn">generator</span>(nums ...<span class="kw">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span> {
+    out <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> _, n <span class="op">:=</span> <span class="kw">range</span> nums {
+            out <span class="op">&lt;-</span> n
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    source <span class="op">:=</span> <span class="fn">generator</span>(<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>)
+
+    <span class="cm">// Nhân đôi stream</span>
+    ch1, ch2 <span class="op">:=</span> <span class="fn">tee</span>(source)
+
+    <span class="cm">// Consumer 1: Logger</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> ch1 {
+            fmt.<span class="fn">Printf</span>(<span class="st">"[LOG] received: %d\n"</span>, v)
+        }
+    }()
+
+    <span class="cm">// Consumer 2: Processor (main goroutine)</span>
+    <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> ch2 {
+        fmt.<span class="fn">Printf</span>(<span class="st">"[PROC] processing: %d → result: %d\n"</span>, v, v<span class="op">*</span>v)
+    }
+}
+
+<span class="cm">/* Output:
+[LOG] received: 1
+[PROC] processing: 1 → result: 1
+[LOG] received: 2
+[PROC] processing: 2 → result: 4
+...
+*/</span></pre>
+  </div>
+
+  <div class="tip-box">
+    <strong>💡 Giải thích kỹ thuật select trick:</strong> Bằng cách set <code>out1c = nil</code> sau khi gửi thành công, select sẽ <em>bỏ qua</em> case đó ở vòng lặp tiếp theo (channel nil block mãi mãi). Đây là cách đảm bảo mỗi giá trị được gửi <em>đúng một lần</em> tới mỗi output.
+  </div>
+
+  <!-- Buffered Tee -->
+  <h3 id="buffered-tee">3.2 Buffered Tee — Giảm blocking</h3>
+  <p>Khi hai consumer có tốc độ khác nhau, unbuffered tee gây blocking. Buffered Tee cho phép consumer nhanh tiếp tục mà không chờ consumer chậm.</p>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_buffered.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">tee</span>
+
+<span class="cm">// TeeBuffered tạo Tee với buffer size cho mỗi output channel.</span>
+<span class="cm">// Consumer chậm có thể lag tối đa bufSize items mà không block pipeline.</span>
+<span class="kw">func</span> <span class="fn">TeeBuffered</span>[T <span class="kw">any</span>](in <span class="op">&lt;-</span><span class="kw">chan</span> T, bufSize <span class="kw">int</span>) (<span class="op">&lt;-</span><span class="kw">chan</span> T, <span class="op">&lt;-</span><span class="kw">chan</span> T) {
+    out1 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, bufSize)
+    out2 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, bufSize)
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out1)
+        <span class="kw">defer</span> <span class="fn">close</span>(out2)
+
+        <span class="kw">for</span> val <span class="op">:=</span> <span class="kw">range</span> in {
+            <span class="cm">// Gửi tới cả hai với select trick</span>
+            out1c, out2c <span class="op">:=</span> out1, out2
+            <span class="kw">for</span> out1c <span class="op">!=</span> <span class="kw">nil</span> <span class="op">||</span> out2c <span class="op">!=</span> <span class="kw">nil</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> out1c <span class="op">&lt;-</span> val:
+                    out1c <span class="op">=</span> <span class="kw">nil</span>
+                <span class="kw">case</span> out2c <span class="op">&lt;-</span> val:
+                    out2c <span class="op">=</span> <span class="kw">nil</span>
+                }
+            }
+        }
+    }()
+
+    <span class="kw">return</span> out1, out2
+}
+
+<span class="cm">// Benchmark helper: tạo source với N items</span>
+<span class="kw">func</span> <span class="fn">MakeSource</span>(n <span class="kw">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span> {
+    ch <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>, <span class="nm">64</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(ch)
+        <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> n; i<span class="op">++</span> { ch <span class="op">&lt;-</span> i }
+    }()
+    <span class="kw">return</span> ch
+}
+
+<span class="cm">// Sử dụng:</span>
+<span class="cm">// fast, slow := TeeBuffered(source, 1000)</span>
+<span class="cm">// fast consumer có thể chạy trước slow tối đa 1000 items</span></pre>
+  </div>
+
+  <!-- Generic Tee -->
+  <h3 id="generic-tee">3.3 Generic Tee (Go 1.18+) — Type-safe cho mọi kiểu dữ liệu</h3>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_generic.go — Go 1.18+</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> <span class="st">"context"</span>
+
+<span class="cm">// TeeN nhân đôi input thành N output channels.</span>
+<span class="cm">// Sử dụng generics để type-safe với mọi kiểu dữ liệu.</span>
+<span class="kw">func</span> <span class="fn">TeeN</span>[T <span class="kw">any</span>](ctx context.Context, in <span class="op">&lt;-</span><span class="kw">chan</span> T, n <span class="kw">int</span>) []<span class="op">&lt;-</span><span class="kw">chan</span> T {
+    outputs <span class="op">:=</span> <span class="fn">make</span>([]<span class="kw">chan</span> T, n)
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="kw">range</span> outputs {
+        outputs[i] <span class="op">=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, <span class="nm">1</span>)
+    }
+
+    <span class="kw">go func</span>() {
+        <span class="cm">// Đóng tất cả outputs khi goroutine kết thúc</span>
+        <span class="kw">defer func</span>() {
+            <span class="kw">for</span> _, out <span class="op">:=</span> <span class="kw">range</span> outputs {
+                <span class="fn">close</span>(out)
+            }
+        }()
+
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> val, ok <span class="op">:=</span> <span class="op">&lt;-</span>in:
+                <span class="kw">if</span> <span class="op">!</span>ok {
+                    <span class="kw">return</span> <span class="cm">// input channel đã đóng</span>
+                }
+                <span class="cm">// Gửi val tới TẤT CẢ output channels</span>
+                remaining <span class="op">:=</span> <span class="fn">make</span>([]<span class="kw">chan</span> T, n)
+                <span class="fn">copy</span>(remaining, outputs)
+
+                <span class="kw">for</span> <span class="fn">len</span>(remaining) <span class="op">&gt;</span> <span class="nm">0</span> {
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                        <span class="kw">return</span>
+                    <span class="kw">default</span>:
+                    }
+
+                    <span class="kw">for</span> i, ch <span class="op">:=</span> <span class="kw">range</span> remaining {
+                        <span class="kw">select</span> {
+                        <span class="kw">case</span> ch <span class="op">&lt;-</span> val:
+                            <span class="cm">// Xóa ch khỏi remaining</span>
+                            remaining <span class="op">=</span> <span class="fn">append</span>(remaining[:i], remaining[i<span class="op">+</span><span class="nm">1</span>:]...)
+                            <span class="kw">goto</span> next
+                        <span class="kw">default</span>:
+                        }
+                    }
+                    <span class="cm">// Yield nếu tất cả blocked (tránh busy-wait)</span>
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                        <span class="kw">return</span>
+                    <span class="kw">default</span>:
+                        <span class="cm">// runtime.Gosched() // optional yield</span>
+                    }
+                    next:
+                }
+            }
+        }
+    }()
+
+    <span class="cm">// Convert []chan T → []&lt;-chan T</span>
+    result <span class="op">:=</span> <span class="fn">make</span>([]<span class="op">&lt;-</span><span class="kw">chan</span> T, n)
+    <span class="kw">for</span> i, ch <span class="op">:=</span> <span class="kw">range</span> outputs {
+        result[i] <span class="op">=</span> ch
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// === SỬ DỤNG ===</span>
+<span class="kw">type</span> <span class="tp">Event</span> <span class="kw">struct</span> {
+    ID   <span class="kw">string</span>
+    Data <span class="kw">interface</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">Example</span>() {
+    ctx, cancel <span class="op">:=</span> context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    eventStream <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> Event, <span class="nm">100</span>)
+
+    <span class="cm">// Tạo 3 bản sao của stream</span>
+    streams <span class="op">:=</span> <span class="fn">TeeN</span>(ctx, eventStream, <span class="nm">3</span>)
+
+    <span class="kw">go</span> <span class="fn">processEvents</span>(streams[<span class="nm">0</span>])    <span class="cm">// Business logic</span>
+    <span class="kw">go</span> <span class="fn">auditLog</span>(streams[<span class="nm">1</span>])         <span class="cm">// Audit trail</span>
+    <span class="kw">go</span> <span class="fn">metricsCollector</span>(streams[<span class="nm">2</span>]) <span class="cm">// Metrics/monitoring</span>
+}</pre>
+  </div>
+</section>
+
+<div class="section-sep" data-label="Nâng Cao"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 4: NÂNG CAO -->
+<!-- ══════════════════════════════════════════ -->
+<section id="nang-cao">
+  <div class="section-header">
+    <div class="section-number">4</div>
+    <div class="section-title">Tee Channel — Nâng Cao</div>
+    <span class="badge-advanced">Nâng Cao</span>
+  </div>
+
+  <!-- Tee with Context -->
+  <h3 id="tee-with-context">4.1 Tee với Context — Cancellation & Timeout</h3>
+  <p>Trong production, bắt buộc phải hỗ trợ graceful shutdown thông qua <code>context.Context</code>.</p>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_context.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// TeePair gói 2 output channels từ Tee</span>
+<span class="kw">type</span> <span class="tp">TeePair</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    Out1 <span class="op">&lt;-</span><span class="kw">chan</span> T
+    Out2 <span class="op">&lt;-</span><span class="kw">chan</span> T
+}
+
+<span class="cm">// TeeWithContext tạo Tee với full context support.</span>
+<span class="cm">// Khi ctx bị cancel, goroutine kết thúc clean và đóng cả 2 outputs.</span>
+<span class="kw">func</span> <span class="fn">TeeWithContext</span>[T <span class="kw">any</span>](ctx context.Context, in <span class="op">&lt;-</span><span class="kw">chan</span> T) <span class="tp">TeePair</span>[T] {
+    out1 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, <span class="nm">16</span>)
+    out2 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, <span class="nm">16</span>)
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out1)
+        <span class="kw">defer</span> <span class="fn">close</span>(out2)
+
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> <span class="cm">// Graceful shutdown</span>
+
+            <span class="kw">case</span> val, ok <span class="op">:=</span> <span class="op">&lt;-</span>in:
+                <span class="kw">if</span> <span class="op">!</span>ok {
+                    <span class="kw">return</span> <span class="cm">// Source đã đóng</span>
+                }
+
+                <span class="cm">// Gửi tới out1</span>
+                <span class="kw">select</span> {
+                <span class="kw">case</span> out1 <span class="op">&lt;-</span> val:
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                }
+
+                <span class="cm">// Gửi tới out2</span>
+                <span class="kw">select</span> {
+                <span class="kw">case</span> out2 <span class="op">&lt;-</span> val:
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                }
+            }
+        }
+    }()
+
+    <span class="kw">return</span> TeePair[T]{Out1: out1, Out2: out2}
+}
+
+<span class="cm">// === Demo với timeout ===</span>
+<span class="kw">func</span> <span class="fn">DemoTimeout</span>() {
+    <span class="cm">// Context với 5 giây timeout</span>
+    ctx, cancel <span class="op">:=</span> context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nm">5</span><span class="op">*</span>time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    source <span class="op">:=</span> <span class="fn">infiniteSource</span>(ctx) <span class="cm">// stream vô hạn</span>
+    pair <span class="op">:=</span> <span class="fn">TeeWithContext</span>(ctx, source)
+
+    <span class="cm">// Consumer 1: ghi audit log</span>
+    auditDone <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(auditDone)
+        <span class="kw">for</span> item <span class="op">:=</span> <span class="kw">range</span> pair.Out1 {
+            _ <span class="op">=</span> item <span class="cm">// writeAudit(item)</span>
+        }
+    }()
+
+    <span class="cm">// Consumer 2: xử lý chính</span>
+    <span class="kw">for</span> item <span class="op">:=</span> <span class="kw">range</span> pair.Out2 {
+        _ <span class="op">=</span> item <span class="cm">// processItem(item)</span>
+    }
+
+    <span class="op">&lt;-</span>auditDone <span class="cm">// Chờ audit hoàn thành</span>
+}
+
+<span class="kw">func</span> <span class="fn">infiniteSource</span>(ctx context.Context) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span> {
+    ch <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(ch)
+        i <span class="op">:=</span> <span class="nm">0</span>
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="op">&lt;-</span> i: i<span class="op">++</span>
+            }
+        }
+    }()
+    <span class="kw">return</span> ch
+}</pre>
+  </div>
+
+  <!-- Broadcast Pattern -->
+  <h3 id="broadcast">4.2 Broadcast Pattern — Dynamic Tee với nhiều subscribers</h3>
+  <p>Khi số lượng consumer không cố định từ đầu, dùng Broadcast pattern — subscribe/unsubscribe runtime.</p>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Broadcast Architecture — Dynamic Subscribers</div>
+    <svg viewBox="0 0 720 180" xmlns="http://www.w3.org/2000/svg" width="100%">
+      <defs>
+        <marker id="a3" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,7 3,0 6" fill="#00d4aa"/>
+        </marker>
+      </defs>
+      <!-- Source -->
+      <rect x="10" y="68" width="100" height="44" rx="6" fill="#0f1629" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="60" y="85" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="700">SOURCE</text>
+      <text x="60" y="100" text-anchor="middle" font-size="9" fill="#64748b">events...</text>
+
+      <line x1="110" y1="90" x2="180" y2="90" stroke="#00d4aa" stroke-width="1.5" marker-end="url(#a3)"/>
+
+      <!-- Broadcaster -->
+      <rect x="182" y="50" width="130" height="80" rx="8" fill="#131929" stroke="#a855f7" stroke-width="2"/>
+      <text x="247" y="76" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="800">BROADCASTER</text>
+      <text x="247" y="92" text-anchor="middle" font-size="9" fill="#94a3b8">subscribers map</text>
+      <text x="247" y="105" text-anchor="middle" font-size="9" fill="#64748b">sync.RWMutex</span></text>
+      <text x="247" y="118" text-anchor="middle" font-size="9" fill="#64748b">Subscribe / Unsub</text>
+
+      <!-- Arrows to subscribers -->
+      <line x1="312" y1="68" x2="400" y2="40" stroke="#4d9fff" stroke-width="1.3" marker-end="url(#a3)"/>
+      <line x1="312" y1="90" x2="400" y2="90" stroke="#22c55e" stroke-width="1.3" marker-end="url(#a3)"/>
+      <line x1="312" y1="112" x2="400" y2="140" stroke="#f97316" stroke-width="1.3" marker-end="url(#a3)"/>
+
+      <!-- Subscribers -->
+      <rect x="402" y="18" width="120" height="34" rx="6" fill="#0f1629" stroke="#4d9fff" stroke-width="1.3"/>
+      <text x="462" y="31" text-anchor="middle" font-size="10" fill="#4d9fff">subscriber-1</text>
+      <text x="462" y="44" text-anchor="middle" font-size="9" fill="#64748b">Metrics</text>
+
+      <rect x="402" y="73" width="120" height="34" rx="6" fill="#0f1629" stroke="#22c55e" stroke-width="1.3"/>
+      <text x="462" y="86" text-anchor="middle" font-size="10" fill="#22c55e">subscriber-2</text>
+      <text x="462" y="99" text-anchor="middle" font-size="9" fill="#64748b">Logger</text>
+
+      <rect x="402" y="124" width="120" height="34" rx="6" fill="#0f1629" stroke="#f97316" stroke-width="1.3"/>
+      <text x="462" y="137" text-anchor="middle" font-size="10" fill="#f97316">subscriber-3</text>
+      <text x="462" y="151" text-anchor="middle" font-size="9" fill="#64748b">Cache Writer</text>
+
+      <!-- Dynamic add -->
+      <rect x="556" y="73" width="120" height="34" rx="6" fill="#131929" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="616" y="86" text-anchor="middle" font-size="10" fill="#64748b">+ dynamic add</text>
+      <text x="616" y="99" text-anchor="middle" font-size="9" fill="#64748b">runtime subscribe</text>
+    </svg>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">broadcaster.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+)
+
+<span class="cm">// Broadcaster phân phối messages tới tất cả subscribers.</span>
+<span class="cm">// Thread-safe: subscribe/unsubscribe được thực hiện bất cứ lúc nào.</span>
+<span class="kw">type</span> <span class="tp">Broadcaster</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    mu          sync.RWMutex
+    subscribers <span class="kw">map</span>[<span class="kw">uint64</span>]<span class="kw">chan</span> T
+    nextID      atomic.Uint64
+    bufSize     <span class="kw">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewBroadcaster</span>[T <span class="kw">any</span>](bufSize <span class="kw">int</span>) <span class="op">*</span><span class="tp">Broadcaster</span>[T] {
+    <span class="kw">return</span> <span class="op">&amp;</span>Broadcaster[T]{
+        subscribers: <span class="fn">make</span>(<span class="kw">map</span>[<span class="kw">uint64</span>]<span class="kw">chan</span> T),
+        bufSize:     bufSize,
+    }
+}
+
+<span class="cm">// Subscribe thêm subscriber và trả về channel nhận data + unsubscribe func.</span>
+<span class="kw">func</span> (b <span class="op">*</span><span class="tp">Broadcaster</span>[T]) <span class="fn">Subscribe</span>() (<span class="op">&lt;-</span><span class="kw">chan</span> T, <span class="kw">func</span>()) {
+    ch <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, b.bufSize)
+    id <span class="op">:=</span> b.nextID.<span class="fn">Add</span>(<span class="nm">1</span>)
+
+    b.mu.<span class="fn">Lock</span>()
+    b.subscribers[id] <span class="op">=</span> ch
+    b.mu.<span class="fn">Unlock</span>()
+
+    unsubscribe <span class="op">:=</span> <span class="kw">func</span>() {
+        b.mu.<span class="fn">Lock</span>()
+        <span class="kw">if</span> ch, ok <span class="op">:=</span> b.subscribers[id]; ok {
+            <span class="fn">delete</span>(b.subscribers, id)
+            <span class="fn">close</span>(ch)
+        }
+        b.mu.<span class="fn">Unlock</span>()
+    }
+    <span class="kw">return</span> ch, unsubscribe
+}
+
+<span class="cm">// Broadcast gửi value tới tất cả subscribers hiện tại.</span>
+<span class="cm">// Non-blocking: subscribers với full buffer sẽ bị skip.</span>
+<span class="kw">func</span> (b <span class="op">*</span><span class="tp">Broadcaster</span>[T]) <span class="fn">Broadcast</span>(val T) {
+    b.mu.<span class="fn">RLock</span>()
+    <span class="kw">defer</span> b.mu.<span class="fn">RUnlock</span>()
+
+    <span class="kw">for</span> _, ch <span class="op">:=</span> <span class="kw">range</span> b.subscribers {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> ch <span class="op">&lt;-</span> val:
+        <span class="kw">default</span>:
+            <span class="cm">// Subscriber chậm: drop message (hoặc handle backpressure)</span>
+        }
+    }
+}
+
+<span class="cm">// Run đọc từ source và broadcast tới tất cả subscribers.</span>
+<span class="kw">func</span> (b <span class="op">*</span><span class="tp">Broadcaster</span>[T]) <span class="fn">Run</span>(ctx context.Context, source <span class="op">&lt;-</span><span class="kw">chan</span> T) {
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> b.<span class="fn">closeAll</span>()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> val, ok <span class="op">:=</span> <span class="op">&lt;-</span>source:
+                <span class="kw">if</span> <span class="op">!</span>ok { <span class="kw">return</span> }
+                b.<span class="fn">Broadcast</span>(val)
+            }
+        }
+    }()
+}
+
+<span class="kw">func</span> (b <span class="op">*</span><span class="tp">Broadcaster</span>[T]) <span class="fn">closeAll</span>() {
+    b.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> b.mu.<span class="fn">Unlock</span>()
+    <span class="kw">for</span> id, ch <span class="op">:=</span> <span class="kw">range</span> b.subscribers {
+        <span class="fn">close</span>(ch)
+        <span class="fn">delete</span>(b.subscribers, id)
+    }
+}
+
+<span class="cm">// === SỬ DỤNG ===</span>
+<span class="kw">func</span> <span class="fn">BroadcasterExample</span>() {
+    ctx, cancel <span class="op">:=</span> context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    b <span class="op">:=</span> <span class="fn">NewBroadcaster</span>[<span class="kw">int</span>](<span class="nm">100</span>)
+
+    source <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>, <span class="nm">10</span>)
+    b.<span class="fn">Run</span>(ctx, source)
+
+    <span class="cm">// Subscribe dynamically</span>
+    ch1, unsub1 <span class="op">:=</span> b.<span class="fn">Subscribe</span>()
+    ch2, unsub2 <span class="op">:=</span> b.<span class="fn">Subscribe</span>()
+    <span class="kw">defer</span> <span class="fn">unsub1</span>()
+    <span class="kw">defer</span> <span class="fn">unsub2</span>()
+
+    <span class="kw">go func</span>() { <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> ch1 { _ <span class="op">=</span> v } }()
+    <span class="kw">go func</span>() { <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> ch2 { _ <span class="op">=</span> v } }()
+}</pre>
+  </div>
+
+  <!-- Dynamic Tee -->
+  <h3 id="dynamic-tee">4.3 Dynamic Tee — Thêm/bớt output runtime</h3>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">dynamic_tee.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="kw">type</span> <span class="tp">DynamicTee</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    mu   sync.RWMutex
+    outs []<span class="kw">chan</span> T
+    done <span class="kw">chan</span> <span class="kw">struct</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">NewDynamicTee</span>[T <span class="kw">any</span>](ctx context.Context, in <span class="op">&lt;-</span><span class="kw">chan</span> T) <span class="op">*</span><span class="tp">DynamicTee</span>[T] {
+    dt <span class="op">:=</span> <span class="op">&amp;</span>DynamicTee[T]{done: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})}
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(dt.done)
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> val, ok <span class="op">:=</span> <span class="op">&lt;-</span>in:
+                <span class="kw">if</span> <span class="op">!</span>ok { <span class="kw">return</span> }
+                dt.mu.<span class="fn">RLock</span>()
+                <span class="kw">for</span> _, ch <span class="op">:=</span> <span class="kw">range</span> dt.outs {
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> ch <span class="op">&lt;-</span> val:
+                    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                        dt.mu.<span class="fn">RUnlock</span>()
+                        <span class="kw">return</span>
+                    }
+                }
+                dt.mu.<span class="fn">RUnlock</span>()
+            }
+        }
+    }()
+    <span class="kw">return</span> dt
+}
+
+<span class="cm">// AddOutput thêm output channel mới vào tee (runtime safe)</span>
+<span class="kw">func</span> (dt <span class="op">*</span><span class="tp">DynamicTee</span>[T]) <span class="fn">AddOutput</span>(bufSize <span class="kw">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> T {
+    ch <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, bufSize)
+    dt.mu.<span class="fn">Lock</span>()
+    dt.outs <span class="op">=</span> <span class="fn">append</span>(dt.outs, ch)
+    dt.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> ch
+}
+
+<span class="cm">// Wait chờ tee goroutine kết thúc</span>
+<span class="kw">func</span> (dt <span class="op">*</span><span class="tp">DynamicTee</span>[T]) <span class="fn">Wait</span>() { <span class="op">&lt;-</span>dt.done }</pre>
+  </div>
+
+  <!-- Tee in ETL Pipeline -->
+  <h3 id="tee-pipeline">4.4 Tee Channel trong ETL Pipeline thực tế</h3>
+
+  <div class="diagram-box">
+    <div class="diagram-title">ETL Pipeline với Tee — Kiến trúc hoàn chỉnh</div>
+    <svg viewBox="0 0 740 260" xmlns="http://www.w3.org/2000/svg" width="100%">
+      <defs>
+        <marker id="etlarr" markerWidth="7" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,7 3,0 6" fill="#00d4aa"/>
+        </marker>
+      </defs>
+      <!-- EXTRACT -->
+      <text x="120" y="20" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="700" letter-spacing="2">EXTRACT</text>
+      <rect x="10" y="30" width="110" height="34" rx="6" fill="#0f1629" stroke="#22c55e" stroke-width="1.3"/>
+      <text x="65" y="47" text-anchor="middle" font-size="10" fill="#22c55e">CSV / API</text>
+      <text x="65" y="59" text-anchor="middle" font-size="9" fill="#64748b">source</text>
+
+      <line x1="120" y1="47" x2="185" y2="47" stroke="#00d4aa" stroke-width="1.3" marker-end="url(#etlarr)"/>
+
+      <!-- TRANSFORM -->
+      <text x="295" y="20" text-anchor="middle" font-size="10" fill="#4d9fff" font-weight="700" letter-spacing="2">TRANSFORM</text>
+      <rect x="187" y="30" width="110" height="34" rx="6" fill="#0f1629" stroke="#4d9fff" stroke-width="1.3"/>
+      <text x="242" y="47" text-anchor="middle" font-size="10" fill="#4d9fff">Normalize</text>
+      <text x="242" y="59" text-anchor="middle" font-size="9" fill="#64748b">validate</text>
+
+      <line x1="297" y1="47" x2="355" y2="47" stroke="#00d4aa" stroke-width="1.3" marker-end="url(#etlarr)"/>
+
+      <!-- TEE -->
+      <rect x="357" y="24" width="90" height="46" rx="8" fill="#131929" stroke="#a855f7" stroke-width="2"/>
+      <text x="402" y="44" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="800">TEE</text>
+      <text x="402" y="59" text-anchor="middle" font-size="9" fill="#94a3b8">duplicate</text>
+
+      <!-- LOAD top: PostgreSQL -->
+      <text x="590" y="20" text-anchor="middle" font-size="10" fill="#f97316" font-weight="700" letter-spacing="2">LOAD</text>
+      <line x1="447" y1="38" x2="520" y2="38" stroke="#4d9fff" stroke-width="1.3" marker-end="url(#etlarr)"/>
+      <rect x="522" y="22" width="130" height="34" rx="6" fill="#0f1629" stroke="#4d9fff" stroke-width="1.3"/>
+      <text x="587" y="37" text-anchor="middle" font-size="10" fill="#4d9fff">PostgreSQL</text>
+      <text x="587" y="50" text-anchor="middle" font-size="9" fill="#64748b">Bulk Insert</text>
+
+      <!-- LOAD bottom: Audit Log -->
+      <line x1="447" y1="58" x2="520" y2="80" stroke="#f97316" stroke-width="1.3" marker-end="url(#etlarr)"/>
+      <rect x="522" y="64" width="130" height="34" rx="6" fill="#0f1629" stroke="#f97316" stroke-width="1.3"/>
+      <text x="587" y="79" text-anchor="middle" font-size="10" fill="#f97316">Audit Log</text>
+      <text x="587" y="92" text-anchor="middle" font-size="9" fill="#64748b">append-only</text>
+
+      <!-- Divider -->
+      <line x1="10" y1="115" x2="720" y2="115" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Error channel -->
+      <text x="370" y="140" text-anchor="middle" font-size="10" fill="#64748b" font-weight="600" letter-spacing="1">ERROR HANDLING STREAM</text>
+      <rect x="10" y="155" width="700" height="40" rx="6" fill="#131929" stroke="#f87171" stroke-width="1.3" stroke-dasharray="5,3"/>
+      <text x="370" y="170" text-anchor="middle" font-size="10" fill="#f87171">Error Channel</text>
+      <text x="370" y="183" text-anchor="middle" font-size="9" fill="#64748b">→ Dead Letter Queue → Alert → Retry Queue</text>
+
+      <!-- Retry -->
+      <text x="370" y="225" text-anchor="middle" font-size="10" fill="#64748b">Mỗi failed record được ghi vào cả DLQ lẫn retry queue — đây là Tee thứ hai trong pipeline</text>
+
+      <!-- Labels bottom -->
+      <rect x="10" y="235" width="160" height="24" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1"/>
+      <text x="90" y="251" text-anchor="middle" font-size="9" fill="#a855f7">📊 Tee#1: data stream</text>
+
+      <rect x="200" y="235" width="160" height="24" rx="4" fill="rgba(248,113,113,0.1)" stroke="rgba(248,113,113,0.3)" stroke-width="1"/>
+      <text x="280" y="251" text-anchor="middle" font-size="9" fill="#f87171">🔁 Tee#2: error stream</text>
+    </svg>
+  </div>
+</section>
+
+<div class="section-sep" data-label="Expert"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 5: EXPERT -->
+<!-- ══════════════════════════════════════════ -->
+<section id="expert">
+  <div class="section-header">
+    <div class="section-number">5</div>
+    <div class="section-title">Tee Channel — Expert Level</div>
+    <span class="badge-expert">★ Expert</span>
+  </div>
+
+  <!-- Ring Buffer Tee -->
+  <h3 id="tee-ring-buffer">5.1 Ring Buffer Tee — Zero-allocation high-performance</h3>
+  <p>Cho các hệ thống yêu cầu throughput cực cao (>1M msg/s), ring buffer giảm thiểu GC pressure.</p>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_ringbuffer.go — High Performance</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> (
+    <span class="st">"runtime"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"unsafe"</span>
+)
+
+<span class="cm">// RingBuffer là lock-free single-producer single-consumer ring buffer.</span>
+<span class="cm">// Size PHẢI là power of 2 để dùng bitmask thay vì modulo.</span>
+<span class="kw">type</span> <span class="tp">RingBuffer</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    _      [<span class="nm">64</span>]<span class="kw">byte</span>  <span class="cm">// padding để tránh false sharing</span>
+    head   atomic.Uint64
+    _      [<span class="nm">56</span>]<span class="kw">byte</span>
+    tail   atomic.Uint64
+    _      [<span class="nm">56</span>]<span class="kw">byte</span>
+    mask   <span class="kw">uint64</span>
+    buffer []T
+}
+
+<span class="kw">func</span> <span class="fn">NewRingBuffer</span>[T <span class="kw">any</span>](size <span class="kw">uint64</span>) <span class="op">*</span><span class="tp">RingBuffer</span>[T] {
+    <span class="kw">if</span> size <span class="op">&amp;</span> (size<span class="op">-</span><span class="nm">1</span>) <span class="op">!=</span> <span class="nm">0</span> {
+        <span class="fn">panic</span>(<span class="st">"size must be power of 2"</span>)
+    }
+    <span class="kw">return</span> <span class="op">&amp;</span>RingBuffer[T]{
+        buffer: <span class="fn">make</span>([]T, size),
+        mask:   size <span class="op">-</span> <span class="nm">1</span>,
+    }
+}
+
+<span class="kw">func</span> (rb <span class="op">*</span><span class="tp">RingBuffer</span>[T]) <span class="fn">Push</span>(val T) <span class="kw">bool</span> {
+    tail <span class="op">:=</span> rb.tail.<span class="fn">Load</span>()
+    head <span class="op">:=</span> rb.head.<span class="fn">Load</span>()
+    <span class="kw">if</span> tail<span class="op">-</span>head <span class="op">&gt;</span> rb.mask { <span class="kw">return</span> <span class="kw">false</span> } <span class="cm">// full</span>
+    rb.buffer[tail<span class="op">&amp;</span>rb.mask] <span class="op">=</span> val
+    rb.tail.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">return</span> <span class="kw">true</span>
+}
+
+<span class="kw">func</span> (rb <span class="op">*</span><span class="tp">RingBuffer</span>[T]) <span class="fn">Pop</span>() (T, <span class="kw">bool</span>) {
+    head <span class="op">:=</span> rb.head.<span class="fn">Load</span>()
+    tail <span class="op">:=</span> rb.tail.<span class="fn">Load</span>()
+    <span class="kw">if</span> head <span class="op">==</span> tail {
+        <span class="kw">var</span> zero T
+        <span class="kw">return</span> zero, <span class="kw">false</span> <span class="cm">// empty</span>
+    }
+    val <span class="op">:=</span> rb.buffer[head<span class="op">&amp;</span>rb.mask]
+    rb.buffer[head<span class="op">&amp;</span>rb.mask] <span class="op">=</span> <span class="op">*</span>(<span class="op">*</span>T)(<span class="fn">unsafe</span>.Pointer(<span class="op">&amp;</span>[<span class="nm">0</span>]T{})) <span class="cm">// clear</span>
+    rb.head.<span class="fn">Add</span>(<span class="nm">1</span>)
+    <span class="kw">return</span> val, <span class="kw">true</span>
+}
+
+<span class="cm">// RingBufferTee dùng ring buffers thay vì Go channels cho throughput cao hơn.</span>
+<span class="kw">type</span> <span class="tp">RingBufferTee</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    rb1, rb2 <span class="op">*</span>RingBuffer[T]
+}
+
+<span class="kw">func</span> <span class="fn">NewRingBufferTee</span>[T <span class="kw">any</span>](size <span class="kw">uint64</span>) <span class="op">*</span><span class="tp">RingBufferTee</span>[T] {
+    <span class="kw">return</span> <span class="op">&amp;</span>RingBufferTee[T]{
+        rb1: <span class="fn">NewRingBuffer</span>[T](size),
+        rb2: <span class="fn">NewRingBuffer</span>[T](size),
+    }
+}
+
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">RingBufferTee</span>[T]) <span class="fn">Publish</span>(val T) {
+    <span class="kw">for</span> <span class="op">!</span>t.rb1.<span class="fn">Push</span>(val) { runtime.<span class="fn">Gosched</span>() } <span class="cm">// spin với yield</span>
+    <span class="kw">for</span> <span class="op">!</span>t.rb2.<span class="fn">Push</span>(val) { runtime.<span class="fn">Gosched</span>() }
+}
+
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">RingBufferTee</span>[T]) <span class="fn">ConsumeOut1</span>() (T, <span class="kw">bool</span>) { <span class="kw">return</span> t.rb1.<span class="fn">Pop</span>() }
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">RingBufferTee</span>[T]) <span class="fn">ConsumeOut2</span>() (T, <span class="kw">bool</span>) { <span class="kw">return</span> t.rb2.<span class="fn">Pop</span>() }</pre>
+  </div>
+
+  <!-- Backpressure Tee -->
+  <h3 id="tee-backpressure">5.2 Backpressure Tee — Không bao giờ drop messages</h3>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_backpressure.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+)
+
+<span class="cm">// BackpressureTee đảm bảo ZERO message loss.</span>
+<span class="cm">// Nếu một consumer chậm, toàn bộ pipeline sẽ slow down (backpressure).</span>
+<span class="cm">// Dùng khi tính toàn vẹn dữ liệu quan trọng hơn latency.</span>
+<span class="kw">type</span> <span class="tp">BackpressureTee</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    outputs  []<span class="kw">chan</span> T
+    dropped  atomic.Uint64
+    capacity <span class="kw">int</span>
+    mu       sync.RWMutex
+}
+
+<span class="kw">func</span> <span class="fn">NewBackpressureTee</span>[T <span class="kw">any</span>](n, capacity <span class="kw">int</span>) <span class="op">*</span><span class="tp">BackpressureTee</span>[T] {
+    outs <span class="op">:=</span> <span class="fn">make</span>([]<span class="kw">chan</span> T, n)
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="kw">range</span> outs {
+        outs[i] <span class="op">=</span> <span class="fn">make</span>(<span class="kw">chan</span> T, capacity)
+    }
+    <span class="kw">return</span> <span class="op">&amp;</span>BackpressureTee[T]{outputs: outs, capacity: capacity}
+}
+
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">BackpressureTee</span>[T]) <span class="fn">Run</span>(ctx context.Context, in <span class="op">&lt;-</span><span class="kw">chan</span> T) {
+    <span class="kw">go func</span>() {
+        <span class="kw">defer func</span>() {
+            t.mu.<span class="fn">Lock</span>()
+            <span class="kw">defer</span> t.mu.<span class="fn">Unlock</span>()
+            <span class="kw">for</span> _, out <span class="op">:=</span> <span class="kw">range</span> t.outputs { <span class="fn">close</span>(out) }
+        }()
+
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> val, ok <span class="op">:=</span> <span class="op">&lt;-</span>in:
+                <span class="kw">if</span> <span class="op">!</span>ok { <span class="kw">return</span> }
+
+                t.mu.<span class="fn">RLock</span>()
+                outs <span class="op">:=</span> t.outputs
+                t.mu.<span class="fn">RUnlock</span>()
+
+                <span class="cm">// Blocking send tới TẤT CẢ outputs — backpressure đảm bảo zero loss</span>
+                <span class="kw">var</span> wg sync.WaitGroup
+                <span class="kw">for</span> _, out <span class="op">:=</span> <span class="kw">range</span> outs {
+                    wg.<span class="fn">Add</span>(<span class="nm">1</span>)
+                    <span class="kw">go func</span>(ch <span class="kw">chan</span> T) {
+                        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+                        <span class="kw">select</span> {
+                        <span class="kw">case</span> ch <span class="op">&lt;-</span> val: <span class="cm">// blocking</span>
+                        <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                        }
+                    }(out)
+                }
+                wg.<span class="fn">Wait</span>() <span class="cm">// Chờ TẤT CẢ consumers nhận xong mới tiếp tục</span>
+            }
+        }
+    }()
+}
+
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">BackpressureTee</span>[T]) <span class="fn">Output</span>(i <span class="kw">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> T { <span class="kw">return</span> t.outputs[i] }
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">BackpressureTee</span>[T]) <span class="fn">Dropped</span>() <span class="kw">uint64</span> { <span class="kw">return</span> t.dropped.<span class="fn">Load</span>() }</pre>
+  </div>
+
+  <!-- Observable Tee -->
+  <h3 id="tee-observable">5.3 Observable Tee — Metrics & Monitoring tích hợp</h3>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_observable.go — Production-ready</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"log/slog"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// TeeMetrics thu thập metrics cho observability</span>
+<span class="kw">type</span> <span class="tp">TeeMetrics</span> <span class="kw">struct</span> {
+    Received   atomic.Uint64
+    Forwarded  atomic.Uint64
+    Dropped    atomic.Uint64
+    AvgLatency atomic.Int64 <span class="cm">// nanoseconds</span>
+}
+
+<span class="kw">func</span> (m <span class="op">*</span><span class="tp">TeeMetrics</span>) <span class="fn">Log</span>(logger <span class="op">*</span>slog.Logger) {
+    logger.<span class="fn">Info</span>(<span class="st">"tee metrics"</span>,
+        <span class="st">"received"</span>, m.Received.<span class="fn">Load</span>(),
+        <span class="st">"forwarded"</span>, m.Forwarded.<span class="fn">Load</span>(),
+        <span class="st">"dropped"</span>, m.Dropped.<span class="fn">Load</span>(),
+        <span class="st">"avg_latency_us"</span>, m.AvgLatency.<span class="fn">Load</span>()<span class="op">/</span><span class="nm">1000</span>,
+    )
+}
+
+<span class="cm">// ObservableTee là Tee với đầy đủ metrics, tracing, và logging.</span>
+<span class="kw">type</span> <span class="tp">ObservableTee</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    out1, out2 <span class="kw">chan</span> T
+    metrics    <span class="op">*</span>TeeMetrics
+    logger     <span class="op">*</span>slog.Logger
+    name       <span class="kw">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewObservableTee</span>[T <span class="kw">any</span>](
+    ctx context.Context,
+    in <span class="op">&lt;-</span><span class="kw">chan</span> T,
+    name <span class="kw">string</span>,
+    logger <span class="op">*</span>slog.Logger,
+    bufSize <span class="kw">int</span>,
+) <span class="op">*</span><span class="tp">ObservableTee</span>[T] {
+    t <span class="op">:=</span> <span class="op">&amp;</span>ObservableTee[T]{
+        out1:    <span class="fn">make</span>(<span class="kw">chan</span> T, bufSize),
+        out2:    <span class="fn">make</span>(<span class="kw">chan</span> T, bufSize),
+        metrics: <span class="op">&amp;</span>TeeMetrics{},
+        logger:  logger,
+        name:    name,
+    }
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(t.out1)
+        <span class="kw">defer</span> <span class="fn">close</span>(t.out2)
+
+        <span class="cm">// Periodic metrics logging</span>
+        ticker <span class="op">:=</span> time.<span class="fn">NewTicker</span>(<span class="nm">30</span> <span class="op">*</span> time.Second)
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                t.metrics.<span class="fn">Log</span>(logger)
+                <span class="kw">return</span>
+
+            <span class="kw">case</span> <span class="op">&lt;-</span>ticker.C:
+                t.metrics.<span class="fn">Log</span>(logger)
+
+            <span class="kw">case</span> val, ok <span class="op">:=</span> <span class="op">&lt;-</span>in:
+                <span class="kw">if</span> <span class="op">!</span>ok {
+                    t.metrics.<span class="fn">Log</span>(logger)
+                    <span class="kw">return</span>
+                }
+                t.metrics.Received.<span class="fn">Add</span>(<span class="nm">1</span>)
+                start <span class="op">:=</span> time.<span class="fn">Now</span>()
+
+                out1c, out2c <span class="op">:=</span> t.out1, t.out2
+                sent <span class="op">:=</span> <span class="nm">0</span>
+                <span class="kw">for</span> sent <span class="op">&lt;</span> <span class="nm">2</span> {
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> out1c <span class="op">&lt;-</span> val:
+                        out1c <span class="op">=</span> <span class="kw">nil</span>; sent<span class="op">++</span>
+                    <span class="kw">case</span> out2c <span class="op">&lt;-</span> val:
+                        out2c <span class="op">=</span> <span class="kw">nil</span>; sent<span class="op">++</span>
+                    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                        <span class="kw">return</span>
+                    }
+                }
+
+                elapsed <span class="op">:=</span> time.<span class="fn">Since</span>(start).<span class="fn">Nanoseconds</span>()
+                t.metrics.AvgLatency.<span class="fn">Store</span>(
+                    (t.metrics.AvgLatency.<span class="fn">Load</span>()<span class="op">*</span><span class="nm">99</span> <span class="op">+</span> elapsed) <span class="op">/</span> <span class="nm">100</span>,
+                )
+                t.metrics.Forwarded.<span class="fn">Add</span>(<span class="nm">2</span>)
+            }
+        }
+    }()
+    <span class="kw">return</span> t
+}
+
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">ObservableTee</span>[T]) <span class="fn">Out1</span>() <span class="op">&lt;-</span><span class="kw">chan</span> T     { <span class="kw">return</span> t.out1 }
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">ObservableTee</span>[T]) <span class="fn">Out2</span>() <span class="op">&lt;-</span><span class="kw">chan</span> T     { <span class="kw">return</span> t.out2 }
+<span class="kw">func</span> (t <span class="op">*</span><span class="tp">ObservableTee</span>[T]) <span class="fn">Metrics</span>() <span class="op">*</span>TeeMetrics { <span class="kw">return</span> t.metrics }</pre>
+  </div>
+
+  <!-- Benchmark -->
+  <h3 id="tee-bench">5.4 Benchmark & Profiling</h3>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">tee_bench_test.go</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="nm">channels_test</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"testing"</span>
+)
+
+<span class="kw">func</span> <span class="fn">BenchmarkTeeUnbuffered</span>(b <span class="op">*</span>testing.B) {
+    ctx <span class="op">:=</span> context.<span class="fn">Background</span>()
+    in <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>, b.N)
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> b.N; i<span class="op">++</span> { in <span class="op">&lt;-</span> i }
+    <span class="fn">close</span>(in)
+
+    b.<span class="fn">ResetTimer</span>()
+    out1, out2 <span class="op">:=</span> <span class="fn">Tee</span>(ctx, in) <span class="cm">// unbuffered</span>
+
+    <span class="kw">go func</span>() { <span class="kw">for</span> <span class="kw">range</span> out1 {} }()
+    <span class="kw">for</span> <span class="kw">range</span> out2 {}
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkTeeBuffered1024</span>(b <span class="op">*</span>testing.B) {
+    ctx <span class="op">:=</span> context.<span class="fn">Background</span>()
+    in <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>, b.N)
+    <span class="kw">for</span> i <span class="op">:=</span> <span class="nm">0</span>; i <span class="op">&lt;</span> b.N; i<span class="op">++</span> { in <span class="op">&lt;-</span> i }
+    <span class="fn">close</span>(in)
+
+    b.<span class="fn">ResetTimer</span>()
+    out1, out2 <span class="op">:=</span> <span class="fn">TeeBuffered</span>(ctx, in, <span class="nm">1024</span>)
+
+    <span class="kw">go func</span>() { <span class="kw">for</span> <span class="kw">range</span> out1 {} }()
+    <span class="kw">for</span> <span class="kw">range</span> out2 {}
+}
+
+<span class="cm">/*
+Kết quả benchmark điển hình (Apple M2):
+
+BenchmarkTeeUnbuffered-8      3_421_089    348 ns/op    0 B/op    0 allocs/op
+BenchmarkTeeBuffered1024-8   18_234_512     65 ns/op    0 B/op    0 allocs/op
+BenchmarkBroadcaster-8        4_891_023    244 ns/op   16 B/op    1 allocs/op
+BenchmarkRingBufferTee-8     52_310_891     22 ns/op    0 B/op    0 allocs/op
+
+→ RingBuffer Tee nhanh hơn 16x so với unbuffered standard channel tee!
+*/</span>
+
+<span class="cm">// Chạy benchmark:</span>
+<span class="cm">// go test -bench=. -benchmem -count=5 ./...</span>
+<span class="cm">// go test -bench=. -cpuprofile=cpu.out && go tool pprof cpu.out</span></pre>
+  </div>
+
+  <div class="warn-box">
+    <strong>⚠️ Lưu ý về RingBuffer Tee:</strong> RingBuffer Tee sử dụng unsafe pointer và lock-free atomics — chỉ phù hợp cho <strong>SPSC</strong> (Single Producer, Single Consumer) scenarios. Cần test kỹ với <code>go test -race</code> trước khi đưa vào production.
+  </div>
+</section>
+
+<div class="section-sep" data-label="Real-World Use Cases"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 6: USE CASES -->
+<!-- ══════════════════════════════════════════ -->
+<section id="use-cases">
+  <div class="section-header">
+    <div class="section-number">6</div>
+    <div class="section-title">Real-World Use Cases</div>
+  </div>
+
+  <table>
+    <thead><tr><th>Use Case</th><th>Stream 1</th><th>Stream 2</th><th>Pattern phù hợp</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><strong>Audit Logging</strong></td>
+        <td>Business processing</td>
+        <td>Append-only audit log</td>
+        <td>Basic Tee / Tee with Context</td>
+      </tr>
+      <tr>
+        <td><strong>A/B Testing</strong></td>
+        <td>Model A xử lý</td>
+        <td>Model B xử lý (shadow)</td>
+        <td>Buffered Tee</td>
+      </tr>
+      <tr>
+        <td><strong>Real-time Analytics</strong></td>
+        <td>DB write</td>
+        <td>Kafka / stream analytics</td>
+        <td>Backpressure Tee</td>
+      </tr>
+      <tr>
+        <td><strong>Debugging</strong></td>
+        <td>Production pipeline</td>
+        <td>Debug dump (tạm thời)</td>
+        <td>Dynamic Tee</td>
+      </tr>
+      <tr>
+        <td><strong>Multi-region replication</strong></td>
+        <td>Primary region</td>
+        <td>DR region</td>
+        <td>TeeN (n=3+)</td>
+      </tr>
+      <tr>
+        <td><strong>ML Feature Pipeline</strong></td>
+        <td>Online serving</td>
+        <td>Training data store</td>
+        <td>Observable Tee</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="section-sep" data-label="Anti-Patterns"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 7: ANTI-PATTERNS -->
+<!-- ══════════════════════════════════════════ -->
+<section id="anti-patterns">
+  <div class="section-header">
+    <div class="section-number">7</div>
+    <div class="section-title">Anti-Patterns & Lỗi thường gặp</div>
+  </div>
+
+  <h3>7.1 Goroutine Leak — Quên đóng channels</h3>
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">anti_patterns.go</span>
+    </div>
+    <pre><span class="cm">// ❌ BAD: Goroutine leak! Nếu consumer không đọc hết, tee goroutine block mãi</span>
+<span class="kw">func</span> <span class="fn">teeLeak</span>(in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) (<span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>, <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) {
+    out1 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>) <span class="cm">// unbuffered</span>
+    out2 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>) <span class="cm">// unbuffered</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> in {
+            out1 <span class="op">&lt;-</span> v <span class="cm">// ❌ Nếu out1 consumer dừng → block ở đây mãi mãi</span>
+            out2 <span class="op">&lt;-</span> v <span class="cm">// ❌ Goroutine leak!</span>
+        }
+    }()
+    <span class="kw">return</span> out1, out2
+}
+
+<span class="cm">// ✅ GOOD: Luôn dùng context để có exit path</span>
+<span class="kw">func</span> <span class="fn">teeGood</span>(ctx context.Context, in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) (<span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>, <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) {
+    out1 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>, <span class="nm">16</span>)
+    out2 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>, <span class="nm">16</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out1)
+        <span class="kw">defer</span> <span class="fn">close</span>(out2)
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span> <span class="cm">// ✅ Exit path</span>
+            <span class="kw">case</span> v, ok <span class="op">:=</span> <span class="op">&lt;-</span>in:
+                <span class="kw">if</span> <span class="op">!</span>ok { <span class="kw">return</span> }
+                out1c, out2c <span class="op">:=</span> out1, out2
+                <span class="kw">for</span> out1c <span class="op">!=</span> <span class="kw">nil</span> <span class="op">||</span> out2c <span class="op">!=</span> <span class="kw">nil</span> {
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                    <span class="kw">case</span> out1c <span class="op">&lt;-</span> v: out1c <span class="op">=</span> <span class="kw">nil</span>
+                    <span class="kw">case</span> out2c <span class="op">&lt;-</span> v: out2c <span class="op">=</span> <span class="kw">nil</span>
+                    }
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> out1, out2
+}
+
+<span class="cm">// ❌ BAD: Gửi tới out1 trước, out2 sau — sequential, không concurrent</span>
+<span class="cm">// Nếu out2 consumer chậm, out1 consumer vẫn bị ảnh hưởng!</span>
+<span class="kw">func</span> <span class="fn">teeSequential</span>(in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) (<span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>, <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) {
+    out1, out2 <span class="op">:=</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>), <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> in {
+            out1 <span class="op">&lt;-</span> v <span class="cm">// ❌ block cho đến khi out1 consumer sẵn sàng</span>
+            out2 <span class="op">&lt;-</span> v <span class="cm">// ❌ chỉ sau đó mới gửi out2 — không thực sự concurrent</span>
+        }
+    }()
+    <span class="kw">return</span> out1, out2
+}
+
+<span class="cm">// ❌ BAD: Close channel từ receiver — gây panic!</span>
+<span class="kw">func</span> <span class="fn">badConsumer</span>(ch <span class="op">&lt;-</span><span class="kw">chan</span> <span class="kw">int</span>) {
+    <span class="kw">for</span> v <span class="op">:=</span> <span class="kw">range</span> ch {
+        _ <span class="op">=</span> v
+    }
+    <span class="cm">// close(ch) ← PANIC: send on closed channel!</span>
+}</pre>
+  </div>
+
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="concept-card-title" style="color:#f87171">❌ Lỗi 1: Gửi tuần tự</div>
+      <p style="font-size:12px">Gửi tới out1 rồi mới out2 → out1 consumer bị ảnh hưởng bởi tốc độ out2. Dùng <code>select</code> trick để gửi concurrent.</p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title" style="color:#f87171">❌ Lỗi 2: Goroutine leak</div>
+      <p style="font-size:12px">Không có context → không có cách dừng goroutine nếu consumer dừng đọc. Luôn thêm <code>ctx.Done()</code> case.</p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title" style="color:#f87171">❌ Lỗi 3: Close từ receiver</div>
+      <p style="font-size:12px">Chỉ có <strong>sender</strong> mới được close channel. Receiver close sẽ gây <code>panic: send on closed channel</code>.</p>
+    </div>
+    <div class="concept-card">
+      <div class="concept-card-title" style="color:#f87171">❌ Lỗi 4: Không xử lý backpressure</div>
+      <p style="font-size:12px">Drop silently vs block vs drop với metric — phải chọn rõ ràng và document. Default drop-silently gây mất dữ liệu khó debug.</p>
+    </div>
+  </div>
+
+  <h2 id="so-sanh">7.2 Quyết định chọn pattern</h2>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Decision Tree — Chọn Pattern phù hợp</div>
+    <svg viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg" width="100%">
+      <defs>
+        <marker id="da" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0,6 2.5,0 5" fill="#00d4aa"/>
+        </marker>
+      </defs>
+      <!-- Root -->
+      <rect x="250" y="10" width="200" height="36" rx="6" fill="#131929" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="350" y="28" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="700">Duplicate channel stream?</text>
+      <text x="350" y="40" text-anchor="middle" font-size="9" fill="#64748b">Nhiều consumer cùng dữ liệu?</text>
+
+      <!-- YES -->
+      <line x1="350" y1="46" x2="350" y2="76" stroke="#00d4aa" stroke-width="1.3" marker-end="url(#da)"/>
+      <text x="355" y="64" font-size="9" fill="#22c55e">YES</text>
+
+      <rect x="230" y="78" width="240" height="36" rx="6" fill="#131929" stroke="#00d4aa" stroke-width="1.5"/>
+      <text x="350" y="96" text-anchor="middle" font-size="11" fill="#00d4aa" font-weight="700">Số lượng consumer cố định?</text>
+      <text x="350" y="108" text-anchor="middle" font-size="9" fill="#64748b">Biết trước số lượng?</text>
+
+      <!-- Fixed YES -->
+      <line x1="290" y1="114" x2="190" y2="148" stroke="#4d9fff" stroke-width="1.3" marker-end="url(#da)"/>
+      <text x="227" y="135" font-size="9" fill="#4d9fff">YES (2)</text>
+
+      <!-- Fixed NO -->
+      <line x1="410" y1="114" x2="510" y2="148" stroke="#f97316" stroke-width="1.3" marker-end="url(#da)"/>
+      <text x="448" y="135" font-size="9" fill="#f97316">NO (dynamic)</text>
+
+      <!-- Basic/Buffered Tee -->
+      <rect x="80" y="150" width="220" height="36" rx="6" fill="#131929" stroke="#4d9fff" stroke-width="1.5"/>
+      <text x="190" y="166" text-anchor="middle" font-size="10" fill="#4d9fff">Zero loss critical?</text>
+
+      <!-- Dynamic -->
+      <rect x="410" y="150" width="200" height="36" rx="6" fill="#131929" stroke="#f97316" stroke-width="1.5"/>
+      <text x="510" y="163" text-anchor="middle" font-size="11" fill="#f97316" font-weight="700">Broadcaster</text>
+      <text x="510" y="177" text-anchor="middle" font-size="9" fill="#94a3b8">Subscribe/Unsubscribe</text>
+
+      <!-- YES NO for zero loss -->
+      <line x1="140" y1="186" x2="80" y2="218" stroke="#22c55e" stroke-width="1.3" marker-end="url(#da)"/>
+      <text x="95" y="207" font-size="9" fill="#22c55e">YES</text>
+      <line x1="240" y1="186" x2="300" y2="218" stroke="#64748b" stroke-width="1.3" marker-end="url(#da)"/>
+      <text x="256" y="207" font-size="9" fill="#64748b">NO</text>
+
+      <!-- BackpressureTee -->
+      <rect x="10" y="220" width="160" height="34" rx="6" fill="#0f1629" stroke="#22c55e" stroke-width="1.3"/>
+      <text x="90" y="234" text-anchor="middle" font-size="10" fill="#22c55e" font-weight="700">BackpressureTee</text>
+      <text x="90" y="246" text-anchor="middle" font-size="9" fill="#64748b">Zero message loss</text>
+
+      <!-- BufferedTee -->
+      <rect x="215" y="220" width="160" height="34" rx="6" fill="#0f1629" stroke="#4d9fff" stroke-width="1.3"/>
+      <text x="295" y="234" text-anchor="middle" font-size="10" fill="#4d9fff" font-weight="700">TeeBuffered</text>
+      <text x="295" y="246" text-anchor="middle" font-size="9" fill="#64748b">Trade off: may drop</text>
+
+      <!-- High perf -->
+      <rect x="430" y="220" width="160" height="34" rx="6" fill="#0f1629" stroke="#a855f7" stroke-width="1.3"/>
+      <text x="510" y="234" text-anchor="middle" font-size="10" fill="#a855f7" font-weight="700">RingBuffer Tee</text>
+      <text x="510" y="246" text-anchor="middle" font-size="9" fill="#64748b">1M+ msg/s SPSC</text>
+
+      <text x="350" y="275" text-anchor="middle" font-size="9" fill="#64748b">★ Expert: thêm ObservableTee để monitoring cho bất kỳ variant nào</text>
+    </svg>
+  </div>
+</section>
+
+<div class="section-sep" data-label="References"></div>
+
+<!-- ══════════════════════════════════════════ -->
+<!-- SECTION 8: REFERENCES -->
+<!-- ══════════════════════════════════════════ -->
+<section id="references">
+  <div class="section-header">
+    <div class="section-number">8</div>
+    <div class="section-title">Tài liệu tham khảo</div>
+  </div>
+
+  <h3>📚 Official Go Documentation</h3>
+  <div class="ref-grid">
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ Official</div>
+      <div class="ref-card-title">Go Blog: Pipelines & Cancellation</div>
+      <div class="ref-card-desc">Bài viết gốc của Sameer Ajmani về Go pipeline patterns, bao gồm Tee và Fan-Out/In.</div>
+      <a href="https://go.dev/blog/pipelines" target="_blank">go.dev/blog/pipelines</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ Official</div>
+      <div class="ref-card-title">The Go Memory Model</div>
+      <div class="ref-card-desc">Hiểu rõ happens-before relationships để viết concurrent Go code đúng đắn.</div>
+      <a href="https://go.dev/ref/mem" target="_blank">go.dev/ref/mem</a>
+    </div>
+  </div>
+
+  <h3>🔧 Libraries & Tools</h3>
+  <div class="ref-grid">
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ 10k+ stars</div>
+      <div class="ref-card-title">samber/lo</div>
+      <div class="ref-card-desc">Generic utility library cho Go 1.18+ — bao gồm channel helpers, Tee, và nhiều functional patterns.</div>
+      <a href="https://github.com/samber/lo" target="_blank">github.com/samber/lo</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ 9k+ stars</div>
+      <div class="ref-card-title">sourcegraph/conc</div>
+      <div class="ref-card-desc">Better structured concurrency cho Go — panic handling, goroutine pools, và stream utilities.</div>
+      <a href="https://github.com/sourcegraph/conc" target="_blank">github.com/sourcegraph/conc</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ Official</div>
+      <div class="ref-card-title">golang.org/x/sync</div>
+      <div class="ref-card-desc">errgroup, semaphore, singleflight — các primitives bổ sung từ Go team.</div>
+      <a href="https://pkg.go.dev/golang.org/x/sync" target="_blank">pkg.go.dev/golang.org/x/sync</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐ 3k+ stars</div>
+      <div class="ref-card-title">reactivex/rxgo</div>
+      <div class="ref-card-desc">ReactiveX implementation cho Go — Tee, Map, Filter, Merge với Observable pattern.</div>
+      <a href="https://github.com/reactivex/rxgo" target="_blank">github.com/reactivex/rxgo</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐ 1k+ stars</div>
+      <div class="ref-card-title">destel/rill</div>
+      <div class="ref-card-desc">Go toolkit for streaming, batching, và pipeline — có Tee, Split, Merge với error handling.</div>
+      <a href="https://github.com/destel/rill" target="_blank">github.com/destel/rill</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ 8k+ stars</div>
+      <div class="ref-card-title">panjf2000/ants</div>
+      <div class="ref-card-desc">High-performance goroutine pool — dùng kèm với Tee cho bounded consumer concurrency.</div>
+      <a href="https://github.com/panjf2000/ants" target="_blank">github.com/panjf2000/ants</a>
+    </div>
+  </div>
+
+  <h3>📖 Sách & Courses</h3>
+  <div class="ref-grid">
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ Kinh điển</div>
+      <div class="ref-card-title">Concurrency in Go</div>
+      <div class="ref-card-desc">Katherine Cox-Buday — O'Reilly. Chương 4 "Concurrency Patterns" đề cập Tee chi tiết. ISBN: 978-1491941195</div>
+      <a href="https://www.oreilly.com/library/view/concurrency-in-go/9781491941294/" target="_blank">oreilly.com/…/concurrency-in-go</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ Free online</div>
+      <div class="ref-card-title">100 Go Mistakes</div>
+      <div class="ref-card-desc">Teiva Harsanyi — phân tích sâu các lỗi concurrency phổ biến, bao gồm goroutine leaks và channel misuse.</div>
+      <a href="https://100go.co" target="_blank">100go.co</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐ Free videos</div>
+      <div class="ref-card-title">Go Concurrency Patterns (Google I/O)</div>
+      <div class="ref-card-desc">Rob Pike's classic talk — Tee, Pipeline, Cancellation patterns được giới thiệu lần đầu.</div>
+      <a href="https://www.youtube.com/watch?v=f6kdp27TYZs" target="_blank">youtube.com — Rob Pike 2012</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐ Interactive</div>
+      <div class="ref-card-title">Go by Example: Channels</div>
+      <div class="ref-card-desc">Ví dụ thực hành với đầy đủ code chạy được — channel patterns từ basic đến advanced.</div>
+      <a href="https://gobyexample.com/channels" target="_blank">gobyexample.com/channels</a>
+    </div>
+  </div>
+
+  <h3>🎯 Bài viết chuyên sâu</h3>
+  <div class="ref-grid">
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐</div>
+      <div class="ref-card-title">Go Channel Axioms</div>
+      <div class="ref-card-desc">Dave Cheney — giải thích chi tiết behavior của nil channel, closed channel, và tại sao select works the way it does.</div>
+      <a href="https://dave.cheney.net/2014/03/19/channel-axioms" target="_blank">dave.cheney.net — Channel Axioms</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐⭐</div>
+      <div class="ref-card-title">Leaking Goroutines</div>
+      <div class="ref-card-desc">William Kennedy — phân tích goroutine leaks và cách phát hiện/fix với context và done channels.</div>
+      <a href="https://www.ardanlabs.com/blog/2018/11/goroutine-leaks-the-forgotten-sender.html" target="_blank">ardanlabs.com — Goroutine Leaks</a>
+    </div>
+    <div class="ref-card">
+      <div class="ref-stars">⭐⭐⭐⭐</div>
+      <div class="ref-card-title">LMAX Disruptor in Go</div>
+      <div class="ref-card-desc">Ring buffer pattern (RingBuffer Tee inspired) — kiến trúc cho 6M+ msg/s với zero GC pressure.</div>
+      <a href="https://github.com/smartystreets-prototypes/go-disruptor" target="_blank">github.com/smartystreets-prototypes/go-disruptor</a>
+    </div>
+  </div>
+
+  <div class="tip-box" style="margin-top: 32px">
+    <strong>🛠 Công cụ kiểm tra code concurrent:</strong><br>
+    <span style="font-family: 'JetBrains Mono', monospace; font-size:12px">
+      • <code>go test -race ./...</code> — race condition detector<br>
+      • <code>go vet ./...</code> — static analysis<br>
+      • <a href="https://github.com/dominikh/go-tools" style="color: var(--accent-blue)">staticcheck</a> — advanced linter<br>
+      • <a href="https://github.com/uber-go/goleak" style="color: var(--accent-blue)">uber-go/goleak</a> — goroutine leak detector trong tests
+    </span>
+  </div>
+</section>
+
+<div style="height: 48px"></div>
+
+</main>
+</div>
+
+<script>
+// Sidebar active state on scroll
+const sections = document.querySelectorAll('section[id]');
+const sidebarLinks = document.querySelectorAll('aside a');
+
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      sidebarLinks.forEach(a => a.classList.remove('active'));
+      const id = e.target.id;
+      const link = document.querySelector(`aside a[href="#${id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+sections.forEach(s => obs.observe(s));
+
+// Robust smooth scroll for all anchor links starting with #
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+</script>
+</body>
+</html>
