@@ -1,0 +1,2765 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Rate Limiting — Token Bucket & Leaky Bucket</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2333;
+    --bg4: #21262d;
+    --border: #30363d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --green: #3fb950;
+    --green2: #26a641;
+    --cyan: #39d0d8;
+    --blue: #58a6ff;
+    --purple: #bc8cff;
+    --yellow: #e3b341;
+    --orange: #f0883e;
+    --red: #ff7b72;
+    --pink: #f778ba;
+    --accent: #1f6feb;
+    --tag-expert: #bc8cff;
+    --tag-advanced: #f0883e;
+    --tag-basic: #3fb950;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 270px;
+    min-width: 270px;
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+  }
+  .sidebar-logo {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo .logo-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--green);
+    letter-spacing: 0.03em;
+  }
+  .sidebar-logo .logo-title span { color: var(--cyan); }
+  .sidebar-logo .logo-sub {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 3px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  nav { padding: 12px 0 24px; flex: 1; }
+  .nav-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    padding: 16px 18px 6px;
+  }
+  .nav-item {
+    display: block;
+    padding: 6px 18px;
+    font-size: 13px;
+    color: var(--text2);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--bg3); }
+  .nav-item.active { color: var(--green); border-left-color: var(--green); background: rgba(63,185,80,0.07); }
+
+  /* ── MAIN CONTENT ── */
+  .main {
+    margin-left: 270px;
+    flex: 1;
+    max-width: 960px;
+    padding: 48px 48px 80px;
+  }
+
+  /* TOP NAV */
+  .topnav {
+    position: fixed;
+    top: 0; left: 270px; right: 0;
+    height: 48px;
+    background: rgba(13,17,23,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 6px;
+    overflow-x: auto;
+    z-index: 50;
+  }
+  .topnav a {
+    font-size: 12px;
+    color: var(--text2);
+    text-decoration: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .topnav a:hover { background: var(--bg3); color: var(--text); }
+
+  .content { margin-top: 64px; }
+
+  /* ── SECTION ── */
+  .section { margin-bottom: 72px; scroll-margin-top: 72px; }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-number {
+    width: 32px; height: 32px;
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--cyan);
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+  .tag-expert { background: rgba(188,140,255,0.15); color: var(--tag-expert); border: 1px solid rgba(188,140,255,0.3); }
+  .tag-advanced { background: rgba(240,136,62,0.15); color: var(--tag-advanced); border: 1px solid rgba(240,136,62,0.3); }
+  .tag-basic { background: rgba(63,185,80,0.15); color: var(--tag-basic); border: 1px solid rgba(63,185,80,0.3); }
+
+  .desc {
+    color: var(--text2);
+    font-size: 14.5px;
+    line-height: 1.7;
+    margin-bottom: 24px;
+  }
+
+  /* ── CODE BLOCK ── */
+  .code-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-header .lang-badge {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--green);
+    background: rgba(63,185,80,0.12);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+  .code-header .filename {
+    font-size: 12px;
+    color: var(--text2);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .code-header .copy-btn {
+    font-size: 11px;
+    color: var(--text3);
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .code-header .copy-btn:hover { color: var(--text); border-color: var(--text3); }
+
+  pre {
+    margin: 0;
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.65;
+    tab-size: 4;
+  }
+  code { font-family: 'JetBrains Mono', monospace; }
+  .kw { color: #ff7b72; }
+  .fn { color: #d2a8ff; }
+  .str { color: #a5d6ff; }
+  .cm { color: #8b949e; font-style: italic; }
+  .num { color: #79c0ff; }
+  .type { color: #ffa657; }
+  .pkg { color: #3fb950; }
+  .var { color: #e6edf3; }
+  .op { color: #ff7b72; }
+  .lit { color: #79c0ff; }
+
+  /* ── DIAGRAM ── */
+  .diagram-container {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin: 20px 0;
+  }
+  .diagram-title {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: 20px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* ── CALLOUT ── */
+  .callout {
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    font-size: 14px;
+    line-height: 1.6;
+    display: flex;
+    gap: 12px;
+  }
+  .callout-info { background: rgba(88,166,255,0.07); border-left: 3px solid var(--blue); }
+  .callout-warn { background: rgba(227,179,65,0.07); border-left: 3px solid var(--yellow); }
+  .callout-tip  { background: rgba(63,185,80,0.07);  border-left: 3px solid var(--green); }
+  .callout-danger { background: rgba(255,123,114,0.07); border-left: 3px solid var(--red); }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+  .callout-content { color: var(--text2); }
+  .callout-content strong { color: var(--text); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    background: var(--bg3);
+    color: var(--text2);
+    font-weight: 600;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  td {
+    padding: 9px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+  td code, th code { background: var(--bg4); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--cyan); }
+  .badge { display: inline-block; padding: 2px 7px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge-yellow { background: rgba(227,179,65,0.15); color: var(--yellow); }
+  .badge-red { background: rgba(255,123,114,0.15); color: var(--red); }
+  .badge-blue { background: rgba(88,166,255,0.15); color: var(--blue); }
+
+  /* ── CARDS ── */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--accent); }
+  .card-icon { font-size: 24px; margin-bottom: 8px; }
+  .card-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .card-desc { font-size: 12.5px; color: var(--text2); line-height: 1.5; }
+
+  /* ── REFERENCE ── */
+  .ref-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+  .ref-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 16px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    transition: border-color 0.2s;
+  }
+  .ref-item:hover { border-color: var(--accent); }
+  .ref-stars { font-size: 12px; color: var(--yellow); white-space: nowrap; font-family: 'JetBrains Mono', monospace; }
+  .ref-meta { flex: 1; }
+  .ref-name { font-size: 13.5px; font-weight: 600; color: var(--blue); text-decoration: none; }
+  .ref-name:hover { text-decoration: underline; }
+  .ref-desc { font-size: 12.5px; color: var(--text2); margin-top: 3px; line-height: 1.5; }
+
+  /* ── SVG DIAGRAMS ── */
+  .svg-wrap { overflow-x: auto; }
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── INLINE CODE ── */
+  p code, li code { background: var(--bg3); color: var(--cyan); padding: 1px 5px; border-radius: 3px; font-size: 12.5px; font-family: 'JetBrains Mono', monospace; }
+  li { line-height: 1.7; color: var(--text2); }
+  ul, ol { padding-left: 20px; margin: 10px 0; }
+  h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 24px 0 10px; }
+  h4 { font-size: 14px; font-weight: 600; color: var(--cyan); margin: 18px 0 8px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text3); }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .main { margin-left: 0; padding: 24px 16px 60px; }
+    .topnav { left: 0; }
+  }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(57, 208, 216, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg2);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ SIDEBAR ═══════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-title">Go <span>Rate Limiting</span></div>
+    <div class="logo-sub">Token Bucket · Leaky Bucket</div>
+  </div>
+  <nav>
+    <div class="nav-section-label">Giới thiệu</div>
+    <a class="nav-item active" href="#intro">Tổng quan Rate Limiting</a>
+    <a class="nav-item" href="#concepts">Khái niệm cốt lõi</a>
+    <a class="nav-item" href="#comparison">So sánh các thuật toán</a>
+
+    <div class="nav-section-label">Token Bucket</div>
+    <a class="nav-item" href="#token-basic">Cơ bản — Token Bucket</a>
+    <a class="nav-item" href="#token-advanced">Nâng cao — Thread-Safe</a>
+    <a class="nav-item" href="#token-generic">Generic Token Bucket</a>
+    <a class="nav-item" href="#token-redis">Distributed (Redis)</a>
+
+    <div class="nav-section-label">Leaky Bucket</div>
+    <a class="nav-item" href="#leaky-basic">Cơ bản — Leaky Bucket</a>
+    <a class="nav-item" href="#leaky-advanced">Channel-based Leaky</a>
+    <a class="nav-item" href="#leaky-queue">Queue với Backpressure</a>
+
+    <div class="nav-section-label">Expert Patterns</div>
+    <a class="nav-item" href="#middleware">HTTP Middleware</a>
+    <a class="nav-item" href="#sliding">Sliding Window</a>
+    <a class="nav-item" href="#adaptive">Adaptive Rate Limiter</a>
+    <a class="nav-item" href="#composite">Composite Limiter</a>
+    <a class="nav-item" href="#grpc">gRPC Interceptor</a>
+
+    <div class="nav-section-label">Production</div>
+    <a class="nav-item" href="#testing">Testing & Benchmarks</a>
+    <a class="nav-item" href="#observability">Observability</a>
+    <a class="nav-item" href="#references">Tài liệu tham khảo</a>
+  </nav>
+</aside>
+
+<!-- ═══════════════ TOP NAV ═══════════════ -->
+<div class="topnav">
+  <a href="#intro">Giới thiệu</a>
+  <a href="#token-basic">Token Bucket</a>
+  <a href="#leaky-basic">Leaky Bucket</a>
+  <a href="#middleware">Middleware</a>
+  <a href="#adaptive">Adaptive</a>
+  <a href="#grpc">gRPC</a>
+  <a href="#references">References</a>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main class="main">
+<div class="content">
+
+<!-- ══════════════════════════════════════════
+     SECTION 1 — INTRO
+══════════════════════════════════════════ -->
+<section class="section" id="intro">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <h2 class="section-title">Tổng quan Rate Limiting</h2>
+    <span class="tag tag-basic">★ Cơ bản</span>
+  </div>
+  <p class="desc">
+    <strong>Rate Limiting</strong> là kỹ thuật kiểm soát tốc độ xử lý request nhằm bảo vệ hệ thống khỏi bị quá tải, đảm bảo chất lượng dịch vụ (QoS), và ngăn chặn lạm dụng API. Trong Go, rate limiting được triển khai hiệu quả thông qua hai thuật toán chính: <strong>Token Bucket</strong> và <strong>Leaky Bucket</strong>.
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon">🛡️</div>
+      <div class="card-title">Bảo vệ hệ thống</div>
+      <div class="card-desc">Ngăn chặn DDoS, traffic spike làm sập service downstream</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">⚡</div>
+      <div class="card-title">Kiểm soát throughput</div>
+      <div class="card-desc">Đảm bảo SLA, giới hạn bandwidth cho từng client/tenant</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">🔄</div>
+      <div class="card-title">Backpressure</div>
+      <div class="card-desc">Truyền tín hiệu ngược cho producer khi consumer quá tải</div>
+    </div>
+    <div class="card">
+      <div class="card-icon">💰</div>
+      <div class="card-title">Cost control</div>
+      <div class="card-desc">Giới hạn calls tới external API tính phí theo usage</div>
+    </div>
+  </div>
+
+  <h3>Khi nào cần Rate Limiting?</h3>
+  <div class="callout callout-info">
+    <span class="callout-icon">ℹ️</span>
+    <div class="callout-content">
+      <strong>Quy tắc thực tế:</strong> Bất kỳ endpoint nào tiêu thụ tài nguyên có giới hạn (CPU, memory, DB connection, external API quota) đều nên có rate limiting. Đây là tuyến phòng thủ đầu tiên trong kiến trúc microservices.
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 2 — CONCEPTS
+══════════════════════════════════════════ -->
+<section class="section" id="concepts">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <h2 class="section-title">Khái niệm cốt lõi</h2>
+    <span class="tag tag-basic">★ Cơ bản</span>
+  </div>
+
+  <h3>Token Bucket — Cơ chế hoạt động</h3>
+  <p class="desc">Token Bucket giữ một "xô" chứa token. Token được nạp liên tục theo tốc độ cố định. Mỗi request tiêu thụ một token. Nếu xô trống → request bị từ chối hoặc phải chờ.</p>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go-rate-limiting.png" alt="Go Concurrency: Token Bucket vs. Leaky Bucket Rate Limiting" loading="lazy">
+    <div class="concept-img-caption">Hình 2.1: So sánh cơ chế hoạt động của Token Bucket vs. Leaky Bucket — Token Bucket (bên trái) cho phép lưu lượng truyền tải tăng đột biến ngắn hạn (Burst) dựa trên lượng token tích lũy, trong khi Leaky Bucket (bên phải) xếp các request vào hàng đợi và xử lý với tốc độ đầu ra hoàn toàn ổn định (Traffic Shaping).</div>
+  </div>
+</section>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 3 — COMPARISON
+══════════════════════════════════════════ -->
+<section class="section" id="comparison">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <h2 class="section-title">So sánh các thuật toán</h2>
+    <span class="tag tag-basic">★ Cơ bản</span>
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>Đặc điểm</th>
+        <th>Token Bucket</th>
+        <th>Leaky Bucket</th>
+        <th>Fixed Window</th>
+        <th>Sliding Window</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Burst</strong></td>
+        <td><span class="badge badge-green">Có</span></td>
+        <td><span class="badge badge-red">Không</span></td>
+        <td><span class="badge badge-yellow">Có (biên window)</span></td>
+        <td><span class="badge badge-yellow">Hạn chế</span></td>
+      </tr>
+      <tr>
+        <td><strong>Output rate</strong></td>
+        <td>Biến thiên</td>
+        <td><span class="badge badge-green">Cố định</span></td>
+        <td>Biến thiên</td>
+        <td>Xấp xỉ đều</td>
+      </tr>
+      <tr>
+        <td><strong>Memory</strong></td>
+        <td><code>O(1)</code></td>
+        <td><code>O(queue)</code></td>
+        <td><code>O(1)</code></td>
+        <td><code>O(window)</code></td>
+      </tr>
+      <tr>
+        <td><strong>Use case</strong></td>
+        <td>API gateway, auth</td>
+        <td>Traffic shaping, QoS</td>
+        <td>Simple quotas</td>
+        <td>Distributed RL</td>
+      </tr>
+      <tr>
+        <td><strong>Distributed</strong></td>
+        <td><span class="badge badge-yellow">Redis cần sync</span></td>
+        <td><span class="badge badge-yellow">Queue phân tán</span></td>
+        <td><span class="badge badge-green">Dễ với Redis</span></td>
+        <td><span class="badge badge-green">Redis sorted set</span></td>
+      </tr>
+      <tr>
+        <td><strong>Golang lib</strong></td>
+        <td><code>golang.org/x/time/rate</code></td>
+        <td>Tự implement</td>
+        <td><code>uber-go/ratelimit</code></td>
+        <td><code>go-redis/redis_rate</code></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 4 — TOKEN BUCKET BASIC
+══════════════════════════════════════════ -->
+<section class="section" id="token-basic">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <h2 class="section-title">Token Bucket — Cơ bản</h2>
+    <span class="tag tag-basic">★ Cơ bản</span>
+  </div>
+  <p class="desc">
+    Triển khai Token Bucket đơn giản bằng tay. Hiểu rõ cơ chế bên trong: tích lũy token theo thời gian, giới hạn burst bởi capacity.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">token_bucket_basic.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// token_bucket_basic.go — Token Bucket tự implement, không dùng thư viện ngoài
+// Go 1.18+ | import: sync, time</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// TokenBucket là rate limiter theo thuật toán Token Bucket.
+// Thread-safe nhờ mutex nội bộ.</span>
+<span class="kw">type</span> <span class="type">TokenBucket</span> <span class="kw">struct</span> {
+    mu       sync.Mutex
+    capacity <span class="type">float64</span>   <span class="cm">// dung lượng tối đa của xô (burst size)</span>
+    tokens   <span class="type">float64</span>   <span class="cm">// số token hiện tại</span>
+    rate     <span class="type">float64</span>   <span class="cm">// tốc độ nạp token/giây</span>
+    lastTime time.Time  <span class="cm">// thời điểm lần cuối được nạp</span>
+}
+
+<span class="cm">// NewTokenBucket tạo một TokenBucket mới.
+// rate: token được nạp mỗi giây (vd: 10.0 = 10 req/s)
+// capacity: số token tối đa có thể tích lũy (burst)</span>
+<span class="kw">func</span> <span class="fn">NewTokenBucket</span>(rate, capacity <span class="type">float64</span>) *<span class="type">TokenBucket</span> {
+    <span class="kw">return</span> &<span class="type">TokenBucket</span>{
+        capacity: capacity,
+        tokens:   capacity, <span class="cm">// bắt đầu đầy</span>
+        rate:     rate,
+        lastTime: time.Now(),
+    }
+}
+
+<span class="cm">// refill nạp token dựa trên thời gian đã trôi qua.
+// Phải gọi trong vùng lock!</span>
+<span class="kw">func</span> (tb *<span class="type">TokenBucket</span>) <span class="fn">refill</span>() {
+    now := time.Now()
+    elapsed := now.Sub(tb.lastTime).Seconds()
+    tb.lastTime = now
+
+    <span class="cm">// Tính số token mới được nạp</span>
+    tb.tokens += elapsed * tb.rate
+
+    <span class="cm">// Không vượt quá capacity (giới hạn burst)</span>
+    <span class="kw">if</span> tb.tokens > tb.capacity {
+        tb.tokens = tb.capacity
+    }
+}
+
+<span class="cm">// Allow kiểm tra xem có thể tiêu thụ n token không.
+// Trả về true nếu được phép, false nếu bị rate limited.</span>
+<span class="kw">func</span> (tb *<span class="type">TokenBucket</span>) <span class="fn">Allow</span>(n <span class="type">float64</span>) <span class="type">bool</span> {
+    tb.mu.Lock()
+    <span class="kw">defer</span> tb.mu.Unlock()
+
+    tb.<span class="fn">refill</span>() <span class="cm">// cập nhật token trước khi kiểm tra</span>
+
+    <span class="kw">if</span> tb.tokens >= n {
+        tb.tokens -= n
+        <span class="kw">return</span> <span class="lit">true</span>
+    }
+    <span class="kw">return</span> <span class="lit">false</span>
+}
+
+<span class="cm">// Wait block cho đến khi có đủ n token.
+// Trả về thời gian đã chờ.</span>
+<span class="kw">func</span> (tb *<span class="type">TokenBucket</span>) <span class="fn">Wait</span>(n <span class="type">float64</span>) time.Duration {
+    <span class="kw">for</span> {
+        tb.mu.Lock()
+        tb.<span class="fn">refill</span>()
+        <span class="kw">if</span> tb.tokens >= n {
+            tb.tokens -= n
+            tb.mu.Unlock()
+            <span class="kw">return</span> <span class="num">0</span>
+        }
+        <span class="cm">// Tính thời gian cần chờ cho đủ token</span>
+        needed := n - tb.tokens
+        waitDuration := time.Duration(needed/tb.rate*<span class="type">float64</span>(time.Second))
+        tb.mu.Unlock()
+        time.Sleep(waitDuration)
+    }
+}
+
+<span class="cm">// Stats trả về trạng thái hiện tại (dùng cho monitoring)</span>
+<span class="kw">func</span> (tb *<span class="type">TokenBucket</span>) <span class="fn">Stats</span>() (tokens, capacity, rate <span class="type">float64</span>) {
+    tb.mu.Lock()
+    <span class="kw">defer</span> tb.mu.Unlock()
+    tb.<span class="fn">refill</span>()
+    <span class="kw">return</span> tb.tokens, tb.capacity, tb.rate
+}
+
+<span class="cm">// ── Ví dụ sử dụng ──────────────────────────────</span>
+
+<span class="kw">func</span> <span class="fn">ExampleBasicUsage</span>() {
+    <span class="cm">// Cho phép 5 request/giây, burst tối đa 10</span>
+    limiter := <span class="fn">NewTokenBucket</span>(<span class="num">5.0</span>, <span class="num">10.0</span>)
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i < <span class="num">15</span>; i++ {
+        <span class="kw">if</span> limiter.<span class="fn">Allow</span>(<span class="num">1.0</span>) {
+            <span class="cm">// xử lý request</span>
+            fmt.<span class="fn">Printf</span>(<span class="str">"request %d: ALLOWED\n"</span>, i)
+        } <span class="kw">else</span> {
+            fmt.<span class="fn">Printf</span>(<span class="str">"request %d: RATE LIMITED\n"</span>, i)
+        }
+    }
+}</code></pre>
+  </div>
+
+  <h3>Sử dụng <code>golang.org/x/time/rate</code> — Chuẩn Production</h3>
+  <div class="callout callout-tip">
+    <span class="callout-icon">💡</span>
+    <div class="callout-content">
+      <strong>Khuyến nghị:</strong> Trong production, hãy dùng <code>golang.org/x/time/rate</code> — thư viện chính thức của Go team, được test kỹ, thread-safe, hỗ trợ <code>context</code> cancellation.
+    </div>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">token_bucket_stdlib.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// token_bucket_stdlib.go — Dùng golang.org/x/time/rate
+// go get golang.org/x/time/rate</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log"</span>
+    <span class="str">"time"</span>
+    <span class="str">"golang.org/x/time/rate"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// rate.NewLimiter(r, b):
+    //   r = rate.Limit(10) → 10 token/s (= 10 req/s)
+    //   b = 20             → burst size: tối đa 20 token tích lũy</span>
+    limiter := rate.<span class="fn">NewLimiter</span>(rate.<span class="fn">Limit</span>(<span class="num">10</span>), <span class="num">20</span>)
+
+    ctx := context.<span class="fn">Background</span>()
+
+    <span class="cm">// ── 1. Allow() — non-blocking, immediate decision</span>
+    <span class="kw">if</span> limiter.<span class="fn">Allow</span>() {
+        fmt.<span class="fn">Println</span>(<span class="str">"✅ Allow: request được xử lý"</span>)
+    } <span class="kw">else</span> {
+        fmt.<span class="fn">Println</span>(<span class="str">"❌ Allow: bị từ chối"</span>)
+    }
+
+    <span class="cm">// ── 2. Wait() — blocking, chờ đến khi có token
+    // Respect context timeout/cancellation</span>
+    ctxTimeout, cancel := context.<span class="fn">WithTimeout</span>(ctx, <span class="num">2</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="kw">if</span> err := limiter.<span class="fn">Wait</span>(ctxTimeout); err != <span class="lit">nil</span> {
+        log.<span class="fn">Printf</span>(<span class="str">"Wait bị cancel/timeout: %v"</span>, err)
+        <span class="kw">return</span>
+    }
+    fmt.<span class="fn">Println</span>(<span class="str">"✅ Wait: request được xử lý sau khi chờ"</span>)
+
+    <span class="cm">// ── 3. Reserve() — advanced: lên lịch trước
+    // Cho phép caller tự quyết định có chờ không</span>
+    r := limiter.<span class="fn">Reserve</span>()
+    <span class="kw">if</span> !r.<span class="fn">OK</span>() {
+        fmt.<span class="fn">Println</span>(<span class="str">"❌ Reserve: không thể thực hiện trong tương lai"</span>)
+        <span class="kw">return</span>
+    }
+    delay := r.<span class="fn">Delay</span>()
+    fmt.<span class="fn">Printf</span>(<span class="str">"⏳ Reserve: cần chờ %v trước khi xử lý\n"</span>, delay)
+    time.<span class="fn">Sleep</span>(delay)
+    fmt.<span class="fn">Println</span>(<span class="str">"✅ Reserve: xử lý request"</span>)
+
+    <span class="cm">// ── 4. AllowN() — tiêu thụ N token một lúc (weighted request)
+    // Ví dụ: bulk operation tiêu thụ nhiều token hơn</span>
+    <span class="kw">if</span> limiter.<span class="fn">AllowN</span>(time.Now(), <span class="num">5</span>) {
+        fmt.<span class="fn">Println</span>(<span class="str">"✅ AllowN(5): bulk request được xử lý"</span>)
+    }
+
+    <span class="cm">// ── 5. SetLimit/SetBurst — dynamic adjustment at runtime</span>
+    limiter.<span class="fn">SetLimit</span>(rate.<span class="fn">Limit</span>(<span class="num">100</span>))  <span class="cm">// tăng lên 100 req/s</span>
+    limiter.<span class="fn">SetBurst</span>(<span class="num">200</span>)             <span class="cm">// tăng burst lên 200</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"Dynamic limit: %.0f req/s, burst: %d\n"</span>,
+        <span class="type">float64</span>(limiter.<span class="fn">Limit</span>()), limiter.<span class="fn">Burst</span>())
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 5 — TOKEN ADVANCED
+══════════════════════════════════════════ -->
+<section class="section" id="token-advanced">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <h2 class="section-title">Token Bucket — Per-Client Rate Limiter</h2>
+    <span class="tag tag-advanced">◆ Advanced</span>
+  </div>
+  <p class="desc">
+    Trong thực tế, mỗi client/user/API-key cần rate limiter riêng. Triển khai <code>LimiterStore</code> với cleanup goroutine để tránh memory leak.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">per_client_limiter.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// per_client_limiter.go — Per-client Token Bucket với TTL cleanup
+// Pattern: lưu limiter trong map, cleanup định kỳ để tránh memory leak</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+    <span class="str">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// clientEntry lưu limiter + thời điểm truy cập cuối</span>
+<span class="kw">type</span> <span class="type">clientEntry</span> <span class="kw">struct</span> {
+    limiter  *rate.Limiter
+    lastSeen time.Time
+}
+
+<span class="cm">// LimiterStore quản lý per-client rate limiters.
+// Thread-safe, tự động cleanup entries không hoạt động.</span>
+<span class="kw">type</span> <span class="type">LimiterStore</span> <span class="kw">struct</span> {
+    mu      sync.RWMutex
+    entries <span class="kw">map</span>[<span class="type">string</span>]*<span class="type">clientEntry</span>
+    rate    rate.Limit
+    burst   <span class="type">int</span>
+    ttl     time.Duration <span class="cm">// thời gian inactive trước khi xóa</span>
+}
+
+<span class="cm">// NewLimiterStore tạo store với cleanup goroutine</span>
+<span class="kw">func</span> <span class="fn">NewLimiterStore</span>(r rate.Limit, burst <span class="type">int</span>, ttl time.Duration) *<span class="type">LimiterStore</span> {
+    s := &<span class="type">LimiterStore</span>{
+        entries: <span class="kw">make</span>(<span class="kw">map</span>[<span class="type">string</span>]*<span class="type">clientEntry</span>),
+        rate:    r,
+        burst:   burst,
+        ttl:     ttl,
+    }
+    <span class="cm">// Goroutine cleanup định kỳ — tránh memory leak</span>
+    <span class="kw">go</span> s.<span class="fn">cleanupLoop</span>()
+    <span class="kw">return</span> s
+}
+
+<span class="cm">// GetOrCreate lấy hoặc tạo limiter cho clientID</span>
+<span class="kw">func</span> (s *<span class="type">LimiterStore</span>) <span class="fn">GetOrCreate</span>(clientID <span class="type">string</span>) *rate.Limiter {
+    <span class="cm">// Fast path: read lock</span>
+    s.mu.RLock()
+    entry, ok := s.entries[clientID]
+    s.mu.RUnlock()
+
+    <span class="kw">if</span> ok {
+        s.mu.Lock()
+        entry.lastSeen = time.Now() <span class="cm">// cập nhật thời gian truy cập</span>
+        s.mu.Unlock()
+        <span class="kw">return</span> entry.limiter
+    }
+
+    <span class="cm">// Slow path: write lock, tạo mới</span>
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+
+    <span class="cm">// Double-check sau khi lấy write lock (race condition)</span>
+    <span class="kw">if</span> entry, ok = s.entries[clientID]; ok {
+        <span class="kw">return</span> entry.limiter
+    }
+
+    newEntry := &<span class="type">clientEntry</span>{
+        limiter:  rate.<span class="fn">NewLimiter</span>(s.rate, s.burst),
+        lastSeen: time.Now(),
+    }
+    s.entries[clientID] = newEntry
+    <span class="kw">return</span> newEntry.limiter
+}
+
+<span class="cm">// cleanupLoop xóa các entries không hoạt động sau TTL</span>
+<span class="kw">func</span> (s *<span class="type">LimiterStore</span>) <span class="fn">cleanupLoop</span>() {
+    ticker := time.<span class="fn">NewTicker</span>(s.ttl / <span class="num">2</span>)
+    <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+
+    <span class="kw">for</span> range ticker.C {
+        s.<span class="fn">cleanup</span>()
+    }
+}
+
+<span class="kw">func</span> (s *<span class="type">LimiterStore</span>) <span class="fn">cleanup</span>() {
+    cutoff := time.Now().Add(-s.ttl)
+
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+
+    <span class="kw">for</span> id, entry := <span class="kw">range</span> s.entries {
+        <span class="kw">if</span> entry.lastSeen.Before(cutoff) {
+            <span class="kw">delete</span>(s.entries, id)
+        }
+    }
+}
+
+<span class="cm">// Len trả về số clients đang được track</span>
+<span class="kw">func</span> (s *<span class="type">LimiterStore</span>) <span class="fn">Len</span>() <span class="type">int</span> {
+    s.mu.RLock()
+    <span class="kw">defer</span> s.mu.RUnlock()
+    <span class="kw">return</span> <span class="type">len</span>(s.entries)
+}
+
+<span class="cm">// ── HTTP Middleware sử dụng LimiterStore ──────────────────</span>
+
+<span class="kw">import</span> <span class="str">"net/http"</span>
+
+<span class="kw">func</span> <span class="fn">PerClientRateLimitMiddleware</span>(store *<span class="type">LimiterStore</span>) func(http.Handler) http.Handler {
+    <span class="kw">return</span> <span class="kw">func</span>(next http.Handler) http.Handler {
+        <span class="kw">return</span> http.<span class="fn">HandlerFunc</span>(<span class="kw">func</span>(w http.ResponseWriter, r *http.Request) {
+            <span class="cm">// Lấy client identifier (IP hoặc API key)</span>
+            clientID := <span class="fn">getClientID</span>(r)
+            limiter := store.<span class="fn">GetOrCreate</span>(clientID)
+
+            <span class="kw">if</span> !limiter.<span class="fn">Allow</span>() {
+                http.<span class="fn">Error</span>(w,
+                    <span class="str">`{"error":"rate limit exceeded","code":429}`</span>,
+                    http.StatusTooManyRequests)
+                w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"Retry-After"</span>, <span class="str">"1"</span>)
+                <span class="kw">return</span>
+            }
+            next.<span class="fn">ServeHTTP</span>(w, r)
+        })
+    }
+}
+
+<span class="kw">func</span> <span class="fn">getClientID</span>(r *http.Request) <span class="type">string</span> {
+    <span class="cm">// Ưu tiên API key, fallback về IP</span>
+    <span class="kw">if</span> key := r.Header.<span class="fn">Get</span>(<span class="str">"X-API-Key"</span>); key != <span class="str">""</span> {
+        <span class="kw">return</span> <span class="str">"key:"</span> + key
+    }
+    <span class="kw">return</span> <span class="str">"ip:"</span> + r.RemoteAddr
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 6 — GENERIC TOKEN BUCKET
+══════════════════════════════════════════ -->
+<section class="section" id="token-generic">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <h2 class="section-title">Generic Token Bucket (Go 1.18+)</h2>
+    <span class="tag tag-advanced">◆ Advanced</span>
+  </div>
+  <p class="desc">
+    Sử dụng Go Generics để tạo type-safe LimiterStore cho bất kỳ kiểu key nào (string, int64, UUID...).
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">generic_limiter.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// generic_limiter.go — Generic rate limiter store (Go 1.18+)
+// Hỗ trợ bất kỳ kiểu key nào: string, int64, UUID, custom struct</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+    <span class="str">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// Comparable constraint: key phải comparable (có thể dùng làm map key)</span>
+<span class="kw">type</span> <span class="type">GenericStore</span>[K comparable] <span class="kw">struct</span> {
+    mu      sync.RWMutex
+    entries <span class="kw">map</span>[K]*<span class="type">clientEntry</span>
+    factory <span class="kw">func</span>() *rate.Limiter <span class="cm">// factory function tạo limiter</span>
+    ttl     time.Duration
+}
+
+<span class="cm">// NewGenericStore tạo store với factory function linh hoạt</span>
+<span class="kw">func</span> <span class="fn">NewGenericStore</span>[K comparable](
+    factory <span class="kw">func</span>() *rate.Limiter,
+    ttl time.Duration,
+) *<span class="type">GenericStore</span>[K] {
+    s := &<span class="type">GenericStore</span>[K]{
+        entries: <span class="kw">make</span>(<span class="kw">map</span>[K]*<span class="type">clientEntry</span>),
+        factory: factory,
+        ttl:     ttl,
+    }
+    <span class="kw">go</span> s.<span class="fn">cleanupLoop</span>()
+    <span class="kw">return</span> s
+}
+
+<span class="kw">func</span> (s *<span class="type">GenericStore</span>[K]) <span class="fn">Get</span>(key K) *rate.Limiter {
+    s.mu.RLock()
+    e, ok := s.entries[key]
+    s.mu.RUnlock()
+    <span class="kw">if</span> ok {
+        s.mu.Lock()
+        e.lastSeen = time.Now()
+        s.mu.Unlock()
+        <span class="kw">return</span> e.limiter
+    }
+
+    s.mu.Lock()
+    <span class="kw">defer</span> s.mu.Unlock()
+    <span class="kw">if</span> e, ok = s.entries[key]; ok {
+        <span class="kw">return</span> e.limiter
+    }
+    entry := &<span class="type">clientEntry</span>{limiter: s.factory(), lastSeen: time.Now()}
+    s.entries[key] = entry
+    <span class="kw">return</span> entry.limiter
+}
+
+<span class="kw">func</span> (s *<span class="type">GenericStore</span>[K]) <span class="fn">cleanupLoop</span>() {
+    t := time.<span class="fn">NewTicker</span>(s.ttl)
+    <span class="kw">defer</span> t.<span class="fn">Stop</span>()
+    <span class="kw">for</span> range t.C {
+        cutoff := time.Now().Add(-s.ttl)
+        s.mu.Lock()
+        <span class="kw">for</span> k, e := <span class="kw">range</span> s.entries {
+            <span class="kw">if</span> e.lastSeen.Before(cutoff) {
+                <span class="kw">delete</span>(s.entries, k)
+            }
+        }
+        s.mu.Unlock()
+    }
+}
+
+<span class="cm">// ── Ví dụ sử dụng với nhiều kiểu key ──────────────────</span>
+
+<span class="kw">type</span> <span class="type">UserID</span> <span class="type">int64</span>
+<span class="kw">type</span> <span class="type">TenantKey</span> <span class="kw">struct</span> { TenantID, UserID <span class="type">string</span> }
+
+<span class="kw">func</span> <span class="fn">ExampleGenericStore</span>() {
+    <span class="cm">// Store dùng int64 UserID làm key</span>
+    userStore := <span class="fn">NewGenericStore</span>[<span class="type">UserID</span>](
+        <span class="kw">func</span>() *rate.Limiter {
+            <span class="kw">return</span> rate.<span class="fn">NewLimiter</span>(<span class="num">10</span>, <span class="num">20</span>)
+        },
+        <span class="num">5</span>*time.Minute,
+    )
+    userStore.<span class="fn">Get</span>(<span class="type">UserID</span>(<span class="num">42</span>)).<span class="fn">Allow</span>()
+
+    <span class="cm">// Store dùng composite key cho multi-tenant</span>
+    tenantStore := <span class="fn">NewGenericStore</span>[<span class="type">TenantKey</span>](
+        <span class="kw">func</span>() *rate.Limiter {
+            <span class="kw">return</span> rate.<span class="fn">NewLimiter</span>(<span class="num">100</span>, <span class="num">500</span>)
+        },
+        <span class="num">10</span>*time.Minute,
+    )
+    key := <span class="type">TenantKey</span>{TenantID: <span class="str">"acme"</span>, UserID: <span class="str">"user-001"</span>}
+    tenantStore.<span class="fn">Get</span>(key).<span class="fn">Allow</span>()
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 7 — REDIS DISTRIBUTED
+══════════════════════════════════════════ -->
+<section class="section" id="token-redis">
+  <div class="section-header">
+    <div class="section-number">07</div>
+    <h2 class="section-title">Distributed Rate Limiting với Redis</h2>
+    <span class="tag tag-expert">★ Expert</span>
+  </div>
+  <p class="desc">
+    Khi chạy nhiều instance service, rate limiter local không đủ — các instance không biết về nhau. Cần triển khai distributed rate limiting với Redis sử dụng Lua script để đảm bảo atomicity.
+  </p>
+
+  <div class="callout callout-warn">
+    <span class="callout-icon">⚠️</span>
+    <div class="callout-content">
+      <strong>Tại sao cần Lua script?</strong> Các thao tác <code>GET → compare → SET</code> không phải atomic trong Redis. Nếu dùng riêng lẻ sẽ có race condition giữa các instance. Lua script chạy atomically trong single-threaded Redis.
+    </div>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">redis_token_bucket.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// redis_token_bucket.go — Distributed Token Bucket với Redis + Lua
+// go get github.com/redis/go-redis/v9</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+    <span class="str">"github.com/redis/go-redis/v9"</span>
+)
+
+<span class="cm">// Lua script: Token Bucket atomic operation
+// KEYS[1] = key prefix
+// ARGV[1] = capacity, ARGV[2] = rate (token/ms), ARGV[3] = now (ms), ARGV[4] = cost</span>
+<span class="kw">var</span> tokenBucketScript = redis.<span class="fn">NewScript</span>(<span class="str">`
+local key_tokens    = KEYS[1] .. ":tokens"
+local key_last_time = KEYS[1] .. ":ts"
+local capacity  = tonumber(ARGV[1])
+local rate      = tonumber(ARGV[2])
+local now       = tonumber(ARGV[3])
+local cost      = tonumber(ARGV[4])
+
+local last_time = tonumber(redis.call("GET", key_last_time) or 0)
+local tokens    = tonumber(redis.call("GET", key_tokens) or capacity)
+
+-- Nạp token dựa trên thời gian trôi qua
+local elapsed = math.max(0, now - last_time)
+tokens = math.min(capacity, tokens + elapsed * rate)
+
+if tokens >= cost then
+    tokens = tokens - cost
+    redis.call("SET", key_tokens,    tokens, "PX", 60000)
+    redis.call("SET", key_last_time, now,    "PX", 60000)
+    return {1, math.floor(tokens)}  -- allowed, remaining
+else
+    local wait_ms = math.ceil((cost - tokens) / rate)
+    redis.call("SET", key_last_time, now, "PX", 60000)
+    return {0, math.floor(wait_ms)} -- denied, wait_ms
+end
+`</span>)
+
+<span class="cm">// RedisTokenBucket là distributed rate limiter dùng Redis</span>
+<span class="kw">type</span> <span class="type">RedisTokenBucket</span> <span class="kw">struct</span> {
+    client   *redis.Client
+    capacity <span class="type">float64</span>
+    ratePerMs <span class="type">float64</span> <span class="cm">// token/millisecond</span>
+    keyPrefix <span class="type">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewRedisTokenBucket</span>(
+    client *redis.Client,
+    keyPrefix <span class="type">string</span>,
+    ratePerSec <span class="type">float64</span>,
+    capacity <span class="type">float64</span>,
+) *<span class="type">RedisTokenBucket</span> {
+    <span class="kw">return</span> &<span class="type">RedisTokenBucket</span>{
+        client:    client,
+        capacity:  capacity,
+        ratePerMs: ratePerSec / <span class="num">1000.0</span>, <span class="cm">// convert sang ms</span>
+        keyPrefix: keyPrefix,
+    }
+}
+
+<span class="cm">// AllowResult chứa kết quả từ rate limiter</span>
+<span class="kw">type</span> <span class="type">AllowResult</span> <span class="kw">struct</span> {
+    Allowed   <span class="type">bool</span>
+    Remaining <span class="type">int64</span>
+    RetryAfter time.Duration <span class="cm">// chỉ set khi Allowed=false</span>
+}
+
+<span class="cm">// Allow kiểm tra và tiêu thụ cost token cho clientID</span>
+<span class="kw">func</span> (r *<span class="type">RedisTokenBucket</span>) <span class="fn">Allow</span>(ctx context.Context, clientID <span class="type">string</span>, cost <span class="type">float64</span>) (<span class="type">AllowResult</span>, error) {
+    key := fmt.<span class="fn">Sprintf</span>(<span class="str">"%s:%s"</span>, r.keyPrefix, clientID)
+    nowMs := <span class="type">float64</span>(time.Now().UnixMilli())
+
+    result, err := tokenBucketScript.<span class="fn">Run</span>(ctx, r.client,
+        []<span class="type">string</span>{key},
+        r.capacity, r.ratePerMs, nowMs, cost,
+    ).<span class="fn">Slice</span>()
+
+    <span class="kw">if</span> err != <span class="lit">nil</span> {
+        <span class="cm">// Fail open: nếu Redis lỗi, cho phép request đi qua</span>
+        <span class="kw">return</span> <span class="type">AllowResult</span>{Allowed: <span class="lit">true</span>}, fmt.<span class="fn">Errorf</span>(<span class="str">"redis rate limit: %w"</span>, err)
+    }
+
+    allowed := result[<span class="num">0</span>].(<span class="type">int64</span>) == <span class="num">1</span>
+    val := result[<span class="num">1</span>].(<span class="type">int64</span>)
+
+    <span class="kw">if</span> allowed {
+        <span class="kw">return</span> <span class="type">AllowResult</span>{Allowed: <span class="lit">true</span>, Remaining: val}, <span class="lit">nil</span>
+    }
+    <span class="kw">return</span> <span class="type">AllowResult</span>{
+        Allowed:    <span class="lit">false</span>,
+        RetryAfter: time.Duration(val) * time.Millisecond,
+    }, <span class="lit">nil</span>
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 8 — LEAKY BUCKET BASIC
+══════════════════════════════════════════ -->
+<section class="section" id="leaky-basic">
+  <div class="section-header">
+    <div class="section-number">08</div>
+    <h2 class="section-title">Leaky Bucket — Cơ bản</h2>
+    <span class="tag tag-basic">★ Cơ bản</span>
+  </div>
+  <p class="desc">
+    Leaky Bucket đảm bảo output rate cố định. Phù hợp cho traffic shaping — ví dụ: gửi email notification tối đa 10 emails/giây, bất kể đầu vào spike bao nhiêu.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">leaky_bucket_basic.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// leaky_bucket_basic.go — Leaky Bucket với ticker-based drain
+// Ý tưởng: queue nhận request; ticker drain đều đặn</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"errors"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// ErrBucketFull trả về khi queue đầy</span>
+<span class="kw">var</span> <span class="type">ErrBucketFull</span> = errors.<span class="fn">New</span>(<span class="str">"leaky bucket: queue is full"</span>)
+
+<span class="cm">// Request đại diện cho một request cần xử lý</span>
+<span class="kw">type</span> <span class="type">Request</span>[T any] <span class="kw">struct</span> {
+    Payload T
+    Done    chan error <span class="cm">// báo kết quả về cho caller</span>
+}
+
+<span class="cm">// LeakyBucket xử lý requests với output rate cố định.
+// Input: có thể là burst
+// Output: luôn đều đặn — đúng rate</span>
+<span class="kw">type</span> <span class="type">LeakyBucket</span>[T any] <span class="kw">struct</span> {
+    queue    chan <span class="type">Request</span>[T]
+    handler  <span class="kw">func</span>(ctx context.Context, payload T) error
+    interval time.Duration
+}
+
+<span class="cm">// NewLeakyBucket tạo bucket mới.
+// ratePerSec: số request/giây được xử lý
+// capacity:   kích thước queue (burst buffer)</span>
+<span class="kw">func</span> <span class="fn">NewLeakyBucket</span>[T any](
+    ratePerSec <span class="type">int</span>,
+    capacity <span class="type">int</span>,
+    handler <span class="kw">func</span>(context.Context, T) error,
+) *<span class="type">LeakyBucket</span>[T] {
+    interval := time.Second / time.Duration(ratePerSec)
+    lb := &<span class="type">LeakyBucket</span>[T]{
+        queue:    <span class="kw">make</span>(chan <span class="type">Request</span>[T], capacity),
+        handler:  handler,
+        interval: interval,
+    }
+    <span class="kw">return</span> lb
+}
+
+<span class="cm">// Start bắt đầu drain loop — chạy trong goroutine riêng</span>
+<span class="kw">func</span> (lb *<span class="type">LeakyBucket</span>[T]) <span class="fn">Start</span>(ctx context.Context) {
+    ticker := time.<span class="fn">NewTicker</span>(lb.interval)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            case <-ctx.Done():
+                <span class="cm">// drain phần còn lại trước khi thoát</span>
+                <span class="kw">for</span> {
+                    <span class="kw">select</span> {
+                    case req := <-lb.queue:
+                        req.Done <- lb.handler(ctx, req.Payload)
+                    <span class="kw">default</span>:
+                        <span class="kw">return</span>
+                    }
+                }
+            case <-ticker.C:
+                <span class="cm">// Mỗi tick xử lý đúng 1 request</span>
+                <span class="kw">select</span> {
+                case req := <-lb.queue:
+                    req.Done <- lb.handler(ctx, req.Payload)
+                <span class="kw">default</span>:
+                    <span class="cm">// queue trống, bỏ qua tick này</span>
+                }
+            }
+        }
+    }()
+}
+
+<span class="cm">// Submit gửi payload vào queue.
+// Trả về ErrBucketFull ngay lập tức nếu queue đầy (non-blocking).</span>
+<span class="kw">func</span> (lb *<span class="type">LeakyBucket</span>[T]) <span class="fn">Submit</span>(payload T) (<-chan error, error) {
+    done := <span class="kw">make</span>(chan error, <span class="num">1</span>)
+    req := <span class="type">Request</span>[T]{Payload: payload, Done: done}
+
+    <span class="kw">select</span> {
+    case lb.queue <- req:
+        <span class="kw">return</span> done, <span class="lit">nil</span>
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="lit">nil</span>, <span class="type">ErrBucketFull</span>
+    }
+}
+
+<span class="cm">// ── Ví dụ: Email notification với rate 10/s ──────────</span>
+
+<span class="kw">func</span> <span class="fn">ExampleEmailRateLimiting</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// Tối đa 10 email/giây, queue tối đa 100</span>
+    bucket := <span class="fn">NewLeakyBucket</span>(<span class="num">10</span>, <span class="num">100</span>,
+        <span class="kw">func</span>(ctx context.Context, email <span class="type">string</span>) error {
+            fmt.<span class="fn">Printf</span>(<span class="str">"📧 Sending to: %s\n"</span>, email)
+            <span class="kw">return</span> <span class="fn">sendEmail</span>(ctx, email)
+        })
+    bucket.<span class="fn">Start</span>(ctx)
+
+    <span class="cm">// Gửi 50 emails cùng lúc — chỉ 10/s được xử lý</span>
+    emails := []<span class="type">string</span>{<span class="str">"a@x.com"</span>, <span class="str">"b@x.com"</span>, <span class="cm">/* ... 48 more */</span>}
+    <span class="kw">for</span> _, email := <span class="kw">range</span> emails {
+        done, err := bucket.<span class="fn">Submit</span>(email)
+        <span class="kw">if</span> err != <span class="lit">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="str">"⚠️  Queue full, dropping: %s\n"</span>, email)
+            <span class="kw">continue</span>
+        }
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">if</span> err := <-done; err != <span class="lit">nil</span> {
+                fmt.<span class="fn">Printf</span>(<span class="str">"❌ Send failed: %v\n"</span>, err)
+            }
+        }()
+    }
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 9 — CHANNEL LEAKY BUCKET
+══════════════════════════════════════════ -->
+<section class="section" id="leaky-advanced">
+  <div class="section-header">
+    <div class="section-number">09</div>
+    <h2 class="section-title">Channel-based Leaky Bucket (Idiomatic Go)</h2>
+    <span class="tag tag-advanced">◆ Advanced</span>
+  </div>
+  <p class="desc">
+    Cách tiếp cận idiomatic Go: dùng channel kết hợp với <code>uber-go/ratelimit</code> để tạo rate limiter cực kỳ đơn giản và hiệu quả.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">channel_leaky_bucket.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// channel_leaky_bucket.go — Idiomatic Go: channel as rate limiter
+// Cách đơn giản nhất — dùng buffered channel + ticker</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// ── Approach 1: Buffered channel as semaphore ────────────
+// Mỗi goroutine phải "lấy" từ channel trước khi làm việc.
+// Channel được fill lại theo rate cố định.</span>
+
+<span class="kw">func</span> <span class="fn">NewChannelRateLimiter</span>(ratePerSec <span class="type">int</span>) <-chan <span class="kw">struct</span>{} {
+    throttle := <span class="kw">make</span>(chan <span class="kw">struct</span>{}, ratePerSec)
+
+    <span class="cm">// Filler goroutine: nạp token định kỳ</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        interval := time.Second / time.Duration(ratePerSec)
+        ticker := time.<span class="fn">NewTicker</span>(interval)
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+        <span class="kw">for</span> range ticker.C {
+            <span class="kw">select</span> {
+            case throttle <- <span class="kw">struct</span>{}{}:
+            <span class="kw">default</span>:
+                <span class="cm">// channel đầy — bỏ qua (không block)</span>
+            }
+        }
+    }()
+    <span class="kw">return</span> throttle
+}
+
+<span class="cm">// ── Approach 2: Uber ratelimit (Leaky Bucket hoàn chỉnh)
+// go get go.uber.org/ratelimit
+// Đây là implementation production-ready nhất</span>
+
+<span class="kw">import</span> <span class="str">"go.uber.org/ratelimit"</span>
+
+<span class="kw">func</span> <span class="fn">ExampleUberRatelimit</span>() {
+    <span class="cm">// ratelimit.New(n): n requests per second — SMOOTH, không burst</span>
+    rl := ratelimit.<span class="fn">New</span>(<span class="num">100</span>) <span class="cm">// 100 RPS</span>
+
+    prev := time.Now()
+    <span class="kw">for</span> i := <span class="num">0</span>; i < <span class="num">10</span>; i++ {
+        now := rl.<span class="fn">Take</span>() <span class="cm">// block đến đúng thời điểm</span>
+        fmt.<span class="fn">Printf</span>(<span class="str">"%v: %v\n"</span>, i, now.Sub(prev))
+        prev = now
+    }
+    <span class="cm">// Output: khoảng cách đều nhau 10ms (100 RPS = 10ms/req)</span>
+}
+
+<span class="cm">// ── Approach 3: time.Tick simplest possible ────────────
+// Dành cho cases siêu đơn giản — global rate, single goroutine</span>
+
+<span class="kw">func</span> <span class="fn">SimpleRateLimit</span>(ctx context.Context, ratePerSec <span class="type">int</span>, work <span class="kw">func</span>()) {
+    ticker := time.<span class="fn">NewTicker</span>(time.Second / time.Duration(ratePerSec))
+    <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        case <-ctx.Done():
+            <span class="kw">return</span>
+        case <-ticker.C:
+            <span class="kw">go</span> <span class="fn">work</span>() <span class="cm">// mỗi tick xử lý 1 unit of work</span>
+        }
+    }
+}
+
+<span class="cm">// ── Approach 4: Semaphore + Queue (concurrent with bound) ────
+// Kết hợp rate limiting + concurrency limiting</span>
+
+<span class="kw">type</span> <span class="type">BoundedWorkerPool</span> <span class="kw">struct</span> {
+    sem     chan <span class="kw">struct</span>{}  <span class="cm">// semaphore: giới hạn concurrent workers</span>
+    queue   chan <span class="kw">func</span>()    <span class="cm">// task queue</span>
+    limiter <-chan <span class="kw">struct</span>{} <span class="cm">// rate limiter channel</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewBoundedWorkerPool</span>(maxConcurrent, ratePerSec, queueSize <span class="type">int</span>) *<span class="type">BoundedWorkerPool</span> {
+    p := &<span class="type">BoundedWorkerPool</span>{
+        sem:     <span class="kw">make</span>(chan <span class="kw">struct</span>{}, maxConcurrent),
+        queue:   <span class="kw">make</span>(chan <span class="kw">func</span>(), queueSize),
+        limiter: <span class="fn">NewChannelRateLimiter</span>(ratePerSec),
+    }
+    <span class="kw">go</span> p.<span class="fn">dispatch</span>()
+    <span class="kw">return</span> p
+}
+
+<span class="kw">func</span> (p *<span class="type">BoundedWorkerPool</span>) <span class="fn">dispatch</span>() {
+    <span class="kw">for</span> task := <span class="kw">range</span> p.queue {
+        <-p.limiter     <span class="cm">// chờ rate limiter cho phép</span>
+        p.sem <- <span class="kw">struct</span>{}{}  <span class="cm">// acquire semaphore</span>
+        <span class="kw">go</span> <span class="kw">func</span>(t <span class="kw">func</span>()) {
+            <span class="kw">defer</span> <span class="kw">func</span>() { <-p.sem }() <span class="cm">// release semaphore</span>
+            t()
+        }(task)
+    }
+}
+
+<span class="kw">func</span> (p *<span class="type">BoundedWorkerPool</span>) <span class="fn">Submit</span>(task <span class="kw">func</span>()) <span class="type">bool</span> {
+    <span class="kw">select</span> {
+    case p.queue <- task:
+        <span class="kw">return</span> <span class="lit">true</span>
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="lit">false</span> <span class="cm">// queue đầy</span>
+    }
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 10 — LEAKY QUEUE BACKPRESSURE
+══════════════════════════════════════════ -->
+<section class="section" id="leaky-queue">
+  <div class="section-header">
+    <div class="section-number">10</div>
+    <h2 class="section-title">Leaky Bucket — Queue với Backpressure</h2>
+    <span class="tag tag-advanced">◆ Advanced</span>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">LEAKY BUCKET + BACKPRESSURE ARCHITECTURE</div>
+    <div class="svg-wrap">
+    <svg viewBox="0 0 780 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:780px">
+      <defs>
+        <marker id="a3" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/></marker>
+        <marker id="a3g" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#3fb950"/></marker>
+        <marker id="a3r" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#ff7b72"/></marker>
+        <marker id="a3y" markerWidth="8" markerHeight="6" refX="6" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#e3b341"/></marker>
+      </defs>
+
+      <!-- Producer -->
+      <rect x="10" y="80" width="100" height="80" rx="8" fill="#161b22" stroke="#58a6ff"/>
+      <text x="60" y="112" text-anchor="middle" fill="#8b949e" font-size="10">PRODUCER</text>
+      <text x="60" y="132" text-anchor="middle" fill="#58a6ff" font-size="20">📤</text>
+      <text x="60" y="152" text-anchor="middle" fill="#58a6ff" font-size="9">burst traffic</text>
+
+      <!-- arrow to queue -->
+      <line x1="110" y1="120" x2="150" y2="120" stroke="#58a6ff" stroke-width="2" marker-end="url(#a3)"/>
+
+      <!-- Queue -->
+      <rect x="150" y="60" width="160" height="120" rx="8" fill="#1c2333" stroke="#30363d"/>
+      <text x="230" y="82" text-anchor="middle" fill="#8b949e" font-size="10">QUEUE (N slots)</text>
+      <rect x="165" y="92" width="130" height="16" rx="2" fill="rgba(88,166,255,0.2)" stroke="#58a6ff"/>
+      <rect x="165" y="112" width="130" height="16" rx="2" fill="rgba(88,166,255,0.15)" stroke="#58a6ff"/>
+      <rect x="165" y="132" width="130" height="16" rx="2" fill="rgba(88,166,255,0.10)" stroke="#58a6ff"/>
+      <rect x="165" y="152" width="130" height="16" rx="2" fill="rgba(88,166,255,0.05)" stroke="#30363d" stroke-dasharray="3"/>
+      <text x="230" y="177" text-anchor="middle" fill="#6e7681" font-size="10">3/N used</text>
+
+      <!-- backpressure signal -->
+      <path d="M 150 100 Q 90 50 60 70" stroke="#e3b341" stroke-width="1.5" fill="none" marker-end="url(#a3y)" stroke-dasharray="5,3"/>
+      <text x="88" y="48" text-anchor="middle" fill="#e3b341" font-size="9">backpressure</text>
+      <text x="88" y="60" text-anchor="middle" fill="#e3b341" font-size="9">signal ↩</text>
+
+      <!-- queue full reject -->
+      <rect x="150" y="200" width="160" height="30" rx="5" fill="rgba(255,123,114,0.1)" stroke="#ff7b72"/>
+      <text x="230" y="219" text-anchor="middle" fill="#ff7b72" font-size="10">FULL → 429 + Retry-After</text>
+
+      <!-- Drain at rate -->
+      <line x1="310" y1="120" x2="390" y2="120" stroke="#3fb950" stroke-width="2" marker-end="url(#a3g)"/>
+      <text x="350" y="112" text-anchor="middle" fill="#3fb950" font-size="10">drain rate</text>
+      <text x="350" y="134" text-anchor="middle" fill="#3fb950" font-size="10">1/Δt</text>
+
+      <!-- Worker -->
+      <rect x="390" y="80" width="100" height="80" rx="8" fill="#161b22" stroke="#3fb950"/>
+      <text x="440" y="112" text-anchor="middle" fill="#8b949e" font-size="10">WORKER</text>
+      <text x="440" y="132" text-anchor="middle" fill="#3fb950" font-size="20">⚙️</text>
+      <text x="440" y="152" text-anchor="middle" fill="#3fb950" font-size="9">smooth output</text>
+
+      <!-- Worker to result -->
+      <line x1="490" y1="120" x2="560" y2="120" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#a3)"/>
+
+      <!-- DLQ for failed -->
+      <rect x="560" y="80" width="100" height="80" rx="8" fill="#161b22" stroke="#30363d"/>
+      <text x="610" y="108" text-anchor="middle" fill="#8b949e" font-size="10">RESULT /</text>
+      <text x="610" y="124" text-anchor="middle" fill="#8b949e" font-size="10">DLQ retry</text>
+      <text x="610" y="148" text-anchor="middle" fill="#8b949e" font-size="20">📬</text>
+
+      <!-- Metrics -->
+      <rect x="680" y="80" width="90" height="80" rx="8" fill="rgba(188,140,255,0.08)" stroke="rgba(188,140,255,0.4)"/>
+      <text x="725" y="106" text-anchor="middle" fill="#bc8cff" font-size="9">METRICS</text>
+      <text x="725" y="122" text-anchor="middle" fill="#bc8cff" font-size="9">queue_depth</text>
+      <text x="725" y="138" text-anchor="middle" fill="#bc8cff" font-size="9">drop_rate</text>
+      <text x="725" y="154" text-anchor="middle" fill="#bc8cff" font-size="9">latency_p99</text>
+      <line x1="660" y1="120" x2="680" y2="120" stroke="rgba(188,140,255,0.6)" stroke-width="1" stroke-dasharray="3"/>
+    </svg>
+    </div>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">leaky_backpressure.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// leaky_backpressure.go — Leaky Bucket với backpressure signaling
+// Notify producer khi queue sắp đầy để chậm lại</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// QueueStats thống kê real-time</span>
+<span class="kw">type</span> <span class="type">QueueStats</span> <span class="kw">struct</span> {
+    Submitted  atomic.Int64
+    Dropped    atomic.Int64
+    Processed  atomic.Int64
+    QueueDepth atomic.Int64
+}
+
+<span class="kw">type</span> <span class="type">BackpressureLeakyBucket</span>[T any] <span class="kw">struct</span> {
+    queue       chan T
+    processedCh chan T     <span class="cm">// processed output (cho consumer)</span>
+    highWaterMark <span class="type">int</span>     <span class="cm">// % đầy khi bắt đầu backpressure</span>
+    capacity    <span class="type">int</span>
+    interval    time.Duration
+    Stats       <span class="type">QueueStats</span>
+
+    <span class="cm">// Backpressure: notify channel, producer đọc để chậm lại</span>
+    pressure chan <span class="type">float64</span> <span class="cm">// 0.0-1.0: mức áp lực hiện tại</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewBPLeakyBucket</span>[T any](ratePerSec, capacity <span class="type">int</span>) *<span class="type">BackpressureLeakyBucket</span>[T] {
+    lb := &<span class="type">BackpressureLeakyBucket</span>[T]{
+        queue:         <span class="kw">make</span>(chan T, capacity),
+        processedCh:   <span class="kw">make</span>(chan T, capacity/2),
+        highWaterMark: capacity * <span class="num">80</span> / <span class="num">100</span>, <span class="cm">// 80% threshold</span>
+        capacity:      capacity,
+        interval:      time.Second / time.Duration(ratePerSec),
+        pressure:      <span class="kw">make</span>(chan <span class="type">float64</span>, <span class="num">1</span>),
+    }
+    <span class="kw">return</span> lb
+}
+
+<span class="cm">// Start chạy drain loop</span>
+<span class="kw">func</span> (lb *<span class="type">BackpressureLeakyBucket</span>[T]) <span class="fn">Start</span>(ctx context.Context) {
+    ticker := time.<span class="fn">NewTicker</span>(lb.interval)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            case <-ctx.Done():
+                <span class="kw">return</span>
+            case <-ticker.C:
+                <span class="kw">select</span> {
+                case item := <-lb.queue:
+                    lb.Stats.Processed.Add(<span class="num">1</span>)
+                    lb.Stats.QueueDepth.Add(-<span class="num">1</span>)
+                    lb.processedCh <- item
+
+                    <span class="cm">// Tính pressure level và signal</span>
+                    depth := lb.Stats.QueueDepth.Load()
+                    pressure := <span class="type">float64</span>(depth) / <span class="type">float64</span>(lb.capacity)
+                    <span class="kw">select</span> {
+                    case lb.pressure <- pressure:
+                    <span class="kw">default</span>:
+                        <span class="cm">// drain cũ, đặt mới</span>
+                        <-lb.pressure
+                        lb.pressure <- pressure
+                    }
+                <span class="kw">default</span>:
+                }
+            }
+        }
+    }()
+}
+
+<span class="cm">// Submit gửi item, trả về backpressure signal</span>
+<span class="kw">func</span> (lb *<span class="type">BackpressureLeakyBucket</span>[T]) <span class="fn">Submit</span>(item T) (dropped <span class="type">bool</span>, pressureLevel <span class="type">float64</span>) {
+    lb.Stats.Submitted.Add(<span class="num">1</span>)
+
+    <span class="kw">select</span> {
+    case lb.queue <- item:
+        depth := lb.Stats.QueueDepth.Add(<span class="num">1</span>)
+        level := <span class="type">float64</span>(depth) / <span class="type">float64</span>(lb.capacity)
+        <span class="kw">return</span> <span class="lit">false</span>, level
+    <span class="kw">default</span>:
+        lb.Stats.Dropped.Add(<span class="num">1</span>)
+        <span class="kw">return</span> <span class="lit">true</span>, <span class="num">1.0</span>
+    }
+}
+
+<span class="cm">// Output trả về channel của processed items</span>
+<span class="kw">func</span> (lb *<span class="type">BackpressureLeakyBucket</span>[T]) <span class="fn">Output</span>() <-chan T {
+    <span class="kw">return</span> lb.processedCh
+}
+
+<span class="cm">// Pressure trả về channel backpressure signal (0.0-1.0)</span>
+<span class="kw">func</span> (lb *<span class="type">BackpressureLeakyBucket</span>[T]) <span class="fn">Pressure</span>() <-chan <span class="type">float64</span> {
+    <span class="kw">return</span> lb.pressure
+}
+
+<span class="cm">// ── Producer sử dụng backpressure để tự điều chỉnh tốc độ ──</span>
+
+<span class="kw">func</span> <span class="fn">AdaptiveProducer</span>(ctx context.Context, lb *<span class="type">BackpressureLeakyBucket</span>[<span class="type">string</span>]) {
+    baseInterval := <span class="num">1</span>*time.Millisecond
+    interval := baseInterval
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        case <-ctx.Done():
+            <span class="kw">return</span>
+        case pressure := <-lb.<span class="fn">Pressure</span>():
+            <span class="cm">// Điều chỉnh tốc độ dựa trên áp lực</span>
+            <span class="kw">switch</span> {
+            case pressure > <span class="num">0.9</span>:
+                interval = baseInterval * <span class="num">10</span> <span class="cm">// rất chậm</span>
+            case pressure > <span class="num">0.7</span>:
+                interval = baseInterval * <span class="num">5</span>  <span class="cm">// chậm lại</span>
+            case pressure > <span class="num">0.5</span>:
+                interval = baseInterval * <span class="num">2</span>  <span class="cm">// hơi chậm</span>
+            <span class="kw">default</span>:
+                interval = baseInterval          <span class="cm">// bình thường</span>
+            }
+        case <-time.After(interval):
+            dropped, level := lb.<span class="fn">Submit</span>(<span class="str">"item"</span>)
+            <span class="kw">if</span> dropped {
+                fmt.<span class="fn">Printf</span>(<span class="str">"⚠️  Dropped! Pressure: %.0f%%\n"</span>, level*<span class="num">100</span>)
+            }
+        }
+    }
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 11 — HTTP MIDDLEWARE
+══════════════════════════════════════════ -->
+<section class="section" id="middleware">
+  <div class="section-header">
+    <div class="section-number">11</div>
+    <h2 class="section-title">HTTP Middleware — Production Ready</h2>
+    <span class="tag tag-advanced">◆ Advanced</span>
+  </div>
+  <p class="desc">
+    Tích hợp rate limiting vào HTTP server với proper headers, response codes, và multi-tier limits (global + per-IP + per-route).
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">http_middleware.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// http_middleware.go — Production HTTP Rate Limiting Middleware
+// Multi-tier: global + per-IP + per-route</span>
+
+<span class="kw">package</span> <span class="pkg">middleware</span>
+
+<span class="kw">import</span> (
+    <span class="str">"encoding/json"</span>
+    <span class="str">"net/http"</span>
+    <span class="str">"strconv"</span>
+    <span class="str">"time"</span>
+    <span class="str">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// RateLimitConfig cấu hình cho middleware</span>
+<span class="kw">type</span> <span class="type">RateLimitConfig</span> <span class="kw">struct</span> {
+    GlobalRate  rate.Limit <span class="cm">// giới hạn toàn server</span>
+    GlobalBurst <span class="type">int</span>
+    PerIPRate   rate.Limit <span class="cm">// giới hạn per-IP</span>
+    PerIPBurst  <span class="type">int</span>
+    ClientTTL   time.Duration
+}
+
+<span class="kw">type</span> <span class="type">RateLimitMiddleware</span> <span class="kw">struct</span> {
+    global    *rate.Limiter
+    perClient *<span class="type">LimiterStore</span>
+    cfg       <span class="type">RateLimitConfig</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewRateLimitMiddleware</span>(cfg <span class="type">RateLimitConfig</span>) *<span class="type">RateLimitMiddleware</span> {
+    <span class="kw">return</span> &<span class="type">RateLimitMiddleware</span>{
+        global:    rate.<span class="fn">NewLimiter</span>(cfg.GlobalRate, cfg.GlobalBurst),
+        perClient: <span class="fn">NewLimiterStore</span>(cfg.PerIPRate, cfg.PerIPBurst, cfg.ClientTTL),
+        cfg:       cfg,
+    }
+}
+
+<span class="cm">// errorResponse chuẩn RFC 7807 Problem Details</span>
+<span class="kw">type</span> <span class="type">errorResponse</span> <span class="kw">struct</span> {
+    Type     <span class="type">string</span> <span class="str">`json:"type"`</span>
+    Title    <span class="type">string</span> <span class="str">`json:"title"`</span>
+    Status   <span class="type">int</span>    <span class="str">`json:"status"`</span>
+    Detail   <span class="type">string</span> <span class="str">`json:"detail,omitempty"`</span>
+    RetryAfter <span class="type">int</span> <span class="str">`json:"retryAfter,omitempty"`</span>
+}
+
+<span class="kw">func</span> (m *<span class="type">RateLimitMiddleware</span>) <span class="fn">Handler</span>(next http.Handler) http.Handler {
+    <span class="kw">return</span> http.<span class="fn">HandlerFunc</span>(<span class="kw">func</span>(w http.ResponseWriter, r *http.Request) {
+        <span class="cm">// Tier 1: Global rate limit</span>
+        <span class="kw">if</span> !m.global.<span class="fn">Allow</span>() {
+            m.<span class="fn">rejectWith</span>(w, <span class="str">"server-overloaded"</span>,
+                <span class="str">"Server is overloaded, please try again later"</span>, <span class="num">5</span>)
+            <span class="kw">return</span>
+        }
+
+        <span class="cm">// Tier 2: Per-client rate limit</span>
+        clientIP := <span class="fn">realIP</span>(r)
+        clientLimiter := m.perClient.<span class="fn">GetOrCreate</span>(clientIP)
+        <span class="kw">if</span> !clientLimiter.<span class="fn">Allow</span>() {
+            m.<span class="fn">rejectWith</span>(w, <span class="str">"rate-limit-exceeded"</span>,
+                <span class="str">"Too many requests from your IP"</span>, <span class="num">1</span>)
+            <span class="kw">return</span>
+        }
+
+        <span class="cm">// Set RateLimit headers (IETF draft standard)</span>
+        r2 := m.perClient.<span class="fn">GetOrCreate</span>(clientIP)
+        _ = r2
+        w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"X-RateLimit-Limit"</span>,
+            strconv.<span class="fn">Itoa</span>(m.cfg.PerIPBurst))
+        w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"X-RateLimit-Policy"</span>,
+            strconv.<span class="fn">FormatFloat</span>(<span class="type">float64</span>(m.cfg.PerIPRate), 'f', 0, 64)+<span class="str">";w=1"</span>)
+
+        next.<span class="fn">ServeHTTP</span>(w, r)
+    })
+}
+
+<span class="kw">func</span> (m *<span class="type">RateLimitMiddleware</span>) <span class="fn">rejectWith</span>(w http.ResponseWriter, typ, detail <span class="type">string</span>, retryAfter <span class="type">int</span>) {
+    w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"Content-Type"</span>, <span class="str">"application/problem+json"</span>)
+    w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"Retry-After"</span>, strconv.<span class="fn">Itoa</span>(retryAfter))
+    w.<span class="fn">WriteHeader</span>(http.StatusTooManyRequests)
+    json.<span class="fn">NewEncoder</span>(w).<span class="fn">Encode</span>(<span class="type">errorResponse</span>{
+        Type:       <span class="str">"https://example.com/errors/"</span> + typ,
+        Title:      <span class="str">"Too Many Requests"</span>,
+        Status:     http.StatusTooManyRequests,
+        Detail:     detail,
+        RetryAfter: retryAfter,
+    })
+}
+
+<span class="cm">// realIP lấy real IP từ proxy headers</span>
+<span class="kw">func</span> <span class="fn">realIP</span>(r *http.Request) <span class="type">string</span> {
+    <span class="kw">if</span> ip := r.Header.<span class="fn">Get</span>(<span class="str">"X-Real-IP"</span>); ip != <span class="str">""</span> {
+        <span class="kw">return</span> ip
+    }
+    <span class="kw">if</span> ip := r.Header.<span class="fn">Get</span>(<span class="str">"X-Forwarded-For"</span>); ip != <span class="str">""</span> {
+        <span class="kw">return</span> ip
+    }
+    <span class="kw">return</span> r.RemoteAddr
+}
+
+<span class="cm">// ── Wiring with Gin ─────────────────────────────────────</span>
+<span class="kw">import</span> <span class="str">"github.com/gin-gonic/gin"</span>
+
+<span class="kw">func</span> <span class="fn">GinRateLimitMiddleware</span>(store *<span class="type">LimiterStore</span>) gin.HandlerFunc {
+    <span class="kw">return</span> <span class="kw">func</span>(c *gin.Context) {
+        limiter := store.<span class="fn">GetOrCreate</span>(c.ClientIP())
+        <span class="kw">if</span> !limiter.<span class="fn">Allow</span>() {
+            c.<span class="fn">AbortWithStatusJSON</span>(http.StatusTooManyRequests, gin.H{
+                <span class="str">"error"</span>:   <span class="str">"rate limit exceeded"</span>,
+                <span class="str">"retryIn"</span>: <span class="str">"1s"</span>,
+            })
+            <span class="kw">return</span>
+        }
+        c.<span class="fn">Next</span>()
+    }
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 12 — SLIDING WINDOW
+══════════════════════════════════════════ -->
+<section class="section" id="sliding">
+  <div class="section-header">
+    <div class="section-number">12</div>
+    <h2 class="section-title">Sliding Window Rate Limiter</h2>
+    <span class="tag tag-expert">★ Expert</span>
+  </div>
+  <p class="desc">
+    Sliding Window giải quyết vấn đề "boundary burst" của Fixed Window. Chính xác hơn Token Bucket cho việc đếm requests trong khoảng thời gian.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">sliding_window.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// sliding_window.go — Sliding Window với Redis sorted set
+// Chính xác, distributed, nhưng tốn O(n) memory</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+    <span class="str">"github.com/redis/go-redis/v9"</span>
+)
+
+<span class="cm">// Lua script: sliding window với sorted set
+// Atomic: ZREMRANGEBYSCORE + ZADD + ZCARD trong 1 lần</span>
+<span class="kw">var</span> slidingWindowScript = redis.<span class="fn">NewScript</span>(<span class="str">`
+local key      = KEYS[1]
+local now      = tonumber(ARGV[1])
+local window   = tonumber(ARGV[2])
+local limit    = tonumber(ARGV[3])
+local req_id   = ARGV[4]
+
+-- Xóa requests ngoài window
+redis.call("ZREMRANGEBYSCORE", key, 0, now - window)
+
+-- Đếm requests trong window
+local count = redis.call("ZCARD", key)
+
+if count < limit then
+    -- Thêm request hiện tại
+    redis.call("ZADD", key, now, req_id)
+    redis.call("PEXPIRE", key, window + 1000)
+    return {1, limit - count - 1}  -- allowed, remaining
+else
+    -- Tìm thời điểm request cũ nhất sẽ expire
+    local oldest = redis.call("ZRANGE", key, 0, 0, "WITHSCORES")
+    local reset_at = tonumber(oldest[2]) + window
+    return {0, reset_at - now}  -- denied, wait_ms
+end
+`</span>)
+
+<span class="kw">type</span> <span class="type">SlidingWindowLimiter</span> <span class="kw">struct</span> {
+    client    *redis.Client
+    keyPrefix <span class="type">string</span>
+    limit     <span class="type">int64</span>
+    window    time.Duration
+}
+
+<span class="kw">func</span> <span class="fn">NewSlidingWindowLimiter</span>(
+    client *redis.Client,
+    keyPrefix <span class="type">string</span>,
+    limit <span class="type">int64</span>,
+    window time.Duration,
+) *<span class="type">SlidingWindowLimiter</span> {
+    <span class="kw">return</span> &<span class="type">SlidingWindowLimiter</span>{
+        client:    client,
+        keyPrefix: keyPrefix,
+        limit:     limit,
+        window:    window,
+    }
+}
+
+<span class="kw">func</span> (s *<span class="type">SlidingWindowLimiter</span>) <span class="fn">Allow</span>(ctx context.Context, clientID <span class="type">string</span>) (<span class="type">AllowResult</span>, error) {
+    key := fmt.<span class="fn">Sprintf</span>(<span class="str">"%s:%s"</span>, s.keyPrefix, clientID)
+    nowMs := time.Now().UnixMilli()
+    windowMs := s.window.Milliseconds()
+    reqID := fmt.<span class="fn">Sprintf</span>(<span class="str">"%d-%s"</span>, nowMs, clientID)
+
+    result, err := slidingWindowScript.<span class="fn">Run</span>(ctx, s.client,
+        []<span class="type">string</span>{key},
+        nowMs, windowMs, s.limit, reqID,
+    ).<span class="fn">Slice</span>()
+
+    <span class="kw">if</span> err != <span class="lit">nil</span> {
+        <span class="kw">return</span> <span class="type">AllowResult</span>{Allowed: <span class="lit">true</span>}, fmt.<span class="fn">Errorf</span>(<span class="str">"sliding window: %w"</span>, err)
+    }
+
+    allowed := result[<span class="num">0</span>].(<span class="type">int64</span>) == <span class="num">1</span>
+    val := result[<span class="num">1</span>].(<span class="type">int64</span>)
+
+    <span class="kw">if</span> allowed {
+        <span class="kw">return</span> <span class="type">AllowResult</span>{Allowed: <span class="lit">true</span>, Remaining: val}, <span class="lit">nil</span>
+    }
+    <span class="kw">return</span> <span class="type">AllowResult</span>{
+        Allowed:    <span class="lit">false</span>,
+        RetryAfter: time.Duration(val) * time.Millisecond,
+    }, <span class="lit">nil</span>
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 13 — ADAPTIVE
+══════════════════════════════════════════ -->
+<section class="section" id="adaptive">
+  <div class="section-header">
+    <div class="section-number">13</div>
+    <h2 class="section-title">Adaptive Rate Limiter</h2>
+    <span class="tag tag-expert">★ Expert</span>
+  </div>
+  <p class="desc">
+    Adaptive Rate Limiter tự động điều chỉnh giới hạn dựa trên metrics hệ thống (error rate, latency, CPU). Khi hệ thống bị tải nặng → giảm limit; khi khoẻ → tăng dần.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">adaptive_limiter.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// adaptive_limiter.go — Adaptive Rate Limiter dựa trên system health
+// Tự động tăng/giảm rate dựa trên error rate và latency</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+    <span class="str">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// SystemHealth đo lường sức khoẻ hệ thống</span>
+<span class="kw">type</span> <span class="type">SystemHealth</span> <span class="kw">struct</span> {
+    totalRequests atomic.Int64
+    errorCount    atomic.Int64
+    totalLatencyMs atomic.Int64
+    window        time.Duration
+}
+
+<span class="kw">func</span> (h *<span class="type">SystemHealth</span>) <span class="fn">RecordSuccess</span>(latencyMs <span class="type">int64</span>) {
+    h.totalRequests.Add(<span class="num">1</span>)
+    h.totalLatencyMs.Add(latencyMs)
+}
+
+<span class="kw">func</span> (h *<span class="type">SystemHealth</span>) <span class="fn">RecordError</span>() {
+    h.totalRequests.Add(<span class="num">1</span>)
+    h.errorCount.Add(<span class="num">1</span>)
+}
+
+<span class="kw">func</span> (h *<span class="type">SystemHealth</span>) <span class="fn">ErrorRate</span>() <span class="type">float64</span> {
+    total := h.totalRequests.Load()
+    <span class="kw">if</span> total == <span class="num">0</span> {
+        <span class="kw">return</span> <span class="num">0</span>
+    }
+    <span class="kw">return</span> <span class="type">float64</span>(h.errorCount.Load()) / <span class="type">float64</span>(total)
+}
+
+<span class="kw">func</span> (h *<span class="type">SystemHealth</span>) <span class="fn">AvgLatencyMs</span>() <span class="type">float64</span> {
+    total := h.totalRequests.Load()
+    <span class="kw">if</span> total == <span class="num">0</span> {
+        <span class="kw">return</span> <span class="num">0</span>
+    }
+    <span class="kw">return</span> <span class="type">float64</span>(h.totalLatencyMs.Load()) / <span class="type">float64</span>(total)
+}
+
+<span class="cm">// AdaptiveLimiter điều chỉnh rate theo health của hệ thống</span>
+<span class="kw">type</span> <span class="type">AdaptiveLimiter</span> <span class="kw">struct</span> {
+    limiter    *rate.Limiter
+    health     *<span class="type">SystemHealth</span>
+
+    minRate    rate.Limit
+    maxRate    rate.Limit
+    currentRate rate.Limit
+
+    <span class="cm">// Thresholds để kích hoạt điều chỉnh</span>
+    errorRateThreshold  <span class="type">float64</span> <span class="cm">// vd: 0.05 (5%)</span>
+    latencyThresholdMs  <span class="type">float64</span> <span class="cm">// vd: 200ms</span>
+    adjustmentFactor    <span class="type">float64</span> <span class="cm">// vd: 0.8 giảm 20% mỗi lần</span>
+    recoveryFactor      <span class="type">float64</span> <span class="cm">// vd: 1.05 tăng 5% mỗi lần</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewAdaptiveLimiter</span>(minRate, maxRate rate.Limit) *<span class="type">AdaptiveLimiter</span> {
+    initialRate := (minRate + maxRate) / <span class="num">2</span>
+    al := &<span class="type">AdaptiveLimiter</span>{
+        limiter:            rate.<span class="fn">NewLimiter</span>(initialRate, <span class="type">int</span>(initialRate*<span class="num">2</span>)),
+        health:             &<span class="type">SystemHealth</span>{},
+        minRate:            minRate,
+        maxRate:            maxRate,
+        currentRate:        initialRate,
+        errorRateThreshold: <span class="num">0.05</span>,
+        latencyThresholdMs: <span class="num">200</span>,
+        adjustmentFactor:   <span class="num">0.8</span>,
+        recoveryFactor:     <span class="num">1.05</span>,
+    }
+    <span class="kw">return</span> al
+}
+
+<span class="cm">// StartAdaptation chạy vòng lặp điều chỉnh định kỳ</span>
+<span class="kw">func</span> (al *<span class="type">AdaptiveLimiter</span>) <span class="fn">StartAdaptation</span>(ctx context.Context, interval time.Duration) {
+    ticker := time.<span class="fn">NewTicker</span>(interval)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            case <-ctx.Done():
+                <span class="kw">return</span>
+            case <-ticker.C:
+                al.<span class="fn">adapt</span>()
+            }
+        }
+    }()
+}
+
+<span class="kw">func</span> (al *<span class="type">AdaptiveLimiter</span>) <span class="fn">adapt</span>() {
+    errRate := al.health.<span class="fn">ErrorRate</span>()
+    avgLatency := al.health.<span class="fn">AvgLatencyMs</span>()
+
+    shouldDecrease := errRate > al.errorRateThreshold ||
+        avgLatency > al.latencyThresholdMs
+
+    <span class="kw">var</span> newRate rate.Limit
+    <span class="kw">if</span> shouldDecrease {
+        <span class="cm">// Hệ thống đang stress → giảm rate</span>
+        newRate = rate.<span class="fn">Limit</span>(<span class="type">float64</span>(al.currentRate) * al.adjustmentFactor)
+        <span class="kw">if</span> newRate < al.minRate {
+            newRate = al.minRate
+        }
+    } <span class="kw">else</span> {
+        <span class="cm">// Hệ thống khoẻ → tăng rate dần</span>
+        newRate = rate.<span class="fn">Limit</span>(<span class="type">float64</span>(al.currentRate) * al.recoveryFactor)
+        <span class="kw">if</span> newRate > al.maxRate {
+            newRate = al.maxRate
+        }
+    }
+
+    <span class="kw">if</span> newRate != al.currentRate {
+        al.currentRate = newRate
+        al.limiter.<span class="fn">SetLimit</span>(newRate)
+        al.limiter.<span class="fn">SetBurst</span>(<span class="type">int</span>(newRate * <span class="num">2</span>))
+        fmt.<span class="fn">Printf</span>(<span class="str">"🎚 Adaptive: rate=%.0f err=%.1f%% lat=%.0fms\n"</span>,
+            <span class="type">float64</span>(newRate), errRate*<span class="num">100</span>, avgLatency)
+    }
+}
+
+<span class="kw">func</span> (al *<span class="type">AdaptiveLimiter</span>) <span class="fn">Allow</span>() <span class="type">bool</span> {
+    <span class="kw">return</span> al.limiter.<span class="fn">Allow</span>()
+}
+
+<span class="kw">func</span> (al *<span class="type">AdaptiveLimiter</span>) <span class="fn">Health</span>() *<span class="type">SystemHealth</span> {
+    <span class="kw">return</span> al.health
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 14 — COMPOSITE LIMITER
+══════════════════════════════════════════ -->
+<section class="section" id="composite">
+  <div class="section-header">
+    <div class="section-number">14</div>
+    <h2 class="section-title">Composite Rate Limiter — Multi-tier</h2>
+    <span class="tag tag-expert">★ Expert</span>
+  </div>
+  <p class="desc">
+    Kết hợp nhiều rate limiter theo thứ tự ưu tiên. Ví dụ: global → per-tenant → per-user → per-endpoint. Pattern rất phổ biến trong API Gateway.
+  </p>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">composite_limiter.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// composite_limiter.go — Composite (chained) Rate Limiters
+// Áp dụng nhiều limiters theo thứ tự; từ chối nếu BẤT KỲ limiter nào deny</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> <span class="str">"context"</span>
+
+<span class="cm">// Limiter interface — đơn giản, consumer-defined (Go idiom)</span>
+<span class="kw">type</span> <span class="type">Limiter</span> <span class="kw">interface</span> {
+    <span class="fn">Allow</span>(ctx context.Context, key <span class="type">string</span>) (<span class="type">bool</span>, error)
+    <span class="fn">Name</span>() <span class="type">string</span>
+}
+
+<span class="cm">// LimitResult chứa thông tin từ composite limiter</span>
+<span class="kw">type</span> <span class="type">LimitResult</span> <span class="kw">struct</span> {
+    Allowed    <span class="type">bool</span>
+    DeniedBy   <span class="type">string</span>   <span class="cm">// tên limiter đã deny</span>
+    Reasons    []<span class="type">string</span> <span class="cm">// tất cả lý do từ chối</span>
+}
+
+<span class="cm">// CompositeLimiter áp dụng nhiều limiters theo thứ tự</span>
+<span class="kw">type</span> <span class="type">CompositeLimiter</span> <span class="kw">struct</span> {
+    limiters []<span class="type">Limiter</span>
+    mode     <span class="type">string</span> <span class="cm">// "fail_fast" hoặc "check_all"</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewCompositeLimiter</span>(mode <span class="type">string</span>, limiters ...<span class="type">Limiter</span>) *<span class="type">CompositeLimiter</span> {
+    <span class="kw">return</span> &<span class="type">CompositeLimiter</span>{limiters: limiters, mode: mode}
+}
+
+<span class="kw">func</span> (c *<span class="type">CompositeLimiter</span>) <span class="fn">Allow</span>(ctx context.Context, key <span class="type">string</span>) (<span class="type">LimitResult</span>, error) {
+    <span class="kw">var</span> reasons []<span class="type">string</span>
+    deniedBy := <span class="str">""</span>
+
+    <span class="kw">for</span> _, l := <span class="kw">range</span> c.limiters {
+        allowed, err := l.<span class="fn">Allow</span>(ctx, key)
+        <span class="kw">if</span> err != <span class="lit">nil</span> {
+            <span class="cm">// Fail open: lỗi từ limiter không block request</span>
+            <span class="kw">continue</span>
+        }
+        <span class="kw">if</span> !allowed {
+            reasons = <span class="kw">append</span>(reasons, l.<span class="fn">Name</span>())
+            <span class="kw">if</span> deniedBy == <span class="str">""</span> {
+                deniedBy = l.<span class="fn">Name</span>()
+            }
+            <span class="kw">if</span> c.mode == <span class="str">"fail_fast"</span> {
+                <span class="kw">return</span> <span class="type">LimitResult</span>{Allowed: <span class="lit">false</span>, DeniedBy: deniedBy, Reasons: reasons}, <span class="lit">nil</span>
+            }
+        }
+    }
+
+    <span class="kw">return</span> <span class="type">LimitResult</span>{
+        Allowed:  <span class="type">len</span>(reasons) == <span class="num">0</span>,
+        DeniedBy: deniedBy,
+        Reasons:  reasons,
+    }, <span class="lit">nil</span>
+}
+
+<span class="cm">// ── Concrete limiter adapters ─────────────────────────</span>
+
+<span class="kw">import</span> <span class="str">"golang.org/x/time/rate"</span>
+
+<span class="cm">// TokenBucketLimiter adapter cho rate.Limiter</span>
+<span class="kw">type</span> <span class="type">TokenBucketLimiter</span> <span class="kw">struct</span> {
+    store *<span class="type">LimiterStore</span>
+    name  <span class="type">string</span>
+}
+
+<span class="kw">func</span> (t *<span class="type">TokenBucketLimiter</span>) <span class="fn">Allow</span>(_ context.Context, key <span class="type">string</span>) (<span class="type">bool</span>, error) {
+    <span class="kw">return</span> t.store.<span class="fn">GetOrCreate</span>(key).<span class="fn">Allow</span>(), <span class="lit">nil</span>
+}
+<span class="kw">func</span> (t *<span class="type">TokenBucketLimiter</span>) <span class="fn">Name</span>() <span class="type">string</span> { <span class="kw">return</span> t.name }
+
+<span class="cm">// GlobalLimiter sử dụng single limiter cho tất cả keys</span>
+<span class="kw">type</span> <span class="type">GlobalLimiter</span> <span class="kw">struct</span> {
+    limiter *rate.Limiter
+    name    <span class="type">string</span>
+}
+<span class="kw">func</span> (g *<span class="type">GlobalLimiter</span>) <span class="fn">Allow</span>(_ context.Context, _ <span class="type">string</span>) (<span class="type">bool</span>, error) {
+    <span class="kw">return</span> g.limiter.<span class="fn">Allow</span>(), <span class="lit">nil</span>
+}
+<span class="kw">func</span> (g *<span class="type">GlobalLimiter</span>) <span class="fn">Name</span>() <span class="type">string</span> { <span class="kw">return</span> g.name }
+
+<span class="cm">// ── Ví dụ: API Gateway với 3 tầng rate limiting ──────────</span>
+
+<span class="kw">func</span> <span class="fn">BuildAPIGatewayLimiter</span>(rdb *redis.Client) *<span class="type">CompositeLimiter</span> {
+    <span class="kw">return</span> <span class="fn">NewCompositeLimiter</span>(<span class="str">"fail_fast"</span>,
+        <span class="cm">// Tier 1: Global server protection (1000 req/s)</span>
+        &<span class="type">GlobalLimiter</span>{
+            limiter: rate.<span class="fn">NewLimiter</span>(<span class="num">1000</span>, <span class="num">2000</span>),
+            name:    <span class="str">"global"</span>,
+        },
+        <span class="cm">// Tier 2: Per-IP (100 req/s)</span>
+        &<span class="type">TokenBucketLimiter</span>{
+            store: <span class="fn">NewLimiterStore</span>(<span class="num">100</span>, <span class="num">200</span>, <span class="num">5</span>*time.Minute),
+            name:  <span class="str">"per-ip"</span>,
+        },
+        <span class="cm">// Tier 3: Per-API-key from Redis (10 req/s)</span>
+        <span class="fn">NewRedisLimiterAdapter</span>(rdb, <span class="str">"apikey"</span>, <span class="num">10</span>, <span class="num">20</span>),
+    )
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 15 — gRPC INTERCEPTOR
+══════════════════════════════════════════ -->
+<section class="section" id="grpc">
+  <div class="section-header">
+    <div class="section-number">15</div>
+    <h2 class="section-title">gRPC Rate Limit Interceptor</h2>
+    <span class="tag tag-expert">★ Expert</span>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">grpc_interceptor.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// grpc_interceptor.go — gRPC Unary + Stream Rate Limit Interceptors
+// go get google.golang.org/grpc</span>
+
+<span class="kw">package</span> <span class="pkg">interceptor</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"time"</span>
+    <span class="str">"google.golang.org/grpc"</span>
+    <span class="str">"google.golang.org/grpc/codes"</span>
+    <span class="str">"google.golang.org/grpc/metadata"</span>
+    <span class="str">"google.golang.org/grpc/status"</span>
+    <span class="str">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// gRPC status code cho rate limiting: RESOURCE_EXHAUSTED</span>
+<span class="kw">var</span> errRateLimited = status.<span class="fn">Errorf</span>(
+    codes.ResourceExhausted,
+    <span class="str">"rate limit exceeded: too many requests"</span>,
+)
+
+<span class="cm">// UnaryRateLimitInterceptor cho gRPC unary calls</span>
+<span class="kw">func</span> <span class="fn">UnaryRateLimitInterceptor</span>(store *<span class="type">LimiterStore</span>) grpc.UnaryServerInterceptor {
+    <span class="kw">return</span> <span class="kw">func</span>(
+        ctx context.Context,
+        req interface{},
+        info *grpc.UnaryServerInfo,
+        handler grpc.UnaryHandler,
+    ) (interface{}, error) {
+        clientID := <span class="fn">extractClientID</span>(ctx)
+        limiter := store.<span class="fn">GetOrCreate</span>(clientID)
+
+        <span class="kw">if</span> !limiter.<span class="fn">Allow</span>() {
+            <span class="kw">return</span> <span class="lit">nil</span>, errRateLimited
+        }
+        <span class="kw">return</span> <span class="fn">handler</span>(ctx, req)
+    }
+}
+
+<span class="cm">// StreamRateLimitInterceptor cho gRPC streaming calls
+// Áp dụng rate limit trên từng message trong stream</span>
+<span class="kw">func</span> <span class="fn">StreamRateLimitInterceptor</span>(store *<span class="type">LimiterStore</span>) grpc.StreamServerInterceptor {
+    <span class="kw">return</span> <span class="kw">func</span>(
+        srv interface{},
+        ss grpc.ServerStream,
+        info *grpc.StreamServerInfo,
+        handler grpc.StreamHandler,
+    ) error {
+        clientID := <span class="fn">extractClientID</span>(ss.Context())
+        limiter := store.<span class="fn">GetOrCreate</span>(clientID)
+
+        <span class="cm">// Wrap stream để rate limit từng RecvMsg</span>
+        wrapped := &<span class="type">rateLimitedStream</span>{
+            ServerStream: ss,
+            limiter:      limiter,
+        }
+        <span class="kw">return</span> <span class="fn">handler</span>(srv, wrapped)
+    }
+}
+
+<span class="cm">// rateLimitedStream wraps grpc.ServerStream với rate limiting</span>
+<span class="kw">type</span> <span class="type">rateLimitedStream</span> <span class="kw">struct</span> {
+    grpc.ServerStream
+    limiter *rate.Limiter
+}
+
+<span class="kw">func</span> (s *<span class="type">rateLimitedStream</span>) <span class="fn">RecvMsg</span>(m interface{}) error {
+    <span class="kw">if</span> !s.limiter.<span class="fn">Allow</span>() {
+        <span class="kw">return</span> errRateLimited
+    }
+    <span class="kw">return</span> s.ServerStream.<span class="fn">RecvMsg</span>(m)
+}
+
+<span class="cm">// extractClientID lấy client identifier từ gRPC metadata</span>
+<span class="kw">func</span> <span class="fn">extractClientID</span>(ctx context.Context) <span class="type">string</span> {
+    md, ok := metadata.<span class="fn">FromIncomingContext</span>(ctx)
+    <span class="kw">if</span> !ok {
+        <span class="kw">return</span> <span class="str">"unknown"</span>
+    }
+    <span class="kw">if</span> keys := md.<span class="fn">Get</span>(<span class="str">"x-api-key"</span>); <span class="type">len</span>(keys) > <span class="num">0</span> {
+        <span class="kw">return</span> <span class="str">"key:"</span> + keys[<span class="num">0</span>]
+    }
+    <span class="kw">if</span> peers := md.<span class="fn">Get</span>(<span class="str">"x-peer-address"</span>); <span class="type">len</span>(peers) > <span class="num">0</span> {
+        <span class="kw">return</span> <span class="str">"ip:"</span> + peers[<span class="num">0</span>]
+    }
+    <span class="kw">return</span> <span class="str">"unknown"</span>
+}
+
+<span class="cm">// ── Wire vào gRPC server ───────────────────────────────</span>
+
+<span class="kw">func</span> <span class="fn">NewGRPCServer</span>(store *<span class="type">LimiterStore</span>) *grpc.Server {
+    <span class="kw">return</span> grpc.<span class="fn">NewServer</span>(
+        grpc.<span class="fn">ChainUnaryInterceptor</span>(
+            <span class="fn">UnaryRateLimitInterceptor</span>(store),
+            <span class="cm">// ... other interceptors (logging, auth, tracing)</span>
+        ),
+        grpc.<span class="fn">ChainStreamInterceptor</span>(
+            <span class="fn">StreamRateLimitInterceptor</span>(store),
+        ),
+    )
+}</code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 16 — TESTING
+══════════════════════════════════════════ -->
+<section class="section" id="testing">
+  <div class="section-header">
+    <div class="section-number">16</div>
+    <h2 class="section-title">Testing & Benchmarks</h2>
+    <span class="tag tag-advanced">◆ Advanced</span>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">rate_limiter_test.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// rate_limiter_test.go — Table-driven tests + Benchmarks</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit_test</span>
+
+<span class="kw">import</span> (
+    <span class="str">"testing"</span>
+    <span class="str">"time"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cm">// ── Table-driven test cho TokenBucket ─────────────────</span>
+
+<span class="kw">func</span> <span class="fn">TestTokenBucket_Allow</span>(t *testing.T) {
+    tests := []<span class="kw">struct</span> {
+        name       <span class="type">string</span>
+        rate       <span class="type">float64</span>
+        capacity   <span class="type">float64</span>
+        requests   <span class="type">int</span>
+        wantAllow  <span class="type">int</span> <span class="cm">// số request mong muốn được allow</span>
+    }{
+        {
+            name: "exact capacity burst",
+            rate: <span class="num">1</span>, capacity: <span class="num">5</span>,
+            requests: <span class="num">5</span>, wantAllow: <span class="num">5</span>,
+        },
+        {
+            name: "over capacity burst rejected",
+            rate: <span class="num">1</span>, capacity: <span class="num">5</span>,
+            requests: <span class="num">10</span>, wantAllow: <span class="num">5</span>,
+        },
+        {
+            name: "high rate allows many",
+            rate: <span class="num">100</span>, capacity: <span class="num">200</span>,
+            requests: <span class="num">150</span>, wantAllow: <span class="num">150</span>,
+        },
+    }
+
+    <span class="kw">for</span> _, tt := <span class="kw">range</span> tests {
+        t.<span class="fn">Run</span>(tt.name, <span class="kw">func</span>(t *testing.T) {
+            tb := <span class="fn">NewTokenBucket</span>(tt.rate, tt.capacity)
+            allowed := <span class="num">0</span>
+            <span class="kw">for</span> i := <span class="num">0</span>; i < tt.requests; i++ {
+                <span class="kw">if</span> tb.<span class="fn">Allow</span>(<span class="num">1.0</span>) {
+                    allowed++
+                }
+            }
+            <span class="kw">if</span> allowed != tt.wantAllow {
+                t.<span class="fn">Errorf</span>(<span class="str">"got %d allows, want %d"</span>, allowed, tt.wantAllow)
+            }
+        })
+    }
+}
+
+<span class="cm">// ── Test concurrency safety ────────────────────────────</span>
+
+<span class="kw">func</span> <span class="fn">TestTokenBucket_Concurrent</span>(t *testing.T) {
+    tb := <span class="fn">NewTokenBucket</span>(<span class="num">100</span>, <span class="num">100</span>)
+
+    <span class="kw">var</span> (
+        wg      sync.WaitGroup
+        allowed atomic.Int64
+        denied  atomic.Int64
+    )
+
+    <span class="kw">const</span> goroutines = <span class="num">50</span>
+    <span class="kw">const</span> reqs = <span class="num">10</span>
+
+    wg.Add(goroutines)
+    <span class="kw">for</span> i := <span class="num">0</span>; i < goroutines; i++ {
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> j := <span class="num">0</span>; j < reqs; j++ {
+                <span class="kw">if</span> tb.<span class="fn">Allow</span>(<span class="num">1</span>) {
+                    allowed.Add(<span class="num">1</span>)
+                } <span class="kw">else</span> {
+                    denied.Add(<span class="num">1</span>)
+                }
+            }
+        }()
+    }
+    wg.<span class="fn">Wait</span>()
+
+    total := allowed.Load() + denied.Load()
+    <span class="kw">if</span> total != goroutines*reqs {
+        t.<span class="fn">Errorf</span>(<span class="str">"lost requests: got %d, want %d"</span>, total, goroutines*reqs)
+    }
+    <span class="cm">// Không được phép nhiều hơn capacity</span>
+    <span class="kw">if</span> allowed.Load() > <span class="num">100</span> {
+        t.<span class="fn">Errorf</span>(<span class="str">"allowed %d > capacity 100"</span>, allowed.Load())
+    }
+}
+
+<span class="cm">// ── Benchmark ─────────────────────────────────────────</span>
+
+<span class="kw">func</span> <span class="fn">BenchmarkTokenBucket_Allow</span>(b *testing.B) {
+    tb := <span class="fn">NewTokenBucket</span>(<span class="num">1e9</span>, <span class="num">1e9</span>) <span class="cm">// unlimited để bench pure overhead</span>
+    b.<span class="fn">ResetTimer</span>()
+    b.<span class="fn">RunParallel</span>(<span class="kw">func</span>(pb *testing.PB) {
+        <span class="kw">for</span> pb.<span class="fn">Next</span>() {
+            tb.<span class="fn">Allow</span>(<span class="num">1</span>)
+        }
+    })
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkLimiterStore_GetOrCreate</span>(b *testing.B) {
+    store := <span class="fn">NewLimiterStore</span>(<span class="num">100</span>, <span class="num">200</span>, <span class="num">5</span>*time.Minute)
+    keys := <span class="kw">make</span>([]<span class="type">string</span>, <span class="num">1000</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> keys {
+        keys[i] = fmt.<span class="fn">Sprintf</span>(<span class="str">"client-%d"</span>, i)
+    }
+    b.<span class="fn">ResetTimer</span>()
+    b.<span class="fn">RunParallel</span>(<span class="kw">func</span>(pb *testing.PB) {
+        i := <span class="num">0</span>
+        <span class="kw">for</span> pb.<span class="fn">Next</span>() {
+            store.<span class="fn">GetOrCreate</span>(keys[i%<span class="type">len</span>(keys)])
+            i++
+        }
+    })
+}
+
+<span class="cm">// go test -bench=. -benchmem -count=3 ./...
+// goos: linux
+// BenchmarkTokenBucket_Allow-8         20000000    58.3 ns/op   0 B/op   0 allocs/op
+// BenchmarkLimiterStore_GetOrCreate-8  10000000   142.1 ns/op   0 B/op   0 allocs/op</span></code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 17 — OBSERVABILITY
+══════════════════════════════════════════ -->
+<section class="section" id="observability">
+  <div class="section-header">
+    <div class="section-number">17</div>
+    <h2 class="section-title">Observability — Metrics & Tracing</h2>
+    <span class="tag tag-expert">★ Expert</span>
+  </div>
+
+  <div class="code-container">
+    <div class="code-header">
+      <span class="lang-badge">GO</span>
+      <span class="filename">observability.go</span>
+      <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+    </div>
+    <pre><code><span class="cm">// observability.go — Prometheus metrics + OpenTelemetry tracing
+// go get github.com/prometheus/client_golang/prometheus
+// go get go.opentelemetry.io/otel</span>
+
+<span class="kw">package</span> <span class="pkg">ratelimit</span>
+
+<span class="kw">import</span> (
+    <span class="str">"github.com/prometheus/client_golang/prometheus"</span>
+    <span class="str">"github.com/prometheus/client_golang/prometheus/promauto"</span>
+    <span class="str">"go.opentelemetry.io/otel/attribute"</span>
+    <span class="str">"go.opentelemetry.io/otel/trace"</span>
+)
+
+<span class="cm">// ── Prometheus Metrics ───────────────────────────────</span>
+
+<span class="kw">var</span> (
+    rateLimitAllowed = promauto.<span class="fn">NewCounterVec</span>(prometheus.CounterOpts{
+        Name: <span class="str">"rate_limit_requests_total"</span>,
+        Help: <span class="str">"Total requests processed by rate limiter"</span>,
+    }, []<span class="type">string</span>{<span class="str">"limiter"</span>, <span class="str">"result"</span>, <span class="str">"client_type"</span>})
+
+    rateLimitQueueDepth = promauto.<span class="fn">NewGaugeVec</span>(prometheus.GaugeOpts{
+        Name: <span class="str">"rate_limit_queue_depth"</span>,
+        Help: <span class="str">"Current queue depth for leaky bucket limiters"</span>,
+    }, []<span class="type">string</span>{<span class="str">"limiter"</span>})
+
+    rateLimitTokens = promauto.<span class="fn">NewGaugeVec</span>(prometheus.GaugeOpts{
+        Name: <span class="str">"rate_limit_tokens_available"</span>,
+        Help: <span class="str">"Available tokens in token bucket"</span>,
+    }, []<span class="type">string</span>{<span class="str">"limiter"</span>, <span class="str">"client"</span>})
+
+    rateLimitWaitDuration = promauto.<span class="fn">NewHistogramVec</span>(prometheus.HistogramOpts{
+        Name:    <span class="str">"rate_limit_wait_duration_seconds"</span>,
+        Help:    <span class="str">"Time spent waiting for rate limit"</span>,
+        Buckets: prometheus.ExponentialBuckets(<span class="num">0.001</span>, <span class="num">2</span>, <span class="num">10</span>),
+    }, []<span class="type">string</span>{<span class="str">"limiter"</span>})
+)
+
+<span class="cm">// InstrumentedLimiter bọc Limiter với Prometheus metrics</span>
+<span class="kw">type</span> <span class="type">InstrumentedLimiter</span> <span class="kw">struct</span> {
+    inner      <span class="type">Limiter</span>
+    name       <span class="type">string</span>
+    tracer     trace.Tracer
+}
+
+<span class="kw">func</span> <span class="fn">Instrument</span>(inner <span class="type">Limiter</span>, name <span class="type">string</span>, tracer trace.Tracer) *<span class="type">InstrumentedLimiter</span> {
+    <span class="kw">return</span> &<span class="type">InstrumentedLimiter</span>{inner: inner, name: name, tracer: tracer}
+}
+
+<span class="kw">func</span> (il *<span class="type">InstrumentedLimiter</span>) <span class="fn">Allow</span>(ctx context.Context, key <span class="type">string</span>) (<span class="type">bool</span>, error) {
+    start := time.Now()
+
+    <span class="cm">// OTel span</span>
+    ctx, span := il.tracer.<span class="fn">Start</span>(ctx, <span class="str">"rate_limit.check"</span>)
+    <span class="kw">defer</span> span.<span class="fn">End</span>()
+    span.<span class="fn">SetAttributes</span>(
+        attribute.<span class="fn">String</span>(<span class="str">"limiter.name"</span>, il.name),
+        attribute.<span class="fn">String</span>(<span class="str">"client.key"</span>, key),
+    )
+
+    allowed, err := il.inner.<span class="fn">Allow</span>(ctx, key)
+
+    <span class="cm">// Record metrics</span>
+    result := <span class="str">"allowed"</span>
+    <span class="kw">if</span> !allowed { result = <span class="str">"denied"</span> }
+    rateLimitAllowed.<span class="fn">WithLabelValues</span>(il.name, result, <span class="str">"ip"</span>).<span class="fn">Inc</span>()
+
+    elapsed := time.Since(start)
+    rateLimitWaitDuration.<span class="fn">WithLabelValues</span>(il.name).<span class="fn">Observe</span>(elapsed.Seconds())
+
+    span.<span class="fn">SetAttributes</span>(attribute.<span class="fn">Bool</span>(<span class="str">"rate_limit.allowed"</span>, allowed))
+    <span class="kw">return</span> allowed, err
+}
+
+<span class="kw">func</span> (il *<span class="type">InstrumentedLimiter</span>) <span class="fn">Name</span>() <span class="type">string</span> { <span class="kw">return</span> il.name }
+
+<span class="cm">/* ─── Grafana Dashboard Queries ───────────────────────
+# Request rate theo result
+sum(rate(rate_limit_requests_total[1m])) by (result)
+
+# Tỷ lệ từ chối (%)  
+sum(rate(rate_limit_requests_total{result="denied"}[5m]))
+  / sum(rate(rate_limit_requests_total[5m])) * 100
+
+# P99 wait time
+histogram_quantile(0.99, rate(rate_limit_wait_duration_seconds_bucket[5m]))
+
+# Queue depth heatmap
+rate_limit_queue_depth
+─────────────────────────────────────────────────────*/</span></code></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════
+     SECTION 18 — REFERENCES
+══════════════════════════════════════════ -->
+<section class="section" id="references">
+  <div class="section-header">
+    <div class="section-number">18</div>
+    <h2 class="section-title">Tài liệu tham khảo</h2>
+  </div>
+
+  <h3>📦 Thư viện Go — Highly Rated</h3>
+  <ul class="ref-list">
+    <li class="ref-item">
+      <span class="ref-stars">★ 7.4k</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://pkg.go.dev/golang.org/x/time/rate" target="_blank">golang.org/x/time/rate</a>
+        <div class="ref-desc">Thư viện chính thức của Go team. Token Bucket chuẩn production, hỗ trợ context, Allow/Wait/Reserve API. <em>Khuyến nghị cho hầu hết use cases.</em></div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">★ 4.2k</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://github.com/uber-go/ratelimit" target="_blank">uber-go/ratelimit</a>
+        <div class="ref-desc">Leaky Bucket implementation từ Uber. Đảm bảo smooth rate (không burst), thread-safe. Dùng khi cần output đều đặn tuyệt đối.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">★ 2.8k</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://github.com/go-redis/redis_rate" target="_blank">go-redis/redis_rate</a>
+        <div class="ref-desc">Distributed rate limiting với Redis + GCRA algorithm. Production-ready cho multi-instance deployments. Atomic Lua scripts.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">★ 1.9k</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://github.com/throttled/throttled" target="_blank">throttled/throttled</a>
+        <div class="ref-desc">HTTP middleware với nhiều backend (memory, Redis). GCRA algorithm. Hỗ trợ X-RateLimit headers theo chuẩn.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">★ 1.2k</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://github.com/mennanov/limiters" target="_blank">mennanov/limiters</a>
+        <div class="ref-desc">Bộ sưu tập đầy đủ: Token Bucket, Leaky Bucket, Fixed Window, Sliding Window. Hỗ trợ nhiều backends (Redis, etcd, DynamoDB, Cassandra).</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">★ 890</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://github.com/sethvargo/go-limiter" target="_blank">sethvargo/go-limiter</a>
+        <div class="ref-desc">Multi-backend limiter từ Seth Vargo (Google). Memory, Redis, Firestore, GCS backends. Idiomatic Go API.</div>
+      </div>
+    </li>
+  </ul>
+
+  <h3 style="margin-top:28px;">📚 Bài viết & Tài liệu kỹ thuật</h3>
+  <ul class="ref-list">
+    <li class="ref-item">
+      <span class="ref-stars">Cloudflare</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://blog.cloudflare.com/counting-things-a-lot-of-different-things/" target="_blank">Cloudflare Blog — Counting Things: Sliding Window</a>
+        <div class="ref-desc">Giải thích chi tiết Sliding Window Counter algorithm và cách Cloudflare implement distributed rate limiting ở quy mô cực lớn.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">Stripe</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://stripe.com/blog/rate-limiters" target="_blank">Stripe Engineering — Scaling your API with rate limiters</a>
+        <div class="ref-desc">Hướng dẫn thực tiễn từ Stripe về 4 loại rate limiter (request, concurrent, fleet usage, workers) và cách triển khai trong production.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">IETF</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://www.rfc-editor.org/rfc/rfc6585" target="_blank">RFC 6585 — 429 Too Many Requests</a>
+        <div class="ref-desc">Chuẩn HTTP cho status code 429, Retry-After header. Bắt buộc phải đọc khi implement HTTP rate limiting.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">Go Blog</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://pkg.go.dev/golang.org/x/time/rate" target="_blank">pkg.go.dev/golang.org/x/time/rate — Official Docs</a>
+        <div class="ref-desc">Tài liệu chính thức của golang.org/x/time/rate với đầy đủ API reference và usage examples.</div>
+      </div>
+    </li>
+    <li class="ref-item">
+      <span class="ref-stars">AWS</span>
+      <div class="ref-meta">
+        <a class="ref-name" href="https://aws.amazon.com/builders-library/timeouts-retries-and-backoff-with-jitter/" target="_blank">AWS Builders Library — Timeouts, retries, and backoff with jitter</a>
+        <div class="ref-desc">Rate limiting phía client: exponential backoff + jitter để tránh thundering herd khi bị rate limited.</div>
+      </div>
+    </li>
+  </ul>
+
+  <h3 style="margin-top:28px;">🏛️ Kiến trúc tham khảo</h3>
+  <div class="table-wrap">
+  <table>
+    <thead>
+      <tr><th>Use Case</th><th>Thuật toán</th><th>Backend</th><th>Lib</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>REST API gateway</td>
+        <td><span class="badge badge-blue">Token Bucket</span></td>
+        <td>In-memory</td>
+        <td><code>x/time/rate</code></td>
+      </tr>
+      <tr>
+        <td>Multi-instance API</td>
+        <td><span class="badge badge-blue">Token Bucket</span></td>
+        <td>Redis</td>
+        <td><code>go-redis/redis_rate</code></td>
+      </tr>
+      <tr>
+        <td>Email/SMS sending</td>
+        <td><span class="badge badge-green">Leaky Bucket</span></td>
+        <td>Channel queue</td>
+        <td><code>uber-go/ratelimit</code></td>
+      </tr>
+      <tr>
+        <td>Scraping/crawler</td>
+        <td><span class="badge badge-green">Leaky Bucket</span></td>
+        <td>In-memory</td>
+        <td><code>uber-go/ratelimit</code></td>
+      </tr>
+      <tr>
+        <td>API quota (daily/monthly)</td>
+        <td><span class="badge badge-yellow">Sliding Window</span></td>
+        <td>Redis</td>
+        <td><code>mennanov/limiters</code></td>
+      </tr>
+      <tr>
+        <td>Adaptive (auto-tune)</td>
+        <td><span class="badge badge-red">Composite</span></td>
+        <td>Redis + metrics</td>
+        <td>Custom</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+</div><!-- .content -->
+</main>
+
+<script>
+// ── Active nav tracking ──────────────────────────────
+const sections = document.querySelectorAll('.section');
+const navItems = document.querySelectorAll('.nav-item');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      navItems.forEach(n => n.classList.remove('active'));
+      const id = entry.target.id;
+      const active = document.querySelector(`.nav-item[href="#${id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+
+sections.forEach(s => observer.observe(s));
+
+// ── Robust smooth scroll for all anchor links starting with # ────
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+
+// ── Copy button ──────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.closest('.code-container').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.style.color = '#3fb950';
+    setTimeout(() => { btn.textContent = orig; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

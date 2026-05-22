@@ -36,10 +36,10 @@ Scale và optimize:
 Performance tuning:
 
 16. [**sync.Pool & Buffer Pool**](./go-sync-pool.html) - Object reuse, giảm GC pressure
-17. **Resource Manager** - Quản lý connections, file handles
-18. **Rate Limiting** - Token bucket, leaky bucket patterns
-19. **Semaphore** - Limit concurrent operations (`golang.org/x/sync/semaphore`)
-20. **Bounded Parallelism** - Control parallelism level với errgroup
+17. [**Resource Manager**](./go-resource-manager.html) - Quản lý connections, file handles
+18. [**Rate Limiting**](./rate-limiting-go.html) - Token bucket, leaky bucket patterns
+19. [**Semaphore**](./go-semaphore-guide.html) - Limit concurrent operations (`golang.org/x/sync/semaphore`)
+20. [**Bounded Parallelism**](./bounded-parallelism-errgroup.html) - Control parallelism level với errgroup
 
 #### **BONUS: Production Patterns (21-22)**
 

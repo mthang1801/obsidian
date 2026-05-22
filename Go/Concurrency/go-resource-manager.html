@@ -1,0 +1,2373 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Resource Manager Pattern</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d1117;
+    --bg-secondary: #161b22;
+    --bg-tertiary: #21262d;
+    --bg-card: #1c2128;
+    --border: #30363d;
+    --border-light: #21262d;
+    --text-primary: #e6edf3;
+    --text-secondary: #8b949e;
+    --text-muted: #6e7681;
+    --accent-cyan: #39d0d8;
+    --accent-green: #3fb950;
+    --accent-orange: #f0883e;
+    --accent-purple: #bc8cff;
+    --accent-pink: #f778ba;
+    --accent-blue: #58a6ff;
+    --accent-yellow: #e3b341;
+    --accent-red: #ff7b72;
+    --code-bg: #161b22;
+    --nav-height: 56px;
+    --sidebar-width: 272px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+  }
+
+  /* ── TOP NAV ── */
+  nav.topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: var(--nav-height);
+    background: rgba(13,17,23,0.96);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 0;
+  }
+  .nav-brand {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 16px; font-weight: 700;
+    color: var(--text-primary);
+    margin-right: 32px; white-space: nowrap;
+  }
+  .nav-brand span { color: var(--accent-cyan); }
+  .nav-links {
+    display: flex; gap: 2px; overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a {
+    color: var(--text-secondary); text-decoration: none;
+    font-size: 13px; padding: 6px 12px; border-radius: 6px;
+    white-space: nowrap; transition: all .15s;
+  }
+  .nav-links a:hover, .nav-links a.active {
+    color: var(--text-primary); background: var(--bg-tertiary);
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    padding-top: var(--nav-height);
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  aside.sidebar {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    position: fixed;
+    top: var(--nav-height); bottom: 0; left: 0;
+    overflow-y: auto; overflow-x: hidden;
+    border-right: 1px solid var(--border);
+    padding: 20px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  aside.sidebar::-webkit-scrollbar { width: 4px; }
+  aside.sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-section { padding: 4px 16px; margin-top: 16px; }
+  .sidebar-section-title {
+    font-size: 11px; font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .08em;
+    padding: 4px 8px;
+  }
+  .sidebar-link {
+    display: block; padding: 5px 8px; border-radius: 5px;
+    color: var(--text-secondary); text-decoration: none;
+    font-size: 13.5px; transition: all .12s;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .sidebar-link:hover { color: var(--text-primary); background: var(--bg-tertiary); }
+  .sidebar-link.active { color: var(--accent-cyan); background: rgba(57,208,216,.08); }
+
+  /* ── MAIN CONTENT ── */
+  main.content {
+    margin-left: var(--sidebar-width);
+    flex: 1;
+    max-width: 900px;
+    padding: 48px 56px;
+    min-width: 0;
+  }
+
+  /* ── SECTION ── */
+  .doc-section { margin-bottom: 72px; scroll-margin-top: 80px; }
+
+  .section-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 20px;
+  }
+  .section-num {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--bg-tertiary); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700; color: var(--accent-cyan);
+    flex-shrink: 0;
+  }
+  .section-title { font-size: 22px; font-weight: 700; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 600; padding: 3px 9px;
+    border-radius: 20px; white-space: nowrap;
+  }
+  .badge-basic { background: rgba(63,185,80,.15); color: var(--accent-green); border: 1px solid rgba(63,185,80,.3); }
+  .badge-advanced { background: rgba(240,136,62,.15); color: var(--accent-orange); border: 1px solid rgba(240,136,62,.3); }
+  .badge-expert { background: rgba(188,140,255,.15); color: var(--accent-purple); border: 1px solid rgba(188,140,255,.3); }
+  .badge-concept { background: rgba(88,166,255,.15); color: var(--accent-blue); border: 1px solid rgba(88,166,255,.3); }
+
+  p { color: var(--text-secondary); margin-bottom: 14px; }
+  strong { color: var(--text-primary); }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 20px 0;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-tertiary);
+  }
+  .code-lang {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 700;
+    color: var(--accent-cyan);
+    text-transform: uppercase; letter-spacing: .06em;
+  }
+  .code-filename {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--text-muted);
+  }
+  pre {
+    padding: 20px 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.7;
+    tab-size: 4;
+  }
+  pre::-webkit-scrollbar { height: 6px; }
+  pre::-webkit-scrollbar-track { background: var(--bg-tertiary); }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* Syntax colors */
+  .kw { color: #ff7b72; }       /* keywords */
+  .fn { color: #d2a8ff; }       /* functions */
+  .ty { color: #ffa657; }       /* types */
+  .str { color: #a5d6ff; }      /* strings */
+  .num { color: #79c0ff; }      /* numbers */
+  .cm { color: #6e7681; font-style: italic; } /* comments */
+  .pkg { color: #79c0ff; }      /* packages */
+  .field { color: #e3b341; }    /* struct fields */
+  .op { color: #ff7b72; }       /* operators */
+  .cn { color: #39d0d8; }       /* constants */
+  .rx { color: #3fb950; }       /* receivers */
+
+  /* ── DIAGRAM ── */
+  .diagram-box {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+  }
+  .diagram-title {
+    font-size: 11px; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--text-muted);
+    text-align: center; margin-bottom: 20px;
+  }
+
+  /* ── CONCEPT GRID ── */
+  .concept-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 14px; margin: 20px 0;
+  }
+  .concept-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+    border-left: 3px solid var(--accent-cyan);
+  }
+  .concept-card.orange { border-left-color: var(--accent-orange); }
+  .concept-card.purple { border-left-color: var(--accent-purple); }
+  .concept-card.green { border-left-color: var(--accent-green); }
+  .concept-card h4 {
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 6px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .concept-card p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+
+  /* ── INFO BOX ── */
+  .info-box {
+    padding: 14px 16px; border-radius: 8px;
+    margin: 16px 0; border-left: 3px solid;
+    font-size: 13.5px;
+  }
+  .info-box.note { background: rgba(88,166,255,.07); border-color: var(--accent-blue); color: var(--text-secondary); }
+  .info-box.warn { background: rgba(240,136,62,.07); border-color: var(--accent-orange); color: var(--text-secondary); }
+  .info-box.tip { background: rgba(63,185,80,.07); border-color: var(--accent-green); color: var(--text-secondary); }
+  .info-box .label {
+    font-weight: 700; font-size: 11px;
+    text-transform: uppercase; letter-spacing: .07em;
+    margin-bottom: 4px;
+  }
+  .info-box.note .label { color: var(--accent-blue); }
+  .info-box.warn .label { color: var(--accent-orange); }
+  .info-box.tip .label { color: var(--accent-green); }
+
+  /* ── TABLE ── */
+  table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    font-size: 13.5px;
+  }
+  th {
+    text-align: left; padding: 10px 14px;
+    background: var(--bg-tertiary);
+    color: var(--text-secondary);
+    font-size: 12px; font-weight: 600;
+    letter-spacing: .04em; text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 14px; color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-light);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td code, th code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--accent-cyan);
+    background: var(--bg-tertiary);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  /* ── REF CARD ── */
+  .ref-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-top: 16px;
+  }
+  .ref-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+    text-decoration: none;
+    transition: border-color .15s, transform .1s;
+  }
+  .ref-card:hover {
+    border-color: var(--accent-cyan);
+    transform: translateY(-1px);
+  }
+  .ref-card .ref-icon { font-size: 20px; margin-bottom: 8px; }
+  .ref-card .ref-title {
+    font-size: 13.5px; font-weight: 700;
+    color: var(--text-primary); margin-bottom: 4px;
+  }
+  .ref-card .ref-url {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--accent-cyan);
+    word-break: break-all;
+  }
+  .ref-card .ref-desc { font-size: 12.5px; color: var(--text-muted); margin-top: 4px; }
+
+  /* ── DIVIDER ── */
+  hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* ── INLINE CODE ── */
+  p code, li code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px; color: var(--accent-cyan);
+    background: var(--bg-tertiary);
+    padding: 2px 6px; border-radius: 4px;
+  }
+
+  ul, ol { padding-left: 20px; color: var(--text-secondary); }
+  li { margin-bottom: 6px; font-size: 14px; }
+
+  h3 { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 24px 0 10px; }
+
+  /* ── LIFECYCLE BOX ── */
+  .lifecycle {
+    display: flex; align-items: center; gap: 0;
+    margin: 16px 0; flex-wrap: wrap;
+  }
+  .lifecycle-step {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 8px 14px;
+    font-size: 12.5px; font-family: 'JetBrains Mono', monospace;
+    color: var(--text-secondary);
+  }
+  .lifecycle-step.highlight { color: var(--accent-cyan); border-color: rgba(57,208,216,.4); }
+  .lifecycle-arrow {
+    color: var(--text-muted); padding: 0 6px; font-size: 16px;
+  }
+
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(57, 208, 216, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg-card);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    margin-left: var(--sidebar-width);
+    padding: 32px 56px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted); font-size: 13px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  footer span { font-family: 'JetBrains Mono', monospace; }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="nav-brand">Go <span>Resource Manager</span></div>
+  <div class="nav-links">
+    <a href="#intro" class="active">Giới thiệu</a>
+    <a href="#concepts">Khái niệm</a>
+    <a href="#basic">Cơ bản</a>
+    <a href="#file">File Handle</a>
+    <a href="#pool">Connection Pool</a>
+    <a href="#db">Database</a>
+    <a href="#advanced">Nâng cao</a>
+    <a href="#expert">Expert</a>
+    <a href="#realworld">Real-World</a>
+    <a href="#refs">References</a>
+  </div>
+</nav>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Cơ bản</div>
+    <a href="#intro" class="sidebar-link active">Giới thiệu</a>
+    <a href="#concepts" class="sidebar-link">Khái niệm cốt lõi</a>
+    <a href="#basic" class="sidebar-link">defer &amp; io.Closer</a>
+    <a href="#cleanup" class="sidebar-link">Cleanup Pattern</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">File &amp; IO</div>
+    <a href="#file" class="sidebar-link">File Handle Manager</a>
+    <a href="#tempfile" class="sidebar-link">Temporary Files</a>
+    <a href="#multifile" class="sidebar-link">Multi-File Manager</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Connection Pool</div>
+    <a href="#pool" class="sidebar-link">Generic Connection Pool</a>
+    <a href="#db" class="sidebar-link">Database Manager</a>
+    <a href="#http" class="sidebar-link">HTTP Client Manager</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Nâng cao</div>
+    <a href="#syncpool" class="sidebar-link">sync.Pool Pattern</a>
+    <a href="#advanced" class="sidebar-link">Generic Resource Pool</a>
+    <a href="#lifecycle" class="sidebar-link">Lifecycle Manager</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Expert</div>
+    <a href="#expert" class="sidebar-link">Circuit Breaker</a>
+    <a href="#health" class="sidebar-link">Health Check Pool</a>
+    <a href="#realworld" class="sidebar-link">Real-World System</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Tham khảo</div>
+    <a href="#refs" class="sidebar-link">References</a>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="content">
+
+  <!-- ── 0. INTRO ── -->
+  <section class="doc-section" id="intro">
+    <div class="section-header">
+      <div class="section-num">0</div>
+      <h2 class="section-title">Resource Manager là gì?</h2>
+      <span class="badge badge-concept">★ Khái niệm</span>
+    </div>
+
+    <p>
+      <strong>Resource Manager</strong> là pattern quản lý vòng đời của các tài nguyên hệ thống như database connections,
+      file handles, network sockets, buffers, và bất kỳ đối tượng nào cần được <strong>khởi tạo → sử dụng → giải phóng</strong>
+      một cách có kiểm soát.
+    </p>
+    <p>
+      Trong Go, nguyên lý này được thể hiện qua interface <code>io.Closer</code>, keyword <code>defer</code>,
+      và các pattern như Connection Pool, Object Pool (sync.Pool), và Lifecycle Manager.
+    </p>
+
+    <!-- Architecture diagram -->
+    <div class="diagram-box">
+      <div class="diagram-title">Resource Manager — Vòng đời tổng quát</div>
+      <svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:200px;">
+        <defs>
+          <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#39d0d8"/>
+          </marker>
+          <marker id="arrow-r" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ff7b72"/>
+          </marker>
+        </defs>
+
+        <!-- boxes -->
+        <rect x="10" y="75" width="120" height="50" rx="8" fill="#1c2128" stroke="#30363d" stroke-width="1.5"/>
+        <text x="70" y="97" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="JetBrains Mono,monospace" font-weight="700">Acquire</text>
+        <text x="70" y="113" text-anchor="middle" fill="#39d0d8" font-size="11" font-family="JetBrains Mono,monospace">New / Get</text>
+
+        <rect x="170" y="75" width="140" height="50" rx="8" fill="#1c2128" stroke="#30363d" stroke-width="1.5"/>
+        <text x="240" y="97" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="JetBrains Mono,monospace" font-weight="700">Validate</text>
+        <text x="240" y="113" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono,monospace">Health Check</text>
+
+        <rect x="350" y="75" width="140" height="50" rx="8" fill="#161b22" stroke="#39d0d8" stroke-width="2"/>
+        <text x="420" y="97" text-anchor="middle" fill="#39d0d8" font-size="12" font-family="JetBrains Mono,monospace" font-weight="700">Use</text>
+        <text x="420" y="113" text-anchor="middle" fill="#8b949e" font-size="11" font-family="JetBrains Mono,monospace">Business Logic</text>
+
+        <rect x="530" y="75" width="120" height="50" rx="8" fill="#1c2128" stroke="#30363d" stroke-width="1.5"/>
+        <text x="590" y="97" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="JetBrains Mono,monospace" font-weight="700">Release</text>
+        <text x="590" y="113" text-anchor="middle" fill="#f0883e" font-size="11" font-family="JetBrains Mono,monospace">Close / Return</text>
+
+        <rect x="680" y="75" width="90" height="50" rx="8" fill="#1c2128" stroke="#30363d" stroke-width="1.5"/>
+        <text x="725" y="97" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="JetBrains Mono,monospace" font-weight="700">Destroy</text>
+        <text x="725" y="113" text-anchor="middle" fill="#ff7b72" font-size="11" font-family="JetBrains Mono,monospace">GC / Finalize</text>
+
+        <!-- arrows -->
+        <line x1="130" y1="100" x2="168" y2="100" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="310" y1="100" x2="348" y2="100" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="490" y1="100" x2="528" y2="100" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <line x1="650" y1="100" x2="678" y2="100" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#arrow-r)"/>
+
+        <!-- Return to pool -->
+        <path d="M 590 75 Q 590 30 420 30 Q 250 30 240 75" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+        <text x="420" y="22" text-anchor="middle" fill="#3fb950" font-size="11" font-family="Space Grotesk,sans-serif">Return to Pool</text>
+
+        <!-- defer label -->
+        <text x="590" y="150" text-anchor="middle" fill="#bc8cff" font-size="11" font-family="JetBrains Mono,monospace">defer Close()</text>
+      </svg>
+    </div>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-resource-manager.png" alt="Go Concurrency: Resource Manager Pattern Architecture" loading="lazy">
+      <div class="concept-img-caption">Hình 0.1: Kiến trúc mô hình Resource Manager trong Go — Mô tả chi tiết tiến trình định vị, đăng ký và theo dõi tài nguyên tập trung qua cấu trúc FileManager với bộ khóa bảo vệ RWMutex cùng cơ chế tự động hủy đăng ký (auto-deregistration) độc đáo khi đóng FileHandle.</div>
+    </div>
+
+    <div class="concept-grid">
+      <div class="concept-card">
+        <h4>io.Closer</h4>
+        <p>Interface chuẩn của Go — mọi resource có thể đóng phải implement <code>Close() error</code></p>
+      </div>
+      <div class="concept-card orange">
+        <h4>defer</h4>
+        <p>Keyword đảm bảo cleanup luôn chạy, kể cả khi panic — liên kết chặt với <code>io.Closer</code></p>
+      </div>
+      <div class="concept-card purple">
+        <h4>Connection Pool</h4>
+        <p>Tái sử dụng connections đắt tiền (DB, HTTP, Redis) thay vì tạo mới mỗi request</p>
+      </div>
+      <div class="concept-card green">
+        <h4>sync.Pool</h4>
+        <p>Object Pool tích hợp sẵn trong runtime — giảm GC pressure cho buffers, structs tạm thời</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 1. CORE CONCEPTS ── -->
+  <section class="doc-section" id="concepts">
+    <div class="section-header">
+      <div class="section-num">1</div>
+      <h2 class="section-title">Khái niệm cốt lõi</h2>
+      <span class="badge badge-concept">Concept</span>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Khái niệm</th><th>Interface / Type</th><th>Mục đích</th><th>Khi nào dùng</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>io.Closer</strong></td><td><code>Close() error</code></td><td>Đóng resource, giải phóng OS handle</td><td>File, socket, DB conn</td></tr>
+        <tr><td><strong>defer</strong></td><td>keyword</td><td>Đảm bảo cleanup kể cả khi panic/return sớm</td><td>Mọi resource acquisition</td></tr>
+        <tr><td><strong>sync.Pool</strong></td><td><code>Pool{New: fn}</code></td><td>Object pool cho runtime — GC-aware</td><td>Buffer, encoder, tmp struct</td></tr>
+        <tr><td><strong>context.Context</strong></td><td><code>Done() &lt;-chan struct{}</code></td><td>Timeout & cancellation cho resource ops</td><td>Mọi blocking I/O</td></tr>
+        <tr><td><strong>runtime.SetFinalizer</strong></td><td><code>func(obj)</code></td><td>Safety net cleanup khi GC thu hồi</td><td>Native handle leak protection</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box note">
+      <div class="label">📌 Nguyên tắc vàng</div>
+      Trong Go: <strong>"Caller who opens, caller who closes"</strong> — ai tạo ra resource phải chịu trách nhiệm đóng nó.
+      Dùng <code>defer r.Close()</code> ngay sau khi acquire thành công.
+    </div>
+  </section>
+
+  <!-- ── 2. BASIC: defer & io.Closer ── -->
+  <section class="doc-section" id="basic">
+    <div class="section-header">
+      <div class="section-num">2</div>
+      <h2 class="section-title">Cơ bản: defer &amp; io.Closer</h2>
+      <span class="badge badge-basic">Cơ bản</span>
+    </div>
+
+    <p>Đây là foundation của mọi Resource Manager trong Go. <code>defer</code> kết hợp với <code>io.Closer</code>
+    tạo ra cơ chế tự động cleanup khi function kết thúc.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">resource_basic.go — defer &amp; io.Closer pattern</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">resource</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"io"</span>
+    <span class="str">"log"</span>
+    <span class="str">"os"</span>
+)
+
+<span class="cm">// Resource là interface cơ bản cho mọi managed resource</span>
+<span class="kw">type</span> <span class="ty">Resource</span> <span class="kw">interface</span> {
+    io.<span class="ty">Closer</span>
+    <span class="fn">IsHealthy</span>() <span class="ty">bool</span>
+}
+
+<span class="cm">// ── Pattern 1: Single Resource với defer ──────────────────────</span>
+<span class="kw">func</span> <span class="fn">ReadFileBasic</span>(path <span class="ty">string</span>) (<span class="ty">[]byte</span>, <span class="ty">error</span>) {
+    <span class="cm">// Acquire</span>
+    f, err := os.<span class="fn">Open</span>(path)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"open %s: %w"</span>, path, err)
+    }
+    <span class="cm">// Ngay sau acquire → defer close. KHÔNG để ở cuối function!</span>
+    <span class="kw">defer</span> f.<span class="fn">Close</span>() <span class="cm">// ← luôn chạy kể cả khi panic</span>
+
+    <span class="kw">return</span> io.<span class="fn">ReadAll</span>(f)
+}
+
+<span class="cm">// ── Pattern 2: Capture defer error (anti-pattern nếu bỏ qua) ──</span>
+<span class="kw">func</span> <span class="fn">WriteFileSafe</span>(path <span class="ty">string</span>, data <span class="ty">[]byte</span>) (retErr <span class="ty">error</span>) {
+    f, err := os.<span class="fn">Create</span>(path)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"create: %w"</span>, err)
+    }
+
+    <span class="cm">// Named return → capture close error vào retErr</span>
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        <span class="kw">if</span> cerr := f.<span class="fn">Close</span>(); cerr != <span class="cn">nil</span> &amp;&amp; retErr == <span class="cn">nil</span> {
+            retErr = fmt.<span class="fn">Errorf</span>(<span class="str">"close: %w"</span>, cerr)
+        }
+    }()
+
+    _, err = f.<span class="fn">Write</span>(data)
+    <span class="kw">return</span> err <span class="cm">// defer chạy sau khi return này</span>
+}
+
+<span class="cm">// ── Pattern 3: Multiple resources với defer stack ─────────────</span>
+<span class="kw">func</span> <span class="fn">ProcessFiles</span>(src, dst <span class="ty">string</span>) <span class="ty">error</span> {
+    reader, err := os.<span class="fn">Open</span>(src)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"open src: %w"</span>, err)
+    }
+    <span class="kw">defer</span> reader.<span class="fn">Close</span>() <span class="cm">// defer #2 → chạy sau</span>
+
+    writer, err := os.<span class="fn">Create</span>(dst)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"create dst: %w"</span>, err)
+    }
+    <span class="kw">defer</span> writer.<span class="fn">Close</span>() <span class="cm">// defer #1 → chạy trước (LIFO)</span>
+
+    <span class="cm">// Defers chạy theo thứ tự LIFO: writer.Close → reader.Close</span>
+    n, err := io.<span class="fn">Copy</span>(writer, reader)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"copy: %w"</span>, err)
+    }
+
+    log.<span class="fn">Printf</span>(<span class="str">"copied %d bytes from %s to %s"</span>, n, src, dst)
+    <span class="kw">return</span> <span class="cn">nil</span>
+}</pre>
+    </div>
+
+    <!-- Diagram: LIFO defer stack -->
+    <div class="diagram-box">
+      <div class="diagram-title">Defer Stack — LIFO Execution Order</div>
+      <svg viewBox="0 0 600 180" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:180px;">
+        <defs>
+          <marker id="a2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#39d0d8"/>
+          </marker>
+          <marker id="a3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#f0883e"/>
+          </marker>
+        </defs>
+
+        <!-- Stack -->
+        <rect x="40" y="20" width="200" height="140" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1.5"/>
+        <text x="140" y="14" text-anchor="middle" fill="#6e7681" font-size="11" font-family="Space Grotesk">Defer Stack (push)</text>
+
+        <rect x="55" y="110" width="170" height="36" rx="5" fill="#21262d" stroke="#30363d"/>
+        <text x="140" y="128" text-anchor="middle" fill="#39d0d8" font-size="12" font-family="JetBrains Mono,monospace">defer reader.Close()</text>
+        <text x="55" y="106" fill="#6e7681" font-size="10" font-family="JetBrains Mono">push #1</text>
+
+        <rect x="55" y="62" width="170" height="36" rx="5" fill="#21262d" stroke="#39d0d8" stroke-width="1.5"/>
+        <text x="140" y="80" text-anchor="middle" fill="#e3b341" font-size="12" font-family="JetBrains Mono,monospace">defer writer.Close()</text>
+        <text x="55" y="58" fill="#6e7681" font-size="10" font-family="JetBrains Mono">push #2</text>
+
+        <!-- Execution arrow -->
+        <text x="290" y="50" fill="#3fb950" font-size="12" font-family="Space Grotesk,sans-serif" font-weight="600">Thứ tự thực thi (LIFO):</text>
+        <rect x="290" y="65" width="170" height="32" rx="5" fill="#1c2128" stroke="#e3b341" stroke-width="1.5"/>
+        <text x="375" y="86" text-anchor="middle" fill="#e3b341" font-size="12" font-family="JetBrains Mono,monospace">1. writer.Close()</text>
+
+        <rect x="290" y="110" width="170" height="32" rx="5" fill="#1c2128" stroke="#39d0d8" stroke-width="1.5"/>
+        <text x="375" y="131" text-anchor="middle" fill="#39d0d8" font-size="12" font-family="JetBrains Mono,monospace">2. reader.Close()</text>
+
+        <line x1="240" y1="80" x2="288" y2="81" stroke="#f0883e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#a3)"/>
+        <line x1="240" y1="128" x2="288" y2="126" stroke="#f0883e" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#a3)"/>
+
+        <text x="490" y="75" text-anchor="middle" fill="#f0883e" font-size="11" font-family="Space Grotesk">pop #2</text>
+        <text x="490" y="120" text-anchor="middle" fill="#f0883e" font-size="11" font-family="Space Grotesk">pop #1</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ── 3. FILE HANDLE MANAGER ── -->
+  <section class="doc-section" id="file">
+    <div class="section-header">
+      <div class="section-num">3</div>
+      <h2 class="section-title">File Handle Manager</h2>
+      <span class="badge badge-basic">Cơ bản</span>
+    </div>
+
+    <p>Quản lý nhiều file handles đồng thời, tự động track và cleanup khi process kết thúc hoặc có lỗi.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">file_manager.go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">filemanager</span>
+
+<span class="kw">import</span> (
+    <span class="str">"bufio"</span>
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"io"</span>
+    <span class="str">"os"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// FileHandle bọc os.File với metadata và auto-tracking</span>
+<span class="kw">type</span> <span class="ty">FileHandle</span> <span class="kw">struct</span> {
+    <span class="field">File</span>      *os.<span class="ty">File</span>
+    <span class="field">Path</span>      <span class="ty">string</span>
+    <span class="field">OpenedAt</span>  time.<span class="ty">Time</span>
+    <span class="field">ReadOnly</span>  <span class="ty">bool</span>
+    <span class="field">manager</span>   *<span class="ty">FileManager</span> <span class="cm">// back-reference để auto-deregister</span>
+}
+
+<span class="cm">// Close đóng file VÀ tự động xoá khỏi manager</span>
+<span class="kw">func</span> (<span class="rx">h</span> *<span class="ty">FileHandle</span>) <span class="fn">Close</span>() <span class="ty">error</span> {
+    <span class="kw">if</span> h.<span class="field">manager</span> != <span class="cn">nil</span> {
+        h.<span class="field">manager</span>.<span class="fn">deregister</span>(h.<span class="field">Path</span>)
+    }
+    <span class="kw">return</span> h.<span class="field">File</span>.<span class="fn">Close</span>()
+}
+
+<span class="cm">// FileManager quản lý tập trung tất cả open file handles</span>
+<span class="kw">type</span> <span class="ty">FileManager</span> <span class="kw">struct</span> {
+    <span class="field">mu</span>       sync.<span class="ty">RWMutex</span>
+    <span class="field">handles</span>  <span class="kw">map</span>[<span class="ty">string</span>]*<span class="ty">FileHandle</span>
+    <span class="field">maxOpen</span>  <span class="ty">int</span>
+    <span class="field">metrics</span>  <span class="ty">FileMetrics</span>
+}
+
+<span class="kw">type</span> <span class="ty">FileMetrics</span> <span class="kw">struct</span> {
+    <span class="field">TotalOpened</span>  <span class="ty">int64</span>
+    <span class="field">TotalClosed</span>  <span class="ty">int64</span>
+    <span class="field">CurrentOpen</span>  <span class="ty">int64</span>
+    <span class="field">Errors</span>       <span class="ty">int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewFileManager</span>(maxOpen <span class="ty">int</span>) *<span class="ty">FileManager</span> {
+    <span class="kw">return</span> &amp;<span class="ty">FileManager</span>{
+        <span class="field">handles</span>: <span class="fn">make</span>(<span class="kw">map</span>[<span class="ty">string</span>]*<span class="ty">FileHandle</span>),
+        <span class="field">maxOpen</span>: maxOpen,
+    }
+}
+
+<span class="cm">// Open mở file với tracking — trả về FileHandle implement io.Closer</span>
+<span class="kw">func</span> (<span class="rx">fm</span> *<span class="ty">FileManager</span>) <span class="fn">Open</span>(ctx context.<span class="ty">Context</span>, path <span class="ty">string</span>, readOnly <span class="ty">bool</span>) (*<span class="ty">FileHandle</span>, <span class="ty">error</span>) {
+    fm.<span class="field">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> fm.<span class="field">mu</span>.<span class="fn">Unlock</span>()
+
+    <span class="cm">// Kiểm tra context trước</span>
+    <span class="kw">if</span> err := ctx.<span class="fn">Err</span>(); err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"context cancelled: %w"</span>, err)
+    }
+
+    <span class="cm">// Kiểm tra limit</span>
+    <span class="kw">if</span> <span class="fn">len</span>(fm.<span class="field">handles</span>) &gt;= fm.<span class="field">maxOpen</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"file handle limit (%d) reached"</span>, fm.<span class="field">maxOpen</span>)
+    }
+
+    <span class="cm">// Reuse nếu đã mở (same path, same mode)</span>
+    <span class="kw">if</span> h, ok := fm.<span class="field">handles</span>[path]; ok &amp;&amp; h.<span class="field">ReadOnly</span> == readOnly {
+        <span class="kw">return</span> h, <span class="cn">nil</span>
+    }
+
+    <span class="kw">var</span> flag <span class="ty">int</span>
+    <span class="kw">if</span> readOnly {
+        flag = os.<span class="cn">O_RDONLY</span>
+    } <span class="kw">else</span> {
+        flag = os.<span class="cn">O_RDWR</span> | os.<span class="cn">O_CREATE</span>
+    }
+
+    f, err := os.<span class="fn">OpenFile</span>(path, flag, <span class="num">0644</span>)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        fm.<span class="field">metrics</span>.<span class="field">Errors</span>++
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"open %s: %w"</span>, path, err)
+    }
+
+    h := &amp;<span class="ty">FileHandle</span>{
+        <span class="field">File</span>:     f,
+        <span class="field">Path</span>:     path,
+        <span class="field">OpenedAt</span>: time.<span class="fn">Now</span>(),
+        <span class="field">ReadOnly</span>: readOnly,
+        <span class="field">manager</span>:  fm,
+    }
+    fm.<span class="field">handles</span>[path] = h
+    fm.<span class="field">metrics</span>.<span class="field">TotalOpened</span>++
+    fm.<span class="field">metrics</span>.<span class="field">CurrentOpen</span>++
+    <span class="kw">return</span> h, <span class="cn">nil</span>
+}
+
+<span class="kw">func</span> (<span class="rx">fm</span> *<span class="ty">FileManager</span>) <span class="fn">deregister</span>(path <span class="ty">string</span>) {
+    fm.<span class="field">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> fm.<span class="field">mu</span>.<span class="fn">Unlock</span>()
+    <span class="kw">delete</span>(fm.<span class="field">handles</span>, path)
+    fm.<span class="field">metrics</span>.<span class="field">TotalClosed</span>++
+    fm.<span class="field">metrics</span>.<span class="field">CurrentOpen</span>--
+}
+
+<span class="cm">// CloseAll đóng tất cả handles — dùng khi shutdown</span>
+<span class="kw">func</span> (<span class="rx">fm</span> *<span class="ty">FileManager</span>) <span class="fn">CloseAll</span>() <span class="ty">error</span> {
+    fm.<span class="field">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> fm.<span class="field">mu</span>.<span class="fn">Unlock</span>()
+
+    <span class="kw">var</span> errs []<span class="ty">error</span>
+    <span class="kw">for</span> path, h := <span class="kw">range</span> fm.<span class="field">handles</span> {
+        <span class="kw">if</span> err := h.<span class="field">File</span>.<span class="fn">Close</span>(); err != <span class="cn">nil</span> {
+            errs = <span class="fn">append</span>(errs, fmt.<span class="fn">Errorf</span>(<span class="str">"close %s: %w"</span>, path, err))
+        }
+        <span class="kw">delete</span>(fm.<span class="field">handles</span>, path)
+    }
+
+    <span class="kw">if</span> <span class="fn">len</span>(errs) &gt; <span class="num">0</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"%d files failed to close: %v"</span>, <span class="fn">len</span>(errs), errs)
+    }
+    <span class="kw">return</span> <span class="cn">nil</span>
+}
+
+<span class="cm">// Metrics trả về snapshot metrics hiện tại</span>
+<span class="kw">func</span> (<span class="rx">fm</span> *<span class="ty">FileManager</span>) <span class="fn">Metrics</span>() <span class="ty">FileMetrics</span> {
+    fm.<span class="field">mu</span>.<span class="fn">RLock</span>()
+    <span class="kw">defer</span> fm.<span class="field">mu</span>.<span class="fn">RUnlock</span>()
+    <span class="kw">return</span> fm.<span class="field">metrics</span>
+}
+
+<span class="cm">// ── Usage Example ─────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">ExampleUsage</span>(ctx context.<span class="ty">Context</span>) <span class="ty">error</span> {
+    fm := <span class="fn">NewFileManager</span>(<span class="num">100</span>)
+    <span class="kw">defer</span> fm.<span class="fn">CloseAll</span>() <span class="cm">// safety net — đóng tất cả khi exit</span>
+
+    h, err := fm.<span class="fn">Open</span>(ctx, <span class="str">"/tmp/data.csv"</span>, <span class="cn">true</span>)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> err
+    }
+    <span class="kw">defer</span> h.<span class="fn">Close</span>() <span class="cm">// preferred: close ASAP thay vì đợi CloseAll</span>
+
+    scanner := bufio.<span class="fn">NewScanner</span>(h.<span class="field">File</span>)
+    <span class="kw">for</span> scanner.<span class="fn">Scan</span>() {
+        <span class="cm">// process line...</span>
+        _ = scanner.<span class="fn">Text</span>()
+    }
+    <span class="kw">return</span> scanner.<span class="fn">Err</span>()
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── 4. CONNECTION POOL ── -->
+  <section class="doc-section" id="pool">
+    <div class="section-header">
+      <div class="section-num">4</div>
+      <h2 class="section-title">Generic Connection Pool</h2>
+      <span class="badge badge-advanced">Nâng cao</span>
+    </div>
+
+    <p>Connection Pool là trái tim của mọi Resource Manager trong production. Tái sử dụng connections thay vì
+    tạo mới → giảm latency và tải hệ thống đáng kể.</p>
+
+    <!-- Pool diagram -->
+    <div class="diagram-box">
+      <div class="diagram-title">Connection Pool — Acquire / Release Flow</div>
+      <svg viewBox="0 0 750 230" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:230px;">
+        <defs>
+          <marker id="arr1" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#39d0d8"/>
+          </marker>
+          <marker id="arr2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+          </marker>
+          <marker id="arr3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ff7b72"/>
+          </marker>
+        </defs>
+
+        <!-- Clients -->
+        <rect x="10" y="30" width="90" height="30" rx="6" fill="#21262d" stroke="#30363d"/>
+        <text x="55" y="50" text-anchor="middle" fill="#8b949e" font-size="11" font-family="JetBrains Mono">Client 1</text>
+        <rect x="10" y="75" width="90" height="30" rx="6" fill="#21262d" stroke="#30363d"/>
+        <text x="55" y="95" text-anchor="middle" fill="#8b949e" font-size="11" font-family="JetBrains Mono">Client 2</text>
+        <rect x="10" y="120" width="90" height="30" rx="6" fill="#21262d" stroke="#30363d"/>
+        <text x="55" y="140" text-anchor="middle" fill="#8b949e" font-size="11" font-family="JetBrains Mono">Client 3</text>
+
+        <!-- Pool box -->
+        <rect x="160" y="15" width="210" height="190" rx="10" fill="#161b22" stroke="#39d0d8" stroke-width="2"/>
+        <text x="265" y="38" text-anchor="middle" fill="#39d0d8" font-size="12" font-family="Space Grotesk,sans-serif" font-weight="700">CONNECTION POOL</text>
+
+        <!-- Pool slots -->
+        <rect x="175" y="50" width="80" height="28" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="215" y="69" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">conn #1 ✓</text>
+        <rect x="265" y="50" width="80" height="28" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="305" y="69" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">conn #2 ✓</text>
+
+        <rect x="175" y="90" width="80" height="28" rx="5" fill="#21262d" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="215" y="109" text-anchor="middle" fill="#f0883e" font-size="11" font-family="JetBrains Mono">conn #3 ✗</text>
+        <rect x="265" y="90" width="80" height="28" rx="5" fill="#21262d" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="305" y="109" text-anchor="middle" fill="#f0883e" font-size="11" font-family="JetBrains Mono">conn #4 ✗</text>
+
+        <rect x="175" y="130" width="170" height="28" rx="5" fill="#1c2128" stroke="#30363d"/>
+        <text x="260" y="149" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">waiting queue (chan)</text>
+
+        <text x="175" y="190" fill="#6e7681" font-size="10" font-family="JetBrains Mono">idle: 2 | busy: 2 | max: 10</text>
+
+        <!-- Arrows client → pool -->
+        <line x1="100" y1="45" x2="158" y2="65" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arr1)"/>
+        <line x1="100" y1="90" x2="158" y2="85" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arr1)"/>
+        <line x1="100" y1="135" x2="158" y2="140" stroke="#39d0d8" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr1)"/>
+
+        <text x="115" y="40" fill="#39d0d8" font-size="10" font-family="JetBrains Mono">Acquire</text>
+        <text x="108" y="135" fill="#6e7681" font-size="10" font-family="JetBrains Mono">waiting…</text>
+
+        <!-- Target service -->
+        <rect x="435" y="70" width="120" height="80" rx="8" fill="#1c2128" stroke="#30363d"/>
+        <text x="495" y="100" text-anchor="middle" fill="#e6edf3" font-size="12" font-family="Space Grotesk" font-weight="700">Database</text>
+        <text x="495" y="118" text-anchor="middle" fill="#6e7681" font-size="11" font-family="JetBrains Mono">PostgreSQL</text>
+        <text x="495" y="138" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">port 5432</text>
+
+        <!-- Pool → DB -->
+        <line x1="370" y1="80" x2="433" y2="100" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr1)"/>
+        <line x1="370" y1="100" x2="433" y2="110" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr1)"/>
+
+        <!-- Return arrow -->
+        <path d="M 433 130 Q 410 180 375 175 Q 340 170 340 160" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr2)"/>
+        <text x="380" y="190" fill="#3fb950" font-size="10" font-family="JetBrains Mono">Release → return to pool</text>
+
+        <!-- Health check -->
+        <rect x="590" y="70" width="140" height="40" rx="6" fill="#1c2128" stroke="#e3b341" stroke-width="1.5"/>
+        <text x="660" y="91" text-anchor="middle" fill="#e3b341" font-size="11" font-family="JetBrains Mono">Health Check</text>
+        <text x="660" y="103" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">ping / keepalive</text>
+        <line x1="555" y1="110" x2="588" y2="94" stroke="#e3b341" stroke-width="1" stroke-dasharray="3,2"/>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">pool.go — Generic Connection Pool (Go 1.18+)</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">pool</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// Conn là constraint cho bất kỳ connection type nào</span>
+<span class="kw">type</span> <span class="ty">Conn</span>[<span class="ty">T</span> <span class="kw">any</span>] <span class="kw">struct</span> {
+    <span class="field">Value</span>      <span class="ty">T</span>
+    <span class="field">CreatedAt</span>  time.<span class="ty">Time</span>
+    <span class="field">LastUsedAt</span> time.<span class="ty">Time</span>
+    <span class="field">UsageCount</span> <span class="ty">uint64</span>
+    <span class="field">pool</span>       *<span class="ty">Pool</span>[<span class="ty">T</span>]
+}
+
+<span class="cm">// Release trả connection về pool — gọi sau khi dùng xong</span>
+<span class="kw">func</span> (<span class="rx">c</span> *<span class="ty">Conn</span>[<span class="ty">T</span>]) <span class="fn">Release</span>() {
+    c.<span class="field">LastUsedAt</span> = time.<span class="fn">Now</span>()
+    c.<span class="field">UsageCount</span>++
+    c.<span class="field">pool</span>.<span class="fn">put</span>(c)
+}
+
+<span class="cm">// Config cấu hình pool</span>
+<span class="kw">type</span> <span class="ty">Config</span>[<span class="ty">T</span> <span class="kw">any</span>] <span class="kw">struct</span> {
+    <span class="field">MaxSize</span>      <span class="ty">int</span>           <span class="cm">// max connections</span>
+    <span class="field">MinIdle</span>      <span class="ty">int</span>           <span class="cm">// luôn giữ sẵn N conn</span>
+    <span class="field">MaxIdleTime</span>  time.<span class="ty">Duration</span> <span class="cm">// close conn idle quá lâu</span>
+    <span class="field">MaxLifetime</span>  time.<span class="ty">Duration</span> <span class="cm">// max tuổi thọ một conn</span>
+    <span class="field">AcquireTimeout</span> time.<span class="ty">Duration</span>
+    <span class="field">Factory</span>      <span class="kw">func</span>(context.<span class="ty">Context</span>) (<span class="ty">T</span>, <span class="ty">error</span>)
+    <span class="field">Validate</span>     <span class="kw">func</span>(<span class="ty">T</span>) <span class="ty">bool</span>  <span class="cm">// health check</span>
+    <span class="field">Destroy</span>      <span class="kw">func</span>(<span class="ty">T</span>)        <span class="cm">// cleanup khi discard</span>
+}
+
+<span class="cm">// Pool là generic connection pool thread-safe</span>
+<span class="kw">type</span> <span class="ty">Pool</span>[<span class="ty">T</span> <span class="kw">any</span>] <span class="kw">struct</span> {
+    <span class="field">cfg</span>     <span class="ty">Config</span>[<span class="ty">T</span>]
+    <span class="field">idle</span>    <span class="kw">chan</span> *<span class="ty">Conn</span>[<span class="ty">T</span>]
+    <span class="field">mu</span>      sync.<span class="ty">Mutex</span>
+    <span class="field">total</span>   <span class="ty">int32</span>   <span class="cm">// atomic: tổng connections đang tồn tại</span>
+    <span class="field">waiting</span> <span class="ty">int32</span>   <span class="cm">// atomic: số goroutines đang chờ</span>
+    <span class="field">closed</span>  <span class="ty">bool</span>
+    <span class="field">stats</span>   <span class="ty">PoolStats</span>
+}
+
+<span class="kw">type</span> <span class="ty">PoolStats</span> <span class="kw">struct</span> {
+    <span class="field">AcquireCount</span>  <span class="ty">int64</span>
+    <span class="field">ReleaseCount</span>  <span class="ty">int64</span>
+    <span class="field">CreateCount</span>   <span class="ty">int64</span>
+    <span class="field">DestroyCount</span>  <span class="ty">int64</span>
+    <span class="field">WaitDuration</span>  time.<span class="ty">Duration</span>
+}
+
+<span class="kw">var</span> (
+    <span class="field">ErrPoolClosed</span>   = errors.<span class="fn">New</span>(<span class="str">"pool is closed"</span>)
+    <span class="field">ErrPoolExhausted</span> = errors.<span class="fn">New</span>(<span class="str">"pool exhausted: no connections available"</span>)
+)
+
+<span class="kw">func</span> <span class="fn">New</span>[<span class="ty">T</span> <span class="kw">any</span>](cfg <span class="ty">Config</span>[<span class="ty">T</span>]) (*<span class="ty">Pool</span>[<span class="ty">T</span>], <span class="ty">error</span>) {
+    <span class="kw">if</span> cfg.<span class="field">MaxSize</span> &lt;= <span class="num">0</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, errors.<span class="fn">New</span>(<span class="str">"MaxSize must be > 0"</span>)
+    }
+    <span class="kw">if</span> cfg.<span class="field">Factory</span> == <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, errors.<span class="fn">New</span>(<span class="str">"Factory is required"</span>)
+    }
+    p := &amp;<span class="ty">Pool</span>[<span class="ty">T</span>]{
+        <span class="field">cfg</span>:  cfg,
+        <span class="field">idle</span>: <span class="fn">make</span>(<span class="kw">chan</span> *<span class="ty">Conn</span>[<span class="ty">T</span>], cfg.<span class="field">MaxSize</span>),
+    }
+
+    <span class="cm">// Pre-warm MinIdle connections</span>
+    ctx := context.<span class="fn">Background</span>()
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; cfg.<span class="field">MinIdle</span>; i++ {
+        conn, err := p.<span class="fn">create</span>(ctx)
+        <span class="kw">if</span> err != <span class="cn">nil</span> {
+            _ = p.<span class="fn">Close</span>()
+            <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"pre-warm conn %d: %w"</span>, i, err)
+        }
+        p.<span class="field">idle</span> &lt;- conn
+    }
+
+    <span class="kw">go</span> p.<span class="fn">maintainMinIdle</span>()
+    <span class="kw">return</span> p, <span class="cn">nil</span>
+}
+
+<span class="cm">// Acquire lấy connection từ pool với context timeout</span>
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">Acquire</span>(ctx context.<span class="ty">Context</span>) (*<span class="ty">Conn</span>[<span class="ty">T</span>], <span class="ty">error</span>) {
+    <span class="kw">if</span> p.<span class="field">closed</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, <span class="ty">ErrPoolClosed</span>
+    }
+
+    start := time.<span class="fn">Now</span>()
+    atomic.<span class="fn">AddInt32</span>(&amp;p.<span class="field">waiting</span>, <span class="num">1</span>)
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        atomic.<span class="fn">AddInt32</span>(&amp;p.<span class="field">waiting</span>, <span class="op">-</span><span class="num">1</span>)
+        p.<span class="field">stats</span>.<span class="field">WaitDuration</span> += time.<span class="fn">Since</span>(start)
+        p.<span class="field">stats</span>.<span class="field">AcquireCount</span>++
+    }()
+
+    <span class="cm">// 1. Thử lấy ngay từ idle pool (non-blocking)</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> conn := &lt;-p.<span class="field">idle</span>:
+        <span class="kw">if</span> p.<span class="fn">isValid</span>(conn) {
+            <span class="kw">return</span> conn, <span class="cn">nil</span>
+        }
+        <span class="cm">// conn không còn valid → discard &amp; tạo mới</span>
+        p.<span class="fn">destroy</span>(conn)
+    <span class="kw">default</span>:
+    }
+
+    <span class="cm">// 2. Tạo mới nếu chưa đạt max</span>
+    <span class="kw">if</span> atomic.<span class="fn">LoadInt32</span>(&amp;p.<span class="field">total</span>) &lt; <span class="ty">int32</span>(p.<span class="field">cfg</span>.<span class="field">MaxSize</span>) {
+        <span class="kw">return</span> p.<span class="fn">create</span>(ctx)
+    }
+
+    <span class="cm">// 3. Wait với timeout</span>
+    acquireCtx := ctx
+    <span class="kw">if</span> p.<span class="field">cfg</span>.<span class="field">AcquireTimeout</span> &gt; <span class="num">0</span> {
+        <span class="kw">var</span> cancel context.<span class="ty">CancelFunc</span>
+        acquireCtx, cancel = context.<span class="fn">WithTimeout</span>(ctx, p.<span class="field">cfg</span>.<span class="field">AcquireTimeout</span>)
+        <span class="kw">defer</span> <span class="fn">cancel</span>()
+    }
+
+    <span class="kw">select</span> {
+    <span class="kw">case</span> conn := &lt;-p.<span class="field">idle</span>:
+        <span class="kw">if</span> p.<span class="fn">isValid</span>(conn) {
+            <span class="kw">return</span> conn, <span class="cn">nil</span>
+        }
+        p.<span class="fn">destroy</span>(conn)
+        <span class="kw">return</span> p.<span class="fn">create</span>(ctx)
+    <span class="kw">case</span> &lt;-acquireCtx.<span class="fn">Done</span>():
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"acquire timeout: %w"</span>, acquireCtx.<span class="fn">Err</span>())
+    }
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">create</span>(ctx context.<span class="ty">Context</span>) (*<span class="ty">Conn</span>[<span class="ty">T</span>], <span class="ty">error</span>) {
+    val, err := p.<span class="field">cfg</span>.<span class="fn">Factory</span>(ctx)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"factory: %w"</span>, err)
+    }
+    atomic.<span class="fn">AddInt32</span>(&amp;p.<span class="field">total</span>, <span class="num">1</span>)
+    p.<span class="field">stats</span>.<span class="field">CreateCount</span>++
+    <span class="kw">return</span> &amp;<span class="ty">Conn</span>[<span class="ty">T</span>]{
+        <span class="field">Value</span>:     val,
+        <span class="field">CreatedAt</span>: time.<span class="fn">Now</span>(),
+        <span class="field">pool</span>:      p,
+    }, <span class="cn">nil</span>
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">put</span>(conn *<span class="ty">Conn</span>[<span class="ty">T</span>]) {
+    <span class="kw">if</span> p.<span class="field">closed</span> || !p.<span class="fn">isValid</span>(conn) {
+        p.<span class="fn">destroy</span>(conn)
+        <span class="kw">return</span>
+    }
+    <span class="kw">select</span> {
+    <span class="kw">case</span> p.<span class="field">idle</span> &lt;- conn:
+        p.<span class="field">stats</span>.<span class="field">ReleaseCount</span>++
+    <span class="kw">default</span>:
+        p.<span class="fn">destroy</span>(conn) <span class="cm">// pool đầy → discard</span>
+    }
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">isValid</span>(conn *<span class="ty">Conn</span>[<span class="ty">T</span>]) <span class="ty">bool</span> {
+    <span class="kw">if</span> p.<span class="field">cfg</span>.<span class="field">MaxLifetime</span> &gt; <span class="num">0</span> &amp;&amp; time.<span class="fn">Since</span>(conn.<span class="field">CreatedAt</span>) &gt; p.<span class="field">cfg</span>.<span class="field">MaxLifetime</span> {
+        <span class="kw">return</span> <span class="cn">false</span>
+    }
+    <span class="kw">if</span> p.<span class="field">cfg</span>.<span class="field">MaxIdleTime</span> &gt; <span class="num">0</span> &amp;&amp; time.<span class="fn">Since</span>(conn.<span class="field">LastUsedAt</span>) &gt; p.<span class="field">cfg</span>.<span class="field">MaxIdleTime</span> {
+        <span class="kw">return</span> <span class="cn">false</span>
+    }
+    <span class="kw">if</span> p.<span class="field">cfg</span>.<span class="field">Validate</span> != <span class="cn">nil</span> {
+        <span class="kw">return</span> p.<span class="field">cfg</span>.<span class="fn">Validate</span>(conn.<span class="field">Value</span>)
+    }
+    <span class="kw">return</span> <span class="cn">true</span>
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">destroy</span>(conn *<span class="ty">Conn</span>[<span class="ty">T</span>]) {
+    atomic.<span class="fn">AddInt32</span>(&amp;p.<span class="field">total</span>, <span class="op">-</span><span class="num">1</span>)
+    p.<span class="field">stats</span>.<span class="field">DestroyCount</span>++
+    <span class="kw">if</span> p.<span class="field">cfg</span>.<span class="field">Destroy</span> != <span class="cn">nil</span> {
+        p.<span class="field">cfg</span>.<span class="fn">Destroy</span>(conn.<span class="field">Value</span>)
+    }
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">maintainMinIdle</span>() {
+    ticker := time.<span class="fn">NewTicker</span>(<span class="num">30</span> * time.<span class="cn">Second</span>)
+    <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+    <span class="kw">for</span> <span class="kw">range</span> ticker.<span class="field">C</span> {
+        <span class="kw">if</span> p.<span class="field">closed</span> {
+            <span class="kw">return</span>
+        }
+        current := <span class="ty">int</span>(atomic.<span class="fn">LoadInt32</span>(&amp;p.<span class="field">total</span>))
+        <span class="kw">for</span> i := current; i &lt; p.<span class="field">cfg</span>.<span class="field">MinIdle</span>; i++ {
+            conn, err := p.<span class="fn">create</span>(context.<span class="fn">Background</span>())
+            <span class="kw">if</span> err == <span class="cn">nil</span> {
+                p.<span class="field">idle</span> &lt;- conn
+            }
+        }
+    }
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">Close</span>() <span class="ty">error</span> {
+    p.<span class="field">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> p.<span class="field">mu</span>.<span class="fn">Unlock</span>()
+    p.<span class="field">closed</span> = <span class="cn">true</span>
+    <span class="fn">close</span>(p.<span class="field">idle</span>)
+    <span class="kw">for</span> conn := <span class="kw">range</span> p.<span class="field">idle</span> {
+        p.<span class="fn">destroy</span>(conn)
+    }
+    <span class="kw">return</span> <span class="cn">nil</span>
+}
+
+<span class="kw">func</span> (<span class="rx">p</span> *<span class="ty">Pool</span>[<span class="ty">T</span>]) <span class="fn">Stats</span>() <span class="ty">PoolStats</span> { <span class="kw">return</span> p.<span class="field">stats</span> }</pre>
+    </div>
+  </section>
+
+  <!-- ── 5. DATABASE MANAGER ── -->
+  <section class="doc-section" id="db">
+    <div class="section-header">
+      <div class="section-num">5</div>
+      <h2 class="section-title">Database Connection Manager</h2>
+      <span class="badge badge-advanced">Nâng cao</span>
+    </div>
+
+    <p>Bọc <code>database/sql</code> với observability, retry logic, và transaction-safe connection management.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">db_manager.go — Production-ready Database Manager</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">dbmanager</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"database/sql"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"time"</span>
+
+    _ <span class="str">"github.com/lib/pq"</span> <span class="cm">// PostgreSQL driver</span>
+)
+
+<span class="kw">type</span> <span class="ty">DBConfig</span> <span class="kw">struct</span> {
+    <span class="field">DSN</span>             <span class="ty">string</span>
+    <span class="field">MaxOpenConns</span>    <span class="ty">int</span>           <span class="cm">// default: 25</span>
+    <span class="field">MaxIdleConns</span>    <span class="ty">int</span>           <span class="cm">// default: 5</span>
+    <span class="field">ConnMaxLifetime</span> time.<span class="ty">Duration</span> <span class="cm">// default: 30m</span>
+    <span class="field">ConnMaxIdleTime</span> time.<span class="ty">Duration</span> <span class="cm">// default: 5m</span>
+    <span class="field">PingTimeout</span>     time.<span class="ty">Duration</span> <span class="cm">// default: 3s</span>
+}
+
+<span class="kw">func</span> (<span class="rx">c</span> *<span class="ty">DBConfig</span>) <span class="fn">applyDefaults</span>() {
+    <span class="kw">if</span> c.<span class="field">MaxOpenConns</span> == <span class="num">0</span> { c.<span class="field">MaxOpenConns</span> = <span class="num">25</span> }
+    <span class="kw">if</span> c.<span class="field">MaxIdleConns</span> == <span class="num">0</span> { c.<span class="field">MaxIdleConns</span> = <span class="num">5</span> }
+    <span class="kw">if</span> c.<span class="field">ConnMaxLifetime</span> == <span class="num">0</span> { c.<span class="field">ConnMaxLifetime</span> = <span class="num">30</span> * time.<span class="cn">Minute</span> }
+    <span class="kw">if</span> c.<span class="field">ConnMaxIdleTime</span> == <span class="num">0</span> { c.<span class="field">ConnMaxIdleTime</span> = <span class="num">5</span> * time.<span class="cn">Minute</span> }
+    <span class="kw">if</span> c.<span class="field">PingTimeout</span> == <span class="num">0</span> { c.<span class="field">PingTimeout</span> = <span class="num">3</span> * time.<span class="cn">Second</span> }
+}
+
+<span class="kw">type</span> <span class="ty">DBManager</span> <span class="kw">struct</span> {
+    <span class="field">db</span>     *sql.<span class="ty">DB</span>
+    <span class="field">cfg</span>    <span class="ty">DBConfig</span>
+    <span class="field">logger</span> *slog.<span class="ty">Logger</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewDBManager</span>(cfg <span class="ty">DBConfig</span>, logger *slog.<span class="ty">Logger</span>) (*<span class="ty">DBManager</span>, <span class="ty">error</span>) {
+    cfg.<span class="fn">applyDefaults</span>()
+
+    db, err := sql.<span class="fn">Open</span>(<span class="str">"postgres"</span>, cfg.<span class="field">DSN</span>)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"sql.Open: %w"</span>, err)
+    }
+
+    <span class="cm">// Cấu hình pool của database/sql</span>
+    db.<span class="fn">SetMaxOpenConns</span>(cfg.<span class="field">MaxOpenConns</span>)
+    db.<span class="fn">SetMaxIdleConns</span>(cfg.<span class="field">MaxIdleConns</span>)
+    db.<span class="fn">SetConnMaxLifetime</span>(cfg.<span class="field">ConnMaxLifetime</span>)
+    db.<span class="fn">SetConnMaxIdleTime</span>(cfg.<span class="field">ConnMaxIdleTime</span>)
+
+    m := &amp;<span class="ty">DBManager</span>{db: db, cfg: cfg, logger: logger}
+
+    <span class="cm">// Verify connection ngay tại startup</span>
+    <span class="kw">if</span> err := m.<span class="fn">Ping</span>(context.<span class="fn">Background</span>()); err != <span class="cn">nil</span> {
+        _ = db.<span class="fn">Close</span>()
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"initial ping: %w"</span>, err)
+    }
+
+    logger.<span class="fn">Info</span>(<span class="str">"database connected"</span>,
+        <span class="str">"max_open"</span>, cfg.<span class="field">MaxOpenConns</span>,
+        <span class="str">"max_idle"</span>, cfg.<span class="field">MaxIdleConns</span>,
+    )
+    <span class="kw">return</span> m, <span class="cn">nil</span>
+}
+
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">DBManager</span>) <span class="fn">Ping</span>(ctx context.<span class="ty">Context</span>) <span class="ty">error</span> {
+    pingCtx, cancel := context.<span class="fn">WithTimeout</span>(ctx, m.<span class="field">cfg</span>.<span class="field">PingTimeout</span>)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+    <span class="kw">return</span> m.<span class="field">db</span>.<span class="fn">PingContext</span>(pingCtx)
+}
+
+<span class="cm">// WithTx thực thi fn trong transaction, tự động rollback khi lỗi</span>
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">DBManager</span>) <span class="fn">WithTx</span>(ctx context.<span class="ty">Context</span>, fn <span class="kw">func</span>(*sql.<span class="ty">Tx</span>) <span class="ty">error</span>) (retErr <span class="ty">error</span>) {
+    tx, err := m.<span class="field">db</span>.<span class="fn">BeginTx</span>(ctx, &amp;sql.<span class="ty">TxOptions</span>{
+        <span class="field">Isolation</span>: sql.<span class="cn">LevelRepeatableRead</span>,
+    })
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"begin tx: %w"</span>, err)
+    }
+
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        <span class="kw">if</span> p := <span class="fn">recover</span>(); p != <span class="cn">nil</span> {
+            _ = tx.<span class="fn">Rollback</span>()
+            <span class="fn">panic</span>(p) <span class="cm">// re-panic sau rollback</span>
+        }
+        <span class="kw">if</span> retErr != <span class="cn">nil</span> {
+            <span class="kw">if</span> rbErr := tx.<span class="fn">Rollback</span>(); rbErr != <span class="cn">nil</span> {
+                m.<span class="field">logger</span>.<span class="fn">Error</span>(<span class="str">"rollback failed"</span>, <span class="str">"err"</span>, rbErr)
+            }
+        }
+    }()
+
+    <span class="kw">if</span> err := <span class="fn">fn</span>(tx); err != <span class="cn">nil</span> {
+        <span class="kw">return</span> err <span class="cm">// defer rollback sẽ chạy</span>
+    }
+
+    <span class="kw">return</span> tx.<span class="fn">Commit</span>()
+}
+
+<span class="cm">// Stats trả về database pool statistics</span>
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">DBManager</span>) <span class="fn">Stats</span>() sql.<span class="ty">DBStats</span> { <span class="kw">return</span> m.<span class="field">db</span>.<span class="fn">Stats</span>() }
+
+<span class="cm">// Close đóng tất cả connections trong pool</span>
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">DBManager</span>) <span class="fn">Close</span>() <span class="ty">error</span> { <span class="kw">return</span> m.<span class="field">db</span>.<span class="fn">Close</span>() }
+
+<span class="cm">// ── Usage ─────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="ty">UserRepo</span> <span class="kw">struct</span>{ <span class="field">dbm</span> *<span class="ty">DBManager</span> }
+
+<span class="kw">func</span> (<span class="rx">r</span> *<span class="ty">UserRepo</span>) <span class="fn">TransferFunds</span>(ctx context.<span class="ty">Context</span>, from, to <span class="ty">int64</span>, amount <span class="ty">float64</span>) <span class="ty">error</span> {
+    <span class="kw">return</span> r.<span class="field">dbm</span>.<span class="fn">WithTx</span>(ctx, <span class="kw">func</span>(tx *sql.<span class="ty">Tx</span>) <span class="ty">error</span> {
+        _, err := tx.<span class="fn">ExecContext</span>(ctx,
+            <span class="str">"UPDATE accounts SET balance = balance - $1 WHERE id = $2"</span>, amount, from)
+        <span class="kw">if</span> err != <span class="cn">nil</span> {
+            <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"debit %d: %w"</span>, from, err)
+        }
+        _, err = tx.<span class="fn">ExecContext</span>(ctx,
+            <span class="str">"UPDATE accounts SET balance = balance + $1 WHERE id = $2"</span>, amount, to)
+        <span class="kw">return</span> err
+    })
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── 6. HTTP CLIENT MANAGER ── -->
+  <section class="doc-section" id="http">
+    <div class="section-header">
+      <div class="section-num">6</div>
+      <h2 class="section-title">HTTP Client Resource Manager</h2>
+      <span class="badge badge-advanced">Nâng cao</span>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">http_manager.go — HTTP connection pool tùy chỉnh</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">httpclient</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"io"</span>
+    <span class="str">"net"</span>
+    <span class="str">"net/http"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="ty">HTTPClientConfig</span> <span class="kw">struct</span> {
+    <span class="field">MaxIdleConns</span>        <span class="ty">int</span>           <span class="cm">// default: 100</span>
+    <span class="field">MaxIdleConnsPerHost</span> <span class="ty">int</span>           <span class="cm">// default: 10</span>
+    <span class="field">MaxConnsPerHost</span>     <span class="ty">int</span>           <span class="cm">// 0 = unlimited</span>
+    <span class="field">IdleConnTimeout</span>     time.<span class="ty">Duration</span> <span class="cm">// default: 90s</span>
+    <span class="field">DialTimeout</span>         time.<span class="ty">Duration</span> <span class="cm">// default: 30s</span>
+    <span class="field">TLSHandshakeTimeout</span> time.<span class="ty">Duration</span> <span class="cm">// default: 10s</span>
+    <span class="field">RequestTimeout</span>      time.<span class="ty">Duration</span> <span class="cm">// default: 30s</span>
+    <span class="field">DisableKeepAlives</span>   <span class="ty">bool</span>          <span class="cm">// false = reuse conns</span>
+}
+
+<span class="kw">func</span> <span class="fn">DefaultHTTPClientConfig</span>() <span class="ty">HTTPClientConfig</span> {
+    <span class="kw">return</span> <span class="ty">HTTPClientConfig</span>{
+        <span class="field">MaxIdleConns</span>:        <span class="num">100</span>,
+        <span class="field">MaxIdleConnsPerHost</span>: <span class="num">10</span>,
+        <span class="field">IdleConnTimeout</span>:     <span class="num">90</span> * time.<span class="cn">Second</span>,
+        <span class="field">DialTimeout</span>:         <span class="num">30</span> * time.<span class="cn">Second</span>,
+        <span class="field">TLSHandshakeTimeout</span>: <span class="num">10</span> * time.<span class="cn">Second</span>,
+        <span class="field">RequestTimeout</span>:      <span class="num">30</span> * time.<span class="cn">Second</span>,
+    }
+}
+
+<span class="cm">// NewHTTPClient tạo http.Client với transport được cấu hình tối ưu</span>
+<span class="kw">func</span> <span class="fn">NewHTTPClient</span>(cfg <span class="ty">HTTPClientConfig</span>) *http.<span class="ty">Client</span> {
+    transport := &amp;http.<span class="ty">Transport</span>{
+        <span class="field">Proxy</span>: http.<span class="fn">ProxyFromEnvironment</span>,
+        <span class="field">DialContext</span>: (&amp;net.<span class="ty">Dialer</span>{
+            <span class="field">Timeout</span>:   cfg.<span class="field">DialTimeout</span>,
+            <span class="field">KeepAlive</span>: <span class="num">30</span> * time.<span class="cn">Second</span>,
+        }).<span class="field">DialContext</span>,
+        <span class="field">MaxIdleConns</span>:          cfg.<span class="field">MaxIdleConns</span>,
+        <span class="field">MaxIdleConnsPerHost</span>:   cfg.<span class="field">MaxIdleConnsPerHost</span>,
+        <span class="field">MaxConnsPerHost</span>:       cfg.<span class="field">MaxConnsPerHost</span>,
+        <span class="field">IdleConnTimeout</span>:       cfg.<span class="field">IdleConnTimeout</span>,
+        <span class="field">TLSHandshakeTimeout</span>:   cfg.<span class="field">TLSHandshakeTimeout</span>,
+        <span class="field">ExpectContinueTimeout</span>: <span class="num">1</span> * time.<span class="cn">Second</span>,
+        <span class="field">DisableKeepAlives</span>:     cfg.<span class="field">DisableKeepAlives</span>,
+        <span class="field">ForceAttemptHTTP2</span>:     <span class="cn">true</span>,
+    }
+    <span class="kw">return</span> &amp;http.<span class="ty">Client</span>{
+        <span class="field">Transport</span>: transport,
+        <span class="field">Timeout</span>:   cfg.<span class="field">RequestTimeout</span>,
+    }
+}
+
+<span class="cm">// ── CRITICAL: Drain response body để reuse connection ─────────</span>
+<span class="kw">func</span> <span class="fn">DoRequest</span>(ctx context.<span class="ty">Context</span>, client *http.<span class="ty">Client</span>, req *http.<span class="ty">Request</span>) (<span class="ty">[]byte</span>, <span class="ty">error</span>) {
+    req = req.<span class="fn">WithContext</span>(ctx)
+
+    resp, err := client.<span class="fn">Do</span>(req)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"do request: %w"</span>, err)
+    }
+
+    <span class="cm">// PHẢI drain + close body — nếu không connection sẽ không được reuse!</span>
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        _, _ = io.<span class="fn">Copy</span>(io.<span class="cn">Discard</span>, resp.<span class="field">Body</span>)
+        resp.<span class="field">Body</span>.<span class="fn">Close</span>()
+    }()
+
+    <span class="kw">if</span> resp.<span class="field">StatusCode</span> &lt; <span class="num">200</span> || resp.<span class="field">StatusCode</span> &gt;= <span class="num">300</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"HTTP %d: %s"</span>, resp.<span class="field">StatusCode</span>, resp.<span class="field">Status</span>)
+    }
+
+    <span class="kw">return</span> io.<span class="fn">ReadAll</span>(resp.<span class="field">Body</span>)
+}</pre>
+    </div>
+
+    <div class="info-box warn">
+      <div class="label">⚠️ Lỗi phổ biến</div>
+      Nếu bạn <strong>không drain và close</strong> <code>resp.Body</code>, Go's HTTP transport sẽ không thể
+      reuse connection đó. Sau nhiều request, bạn sẽ cạn kiệt file descriptors và gặp lỗi
+      <code>too many open files</code>.
+    </div>
+  </section>
+
+  <!-- ── 7. SYNC.POOL ── -->
+  <section class="doc-section" id="syncpool">
+    <div class="section-header">
+      <div class="section-num">7</div>
+      <h2 class="section-title">sync.Pool — Object Reuse Pattern</h2>
+      <span class="badge badge-advanced">Nâng cao</span>
+    </div>
+
+    <p><code>sync.Pool</code> là built-in object pool của Go runtime. Khác với connection pool thông thường,
+    sync.Pool được GC quản lý — objects có thể bị thu hồi bất cứ lúc nào khi GC chạy.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">syncpool.go — Buffer Pool & Encoder Pool</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">objpool</span>
+
+<span class="kw">import</span> (
+    <span class="str">"bytes"</span>
+    <span class="str">"encoding/json"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cm">// ── Pattern 1: Buffer Pool ─────────────────────────────────────</span>
+<span class="kw">var</span> bufPool = &amp;sync.<span class="ty">Pool</span>{
+    <span class="field">New</span>: <span class="kw">func</span>() <span class="kw">any</span> {
+        <span class="cm">// Tạo buffer với capacity ban đầu 4KB</span>
+        <span class="kw">return</span> bytes.<span class="fn">NewBuffer</span>(<span class="fn">make</span>([]<span class="ty">byte</span>, <span class="num">0</span>, <span class="num">4096</span>))
+    },
+}
+
+<span class="kw">func</span> <span class="fn">AcquireBuffer</span>() *bytes.<span class="ty">Buffer</span> {
+    <span class="kw">return</span> bufPool.<span class="fn">Get</span>().(*bytes.<span class="ty">Buffer</span>)
+}
+
+<span class="kw">func</span> <span class="fn">ReleaseBuffer</span>(buf *bytes.<span class="ty">Buffer</span>) {
+    buf.<span class="fn">Reset</span>() <span class="cm">// PHẢI reset trước khi trả lại pool</span>
+    bufPool.<span class="fn">Put</span>(buf)
+}
+
+<span class="cm">// ── Pattern 2: Type-safe Pool wrapper (Go 1.18+) ───────────────</span>
+<span class="kw">type</span> <span class="ty">TypedPool</span>[<span class="ty">T</span> <span class="kw">any</span>] <span class="kw">struct</span> {
+    <span class="field">p</span> sync.<span class="ty">Pool</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewTypedPool</span>[<span class="ty">T</span> <span class="kw">any</span>](factory <span class="kw">func</span>() *<span class="ty">T</span>) *<span class="ty">TypedPool</span>[<span class="ty">T</span>] {
+    <span class="kw">return</span> &amp;<span class="ty">TypedPool</span>[<span class="ty">T</span>]{
+        <span class="field">p</span>: sync.<span class="ty">Pool</span>{<span class="field">New</span>: <span class="kw">func</span>() <span class="kw">any</span> { <span class="kw">return</span> <span class="fn">factory</span>() }},
+    }
+}
+
+<span class="kw">func</span> (<span class="rx">tp</span> *<span class="ty">TypedPool</span>[<span class="ty">T</span>]) <span class="fn">Get</span>() *<span class="ty">T</span> {
+    <span class="kw">return</span> tp.<span class="field">p</span>.<span class="fn">Get</span>().(*<span class="ty">T</span>)
+}
+
+<span class="kw">func</span> (<span class="rx">tp</span> *<span class="ty">TypedPool</span>[<span class="ty">T</span>]) <span class="fn">Put</span>(v *<span class="ty">T</span>) {
+    tp.<span class="field">p</span>.<span class="fn">Put</span>(v)
+}
+
+<span class="cm">// ── Pattern 3: JSON Encoder Pool (giảm 70% allocations) ───────</span>
+<span class="kw">type</span> <span class="ty">encoderBuf</span> <span class="kw">struct</span> {
+    <span class="field">buf</span> *bytes.<span class="ty">Buffer</span>
+    <span class="field">enc</span> *json.<span class="ty">Encoder</span>
+}
+
+<span class="kw">var</span> encoderPool = sync.<span class="ty">Pool</span>{
+    <span class="field">New</span>: <span class="kw">func</span>() <span class="kw">any</span> {
+        buf := &amp;bytes.<span class="ty">Buffer</span>{}
+        <span class="kw">return</span> &amp;<span class="ty">encoderBuf</span>{buf: buf, enc: json.<span class="fn">NewEncoder</span>(buf)}
+    },
+}
+
+<span class="kw">func</span> <span class="fn">MarshalJSON</span>(v <span class="kw">any</span>) (<span class="ty">[]byte</span>, <span class="ty">error</span>) {
+    eb := encoderPool.<span class="fn">Get</span>().(*<span class="ty">encoderBuf</span>)
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        eb.<span class="field">buf</span>.<span class="fn">Reset</span>()
+        encoderPool.<span class="fn">Put</span>(eb)
+    }()
+
+    <span class="kw">if</span> err := eb.<span class="field">enc</span>.<span class="fn">Encode</span>(v); err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, err
+    }
+    <span class="cm">// Bỏ trailing newline mà json.Encoder thêm vào</span>
+    result := <span class="fn">make</span>([]<span class="ty">byte</span>, eb.<span class="field">buf</span>.<span class="fn">Len</span>()<span class="op">-</span><span class="num">1</span>)
+    <span class="fn">copy</span>(result, eb.<span class="field">buf</span>.<span class="fn">Bytes</span>())
+    <span class="kw">return</span> result, <span class="cn">nil</span>
+}
+
+<span class="cm">// ── Pattern 4: Slice Pool (tránh append allocations) ──────────</span>
+<span class="kw">var</span> slicePool = sync.<span class="ty">Pool</span>{
+    <span class="field">New</span>: <span class="kw">func</span>() <span class="kw">any</span> {
+        s := <span class="fn">make</span>([]<span class="ty">byte</span>, <span class="num">0</span>, <span class="num">64</span><span class="op">*</span><span class="num">1024</span>) <span class="cm">// 64KB</span>
+        <span class="kw">return</span> &amp;s
+    },
+}
+
+<span class="kw">func</span> <span class="fn">GetSlice</span>() *[]<span class="ty">byte</span> {
+    return slicePool.<span class="fn">Get</span>().(*[]<span class="ty">byte</span>)
+}
+
+<span class="kw">func</span> <span class="fn">PutSlice</span>(s *[]<span class="ty">byte</span>) {
+    *s = (*s)[:<span class="num">0</span>] <span class="cm">// reset length, giữ capacity</span>
+    slicePool.<span class="fn">Put</span>(s)
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── 8. ADVANCED: Generic Resource Pool ── -->
+  <section class="doc-section" id="advanced">
+    <div class="section-header">
+      <div class="section-num">8</div>
+      <h2 class="section-title">Lifecycle Manager — Orchestrate nhiều Resources</h2>
+      <span class="badge badge-advanced">Nâng cao</span>
+    </div>
+
+    <p>Quản lý toàn bộ vòng đời của application: khởi tạo resources theo thứ tự,
+    graceful shutdown theo thứ tự đảo ngược.</p>
+
+    <!-- Lifecycle diagram -->
+    <div class="diagram-box">
+      <div class="diagram-title">Lifecycle Manager — Startup &amp; Shutdown Order</div>
+      <svg viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:160px;">
+        <defs>
+          <marker id="la" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+          </marker>
+          <marker id="la2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ff7b72"/>
+          </marker>
+        </defs>
+        <!-- Startup -->
+        <text x="10" y="30" fill="#3fb950" font-size="12" font-family="Space Grotesk" font-weight="600">STARTUP (thứ tự đăng ký)</text>
+        <rect x="10" y="42" width="100" height="32" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="60" y="63" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">DB</text>
+        <line x1="110" y1="58" x2="128" y2="58" stroke="#3fb950" stroke-width="1.5" marker-end="url(#la)"/>
+        <rect x="130" y="42" width="100" height="32" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="180" y="63" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">Redis</text>
+        <line x1="230" y1="58" x2="248" y2="58" stroke="#3fb950" stroke-width="1.5" marker-end="url(#la)"/>
+        <rect x="250" y="42" width="100" height="32" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="300" y="63" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">HTTP</text>
+        <line x1="350" y1="58" x2="368" y2="58" stroke="#3fb950" stroke-width="1.5" marker-end="url(#la)"/>
+        <rect x="370" y="42" width="100" height="32" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="420" y="63" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">gRPC</text>
+
+        <!-- Shutdown -->
+        <text x="10" y="115" fill="#ff7b72" font-size="12" font-family="Space Grotesk" font-weight="600">SHUTDOWN (thứ tự đảo ngược)</text>
+        <rect x="370" y="128" width="100" height="30" rx="6" fill="#1c2128" stroke="#ff7b72" stroke-width="1.5"/>
+        <text x="420" y="148" text-anchor="middle" fill="#ff7b72" font-size="11" font-family="JetBrains Mono">gRPC</text>
+        <line x1="370" y1="143" x2="352" y2="143" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#la2)"/>
+        <rect x="250" y="128" width="100" height="30" rx="6" fill="#1c2128" stroke="#ff7b72" stroke-width="1.5"/>
+        <text x="300" y="148" text-anchor="middle" fill="#ff7b72" font-size="11" font-family="JetBrains Mono">HTTP</text>
+        <line x1="250" y1="143" x2="232" y2="143" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#la2)"/>
+        <rect x="130" y="128" width="100" height="30" rx="6" fill="#1c2128" stroke="#ff7b72" stroke-width="1.5"/>
+        <text x="180" y="148" text-anchor="middle" fill="#ff7b72" font-size="11" font-family="JetBrains Mono">Redis</text>
+        <line x1="130" y1="143" x2="112" y2="143" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#la2)"/>
+        <rect x="10" y="128" width="100" height="30" rx="6" fill="#1c2128" stroke="#ff7b72" stroke-width="1.5"/>
+        <text x="60" y="148" text-anchor="middle" fill="#ff7b72" font-size="11" font-family="JetBrains Mono">DB</text>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">lifecycle.go — Application Resource Lifecycle Manager</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">lifecycle</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"os"</span>
+    <span class="str">"os/signal"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"syscall"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// Hook định nghĩa một lifecycle hook với start/stop</span>
+<span class="kw">type</span> <span class="ty">Hook</span> <span class="kw">struct</span> {
+    <span class="field">Name</span>    <span class="ty">string</span>
+    <span class="field">OnStart</span> <span class="kw">func</span>(context.<span class="ty">Context</span>) <span class="ty">error</span>
+    <span class="field">OnStop</span>  <span class="kw">func</span>(context.<span class="ty">Context</span>) <span class="ty">error</span>
+}
+
+<span class="cm">// Manager điều phối startup &amp; shutdown theo thứ tự</span>
+<span class="kw">type</span> <span class="ty">Manager</span> <span class="kw">struct</span> {
+    <span class="field">hooks</span>           []<span class="ty">Hook</span>
+    <span class="field">startTimeout</span>    time.<span class="ty">Duration</span>
+    <span class="field">shutdownTimeout</span> time.<span class="ty">Duration</span>
+    <span class="field">logger</span>          *slog.<span class="ty">Logger</span>
+    <span class="field">mu</span>              sync.<span class="ty">Mutex</span>
+    <span class="field">started</span>         []<span class="ty">int</span> <span class="cm">// index của những hook đã start thành công</span>
+}
+
+<span class="kw">func</span> <span class="fn">New</span>(opts ...<span class="ty">Option</span>) *<span class="ty">Manager</span> {
+    m := &amp;<span class="ty">Manager</span>{
+        <span class="field">startTimeout</span>:    <span class="num">30</span> * time.<span class="cn">Second</span>,
+        <span class="field">shutdownTimeout</span>: <span class="num">15</span> * time.<span class="cn">Second</span>,
+        <span class="field">logger</span>:          slog.<span class="fn">Default</span>(),
+    }
+    <span class="kw">for</span> _, o := <span class="kw">range</span> opts { <span class="fn">o</span>(m) }
+    <span class="kw">return</span> m
+}
+
+<span class="kw">type</span> <span class="ty">Option</span> <span class="kw">func</span>(*<span class="ty">Manager</span>)
+
+<span class="kw">func</span> <span class="fn">WithStartTimeout</span>(d time.<span class="ty">Duration</span>) <span class="ty">Option</span> {
+    <span class="kw">return</span> <span class="kw">func</span>(m *<span class="ty">Manager</span>) { m.<span class="field">startTimeout</span> = d }
+}
+
+<span class="kw">func</span> <span class="fn">WithLogger</span>(l *slog.<span class="ty">Logger</span>) <span class="ty">Option</span> {
+    <span class="kw">return</span> <span class="kw">func</span>(m *<span class="ty">Manager</span>) { m.<span class="field">logger</span> = l }
+}
+
+<span class="cm">// Register thêm hook — thứ tự đăng ký = thứ tự start</span>
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">Manager</span>) <span class="fn">Register</span>(hook <span class="ty">Hook</span>) {
+    m.<span class="field">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> m.<span class="field">mu</span>.<span class="fn">Unlock</span>()
+    m.<span class="field">hooks</span> = <span class="fn">append</span>(m.<span class="field">hooks</span>, hook)
+}
+
+<span class="cm">// Run khởi chạy tất cả hooks, chờ signal, rồi shutdown</span>
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">Manager</span>) <span class="fn">Run</span>() <span class="ty">error</span> {
+    startCtx, startCancel := context.<span class="fn">WithTimeout</span>(
+        context.<span class="fn">Background</span>(), m.<span class="field">startTimeout</span>)
+    <span class="kw">defer</span> <span class="fn">startCancel</span>()
+
+    <span class="cm">// Startup theo thứ tự</span>
+    <span class="kw">for</span> i, hook := <span class="kw">range</span> m.<span class="field">hooks</span> {
+        m.<span class="field">logger</span>.<span class="fn">Info</span>(<span class="str">"starting"</span>, <span class="str">"component"</span>, hook.<span class="field">Name</span>)
+        <span class="kw">if</span> hook.<span class="field">OnStart</span> != <span class="cn">nil</span> {
+            <span class="kw">if</span> err := hook.<span class="fn">OnStart</span>(startCtx); err != <span class="cn">nil</span> {
+                <span class="cm">// Rollback: dừng những cái đã start</span>
+                m.<span class="fn">stopStarted</span>()
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"start %s: %w"</span>, hook.<span class="field">Name</span>, err)
+            }
+        }
+        m.<span class="field">started</span> = <span class="fn">append</span>(m.<span class="field">started</span>, i)
+        m.<span class="field">logger</span>.<span class="fn">Info</span>(<span class="str">"started"</span>, <span class="str">"component"</span>, hook.<span class="field">Name</span>)
+    }
+
+    <span class="cm">// Chờ OS signal</span>
+    sigCh := <span class="fn">make</span>(<span class="kw">chan</span> os.<span class="ty">Signal</span>, <span class="num">1</span>)
+    signal.<span class="fn">Notify</span>(sigCh, syscall.<span class="cn">SIGINT</span>, syscall.<span class="cn">SIGTERM</span>)
+    sig := &lt;-sigCh
+    m.<span class="field">logger</span>.<span class="fn">Info</span>(<span class="str">"received signal, shutting down"</span>, <span class="str">"signal"</span>, sig)
+
+    <span class="kw">return</span> m.<span class="fn">stopStarted</span>()
+}
+
+<span class="cm">// stopStarted dừng tất cả hooks đã start theo thứ tự LIFO</span>
+<span class="kw">func</span> (<span class="rx">m</span> *<span class="ty">Manager</span>) <span class="fn">stopStarted</span>() <span class="ty">error</span> {
+    stopCtx, cancel := context.<span class="fn">WithTimeout</span>(
+        context.<span class="fn">Background</span>(), m.<span class="field">shutdownTimeout</span>)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="kw">var</span> errs []<span class="ty">error</span>
+    <span class="cm">// Đảo ngược thứ tự</span>
+    <span class="kw">for</span> i := <span class="fn">len</span>(m.<span class="field">started</span>) <span class="op">-</span> <span class="num">1</span>; i &gt;= <span class="num">0</span>; i-- {
+        hook := m.<span class="field">hooks</span>[m.<span class="field">started</span>[i]]
+        m.<span class="field">logger</span>.<span class="fn">Info</span>(<span class="str">"stopping"</span>, <span class="str">"component"</span>, hook.<span class="field">Name</span>)
+        <span class="kw">if</span> hook.<span class="field">OnStop</span> != <span class="cn">nil</span> {
+            <span class="kw">if</span> err := hook.<span class="fn">OnStop</span>(stopCtx); err != <span class="cn">nil</span> {
+                errs = <span class="fn">append</span>(errs, fmt.<span class="fn">Errorf</span>(<span class="str">"stop %s: %w"</span>, hook.<span class="field">Name</span>, err))
+            }
+        }
+    }
+    <span class="kw">if</span> <span class="fn">len</span>(errs) &gt; <span class="num">0</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"shutdown errors: %v"</span>, errs)
+    }
+    <span class="kw">return</span> <span class="cn">nil</span>
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── 9. EXPERT: CIRCUIT BREAKER ── -->
+  <section class="doc-section" id="expert">
+    <div class="section-header">
+      <div class="section-num">9</div>
+      <h2 class="section-title">Circuit Breaker cho Resource Pool</h2>
+      <span class="badge badge-expert">★ Expert</span>
+    </div>
+
+    <p>Ngăn chặn cascade failure khi resource (DB, Redis, API) bị quá tải — tự động
+    <strong>mở mạch</strong> khi error rate vượt ngưỡng và <strong>thử lại</strong> sau cooldown period.</p>
+
+    <!-- State machine diagram -->
+    <div class="diagram-box">
+      <div class="diagram-title">Circuit Breaker — State Machine</div>
+      <svg viewBox="0 0 700 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:200px;">
+        <defs>
+          <marker id="cba" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#39d0d8"/>
+          </marker>
+        </defs>
+
+        <!-- CLOSED -->
+        <circle cx="120" cy="100" r="50" fill="#1c2128" stroke="#3fb950" stroke-width="2.5"/>
+        <text x="120" y="96" text-anchor="middle" fill="#3fb950" font-size="13" font-family="Space Grotesk" font-weight="700">CLOSED</text>
+        <text x="120" y="112" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">bình thường</text>
+
+        <!-- OPEN -->
+        <circle cx="380" cy="100" r="50" fill="#1c2128" stroke="#ff7b72" stroke-width="2.5"/>
+        <text x="380" y="96" text-anchor="middle" fill="#ff7b72" font-size="13" font-family="Space Grotesk" font-weight="700">OPEN</text>
+        <text x="380" y="112" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">từ chối requests</text>
+
+        <!-- HALF-OPEN -->
+        <circle cx="620" cy="100" r="55" fill="#1c2128" stroke="#e3b341" stroke-width="2.5"/>
+        <text x="620" y="94" text-anchor="middle" fill="#e3b341" font-size="12" font-family="Space Grotesk" font-weight="700">HALF-OPEN</text>
+        <text x="620" y="108" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">thử probe</text>
+
+        <!-- CLOSED → OPEN: failures exceed threshold -->
+        <path d="M 165 80 Q 270 30 330 70" fill="none" stroke="#ff7b72" stroke-width="1.5" marker-end="url(#cba)"/>
+        <text x="248" y="44" text-anchor="middle" fill="#ff7b72" font-size="10" font-family="JetBrains Mono">failures &gt; threshold</text>
+
+        <!-- OPEN → HALF-OPEN: after timeout -->
+        <path d="M 430 85 Q 510 50 565 75" fill="none" stroke="#e3b341" stroke-width="1.5" marker-end="url(#cba)"/>
+        <text x="505" y="48" text-anchor="middle" fill="#e3b341" font-size="10" font-family="JetBrains Mono">after timeout</text>
+
+        <!-- HALF-OPEN → CLOSED: success -->
+        <path d="M 580 155 Q 400 200 160 150" fill="none" stroke="#3fb950" stroke-width="1.5" marker-end="url(#cba)"/>
+        <text x="380" y="195" text-anchor="middle" fill="#3fb950" font-size="10" font-family="JetBrains Mono">probe success → reset</text>
+
+        <!-- HALF-OPEN → OPEN: failure -->
+        <path d="M 580 75 Q 500 30 430 70" fill="none" stroke="#ff7b72" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#cba)"/>
+        <text x="510" y="28" text-anchor="middle" fill="#ff7b72" font-size="10" font-family="JetBrains Mono">probe fail → reopen</text>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">circuit_breaker.go — Thread-safe Circuit Breaker</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">circuitbreaker</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="ty">State</span> <span class="ty">int32</span>
+
+<span class="kw">const</span> (
+    <span class="cn">StateClosed</span>   <span class="ty">State</span> = <span class="fn">iota</span> <span class="cm">// hoạt động bình thường</span>
+    <span class="cn">StateOpen</span>                   <span class="cm">// từ chối tất cả requests</span>
+    <span class="cn">StateHalfOpen</span>               <span class="cm">// cho phép một probe request</span>
+)
+
+<span class="kw">var</span> <span class="field">ErrCircuitOpen</span> = errors.<span class="fn">New</span>(<span class="str">"circuit breaker is open"</span>)
+
+<span class="kw">type</span> <span class="ty">CBConfig</span> <span class="kw">struct</span> {
+    <span class="field">MaxFailures</span>    <span class="ty">int</span>           <span class="cm">// số lỗi liên tiếp để mở mạch</span>
+    <span class="field">ResetTimeout</span>   time.<span class="ty">Duration</span> <span class="cm">// thời gian chờ trước khi thử lại</span>
+    <span class="field">HalfOpenMaxReq</span> <span class="ty">int</span>           <span class="cm">// số probes trong half-open state</span>
+    <span class="field">OnStateChange</span>  <span class="kw">func</span>(from, to <span class="ty">State</span>)
+}
+
+<span class="kw">type</span> <span class="ty">CircuitBreaker</span> <span class="kw">struct</span> {
+    <span class="field">cfg</span>         <span class="ty">CBConfig</span>
+    <span class="field">state</span>       <span class="ty">int32</span> <span class="cm">// atomic State</span>
+    <span class="field">failures</span>    <span class="ty">int32</span> <span class="cm">// atomic failure counter</span>
+    <span class="field">halfOpenReq</span> <span class="ty">int32</span> <span class="cm">// atomic counter cho half-open probes</span>
+    <span class="field">openedAt</span>    atomic.<span class="ty">Value</span> <span class="cm">// stores time.Time</span>
+    <span class="field">mu</span>          sync.<span class="ty">Mutex</span>
+}
+
+<span class="kw">func</span> <span class="fn">New</span>(cfg <span class="ty">CBConfig</span>) *<span class="ty">CircuitBreaker</span> {
+    <span class="kw">if</span> cfg.<span class="field">MaxFailures</span> <= <span class="num">0</span> { cfg.<span class="field">MaxFailures</span> = <span class="num">5</span> }
+    <span class="kw">if</span> cfg.<span class="field">ResetTimeout</span> == <span class="num">0</span> { cfg.<span class="field">ResetTimeout</span> = <span class="num">30</span> * time.<span class="cn">Second</span> }
+    <span class="kw">if</span> cfg.<span class="field">HalfOpenMaxReq</span> == <span class="num">0</span> { cfg.<span class="field">HalfOpenMaxReq</span> = <span class="num">1</span> }
+    <span class="kw">return</span> &amp;<span class="ty">CircuitBreaker</span>{cfg: cfg}
+}
+
+<span class="kw">func</span> (<span class="rx">cb</span> *<span class="ty">CircuitBreaker</span>) <span class="fn">State</span>() <span class="ty">State</span> {
+    <span class="kw">return</span> <span class="ty">State</span>(atomic.<span class="fn">LoadInt32</span>(&amp;cb.<span class="field">state</span>))
+}
+
+<span class="cm">// Execute chạy fn qua circuit breaker</span>
+<span class="kw">func</span> (<span class="rx">cb</span> *<span class="ty">CircuitBreaker</span>) <span class="fn">Execute</span>(ctx context.<span class="ty">Context</span>, fn <span class="kw">func</span>(context.<span class="ty">Context</span>) <span class="ty">error</span>) <span class="ty">error</span> {
+    <span class="kw">if</span> err := cb.<span class="fn">allow</span>(); err != <span class="cn">nil</span> {
+        <span class="kw">return</span> err
+    }
+
+    err := <span class="fn">fn</span>(ctx)
+    cb.<span class="fn">record</span>(err)
+    <span class="kw">return</span> err
+}
+
+<span class="kw">func</span> (<span class="rx">cb</span> *<span class="ty">CircuitBreaker</span>) <span class="fn">allow</span>() <span class="ty">error</span> {
+    <span class="kw">switch</span> <span class="ty">State</span>(atomic.<span class="fn">LoadInt32</span>(&amp;cb.<span class="field">state</span>)) {
+    <span class="kw">case</span> <span class="cn">StateClosed</span>:
+        <span class="kw">return</span> <span class="cn">nil</span>
+
+    <span class="kw">case</span> <span class="cn">StateOpen</span>:
+        <span class="cm">// Kiểm tra timeout để chuyển sang half-open</span>
+        t, _ := cb.<span class="field">openedAt</span>.<span class="fn">Load</span>().(time.<span class="ty">Time</span>)
+        <span class="kw">if</span> time.<span class="fn">Since</span>(t) &gt; cb.<span class="field">cfg</span>.<span class="field">ResetTimeout</span> {
+            cb.<span class="fn">transitionTo</span>(<span class="cn">StateHalfOpen</span>)
+            <span class="kw">return</span> <span class="cn">nil</span>
+        }
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"%w (retry after %v)"</span>,
+            <span class="ty">ErrCircuitOpen</span>,
+            t.<span class="fn">Add</span>(cb.<span class="field">cfg</span>.<span class="field">ResetTimeout</span>).<span class="fn">Sub</span>(time.<span class="fn">Now</span>()).Truncate(time.<span class="cn">Second</span>))
+
+    <span class="kw">case</span> <span class="cn">StateHalfOpen</span>:
+        <span class="cm">// Chỉ cho phép HalfOpenMaxReq probes</span>
+        n := atomic.<span class="fn">AddInt32</span>(&amp;cb.<span class="field">halfOpenReq</span>, <span class="num">1</span>)
+        <span class="kw">if</span> n &gt; <span class="ty">int32</span>(cb.<span class="field">cfg</span>.<span class="field">HalfOpenMaxReq</span>) {
+            atomic.<span class="fn">AddInt32</span>(&amp;cb.<span class="field">halfOpenReq</span>, <span class="op">-</span><span class="num">1</span>)
+            <span class="kw">return</span> <span class="ty">ErrCircuitOpen</span>
+        }
+        <span class="kw">return</span> <span class="cn">nil</span>
+    }
+    <span class="kw">return</span> <span class="cn">nil</span>
+}
+
+<span class="kw">func</span> (<span class="rx">cb</span> *<span class="ty">CircuitBreaker</span>) <span class="fn">record</span>(err <span class="ty">error</span>) {
+    <span class="kw">if</span> err == <span class="cn">nil</span> {
+        <span class="kw">if</span> <span class="ty">State</span>(atomic.<span class="fn">LoadInt32</span>(&amp;cb.<span class="field">state</span>)) == <span class="cn">StateHalfOpen</span> {
+            cb.<span class="fn">transitionTo</span>(<span class="cn">StateClosed</span>) <span class="cm">// probe thành công → đóng mạch</span>
+        } <span class="kw">else</span> {
+            atomic.<span class="fn">StoreInt32</span>(&amp;cb.<span class="field">failures</span>, <span class="num">0</span>) <span class="cm">// reset counter</span>
+        }
+        <span class="kw">return</span>
+    }
+
+    f := atomic.<span class="fn">AddInt32</span>(&amp;cb.<span class="field">failures</span>, <span class="num">1</span>)
+    <span class="kw">if</span> int(f) &gt;= cb.<span class="field">cfg</span>.<span class="field">MaxFailures</span> {
+        cb.<span class="fn">transitionTo</span>(<span class="cn">StateOpen</span>)
+    }
+}
+
+<span class="kw">func</span> (<span class="rx">cb</span> *<span class="ty">CircuitBreaker</span>) <span class="fn">transitionTo</span>(to <span class="ty">State</span>) {
+    cb.<span class="field">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> cb.<span class="field">mu</span>.<span class="fn">Unlock</span>()
+
+    from := <span class="ty">State</span>(atomic.<span class="fn">LoadInt32</span>(&amp;cb.<span class="field">state</span>))
+    <span class="kw">if</span> from == to { <span class="kw">return</span> }
+
+    atomic.<span class="fn">StoreInt32</span>(&amp;cb.<span class="field">state</span>, <span class="ty">int32</span>(to))
+    <span class="kw">if</span> to == <span class="cn">StateOpen</span> {
+        cb.<span class="field">openedAt</span>.<span class="fn">Store</span>(time.<span class="fn">Now</span>())
+        atomic.<span class="fn">StoreInt32</span>(&amp;cb.<span class="field">failures</span>, <span class="num">0</span>)
+    }
+    <span class="kw">if</span> to == <span class="cn">StateClosed</span> {
+        atomic.<span class="fn">StoreInt32</span>(&amp;cb.<span class="field">failures</span>, <span class="num">0</span>)
+        atomic.<span class="fn">StoreInt32</span>(&amp;cb.<span class="field">halfOpenReq</span>, <span class="num">0</span>)
+    }
+    <span class="kw">if</span> cb.<span class="field">cfg</span>.<span class="field">OnStateChange</span> != <span class="cn">nil</span> {
+        cb.<span class="field">cfg</span>.<span class="fn">OnStateChange</span>(from, to)
+    }
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── 10. REAL-WORLD ── -->
+  <section class="doc-section" id="realworld">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2 class="section-title">Real-World: Hệ thống Resource Manager hoàn chỉnh</h2>
+      <span class="badge badge-expert">★ Expert</span>
+    </div>
+
+    <p>
+      Kết hợp tất cả patterns để xây dựng một <strong>Resource Manager hoàn chỉnh</strong> cho microservice:
+      quản lý DB pool, Redis, HTTP clients với health check, circuit breaker, và graceful shutdown.
+    </p>
+
+    <!-- Architecture diagram -->
+    <div class="diagram-box">
+      <div class="diagram-title">PRODUCTION RESOURCE MANAGER ARCHITECTURE</div>
+      <svg viewBox="0 0 760 260" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-height:260px;">
+        <defs>
+          <marker id="ra" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#39d0d8"/>
+          </marker>
+          <marker id="ra2" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#ff7b72"/>
+          </marker>
+        </defs>
+
+        <!-- ResourceManager box -->
+        <rect x="260" y="10" width="230" height="60" rx="10" fill="#161b22" stroke="#39d0d8" stroke-width="2"/>
+        <text x="375" y="38" text-anchor="middle" fill="#39d0d8" font-size="14" font-family="Space Grotesk" font-weight="700">ResourceManager</text>
+        <text x="375" y="56" text-anchor="middle" fill="#8b949e" font-size="11" font-family="JetBrains Mono">lifecycle + health + metrics</text>
+
+        <!-- DB Pool -->
+        <rect x="20" y="110" width="150" height="55" rx="8" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="95" y="132" text-anchor="middle" fill="#3fb950" font-size="12" font-family="Space Grotesk" font-weight="700">DB Pool</text>
+        <text x="95" y="148" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">max:25 idle:5</text>
+        <text x="95" y="160" text-anchor="middle" fill="#39d0d8" font-size="10" font-family="JetBrains Mono">CB: closed ✓</text>
+
+        <!-- Redis Pool -->
+        <rect x="200" y="110" width="150" height="55" rx="8" fill="#1c2128" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="275" y="132" text-anchor="middle" fill="#f0883e" font-size="12" font-family="Space Grotesk" font-weight="700">Redis Pool</text>
+        <text x="275" y="148" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">max:50 pipeline</text>
+        <text x="275" y="160" text-anchor="middle" fill="#39d0d8" font-size="10" font-family="JetBrains Mono">CB: closed ✓</text>
+
+        <!-- HTTP Pool -->
+        <rect x="380" y="110" width="150" height="55" rx="8" fill="#1c2128" stroke="#bc8cff" stroke-width="1.5"/>
+        <text x="455" y="132" text-anchor="middle" fill="#bc8cff" font-size="12" font-family="Space Grotesk" font-weight="700">HTTP Client</text>
+        <text x="455" y="148" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">keep-alive pool</text>
+        <text x="455" y="160" text-anchor="middle" fill="#39d0d8" font-size="10" font-family="JetBrains Mono">CB: closed ✓</text>
+
+        <!-- File Manager -->
+        <rect x="560" y="110" width="170" height="55" rx="8" fill="#1c2128" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="645" y="132" text-anchor="middle" fill="#58a6ff" font-size="12" font-family="Space Grotesk" font-weight="700">File Manager</text>
+        <text x="645" y="148" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">max:100 handles</text>
+        <text x="645" y="160" text-anchor="middle" fill="#39d0d8" font-size="10" font-family="JetBrains Mono">open: 3/100</text>
+
+        <!-- Arrows from manager to pools -->
+        <line x1="330" y1="70" x2="180" y2="108" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ra)"/>
+        <line x1="350" y1="70" x2="290" y2="108" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ra)"/>
+        <line x1="400" y1="70" x2="440" y2="108" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ra)"/>
+        <line x1="430" y1="70" x2="600" y2="108" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ra)"/>
+
+        <!-- Health check row -->
+        <rect x="20" y="185" width="700" height="35" rx="6" fill="#161b22" stroke="#e3b341" stroke-width="1.5"/>
+        <text x="370" y="199" text-anchor="middle" fill="#e3b341" font-size="11" font-family="JetBrains Mono">Health Check Loop (30s interval)</text>
+        <text x="100" y="213" text-anchor="middle" fill="#3fb950" font-size="10" font-family="JetBrains Mono">DB: ✓ ping 2ms</text>
+        <text x="280" y="213" text-anchor="middle" fill="#3fb950" font-size="10" font-family="JetBrains Mono">Redis: ✓ ping 1ms</text>
+        <text x="455" y="213" text-anchor="middle" fill="#3fb950" font-size="10" font-family="JetBrains Mono">HTTP: ✓ reachable</text>
+        <text x="640" y="213" text-anchor="middle" fill="#3fb950" font-size="10" font-family="JetBrains Mono">Files: ✓ 3 open</text>
+
+        <!-- Metrics row -->
+        <rect x="20" y="232" width="700" height="24" rx="5" fill="#21262d" stroke="#30363d"/>
+        <text x="370" y="249" text-anchor="middle" fill="#6e7681" font-size="10" font-family="JetBrains Mono">
+          Prometheus Metrics: pool_acquire_total | pool_idle_conns | pool_wait_duration_ms
+        </text>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">app_resource_manager.go — Production Resource Manager</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">app</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"database/sql"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"net/http"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/redis/go-redis/v9"</span>
+)
+
+<span class="cm">// ResourceManager tổng hợp tất cả resources của application</span>
+<span class="kw">type</span> <span class="ty">ResourceManager</span> <span class="kw">struct</span> {
+    <span class="field">DB</span>         *sql.<span class="ty">DB</span>
+    <span class="field">Redis</span>      *redis.<span class="ty">Client</span>
+    <span class="field">HTTPClient</span> *http.<span class="ty">Client</span>
+    <span class="field">FileMgr</span>    *<span class="ty">FileManager</span>
+
+    <span class="field">dbCB</span>    *<span class="ty">CircuitBreaker</span>
+    <span class="field">redisCB</span> *<span class="ty">CircuitBreaker</span>
+
+    <span class="field">healthTicker</span> *time.<span class="ty">Ticker</span>
+    <span class="field">stopHealth</span>   <span class="kw">chan</span> <span class="kw">struct</span>{}
+    <span class="field">mu</span>           sync.<span class="ty">RWMutex</span>
+    <span class="field">logger</span>       *slog.<span class="ty">Logger</span>
+}
+
+<span class="kw">type</span> <span class="ty">AppConfig</span> <span class="kw">struct</span> {
+    <span class="field">DatabaseDSN</span>     <span class="ty">string</span>
+    <span class="field">RedisAddr</span>       <span class="ty">string</span>
+    <span class="field">MaxDBConns</span>      <span class="ty">int</span>
+    <span class="field">MaxRedisConns</span>   <span class="ty">int</span>
+    <span class="field">MaxFileHandles</span>  <span class="ty">int</span>
+    <span class="field">HealthInterval</span>  time.<span class="ty">Duration</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewResourceManager</span>(cfg <span class="ty">AppConfig</span>, logger *slog.<span class="ty">Logger</span>) (*<span class="ty">ResourceManager</span>, <span class="ty">error</span>) {
+    <span class="cm">// Defaults</span>
+    <span class="kw">if</span> cfg.<span class="field">MaxDBConns</span> == <span class="num">0</span> { cfg.<span class="field">MaxDBConns</span> = <span class="num">25</span> }
+    <span class="kw">if</span> cfg.<span class="field">MaxRedisConns</span> == <span class="num">0</span> { cfg.<span class="field">MaxRedisConns</span> = <span class="num">50</span> }
+    <span class="kw">if</span> cfg.<span class="field">MaxFileHandles</span> == <span class="num">0</span> { cfg.<span class="field">MaxFileHandles</span> = <span class="num">100</span> }
+    <span class="kw">if</span> cfg.<span class="field">HealthInterval</span> == <span class="num">0</span> { cfg.<span class="field">HealthInterval</span> = <span class="num">30</span> * time.<span class="cn">Second</span> }
+
+    rm := &amp;<span class="ty">ResourceManager</span>{
+        <span class="field">stopHealth</span>: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}),
+        <span class="field">logger</span>:     logger,
+    }
+
+    <span class="cm">// ── 1. Database ──────────────────────────────────────────────</span>
+    db, err := sql.<span class="fn">Open</span>(<span class="str">"postgres"</span>, cfg.<span class="field">DatabaseDSN</span>)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"open db: %w"</span>, err)
+    }
+    db.<span class="fn">SetMaxOpenConns</span>(cfg.<span class="field">MaxDBConns</span>)
+    db.<span class="fn">SetMaxIdleConns</span>(cfg.<span class="field">MaxDBConns</span> / <span class="num">5</span>)
+    db.<span class="fn">SetConnMaxLifetime</span>(<span class="num">30</span> * time.<span class="cn">Minute</span>)
+    db.<span class="fn">SetConnMaxIdleTime</span>(<span class="num">5</span> * time.<span class="cn">Minute</span>)
+
+    pingCtx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">5</span>*time.<span class="cn">Second</span>)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+    <span class="kw">if</span> err := db.<span class="fn">PingContext</span>(pingCtx); err != <span class="cn">nil</span> {
+        _ = db.<span class="fn">Close</span>()
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"db ping: %w"</span>, err)
+    }
+    rm.<span class="field">DB</span> = db
+    rm.<span class="field">dbCB</span> = <span class="fn">New</span>(<span class="ty">CBConfig</span>{<span class="field">MaxFailures</span>: <span class="num">5</span>, <span class="field">ResetTimeout</span>: <span class="num">30</span> * time.<span class="cn">Second</span>,
+        <span class="field">OnStateChange</span>: <span class="kw">func</span>(from, to <span class="ty">State</span>) {
+            logger.<span class="fn">Warn</span>(<span class="str">"db circuit breaker state change"</span>,
+                <span class="str">"from"</span>, from, <span class="str">"to"</span>, to)
+        },
+    })
+    logger.<span class="fn">Info</span>(<span class="str">"database connected"</span>)
+
+    <span class="cm">// ── 2. Redis ─────────────────────────────────────────────────</span>
+    rdb := redis.<span class="fn">NewClient</span>(&amp;redis.<span class="ty">Options</span>{
+        <span class="field">Addr</span>:         cfg.<span class="field">RedisAddr</span>,
+        <span class="field">PoolSize</span>:     cfg.<span class="field">MaxRedisConns</span>,
+        <span class="field">MinIdleConns</span>: cfg.<span class="field">MaxRedisConns</span> / <span class="num">10</span>,
+        <span class="field">MaxIdleTime</span>:  <span class="num">5</span> * time.<span class="cn">Minute</span>,
+        <span class="field">ConnMaxLifetime</span>: <span class="num">30</span> * time.<span class="cn">Minute</span>,
+        <span class="field">DialTimeout</span>:  <span class="num">5</span> * time.<span class="cn">Second</span>,
+        <span class="field">ReadTimeout</span>:  <span class="num">3</span> * time.<span class="cn">Second</span>,
+        <span class="field">WriteTimeout</span>: <span class="num">3</span> * time.<span class="cn">Second</span>,
+    })
+    <span class="kw">if</span> err := rdb.<span class="fn">Ping</span>(context.<span class="fn">Background</span>()).<span class="fn">Err</span>(); err != <span class="cn">nil</span> {
+        _ = db.<span class="fn">Close</span>()
+        _ = rdb.<span class="fn">Close</span>()
+        <span class="kw">return</span> <span class="cn">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"redis ping: %w"</span>, err)
+    }
+    rm.<span class="field">Redis</span> = rdb
+    rm.<span class="field">redisCB</span> = <span class="fn">New</span>(<span class="ty">CBConfig</span>{<span class="field">MaxFailures</span>: <span class="num">3</span>, <span class="field">ResetTimeout</span>: <span class="num">10</span> * time.<span class="cn">Second</span>})
+    logger.<span class="fn">Info</span>(<span class="str">"redis connected"</span>)
+
+    <span class="cm">// ── 3. HTTP Client ───────────────────────────────────────────</span>
+    rm.<span class="field">HTTPClient</span> = <span class="fn">NewHTTPClient</span>(<span class="fn">DefaultHTTPClientConfig</span>())
+
+    <span class="cm">// ── 4. File Manager ──────────────────────────────────────────</span>
+    rm.<span class="field">FileMgr</span> = <span class="fn">NewFileManager</span>(cfg.<span class="field">MaxFileHandles</span>)
+
+    <span class="cm">// ── 5. Start health check loop ───────────────────────────────</span>
+    rm.<span class="field">healthTicker</span> = time.<span class="fn">NewTicker</span>(cfg.<span class="field">HealthInterval</span>)
+    <span class="kw">go</span> rm.<span class="fn">runHealthChecks</span>()
+
+    <span class="kw">return</span> rm, <span class="cn">nil</span>
+}
+
+<span class="kw">func</span> (<span class="rx">rm</span> *<span class="ty">ResourceManager</span>) <span class="fn">runHealthChecks</span>() {
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> &lt;-rm.<span class="field">healthTicker</span>.<span class="field">C</span>:
+            ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">5</span>*time.<span class="cn">Second</span>)
+            <span class="kw">if</span> err := rm.<span class="field">DB</span>.<span class="fn">PingContext</span>(ctx); err != <span class="cn">nil</span> {
+                rm.<span class="field">logger</span>.<span class="fn">Error</span>(<span class="str">"db health check failed"</span>, <span class="str">"err"</span>, err)
+            }
+            <span class="kw">if</span> err := rm.<span class="field">Redis</span>.<span class="fn">Ping</span>(ctx).<span class="fn">Err</span>(); err != <span class="cn">nil</span> {
+                rm.<span class="field">logger</span>.<span class="fn">Error</span>(<span class="str">"redis health check failed"</span>, <span class="str">"err"</span>, err)
+            }
+            <span class="fn">cancel</span>()
+
+            <span class="cm">// Log pool stats</span>
+            dbStats := rm.<span class="field">DB</span>.<span class="fn">Stats</span>()
+            rm.<span class="field">logger</span>.<span class="fn">Debug</span>(<span class="str">"pool stats"</span>,
+                <span class="str">"db_open"</span>, dbStats.<span class="field">OpenConnections</span>,
+                <span class="str">"db_idle"</span>, dbStats.<span class="field">Idle</span>,
+                <span class="str">"db_in_use"</span>, dbStats.<span class="field">InUse</span>,
+            )
+
+        <span class="kw">case</span> &lt;-rm.<span class="field">stopHealth</span>:
+            <span class="kw">return</span>
+        }
+    }
+}
+
+<span class="cm">// QueryDB thực thi query qua circuit breaker</span>
+<span class="kw">func</span> (<span class="rx">rm</span> *<span class="ty">ResourceManager</span>) <span class="fn">QueryDB</span>(ctx context.<span class="ty">Context</span>, query <span class="ty">string</span>, args ...<span class="kw">any</span>) (*sql.<span class="ty">Rows</span>, <span class="ty">error</span>) {
+    <span class="kw">var</span> rows *sql.<span class="ty">Rows</span>
+    err := rm.<span class="field">dbCB</span>.<span class="fn">Execute</span>(ctx, <span class="kw">func</span>(ctx context.<span class="ty">Context</span>) <span class="ty">error</span> {
+        <span class="kw">var</span> e <span class="ty">error</span>
+        rows, e = rm.<span class="field">DB</span>.<span class="fn">QueryContext</span>(ctx, query, args...)
+        <span class="kw">return</span> e
+    })
+    <span class="kw">return</span> rows, err
+}
+
+<span class="cm">// Close graceful shutdown toàn bộ resources</span>
+<span class="kw">func</span> (<span class="rx">rm</span> *<span class="ty">ResourceManager</span>) <span class="fn">Close</span>() <span class="ty">error</span> {
+    <span class="cm">// Stop health checks</span>
+    rm.<span class="field">healthTicker</span>.<span class="fn">Stop</span>()
+    <span class="fn">close</span>(rm.<span class="field">stopHealth</span>)
+
+    <span class="kw">var</span> errs []<span class="ty">error</span>
+
+    <span class="cm">// Đóng theo thứ tự ngược lại (LIFO)</span>
+    <span class="kw">if</span> err := rm.<span class="field">FileMgr</span>.<span class="fn">CloseAll</span>(); err != <span class="cn">nil</span> {
+        errs = <span class="fn">append</span>(errs, fmt.<span class="fn">Errorf</span>(<span class="str">"file manager: %w"</span>, err))
+    }
+    <span class="kw">if</span> err := rm.<span class="field">Redis</span>.<span class="fn">Close</span>(); err != <span class="cn">nil</span> {
+        errs = <span class="fn">append</span>(errs, fmt.<span class="fn">Errorf</span>(<span class="str">"redis: %w"</span>, err))
+    }
+    <span class="kw">if</span> err := rm.<span class="field">DB</span>.<span class="fn">Close</span>(); err != <span class="cn">nil</span> {
+        errs = <span class="fn">append</span>(errs, fmt.<span class="fn">Errorf</span>(<span class="str">"database: %w"</span>, err))
+    }
+
+    rm.<span class="field">logger</span>.<span class="fn">Info</span>(<span class="str">"all resources closed"</span>)
+
+    <span class="kw">if</span> <span class="fn">len</span>(errs) &gt; <span class="num">0</span> {
+        <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"close errors: %v"</span>, errs)
+    }
+    <span class="kw">return</span> <span class="cn">nil</span>
+}</pre>
+    </div>
+
+    <h3>main.go — Kết hợp với Lifecycle Manager</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-lang">GO</span>
+        <span class="code-filename">main.go — Entry point</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"log/slog"</span>
+    <span class="str">"os"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    logger := slog.<span class="fn">New</span>(slog.<span class="fn">NewJSONHandler</span>(os.<span class="cn">Stdout</span>, &amp;slog.<span class="ty">HandlerOptions</span>{
+        <span class="field">Level</span>: slog.<span class="cn">LevelInfo</span>,
+    }))
+
+    rm, err := <span class="fn">NewResourceManager</span>(<span class="ty">AppConfig</span>{
+        <span class="field">DatabaseDSN</span>:    os.<span class="fn">Getenv</span>(<span class="str">"DATABASE_URL"</span>),
+        <span class="field">RedisAddr</span>:      os.<span class="fn">Getenv</span>(<span class="str">"REDIS_ADDR"</span>),
+        <span class="field">MaxDBConns</span>:     <span class="num">25</span>,
+        <span class="field">MaxRedisConns</span>:  <span class="num">50</span>,
+        <span class="field">HealthInterval</span>: <span class="num">30</span>,
+    }, logger)
+    <span class="kw">if</span> err != <span class="cn">nil</span> {
+        logger.<span class="fn">Error</span>(<span class="str">"failed to init resources"</span>, <span class="str">"err"</span>, err)
+        os.<span class="fn">Exit</span>(<span class="num">1</span>)
+    }
+
+    <span class="cm">// Đảm bảo cleanup kể cả khi panic</span>
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        <span class="kw">if</span> err := rm.<span class="fn">Close</span>(); err != <span class="cn">nil</span> {
+            logger.<span class="fn">Error</span>(<span class="str">"shutdown error"</span>, <span class="str">"err"</span>, err)
+        }
+    }()
+
+    <span class="cm">// Khởi chạy lifecycle manager với signal handling</span>
+    mgr := <span class="fn">New</span>(
+        <span class="fn">WithLogger</span>(logger),
+        <span class="fn">WithStartTimeout</span>(<span class="num">30</span>),
+    )
+
+    mgr.<span class="fn">Register</span>(<span class="ty">Hook</span>{
+        <span class="field">Name</span>: <span class="str">"http-server"</span>,
+        <span class="field">OnStart</span>: startHTTPServer,
+        <span class="field">OnStop</span>:  stopHTTPServer,
+    })
+
+    <span class="kw">if</span> err := mgr.<span class="fn">Run</span>(); err != <span class="cn">nil</span> {
+        logger.<span class="fn">Error</span>(<span class="str">"lifecycle error"</span>, <span class="str">"err"</span>, err)
+        os.<span class="fn">Exit</span>(<span class="num">1</span>)
+    }
+}</pre>
+    </div>
+  </section>
+
+  <!-- ── QUICK REFERENCE TABLE ── -->
+  <section class="doc-section">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2 class="section-title">Bảng so sánh nhanh</h2>
+    </div>
+
+    <table>
+      <thead>
+        <tr><th>Pattern</th><th>Khi nào dùng</th><th>Ưu điểm</th><th>Lưu ý</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>defer Close()</code></td>
+          <td>Mọi resource acquisition</td>
+          <td>Đơn giản, đảm bảo cleanup</td>
+          <td>Không capture error nếu dùng trực tiếp</td>
+        </tr>
+        <tr>
+          <td><code>database/sql</code> pool</td>
+          <td>SQL databases</td>
+          <td>Built-in, battle-tested</td>
+          <td>Cần tune MaxOpenConns cho từng service</td>
+        </tr>
+        <tr>
+          <td>Custom Pool (Generic)</td>
+          <td>Redis, gRPC, custom TCP</td>
+          <td>Full control, health check</td>
+          <td>Phức tạp hơn, cần test kỹ</td>
+        </tr>
+        <tr>
+          <td><code>sync.Pool</code></td>
+          <td>Buffers, temp objects</td>
+          <td>Zero-cost nếu GC tái sử dụng</td>
+          <td>Không phù hợp cho stateful resources</td>
+        </tr>
+        <tr>
+          <td>Circuit Breaker</td>
+          <td>External service calls</td>
+          <td>Tránh cascade failure</td>
+          <td>Cần tune threshold theo từng service SLA</td>
+        </tr>
+        <tr>
+          <td>Lifecycle Manager</td>
+          <td>Application startup/shutdown</td>
+          <td>Orderly cleanup, signal handling</td>
+          <td>Overkill cho services nhỏ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box tip">
+      <div class="label">💡 Best Practice Checklist</div>
+      <ul style="margin-top:8px;padding-left:18px;">
+        <li>Luôn <code>defer Close()</code> ngay sau acquire thành công — không để ở cuối function</li>
+        <li>Dùng named returns để capture <code>Close()</code> errors khi ghi file</li>
+        <li>Set <code>MaxOpenConns</code> &lt; database <code>max_connections</code> (thường 80%)</li>
+        <li>Luôn drain và close <code>http.Response.Body</code> để reuse TCP connection</li>
+        <li>Reset object về zero-value trước khi <code>sync.Pool.Put()</code></li>
+        <li>Implement <code>runtime.SetFinalizer</code> như safety net cho native handles</li>
+        <li>Graceful shutdown theo thứ tự LIFO (last opened → first closed)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ── REFERENCES ── -->
+  <section class="doc-section" id="refs">
+    <div class="section-header">
+      <div class="section-num">Ref</div>
+      <h2 class="section-title">References &amp; Source Guide</h2>
+    </div>
+
+    <div class="ref-grid">
+      <a href="https://pkg.go.dev/database/sql" class="ref-card" target="_blank">
+        <div class="ref-icon">📦</div>
+        <div class="ref-title">database/sql — Go Standard Library</div>
+        <div class="ref-url">pkg.go.dev/database/sql</div>
+        <div class="ref-desc">Official documentation cho built-in SQL connection pool. Giải thích SetMaxOpenConns, SetMaxIdleConns, DBStats.</div>
+      </a>
+
+      <a href="https://github.com/jackc/pgx" class="ref-card" target="_blank">
+        <div class="ref-icon">⭐</div>
+        <div class="ref-title">jackc/pgx — PostgreSQL Driver</div>
+        <div class="ref-url">github.com/jackc/pgx</div>
+        <div class="ref-desc">PostgreSQL driver &amp; toolkit được recommend nhất. pgxpool package là best-practice cho production PostgreSQL connection pooling.</div>
+      </a>
+
+      <a href="https://github.com/go-redis/redis" class="ref-card" target="_blank">
+        <div class="ref-icon">🔴</div>
+        <div class="ref-title">redis/go-redis — Redis Client</div>
+        <div class="ref-url">github.com/redis/go-redis/v9</div>
+        <div class="ref-desc">Go Redis client với connection pooling, pipeline, cluster support. PoolStats() cung cấp metrics chi tiết.</div>
+      </a>
+
+      <a href="https://github.com/uber-go/fx" class="ref-card" target="_blank">
+        <div class="ref-icon">🔧</div>
+        <div class="ref-title">uber-go/fx — Dependency Injection</div>
+        <div class="ref-url">github.com/uber-go/fx</div>
+        <div class="ref-desc">Uber's DI framework với lifecycle management tích hợp. fx.Lifecycle cung cấp OnStart/OnStop hooks cho resource management.</div>
+      </a>
+
+      <a href="https://github.com/sony/gobreaker" class="ref-card" target="_blank">
+        <div class="ref-icon">⚡</div>
+        <div class="ref-title">sony/gobreaker — Circuit Breaker</div>
+        <div class="ref-url">github.com/sony/gobreaker</div>
+        <div class="ref-desc">Production-ready circuit breaker implementation. Được dùng rộng rãi trong Go ecosystem, battle-tested tại Sony.</div>
+      </a>
+
+      <a href="https://github.com/cenkalti/backoff" class="ref-card" target="_blank">
+        <div class="ref-icon">🔄</div>
+        <div class="ref-title">cenkalti/backoff — Retry Logic</div>
+        <div class="ref-url">github.com/cenkalti/backoff/v4</div>
+        <div class="ref-desc">Exponential backoff retry. Kết hợp với circuit breaker để implement resilient resource acquisition patterns.</div>
+      </a>
+
+      <a href="https://go.dev/blog/context" class="ref-card" target="_blank">
+        <div class="ref-icon">📖</div>
+        <div class="ref-title">Go Blog — Context Package</div>
+        <div class="ref-url">go.dev/blog/context</div>
+        <div class="ref-desc">Official blog post về context.Context. Giải thích rõ cách truyền context qua resource operations và cancellation.</div>
+      </a>
+
+      <a href="https://github.com/uber-go/goleak" class="ref-card" target="_blank">
+        <div class="ref-icon">🔍</div>
+        <div class="ref-title">uber-go/goleak — Goroutine Leak Detector</div>
+        <div class="ref-url">github.com/uber-go/goleak</div>
+        <div class="ref-desc">Detect goroutine leaks trong tests — thiết yếu khi viết resource managers để đảm bảo không có goroutine bị rò rỉ.</div>
+      </a>
+    </div>
+
+    <hr>
+
+    <h3>Recommended Books &amp; Articles</h3>
+    <ul>
+      <li><strong>The Go Programming Language</strong> (Donovan &amp; Kernighan) — Ch.5 Functions, Ch.8 Goroutines &amp; Channels</li>
+      <li><strong>100 Go Mistakes</strong> (Teiva Harsanyi) — Mistake #45-#48 về resource leak patterns</li>
+      <li><a href="https://dave.cheney.net/2016/04/07/constant-errors" style="color:var(--accent-cyan)">Dave Cheney — "Constant errors"</a> — Error design cho resource operations</li>
+      <li><a href="https://go.dev/doc/diagnostics" style="color:var(--accent-cyan)">Go Diagnostics</a> — pprof để detect resource leaks</li>
+      <li><a href="https://www.ardanlabs.com/blog/2019/04/concurrency-trap-2-incomplete-work.html" style="color:var(--accent-cyan)">Ardan Labs — Concurrency Trap: Incomplete Work</a></li>
+    </ul>
+  </section>
+
+</main>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>Go Resource Manager Pattern — Viết bằng Tiếng Việt</span>
+  <span>Go 1.21+ · Updated 2025</span>
+</footer>
+
+<script>
+  // Sidebar active highlighting on scroll
+  const sections = document.querySelectorAll('.doc-section[id]');
+  const sideLinks = document.querySelectorAll('.sidebar-link');
+  const navLinks = document.querySelectorAll('.nav-links a');
+
+  function setActive(id) {
+    sideLinks.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+    });
+    navLinks.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + id);
+    });
+  }
+
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) setActive(e.target.id);
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => obs.observe(s));
+
+  // Robust smooth scroll for all anchor links starting with #
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (!href || href === '#' || href.startsWith('#/')) return;
+      try {
+        const targetElement = document.querySelector(href);
+        if (targetElement) {
+          e.preventDefault();
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          history.pushState(null, null, href);
+        }
+      } catch (err) {
+        console.warn("Invalid selector:", href, err);
+      }
+    });
+  });
+</script>
+</body>
+</html>

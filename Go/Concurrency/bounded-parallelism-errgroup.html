@@ -1,0 +1,2538 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bounded Parallelism — Go Concurrency Patterns</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2128;
+    --border: #30363d;
+    --border2: #21262d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --cyan: #39d0d8;
+    --cyan2: #1f6feb;
+    --green: #3fb950;
+    --green2: #0d4a1f;
+    --orange: #f0883e;
+    --orange2: #3d1f00;
+    --purple: #bc8cff;
+    --purple2: #2b1a4a;
+    --red: #f85149;
+    --red2: #3d0f0c;
+    --yellow: #e3b341;
+    --yellow2: #2b2000;
+    --pink: #ff7b72;
+    --sidebar-w: 260px;
+    --nav-h: 50px;
+    --code-font: 'JetBrains Mono', monospace;
+    --heading-font: 'Syne', sans-serif;
+    --body-font: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--body-font);
+    font-size: 14px;
+    line-height: 1.7;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: var(--nav-h);
+    background: rgba(13,17,23,0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px;
+    z-index: 100;
+    gap: 0;
+  }
+
+  .nav-brand {
+    font-family: var(--heading-font);
+    font-weight: 800;
+    font-size: 15px;
+    letter-spacing: -0.3px;
+    color: var(--text);
+    margin-right: 32px;
+    white-space: nowrap;
+  }
+  .nav-brand span { color: var(--cyan); }
+
+  .nav-links {
+    display: flex; gap: 2px;
+    list-style: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-links a {
+    display: block;
+    padding: 6px 12px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text2);
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .nav-links a:hover { color: var(--text); background: var(--bg3); }
+
+  /* ── LAYOUT ── */
+  .app { display: flex; margin-top: var(--nav-h); min-height: calc(100vh - var(--nav-h)); }
+
+  aside {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: sticky; top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+    padding: 20px 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  aside::-webkit-scrollbar { width: 4px; }
+  aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+  .sidebar-section {
+    padding: 0 16px;
+    margin-bottom: 20px;
+  }
+  .sidebar-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text3);
+    padding: 0 4px;
+    margin-bottom: 6px;
+  }
+  .sidebar-links { list-style: none; }
+  .sidebar-links a {
+    display: block;
+    padding: 5px 8px;
+    font-size: 12.5px;
+    color: var(--text2);
+    text-decoration: none;
+    border-radius: 5px;
+    transition: all 0.15s;
+  }
+  .sidebar-links a:hover { color: var(--cyan); background: rgba(57,208,216,0.07); }
+  .sidebar-links a.active { color: var(--cyan); background: rgba(57,208,216,0.1); }
+
+  main {
+    flex: 1;
+    min-width: 0;
+    padding: 40px 48px 80px;
+    max-width: 960px;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  h1 {
+    font-family: var(--heading-font);
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    line-height: 1.2;
+    margin-bottom: 12px;
+  }
+  h2 {
+    font-family: var(--heading-font);
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin: 48px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  h3 {
+    font-family: var(--heading-font);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 28px 0 12px;
+    color: var(--text);
+  }
+  h4 {
+    font-family: var(--code-font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin: 20px 0 8px;
+  }
+  p { margin-bottom: 12px; color: var(--text2); line-height: 1.75; }
+  strong { color: var(--text); font-weight: 600; }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .section-num {
+    width: 32px; height: 32px;
+    background: var(--cyan);
+    color: #000;
+    border-radius: 8px;
+    font-family: var(--heading-font);
+    font-weight: 800;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: var(--purple2);
+    color: var(--purple);
+    border: 1px solid rgba(188,140,255,0.3);
+  }
+  .badge.expert { background: var(--orange2); color: var(--orange); border-color: rgba(240,136,62,0.3); }
+  .badge.advanced { background: var(--yellow2); color: var(--yellow); border-color: rgba(227,179,65,0.3); }
+  .badge.basic { background: var(--green2); color: var(--green); border-color: rgba(63,185,80,0.3); }
+
+  /* ── CODE BLOCKS ── */
+  .code-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-family: var(--code-font);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    background: rgba(57,208,216,0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+  .code-title {
+    font-family: var(--code-font);
+    font-size: 12px;
+    color: var(--text2);
+  }
+  .code-copy {
+    font-size: 11px;
+    color: var(--text3);
+    cursor: pointer;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--text2);
+    font-family: var(--body-font);
+    transition: all 0.15s;
+    cursor: pointer;
+  }
+  .code-copy:hover { background: var(--bg); color: var(--text); }
+
+  pre {
+    overflow-x: auto;
+    padding: 20px;
+    font-family: var(--code-font);
+    font-size: 12.5px;
+    line-height: 1.65;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* Syntax highlight */
+  .kw { color: #ff7b72; }
+  .fn { color: #d2a8ff; }
+  .ty { color: #ffa657; }
+  .st { color: #a5d6ff; }
+  .cm { color: #6e7681; font-style: italic; }
+  .nu { color: #79c0ff; }
+  .op { color: #ff7b72; }
+  .pk { color: #7ee787; }
+  .va { color: #e6edf3; }
+  .cx { color: #f0883e; }
+
+  /* ── CALLOUTS ── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin: 16px 0;
+    display: flex;
+    gap: 12px;
+  }
+  .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 2px; }
+  .callout-body p { margin: 0; font-size: 13px; }
+  .callout.info { background: rgba(31,111,235,0.1); border: 1px solid rgba(31,111,235,0.3); }
+  .callout.info .callout-icon { color: #58a6ff; }
+  .callout.warn { background: rgba(227,179,65,0.1); border: 1px solid rgba(227,179,65,0.3); }
+  .callout.warn .callout-icon { color: var(--yellow); }
+  .callout.tip { background: rgba(63,185,80,0.1); border: 1px solid rgba(63,185,80,0.3); }
+  .callout.tip .callout-icon { color: var(--green); }
+  .callout.danger { background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.3); }
+  .callout.danger .callout-icon { color: var(--red); }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 16px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead tr { background: var(--bg3); }
+  th {
+    font-family: var(--code-font);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text2);
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    text-align: left;
+  }
+  td {
+    padding: 9px 14px;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    vertical-align: top;
+  }
+  tr:hover td { background: rgba(57,208,216,0.03); }
+  td code, th code {
+    font-family: var(--code-font);
+    font-size: 11.5px;
+    background: var(--bg3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--cyan);
+  }
+
+  /* ── DIAGRAM ── */
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 20px 0;
+  }
+  .diagram-header {
+    padding: 10px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    font-size: 11px;
+    font-family: var(--code-font);
+    font-weight: 600;
+    color: var(--text2);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+  .diagram-body { padding: 24px; }
+
+  /* ── COMPARISON GRID ── */
+  .compare-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .compare-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .compare-card h5 {
+    font-family: var(--code-font);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .compare-card h5.good { color: var(--green); }
+  .compare-card h5.bad { color: var(--red); }
+  .compare-card ul { list-style: none; }
+  .compare-card li {
+    font-size: 12.5px;
+    color: var(--text2);
+    padding: 3px 0;
+    display: flex; gap: 6px;
+  }
+  .compare-card li::before { content: "→"; color: var(--text3); flex-shrink: 0; }
+
+  /* ── FEATURE TAGS ── */
+  .tags { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .tag {
+    font-family: var(--code-font);
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 20px;
+    border: 1px solid;
+  }
+  .tag.cyan { color: var(--cyan); border-color: rgba(57,208,216,0.3); background: rgba(57,208,216,0.07); }
+  .tag.purple { color: var(--purple); border-color: rgba(188,140,255,0.3); background: var(--purple2); }
+  .tag.orange { color: var(--orange); border-color: rgba(240,136,62,0.3); background: var(--orange2); }
+  .tag.green { color: var(--green); border-color: rgba(63,185,80,0.3); background: var(--green2); }
+  .tag.yellow { color: var(--yellow); border-color: rgba(227,179,65,0.3); background: var(--yellow2); }
+
+  /* ── METRICS CARD ── */
+  .metrics { display: flex; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
+  .metric {
+    flex: 1; min-width: 120px;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+  .metric-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.8px; }
+  .metric-value {
+    font-family: var(--heading-font);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .metric-desc { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+  /* ── REFERENCE CARDS ── */
+  .ref-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; margin: 16px 0; }
+  .ref-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    text-decoration: none;
+    transition: all 0.2s;
+  }
+  .ref-card:hover { border-color: var(--cyan); transform: translateY(-2px); background: var(--bg3); }
+  .ref-card-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .ref-icon { font-size: 18px; }
+  .ref-title { font-size: 13px; font-weight: 600; color: var(--text); }
+  .ref-author { font-size: 11px; color: var(--text3); }
+  .ref-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .ref-tags { display: flex; gap: 4px; margin-top: 8px; flex-wrap: wrap; }
+  .ref-tag {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--bg3);
+    color: var(--text3);
+    font-family: var(--code-font);
+  }
+  .stars { color: var(--yellow); font-size: 11px; }
+
+  /* ── INLINE CODE ── */
+  code {
+    font-family: var(--code-font);
+    font-size: 12px;
+    background: var(--bg3);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--cyan);
+    border: 1px solid var(--border);
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: linear-gradient(135deg, rgba(57,208,216,0.05) 0%, transparent 60%);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 180px; height: 180px;
+    background: radial-gradient(circle, rgba(57,208,216,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-subtitle {
+    font-family: var(--code-font);
+    font-size: 11px;
+    color: var(--cyan);
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .hero p { font-size: 14.5px; max-width: 700px; }
+
+  /* ── SVG DIAGRAMS ── */
+  svg { font-family: var(--body-font); }
+
+  /* ── STEP LIST ── */
+  .steps { list-style: none; margin: 12px 0; }
+  .step {
+    display: flex;
+    gap: 14px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border2);
+  }
+  .step:last-child { border-bottom: none; }
+  .step-num {
+    width: 24px; height: 24px;
+    background: var(--bg3);
+    border: 1px solid var(--cyan);
+    border-radius: 50%;
+    font-family: var(--code-font);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cyan);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .step-desc { font-size: 12.5px; color: var(--text2); }
+
+  /* ── SECTION DIVIDER ── */
+  .section { margin-bottom: 56px; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 768px) {
+    aside { display: none; }
+    main { padding: 24px 20px 60px; }
+    .compare-grid { grid-template-columns: 1fr; }
+    .metrics { flex-direction: column; }
+  }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(57, 208, 216, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg2);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">Go <span>Pipeline</span> Pattern</div>
+  <ul class="nav-links">
+    <li><a href="#">Giới thiệu</a></li>
+    <li><a href="#">Khái niệm</a></li>
+    <li><a href="#">Cơ bản</a></li>
+    <li><a href="#">Stages</a></li>
+    <li><a href="#">Fan-Out/In</a></li>
+    <li><a href="#" style="color:var(--cyan)">Context &amp; Cancel</a></li>
+    <li><a href="#">Nâng cao</a></li>
+    <li><a href="#" style="color:var(--orange)">Expert</a></li>
+    <li><a href="#">References</a></li>
+  </ul>
+</nav>
+
+<!-- LAYOUT -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Khái niệm</div>
+      <ul class="sidebar-links">
+        <li><a href="#intro">Bounded Parallelism là gì?</a></li>
+        <li><a href="#why">Tại sao cần giới hạn?</a></li>
+        <li><a href="#errgroup">errgroup package</a></li>
+        <li><a href="#setlimit">SetLimit() API</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Cơ bản → Nâng cao</div>
+      <ul class="sidebar-links">
+        <li><a href="#basic1">Semaphore Channel</a></li>
+        <li><a href="#basic2">errgroup.SetLimit</a></li>
+        <li><a href="#adv1">Worker Pool + errgroup</a></li>
+        <li><a href="#adv2">Dynamic Limit</a></li>
+        <li><a href="#adv3">Backpressure</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Expert</div>
+      <ul class="sidebar-links">
+        <li><a href="#exp1" class="active">HTTP Crawler</a></li>
+        <li><a href="#exp2">ETL Pipeline</a></li>
+        <li><a href="#exp3">Rate + Limit + Retry</a></li>
+        <li><a href="#exp4">Adaptive Throttle</a></li>
+        <li><a href="#exp5">Production Full</a></li>
+      </ul>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Tài nguyên</div>
+      <ul class="sidebar-links">
+        <li><a href="#perf">So sánh hiệu năng</a></li>
+        <li><a href="#pitfalls">Lỗi phổ biến</a></li>
+        <li><a href="#refs">References</a></li>
+      </ul>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main>
+
+    <!-- HERO -->
+    <div class="hero" id="intro">
+      <div class="hero-subtitle">Go Concurrency · Expert Level</div>
+      <div class="section-header" style="margin-bottom:12px">
+        <div class="section-num">8</div>
+        <h1>Bounded Parallelism<br>với <span style="color:var(--cyan)">errgroup</span></h1>
+        <span class="badge expert">★ Expert</span>
+      </div>
+      <div class="tags">
+        <span class="tag cyan">golang.org/x/sync/errgroup</span>
+        <span class="tag purple">Concurrency</span>
+        <span class="tag orange">Production</span>
+        <span class="tag green">Go 1.21+</span>
+      </div>
+      <p style="margin-top:14px">
+        Kiểm soát số lượng goroutine chạy đồng thời bằng cách kết hợp <strong>errgroup</strong> với <strong>SetLimit()</strong>,
+        ngăn chặn resource exhaustion, quản lý lỗi tập trung, và tự động hủy toàn bộ pipeline khi có lỗi xảy ra.
+      </p>
+    </div>
+
+    <!-- SECTION 1: KHÁI NIỆM -->
+    <div class="section" id="why">
+      <h2>1. Vấn đề — Tại sao cần Bounded Parallelism?</h2>
+      <p>Khi xử lý hàng nghìn task song song không giới hạn, hệ thống sẽ gặp các vấn đề nghiêm trọng:</p>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-bounded-errgroup.png" alt="Go Concurrency: Bounded Parallelism with errgroup" loading="lazy">
+        <div class="concept-img-caption">Hình 1.1: So sánh cơ chế vận hành của Unbounded Goroutines (Tiêu tốn bộ nhớ gây sụp đổ hệ thống) và Bounded Parallelism thông qua errgroup (Cấp phát tài nguyên có kiểm soát thông qua SetLimit và Fail-Fast cancellation).</div>
+      </div>
+
+      <div class="metrics">
+        <div class="metric">
+          <div class="metric-label">Memory</div>
+          <div class="metric-value" style="color:var(--red)">∞</div>
+          <div class="metric-desc">Goroutine leak không kiểm soát</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">CPU</div>
+          <div class="metric-value" style="color:var(--orange)">100%</div>
+          <div class="metric-desc">Context switch overhead</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Network</div>
+          <div class="metric-value" style="color:var(--red)">Timeout</div>
+          <div class="metric-desc">Rate limit & connection pool</div>
+        </div>
+        <div class="metric">
+          <div class="metric-label">Stability</div>
+          <div class="metric-value" style="color:var(--red)">OOM</div>
+          <div class="metric-desc">Out of Memory crash</div>
+        </div>
+      </div>
+
+      <!-- DIAGRAM: Unbounded vs Bounded -->
+      <div class="diagram-wrap">
+        <div class="diagram-header">🔴 Unbounded vs 🟢 Bounded — So sánh trực quan</div>
+        <div class="diagram-body">
+          <svg viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+            <defs>
+              <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#30363d"/>
+              </marker>
+              <marker id="arr-r" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#f85149"/>
+              </marker>
+              <marker id="arr-g" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+              </marker>
+            </defs>
+
+            <!-- LEFT: UNBOUNDED -->
+            <text x="180" y="22" text-anchor="middle" fill="#f85149" font-size="12" font-weight="700" font-family="'Syne',sans-serif">🔴 UNBOUNDED (Nguy hiểm)</text>
+
+            <!-- Input -->
+            <rect x="10" y="40" width="80" height="34" rx="6" fill="#1c2128" stroke="#30363d"/>
+            <text x="50" y="62" text-anchor="middle" fill="#8b949e" font-size="11">1000 tasks</text>
+
+            <!-- arrow -->
+            <line x1="90" y1="57" x2="120" y2="57" stroke="#f85149" stroke-width="1.5" marker-end="url(#arr-r)"/>
+
+            <!-- Goroutines chaotic -->
+            <rect x="122" y="30" width="180" height="100" rx="6" fill="rgba(248,81,73,0.06)" stroke="#f85149" stroke-width="1.2" stroke-dasharray="4,3"/>
+            <text x="212" y="48" text-anchor="middle" fill="#f85149" font-size="10" font-family="'JetBrains Mono',monospace">1000 goroutines</text>
+            <!-- many small goroutines -->
+            <g fill="#f85149" opacity="0.6">
+              <circle cx="140" cy="70" r="5"/><circle cx="158" cy="62" r="5"/><circle cx="176" cy="78" r="5"/>
+              <circle cx="194" cy="60" r="5"/><circle cx="212" cy="75" r="5"/><circle cx="230" cy="63" r="5"/>
+              <circle cx="248" cy="80" r="5"/><circle cx="266" cy="65" r="5"/><circle cx="284" cy="72" r="5"/>
+              <circle cx="150" cy="90" r="4"/><circle cx="170" cy="100" r="4"/><circle cx="190" cy="88" r="4"/>
+              <circle cx="210" cy="98" r="4"/><circle cx="230" cy="90" r="4"/><circle cx="250" cy="102" r="4"/>
+              <circle cx="270" cy="92" r="4"/><circle cx="158" cy="114" r="3"/><circle cx="200" cy="118" r="3"/>
+              <circle cx="240" cy="116" r="3"/><circle cx="280" cy="114" r="3"/>
+            </g>
+
+            <!-- OOM label -->
+            <rect x="130" y="138" width="160" height="24" rx="5" fill="#3d0f0c" stroke="#f85149" stroke-width="1"/>
+            <text x="210" y="155" text-anchor="middle" fill="#f85149" font-size="11" font-weight="600">💥 OOM / Timeout / Crash</text>
+
+            <!-- RIGHT: BOUNDED -->
+            <text x="590" y="22" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700" font-family="'Syne',sans-serif">🟢 BOUNDED (An toàn)</text>
+
+            <!-- Input queue -->
+            <rect x="410" y="40" width="80" height="34" rx="6" fill="#1c2128" stroke="#30363d"/>
+            <text x="450" y="57" text-anchor="middle" fill="#8b949e" font-size="11">1000 tasks</text>
+            <text x="450" y="68" text-anchor="middle" fill="#6e7681" font-size="10">(channel)</text>
+
+            <!-- arrow -->
+            <line x1="490" y1="57" x2="520" y2="57" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-g)"/>
+
+            <!-- errgroup box -->
+            <rect x="522" y="30" width="160" height="100" rx="6" fill="rgba(63,185,80,0.06)" stroke="#3fb950" stroke-width="1.5"/>
+            <text x="602" y="48" text-anchor="middle" fill="#3fb950" font-size="10" font-family="'JetBrains Mono',monospace">errgroup (limit=5)</text>
+
+            <!-- 5 workers -->
+            <g fill="none">
+              <rect x="534" y="56" width="36" height="20" rx="4" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+              <text x="552" y="70" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">W1</text>
+              <rect x="578" y="56" width="36" height="20" rx="4" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+              <text x="596" y="70" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">W2</text>
+              <rect x="622" y="56" width="36" height="20" rx="4" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+              <text x="640" y="70" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">W3</text>
+              <rect x="534" y="84" width="36" height="20" rx="4" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+              <text x="552" y="98" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">W4</text>
+              <rect x="578" y="84" width="36" height="20" rx="4" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+              <text x="596" y="98" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">W5</text>
+            </g>
+            <text x="650" y="92" fill="#6e7681" font-size="9" font-family="'JetBrains Mono',monospace">queue...</text>
+
+            <!-- arrow out -->
+            <line x1="682" y1="80" x2="712" y2="80" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr-g)"/>
+
+            <!-- Output -->
+            <rect x="714" y="63" width="80" height="34" rx="6" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+            <text x="754" y="80" text-anchor="middle" fill="#3fb950" font-size="11">Results</text>
+            <text x="754" y="91" text-anchor="middle" fill="#3fb950" font-size="10">✓ Safe</text>
+
+            <!-- Semaphore label -->
+            <rect x="530" y="138" width="160" height="24" rx="5" fill="#0d4a1f" stroke="#3fb950" stroke-width="1"/>
+            <text x="610" y="155" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">✅ Controlled · Error-safe</text>
+
+            <!-- divider -->
+            <line x1="390" y1="20" x2="390" y2="175" stroke="#30363d" stroke-width="1" stroke-dasharray="4,4"/>
+
+            <!-- FLOW ARROWS BELOW -->
+            <text x="410" y="210" fill="#8b949e" font-size="11.5" font-family="'Inter',sans-serif">Bounded Parallelism = kiểm soát</text>
+            <text x="410" y="228" fill="#8b949e" font-size="11.5" font-family="'Inter',sans-serif">đồng thời tối đa N goroutines,</text>
+            <text x="410" y="246" fill="#3fb950" font-size="11.5" font-family="'Inter',sans-serif" font-weight="600">queue tasks còn lại → an toàn ✓</text>
+
+            <text x="10" y="210" fill="#8b949e" font-size="11.5" font-family="'Inter',sans-serif">Không giới hạn = spawn</text>
+            <text x="10" y="228" fill="#8b949e" font-size="11.5" font-family="'Inter',sans-serif">goroutine không kiểm soát,</text>
+            <text x="10" y="246" fill="#f85149" font-size="11.5" font-family="'Inter',sans-serif" font-weight="600">tiêu thụ hết tài nguyên ✗</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="callout info">
+        <div class="callout-icon">💡</div>
+        <div class="callout-body">
+          <p><strong>Quy tắc vàng:</strong> Số goroutine đồng thời tối ưu thường bằng <code>runtime.NumCPU() * 2</code> cho CPU-bound tasks,
+          hoặc <code>10–100</code> cho I/O-bound tasks (network, database, disk).</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 2: ERRGROUP -->
+    <div class="section" id="errgroup">
+      <h2>2. errgroup Package — Tổng quan</h2>
+      <p><code>golang.org/x/sync/errgroup</code> cung cấp synchronization, error propagation, và context cancellation
+      cho nhóm goroutines chạy cùng nhau.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Method / Field</th><th>Mô tả</th><th>Ghi chú</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>errgroup.WithContext(ctx)</code></td><td>Tạo Group mới kèm context có thể cancel</td><td>Context bị cancel khi có goroutine trả về lỗi</td></tr>
+            <tr><td><code>g.Go(func() error)</code></td><td>Spawn goroutine, track lỗi tự động</td><td>Goroutine phải return <code>error</code> hoặc <code>nil</code></td></tr>
+            <tr><td><code>g.Wait()</code></td><td>Đợi tất cả goroutines hoàn thành</td><td>Trả về lỗi đầu tiên (nếu có)</td></tr>
+            <tr><td><code>g.SetLimit(n)</code></td><td>Giới hạn số goroutines đồng thời tối đa</td><td>Go 1.20+ · <strong>Core của Bounded Parallelism</strong></td></tr>
+            <tr><td><code>g.TryGo(func() error)</code></td><td>Spawn goroutine nếu chưa đạt limit</td><td>Trả về <code>false</code> nếu đã đầy, không block</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DIAGRAM: errgroup lifecycle -->
+      <div class="diagram-wrap">
+        <div class="diagram-header">📊 errgroup.SetLimit — Lifecycle Diagram</div>
+        <div class="diagram-body">
+          <svg viewBox="0 0 760 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+            <defs>
+              <marker id="arr2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#39d0d8"/>
+              </marker>
+            </defs>
+
+            <!-- Stages -->
+            <!-- 1 WithContext -->
+            <rect x="10" y="70" width="110" height="50" rx="7" fill="#1c2128" stroke="#39d0d8" stroke-width="1.5"/>
+            <text x="65" y="90" text-anchor="middle" fill="#39d0d8" font-size="11" font-weight="600">WithContext</text>
+            <text x="65" y="107" text-anchor="middle" fill="#6e7681" font-size="10">(ctx)</text>
+            <text x="65" y="118" text-anchor="middle" fill="#6e7681" font-size="9">→ group + ctx</text>
+
+            <line x1="120" y1="95" x2="150" y2="95" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+            <!-- 2 SetLimit -->
+            <rect x="152" y="70" width="110" height="50" rx="7" fill="#1c2128" stroke="#ffa657" stroke-width="1.5"/>
+            <text x="207" y="90" text-anchor="middle" fill="#ffa657" font-size="11" font-weight="600">SetLimit(n)</text>
+            <text x="207" y="107" text-anchor="middle" fill="#6e7681" font-size="10">max concurrent</text>
+            <text x="207" y="118" text-anchor="middle" fill="#6e7681" font-size="9">goroutines = n</text>
+
+            <line x1="262" y1="95" x2="292" y2="95" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+            <!-- 3 g.Go -->
+            <rect x="294" y="50" width="110" height="90" rx="7" fill="#1c2128" stroke="#bc8cff" stroke-width="1.5"/>
+            <text x="349" y="72" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="600">g.Go(fn)</text>
+            <text x="349" y="89" text-anchor="middle" fill="#6e7681" font-size="9">slots &lt; n: spawn</text>
+            <text x="349" y="103" text-anchor="middle" fill="#f85149" font-size="9">slots = n: BLOCK</text>
+            <text x="349" y="117" text-anchor="middle" fill="#6e7681" font-size="9">until slot freed</text>
+            <text x="349" y="131" text-anchor="middle" fill="#3fb950" font-size="9">error? cancel ctx</text>
+
+            <line x1="404" y1="95" x2="434" y2="95" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+            <!-- 4 Workers -->
+            <rect x="436" y="38" width="110" height="114" rx="7" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+            <text x="491" y="58" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">Workers (≤n)</text>
+            <rect x="448" y="66" width="86" height="17" rx="3" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="491" y="79" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">goroutine 1 ████</text>
+            <rect x="448" y="88" width="86" height="17" rx="3" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="491" y="101" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">goroutine 2 ██</text>
+            <rect x="448" y="110" width="86" height="17" rx="3" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="491" y="123" text-anchor="middle" fill="#3fb950" font-size="9" font-family="'JetBrains Mono',monospace">goroutine 3 █████</text>
+            <text x="491" y="143" text-anchor="middle" fill="#6e7681" font-size="9">slot 4,5 → waiting</text>
+
+            <line x1="546" y1="95" x2="576" y2="95" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+            <!-- 5 Wait -->
+            <rect x="578" y="70" width="110" height="50" rx="7" fill="#1c2128" stroke="#39d0d8" stroke-width="1.5"/>
+            <text x="633" y="90" text-anchor="middle" fill="#39d0d8" font-size="11" font-weight="600">g.Wait()</text>
+            <text x="633" y="105" text-anchor="middle" fill="#6e7681" font-size="9">→ first error</text>
+            <text x="633" y="116" text-anchor="middle" fill="#6e7681" font-size="9">or nil</text>
+
+            <!-- Labels below -->
+            <text x="65" y="170" text-anchor="middle" fill="#6e7681" font-size="9">Step 1</text>
+            <text x="207" y="170" text-anchor="middle" fill="#ffa657" font-size="9">★ Key Step</text>
+            <text x="349" y="170" text-anchor="middle" fill="#6e7681" font-size="9">Step 3</text>
+            <text x="491" y="170" text-anchor="middle" fill="#6e7681" font-size="9">Runtime</text>
+            <text x="633" y="170" text-anchor="middle" fill="#6e7681" font-size="9">Collect</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: CƠ BẢN -->
+    <div class="section" id="basic1">
+      <h2>3. Cơ bản — Semaphore Channel (Trước khi có errgroup)</h2>
+      <p>Trước Go 1.20, cách phổ biến nhất để bounded parallelism là dùng <strong>buffered channel làm semaphore</strong>:</p>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">semaphore_channel.go — Channel-based Semaphore</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="cm">// Pattern cổ điển: dùng buffered channel làm semaphore</span>
+<span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// Semaphore giới hạn số goroutine chạy đồng thời</span>
+<span class="kw">type</span> <span class="ty">Semaphore</span> <span class="kw">chan</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> <span class="fn">NewSemaphore</span>(n <span class="ty">int</span>) <span class="ty">Semaphore</span> {
+    <span class="kw">return</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, n)
+}
+
+<span class="cm">// Acquire: block nếu đã đạt giới hạn</span>
+<span class="kw">func</span> (s <span class="ty">Semaphore</span>) <span class="fn">Acquire</span>(ctx <span class="ty">context.Context</span>) <span class="ty">error</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> s <- <span class="kw">struct</span>{}{}:
+        <span class="kw">return</span> <span class="va">nil</span>
+    <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> ctx.<span class="fn">Err</span>() <span class="cm">// context cancelled/timeout</span>
+    }
+}
+
+<span class="cm">// Release: giải phóng 1 slot</span>
+<span class="kw">func</span> (s <span class="ty">Semaphore</span>) <span class="fn">Release</span>() {
+    <-s
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nu">10</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    tasks := <span class="fn">make</span>([]<span class="ty">int</span>, <span class="nu">20</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> tasks {
+        tasks[i] = i
+    }
+
+    sem := <span class="fn">NewSemaphore</span>(<span class="nu">5</span>) <span class="cm">// Tối đa 5 goroutines đồng thời</span>
+    <span class="kw">var</span> wg sync.WaitGroup
+    results := <span class="fn">make</span>([]<span class="ty">string</span>, <span class="fn">len</span>(tasks))
+
+    <span class="kw">for</span> i, task := <span class="kw">range</span> tasks {
+        i, task := i, task <span class="cm">// capture loop vars (Go 1.21 không cần)</span>
+
+        <span class="cm">// Acquire trước khi spawn goroutine</span>
+        <span class="kw">if</span> err := sem.<span class="fn">Acquire</span>(ctx); err != <span class="va">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="st">"context cancelled: %v\n"</span>, err)
+            <span class="kw">break</span>
+        }
+
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">defer</span> sem.<span class="fn">Release</span>() <span class="cm">// LUÔN release khi goroutine kết thúc</span>
+
+            time.<span class="fn">Sleep</span>(<span class="nu">100</span> * time.Millisecond) <span class="cm">// simulate work</span>
+            results[i] = fmt.<span class="fn">Sprintf</span>(<span class="st">"task %d done"</span>, task)
+        }()
+    }
+
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Println</span>(<span class="st">"All tasks completed:"</span>, results[<span class="nu">0</span>], <span class="st">"..."</span>)
+}</pre>
+      </div>
+
+      <div class="callout warn">
+        <div class="callout-icon">⚠️</div>
+        <div class="callout-body">
+          <p><strong>Nhược điểm:</strong> Pattern này không tự động propagate errors. Phải tự quản lý <code>sync.WaitGroup</code>, mutex, và error collection — dễ dẫn đến race condition và boilerplate code.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 4: ERRGROUP SETLIMIT -->
+    <div class="section" id="basic2">
+      <h2>4. errgroup.SetLimit() — Modern Solution</h2>
+      <p>Từ Go 1.20, <code>errgroup.SetLimit(n)</code> là cách chính thức và sạch nhất để implement Bounded Parallelism:</p>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">errgroup_setlimit.go — Cách đúng và hiện đại</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"net/http"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">func</span> <span class="fn">fetchURLs</span>(ctx <span class="ty">context.Context</span>, urls []<span class="ty">string</span>) ([]<span class="ty">string</span>, <span class="ty">error</span>) {
+    <span class="cm">// 1. Tạo errgroup với context</span>
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+
+    <span class="cm">// 2. ⭐ Giới hạn tối đa 10 goroutines đồng thời</span>
+    g.<span class="fn">SetLimit</span>(<span class="nu">10</span>)
+
+    results := <span class="fn">make</span>([]<span class="ty">string</span>, <span class="fn">len</span>(urls))
+
+    <span class="kw">for</span> i, url := <span class="kw">range</span> urls {
+        i, url := i, url
+
+        <span class="cm">// 3. g.Go() sẽ BLOCK nếu đã có 10 goroutines đang chạy</span>
+        <span class="cm">//    Tự động tiếp tục khi có goroutine kết thúc (giải phóng slot)</span>
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            req, err := http.<span class="fn">NewRequestWithContext</span>(ctx, http.MethodGet, url, <span class="va">nil</span>)
+            <span class="kw">if</span> err != <span class="va">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"tạo request [%s]: %w"</span>, url, err)
+            }
+
+            resp, err := http.DefaultClient.<span class="fn">Do</span>(req)
+            <span class="kw">if</span> err != <span class="va">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"fetch [%s]: %w"</span>, url, err)
+            }
+            <span class="kw">defer</span> resp.Body.<span class="fn">Close</span>()
+
+            results[i] = fmt.<span class="fn">Sprintf</span>(<span class="st">"%s → %d"</span>, url, resp.StatusCode)
+            <span class="kw">return</span> <span class="va">nil</span>
+        })
+    }
+
+    <span class="cm">// 4. Đợi TẤT CẢ goroutines hoàn thành</span>
+    <span class="cm">//    Nếu bất kỳ goroutine nào return error → context bị cancel</span>
+    <span class="cm">//    → các goroutines khác nhận ctx.Done() và dừng lại</span>
+    <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="va">nil</span> {
+        <span class="kw">return</span> <span class="va">nil</span>, err
+    }
+
+    <span class="kw">return</span> results, <span class="va">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nu">30</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    urls := []<span class="ty">string</span>{
+        <span class="st">"https://httpbin.org/get"</span>,
+        <span class="st">"https://httpbin.org/delay/1"</span>,
+        <span class="st">"https://httpbin.org/status/200"</span>,
+        <span class="cm">// ... 1000 URLs</span>
+    }
+
+    results, err := <span class="fn">fetchURLs</span>(ctx, urls)
+    <span class="kw">if</span> err != <span class="va">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="st">"Lỗi: %v\n"</span>, err)
+        <span class="kw">return</span>
+    }
+    fmt.<span class="fn">Printf</span>(<span class="st">"Hoàn thành %d requests\n"</span>, <span class="fn">len</span>(results))
+}</pre>
+      </div>
+
+      <div class="compare-grid">
+        <div class="compare-card">
+          <h5 class="good">✅ Lợi ích của SetLimit()</h5>
+          <ul>
+            <li>Không cần tự quản lý semaphore</li>
+            <li>Error tự động cancel context</li>
+            <li>Code ngắn gọn, dễ đọc</li>
+            <li>Thread-safe built-in</li>
+            <li>Tích hợp với context deadline</li>
+          </ul>
+        </div>
+        <div class="compare-card">
+          <h5 class="bad">❌ Khi nào KHÔNG dùng SetLimit()</h5>
+          <ul>
+            <li>Cần collect TẤT CẢ errors (không chỉ first error)</li>
+            <li>Không muốn cancel khi có lỗi</li>
+            <li>Cần dynamic limit thay đổi runtime</li>
+            <li>Cần priority queue cho tasks</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 5: ADVANCED - WORKER POOL -->
+    <div class="section" id="adv1">
+      <h2>5. Nâng cao — Worker Pool + errgroup</h2>
+      <p>Kết hợp Worker Pool pattern với errgroup để xử lý stream tasks từ channel với bounded concurrency:</p>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">worker_pool_errgroup.go — Production Worker Pool</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">pool</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="cm">// Task định nghĩa một đơn vị công việc</span>
+<span class="kw">type</span> <span class="ty">Task</span>[<span class="ty">T</span> <span class="ty">any</span>] <span class="kw">struct</span> {
+    ID      <span class="ty">int</span>
+    Payload <span class="ty">T</span>
+}
+
+<span class="cm">// Result chứa kết quả hoặc lỗi của một task</span>
+<span class="kw">type</span> <span class="ty">Result</span>[<span class="ty">T</span> <span class="ty">any</span>] <span class="kw">struct</span> {
+    TaskID <span class="ty">int</span>
+    Value  <span class="ty">T</span>
+    Err    <span class="ty">error</span>
+}
+
+<span class="cm">// BoundedPool xử lý tasks với số goroutines giới hạn</span>
+<span class="kw">type</span> <span class="ty">BoundedPool</span>[<span class="ty">In</span>, <span class="ty">Out</span> <span class="ty">any</span>] <span class="kw">struct</span> {
+    maxWorkers <span class="ty">int</span>
+    processor  <span class="kw">func</span>(<span class="ty">context.Context</span>, <span class="ty">Task</span>[<span class="ty">In</span>]) (<span class="ty">Out</span>, <span class="ty">error</span>)
+}
+
+<span class="kw">func</span> <span class="fn">NewBoundedPool</span>[<span class="ty">In</span>, <span class="ty">Out</span> <span class="ty">any</span>](
+    maxWorkers <span class="ty">int</span>,
+    processor <span class="kw">func</span>(<span class="ty">context.Context</span>, <span class="ty">Task</span>[<span class="ty">In</span>]) (<span class="ty">Out</span>, <span class="ty">error</span>),
+) *<span class="ty">BoundedPool</span>[<span class="ty">In</span>, <span class="ty">Out</span>] {
+    <span class="kw">if</span> maxWorkers <= <span class="nu">0</span> {
+        maxWorkers = <span class="nu">10</span> <span class="cm">// default</span>
+    }
+    <span class="kw">return</span> &amp;<span class="ty">BoundedPool</span>[<span class="ty">In</span>, <span class="ty">Out</span>]{
+        maxWorkers: maxWorkers,
+        processor:  processor,
+    }
+}
+
+<span class="cm">// Process nhận tasks từ channel, xử lý với bounded concurrency</span>
+<span class="kw">func</span> (p *<span class="ty">BoundedPool</span>[<span class="ty">In</span>, <span class="ty">Out</span>]) <span class="fn">Process</span>(
+    ctx <span class="ty">context.Context</span>,
+    tasks <-<span class="kw">chan</span> <span class="ty">Task</span>[<span class="ty">In</span>],
+) (<-<span class="kw">chan</span> <span class="ty">Result</span>[<span class="ty">Out</span>], <-<span class="kw">chan</span> <span class="ty">error</span>) {
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Result</span>[<span class="ty">Out</span>], p.maxWorkers*<span class="nu">2</span>)
+    errCh   := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">error</span>, <span class="nu">1</span>)
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(results)
+        <span class="kw">defer</span> <span class="fn">close</span>(errCh)
+
+        g, gctx := errgroup.<span class="fn">WithContext</span>(ctx)
+        g.<span class="fn">SetLimit</span>(p.maxWorkers) <span class="cm">// ⭐ Bounded here</span>
+
+        <span class="kw">for</span> task := <span class="kw">range</span> tasks {
+            task := task <span class="cm">// capture (Go &lt; 1.22)</span>
+
+            g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+                <span class="cm">// Kiểm tra context trước khi xử lý</span>
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <-gctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span> gctx.<span class="fn">Err</span>()
+                <span class="kw">default</span>:
+                }
+
+                val, err := p.<span class="fn">processor</span>(gctx, task)
+                results <- <span class="ty">Result</span>[<span class="ty">Out</span>]{
+                    TaskID: task.ID,
+                    Value:  val,
+                    Err:    err,
+                }
+                <span class="kw">return</span> <span class="va">nil</span> <span class="cm">// không propagate lỗi lên errgroup</span>
+                             <span class="cm">// để tiếp tục xử lý task còn lại</span>
+            })
+        }
+
+        <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="va">nil</span> {
+            errCh <- err
+        }
+    }()
+
+    <span class="kw">return</span> results, errCh
+}
+
+<span class="cm">// --- USAGE EXAMPLE ---</span>
+
+<span class="kw">func</span> <span class="fn">ExampleUsage</span>() {
+    ctx := context.<span class="fn">Background</span>()
+
+    <span class="cm">// Tạo pool với 5 workers, xử lý int → string</span>
+    pool := <span class="fn">NewBoundedPool</span>[<span class="ty">int</span>, <span class="ty">string</span>](<span class="nu">5</span>, <span class="kw">func</span>(ctx <span class="ty">context.Context</span>, t <span class="ty">Task</span>[<span class="ty">int</span>]) (<span class="ty">string</span>, <span class="ty">error</span>) {
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"processed-%d"</span>, t.Payload), <span class="va">nil</span>
+    })
+
+    tasks := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Task</span>[<span class="ty">int</span>], <span class="nu">100</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(tasks)
+        <span class="kw">for</span> i := <span class="kw">range</span> <span class="nu">100</span> {
+            tasks <- <span class="ty">Task</span>[<span class="ty">int</span>]{ID: i, Payload: i * <span class="nu">2</span>}
+        }
+    }()
+
+    results, errCh := pool.<span class="fn">Process</span>(ctx, tasks)
+
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err != <span class="va">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="st">"Task %d failed: %v\n"</span>, r.TaskID, r.Err)
+            <span class="kw">continue</span>
+        }
+        fmt.<span class="fn">Printf</span>(<span class="st">"Task %d: %s\n"</span>, r.TaskID, r.Value)
+    }
+
+    <span class="kw">if</span> err := <-errCh; err != <span class="va">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="st">"Pool error: %v\n"</span>, err)
+    }
+}</pre>
+      </div>
+    </div>
+
+    <!-- SECTION 6: ADVANCED - DYNAMIC LIMIT -->
+    <div class="section" id="adv2">
+      <h2>6. Nâng cao — Dynamic Concurrency Limit</h2>
+      <p>Điều chỉnh số lượng goroutines tối đa theo load của hệ thống trong runtime:</p>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">dynamic_limit.go — Adaptive Concurrency</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">adaptive</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"runtime"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="cm">// AdaptivePool tự điều chỉnh số workers dựa trên system load</span>
+<span class="kw">type</span> <span class="ty">AdaptivePool</span> <span class="kw">struct</span> {
+    minWorkers    <span class="ty">int</span>
+    maxWorkers    <span class="ty">int</span>
+    currentLimit  <span class="ty">atomic.Int64</span>
+    mu            sync.RWMutex
+    memThreshold  <span class="ty">uint64</span> <span class="cm">// bytes</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewAdaptivePool</span>(min, max <span class="ty">int</span>, memThresholdMB <span class="ty">uint64</span>) *<span class="ty">AdaptivePool</span> {
+    p := &amp;<span class="ty">AdaptivePool</span>{
+        minWorkers:   min,
+        maxWorkers:   max,
+        memThreshold: memThresholdMB * <span class="nu">1024</span> * <span class="nu">1024</span>,
+    }
+    p.currentLimit.<span class="fn">Store</span>(<span class="ty">int64</span>(max))
+    <span class="kw">return</span> p
+}
+
+<span class="cm">// adaptLimit điều chỉnh limit dựa trên memory usage</span>
+<span class="kw">func</span> (p *<span class="ty">AdaptivePool</span>) <span class="fn">adaptLimit</span>() <span class="ty">int</span> {
+    <span class="kw">var</span> ms runtime.<span class="ty">MemStats</span>
+    runtime.<span class="fn">ReadMemStats</span>(&amp;ms)
+
+    usage := <span class="ty">float64</span>(ms.Alloc) / <span class="ty">float64</span>(p.memThreshold)
+
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> usage > <span class="nu">0.9</span>: <span class="cm">// Nguy hiểm: giảm mạnh</span>
+        <span class="kw">return</span> p.minWorkers
+    <span class="kw">case</span> usage > <span class="nu">0.7</span>: <span class="cm">// Cảnh báo: giảm vừa</span>
+        <span class="kw">return</span> (p.minWorkers + p.maxWorkers) / <span class="nu">2</span>
+    <span class="kw">default</span>: <span class="cm">// Bình thường: dùng tối đa</span>
+        <span class="kw">return</span> p.maxWorkers
+    }
+}
+
+<span class="cm">// Run chạy tasks với dynamic limit, monitor mỗi 5 giây</span>
+<span class="kw">func</span> (p *<span class="ty">AdaptivePool</span>) <span class="fn">Run</span>(ctx <span class="ty">context.Context</span>, tasks []<span class="kw">func</span>() <span class="ty">error</span>) <span class="ty">error</span> {
+    <span class="cm">// Goroutine monitor điều chỉnh limit định kỳ</span>
+    monitorCtx, stopMonitor := context.<span class="fn">WithCancel</span>(ctx)
+    <span class="kw">defer</span> <span class="fn">stopMonitor</span>()
+
+    <span class="kw">go func</span>() {
+        ticker := time.<span class="fn">NewTicker</span>(<span class="nu">5</span> * time.Second)
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <-monitorCtx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> <-ticker.C:
+                newLimit := p.<span class="fn">adaptLimit</span>()
+                p.currentLimit.<span class="fn">Store</span>(<span class="ty">int64</span>(newLimit))
+            }
+        }
+    }()
+
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+    g.<span class="fn">SetLimit</span>(p.maxWorkers) <span class="cm">// set max, dynamic via monitor</span>
+
+    <span class="kw">for</span> _, task := <span class="kw">range</span> tasks {
+        task := task
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> ctx.<span class="fn">Err</span>()
+            <span class="kw">default</span>:
+                <span class="kw">return</span> <span class="fn">task</span>()
+            }
+        })
+    }
+
+    <span class="kw">return</span> g.<span class="fn">Wait</span>()
+}</pre>
+      </div>
+    </div>
+
+    <!-- SECTION 7: ADVANCED - BACKPRESSURE -->
+    <div class="section" id="adv3">
+      <h2>7. Nâng cao — Backpressure với errgroup</h2>
+
+      <div class="diagram-wrap">
+        <div class="diagram-header">🌊 Backpressure Flow — Pipeline với Bounded Parallelism</div>
+        <div class="diagram-body">
+          <svg viewBox="0 0 760 160" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+            <defs>
+              <marker id="arrbp" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#39d0d8"/>
+              </marker>
+              <marker id="arrbp2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#f0883e"/>
+              </marker>
+            </defs>
+
+            <!-- Producer -->
+            <rect x="10" y="55" width="100" height="50" rx="7" fill="#1c2128" stroke="#bc8cff" stroke-width="1.5"/>
+            <text x="60" y="76" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="600">Producer</text>
+            <text x="60" y="91" text-anchor="middle" fill="#6e7681" font-size="9">Generates tasks</text>
+            <text x="60" y="103" text-anchor="middle" fill="#6e7681" font-size="9">fast → slow down</text>
+
+            <!-- Arrow with label -->
+            <line x1="110" y1="80" x2="148" y2="80" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arrbp)"/>
+            <text x="129" y="73" text-anchor="middle" fill="#6e7681" font-size="8">buffered</text>
+            <text x="129" y="92" text-anchor="middle" fill="#6e7681" font-size="8">chan</text>
+
+            <!-- Buffer channel -->
+            <rect x="150" y="55" width="90" height="50" rx="7" fill="#1c2128" stroke="#e3b341" stroke-width="1.5"/>
+            <text x="195" y="76" text-anchor="middle" fill="#e3b341" font-size="11" font-weight="600">Buffer</text>
+            <text x="195" y="91" text-anchor="middle" fill="#6e7681" font-size="9">chan Task</text>
+            <text x="195" y="103" text-anchor="middle" fill="#6e7681" font-size="9">(capacity=N)</text>
+
+            <!-- Backpressure arrow -->
+            <line x1="150" y1="110" x2="110" y2="110" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arrbp2)" stroke-dasharray="4,3"/>
+            <text x="130" y="125" text-anchor="middle" fill="#f0883e" font-size="8">backpressure</text>
+            <text x="130" y="136" text-anchor="middle" fill="#f0883e" font-size="8">(channel full → block)</text>
+
+            <line x1="240" y1="80" x2="278" y2="80" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arrbp)"/>
+
+            <!-- errgroup -->
+            <rect x="280" y="35" width="180" height="90" rx="7" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+            <text x="370" y="56" text-anchor="middle" fill="#39d0d8" font-size="11" font-weight="600">errgroup.SetLimit(n)</text>
+            <rect x="292" y="63" width="72" height="16" rx="3" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="328" y="75" text-anchor="middle" fill="#3fb950" font-size="8" font-family="'JetBrains Mono',monospace">worker 1 ███</text>
+            <rect x="292" y="83" width="72" height="16" rx="3" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="328" y="95" text-anchor="middle" fill="#3fb950" font-size="8" font-family="'JetBrains Mono',monospace">worker 2 █</text>
+            <rect x="292" y="103" width="72" height="16" rx="3" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="328" y="115" text-anchor="middle" fill="#3fb950" font-size="8" font-family="'JetBrains Mono',monospace">worker 3 ████</text>
+            <text x="400" y="80" fill="#6e7681" font-size="8" font-family="'JetBrains Mono',monospace">slots</text>
+            <text x="400" y="92" fill="#6e7681" font-size="8" font-family="'JetBrains Mono',monospace">4,5</text>
+            <text x="400" y="104" fill="#6e7681" font-size="8" font-family="'JetBrains Mono',monospace">wait...</text>
+
+            <line x1="460" y1="80" x2="498" y2="80" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#arrbp)"/>
+
+            <!-- Sink -->
+            <rect x="500" y="55" width="90" height="50" rx="7" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+            <text x="545" y="76" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">Sink</text>
+            <text x="545" y="91" text-anchor="middle" fill="#6e7681" font-size="9">Collect results</text>
+            <text x="545" y="103" text-anchor="middle" fill="#6e7681" font-size="9">/ DB write</text>
+
+            <!-- Error path -->
+            <line x1="370" y1="125" x2="370" y2="150" stroke="#f85149" stroke-width="1" stroke-dasharray="3,3"/>
+            <text x="370" y="148" text-anchor="middle" fill="#f85149" font-size="8">error → cancel ctx → all goroutines stop</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">backpressure.go — Pipeline với Backpressure</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">pipeline</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">type</span> <span class="ty">Record</span> <span class="kw">struct</span> {
+    ID   <span class="ty">int</span>
+    Data <span class="ty">string</span>
+}
+
+<span class="cm">// PipelineWithBackpressure: producer → bounded workers → sink</span>
+<span class="kw">func</span> <span class="fn">PipelineWithBackpressure</span>(ctx <span class="ty">context.Context</span>, workerCount <span class="ty">int</span>) <span class="ty">error</span> {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+
+    <span class="cm">// Channel có buffer = workerCount tạo backpressure tự nhiên:</span>
+    <span class="cm">// Producer bị block khi channel đầy → không tạo quá nhiều tasks</span>
+    taskCh := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>, workerCount)
+
+    <span class="cm">// Stage 1: Producer — gửi tasks vào channel</span>
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">defer</span> <span class="fn">close</span>(taskCh) <span class="cm">// QUAN TRỌNG: đóng channel khi xong</span>
+        <span class="kw">for</span> i := <span class="kw">range</span> <span class="nu">1000</span> {
+            record := <span class="ty">Record</span>{ID: i, Data: fmt.<span class="fn">Sprintf</span>(<span class="st">"record-%d"</span>, i)}
+            <span class="kw">select</span> {
+            <span class="kw">case</span> taskCh <- record:
+                <span class="cm">// gửi thành công</span>
+            <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> ctx.<span class="fn">Err</span>() <span class="cm">// dừng nếu context cancelled</span>
+            }
+        }
+        <span class="kw">return</span> <span class="va">nil</span>
+    })
+
+    <span class="cm">// Stage 2: Workers — xử lý với bounded parallelism</span>
+    g.<span class="fn">SetLimit</span>(workerCount + <span class="nu">1</span>) <span class="cm">// +1 cho producer goroutine</span>
+
+    <span class="kw">for</span> w := <span class="kw">range</span> workerCount {
+        w := w
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            <span class="kw">for</span> record := <span class="kw">range</span> taskCh { <span class="cm">// tự dừng khi channel đóng</span>
+                <span class="kw">if</span> err := <span class="fn">processRecord</span>(ctx, record); err != <span class="va">nil</span> {
+                    <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"worker %d, record %d: %w"</span>, w, record.ID, err)
+                }
+            }
+            <span class="kw">return</span> <span class="va">nil</span>
+        })
+    }
+
+    <span class="kw">return</span> g.<span class="fn">Wait</span>() <span class="cm">// đợi producer + tất cả workers</span>
+}
+
+<span class="kw">func</span> <span class="fn">processRecord</span>(ctx <span class="ty">context.Context</span>, r <span class="ty">Record</span>) <span class="ty">error</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> ctx.<span class="fn">Err</span>()
+    <span class="kw">case</span> <-time.<span class="fn">After</span>(<span class="nu">10</span> * time.Millisecond):
+        <span class="cm">// simulate processing</span>
+        <span class="kw">return</span> <span class="va">nil</span>
+    }
+}</pre>
+      </div>
+    </div>
+
+    <!-- SECTION 8: EXPERT - HTTP CRAWLER -->
+    <div class="section" id="exp1">
+      <h2>8. Expert — HTTP Crawler với Rate Limiting</h2>
+      <div class="section-header" style="margin: 0 0 16px">
+        <span class="badge expert">★ Expert</span>
+        <span style="color:var(--text2);font-size:13px">Kết hợp errgroup + rate limiter + retry logic</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">http_crawler.go — Production HTTP Crawler</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">crawler</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"io"</span>
+    <span class="st">"net/http"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+    <span class="st">"golang.org/x/time/rate"</span>
+)
+
+<span class="cm">// CrawlResult chứa kết quả crawl một URL</span>
+<span class="kw">type</span> <span class="ty">CrawlResult</span> <span class="kw">struct</span> {
+    URL        <span class="ty">string</span>
+    StatusCode <span class="ty">int</span>
+    BodySize   <span class="ty">int64</span>
+    Duration   time.<span class="ty">Duration</span>
+    Err        <span class="ty">error</span>
+}
+
+<span class="cm">// Crawler với bounded parallelism + rate limiting</span>
+<span class="kw">type</span> <span class="ty">Crawler</span> <span class="kw">struct</span> {
+    maxConcurrent <span class="ty">int</span>
+    limiter       *rate.<span class="ty">Limiter</span>    <span class="cm">// request/second</span>
+    client        *http.<span class="ty">Client</span>
+    maxRetries    <span class="ty">int</span>
+    mu            sync.<span class="ty">Mutex</span>
+    visited       <span class="fn">map</span>[<span class="ty">string</span>]<span class="ty">bool</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewCrawler</span>(maxConcurrent, rps, maxRetries <span class="ty">int</span>) *<span class="ty">Crawler</span> {
+    <span class="kw">return</span> &amp;<span class="ty">Crawler</span>{
+        maxConcurrent: maxConcurrent,
+        limiter:       rate.<span class="fn">NewLimiter</span>(rate.<span class="ty">Limit</span>(rps), rps),
+        client: &amp;http.<span class="ty">Client</span>{
+            Timeout: <span class="nu">15</span> * time.Second,
+            Transport: &amp;http.<span class="ty">Transport</span>{
+                MaxIdleConnsPerHost: maxConcurrent,
+                IdleConnTimeout:     <span class="nu">30</span> * time.Second,
+            },
+        },
+        maxRetries: maxRetries,
+        visited:    <span class="fn">make</span>(<span class="fn">map</span>[<span class="ty">string</span>]<span class="ty">bool</span>),
+    }
+}
+
+<span class="cm">// CrawlAll crawl nhiều URLs đồng thời với bounded concurrency</span>
+<span class="kw">func</span> (c *<span class="ty">Crawler</span>) <span class="fn">CrawlAll</span>(ctx <span class="ty">context.Context</span>, urls []<span class="ty">string</span>) ([]<span class="ty">CrawlResult</span>, <span class="ty">error</span>) {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+    g.<span class="fn">SetLimit</span>(c.maxConcurrent)
+
+    results := <span class="fn">make</span>([]<span class="ty">CrawlResult</span>, <span class="fn">len</span>(urls))
+
+    <span class="kw">for</span> i, url := <span class="kw">range</span> urls {
+        i, url := i, url
+
+        <span class="cm">// Dedup: bỏ qua URL đã crawl</span>
+        c.mu.<span class="fn">Lock</span>()
+        <span class="kw">if</span> c.visited[url] {
+            c.mu.<span class="fn">Unlock</span>()
+            <span class="kw">continue</span>
+        }
+        c.visited[url] = <span class="va">true</span>
+        c.mu.<span class="fn">Unlock</span>()
+
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            <span class="cm">// Rate limiting: tuân thủ giới hạn request/giây</span>
+            <span class="kw">if</span> err := c.limiter.<span class="fn">Wait</span>(ctx); err != <span class="va">nil</span> {
+                <span class="kw">return</span> nil <span class="cm">// context cancelled, không phải lỗi nghiêm trọng</span>
+            }
+
+            result := c.<span class="fn">crawlWithRetry</span>(ctx, url)
+            results[i] = result
+
+            <span class="cm">// Chỉ return error cho lỗi nghiêm trọng</span>
+            <span class="kw">if</span> result.Err != <span class="va">nil</span> && <span class="fn">isFatalError</span>(result.Err) {
+                <span class="kw">return</span> result.Err
+            }
+            <span class="kw">return</span> <span class="va">nil</span>
+        })
+    }
+
+    <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="va">nil</span> {
+        <span class="kw">return</span> results, err
+    }
+    <span class="kw">return</span> results, <span class="va">nil</span>
+}
+
+<span class="cm">// crawlWithRetry thực hiện crawl với exponential backoff retry</span>
+<span class="kw">func</span> (c *<span class="ty">Crawler</span>) <span class="fn">crawlWithRetry</span>(ctx <span class="ty">context.Context</span>, url <span class="ty">string</span>) <span class="ty">CrawlResult</span> {
+    <span class="kw">var</span> lastErr <span class="ty">error</span>
+
+    <span class="kw">for</span> attempt := <span class="kw">range</span> c.maxRetries {
+        <span class="kw">if</span> attempt > <span class="nu">0</span> {
+            <span class="cm">// Exponential backoff: 1s, 2s, 4s...</span>
+            backoff := time.<span class="fn">Duration</span>(<span class="nu">1</span>&lt;&lt;attempt) * time.Second
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <-time.<span class="fn">After</span>(backoff):
+            <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span> <span class="ty">CrawlResult</span>{URL: url, Err: ctx.<span class="fn">Err</span>()}
+            }
+        }
+
+        result := c.<span class="fn">crawlOnce</span>(ctx, url)
+        <span class="kw">if</span> result.Err == <span class="va">nil</span> {
+            <span class="kw">return</span> result <span class="cm">// thành công</span>
+        }
+        lastErr = result.Err
+
+        <span class="cm">// Không retry nếu lỗi client (4xx)</span>
+        <span class="kw">if</span> result.StatusCode >= <span class="nu">400</span> && result.StatusCode < <span class="nu">500</span> {
+            <span class="kw">break</span>
+        }
+    }
+
+    <span class="kw">return</span> <span class="ty">CrawlResult</span>{URL: url, Err: fmt.<span class="fn">Errorf</span>(<span class="st">"sau %d lần thử: %w"</span>, c.maxRetries, lastErr)}
+}
+
+<span class="kw">func</span> (c *<span class="ty">Crawler</span>) <span class="fn">crawlOnce</span>(ctx <span class="ty">context.Context</span>, url <span class="ty">string</span>) <span class="ty">CrawlResult</span> {
+    start := time.<span class="fn">Now</span>()
+
+    req, err := http.<span class="fn">NewRequestWithContext</span>(ctx, http.MethodGet, url, <span class="va">nil</span>)
+    <span class="kw">if</span> err != <span class="va">nil</span> {
+        <span class="kw">return</span> <span class="ty">CrawlResult</span>{URL: url, Err: err}
+    }
+    req.Header.<span class="fn">Set</span>(<span class="st">"User-Agent"</span>, <span class="st">"GoBot/1.0"</span>)
+
+    resp, err := c.client.<span class="fn">Do</span>(req)
+    <span class="kw">if</span> err != <span class="va">nil</span> {
+        <span class="kw">return</span> <span class="ty">CrawlResult</span>{URL: url, Err: err, Duration: time.<span class="fn">Since</span>(start)}
+    }
+    <span class="kw">defer</span> resp.Body.<span class="fn">Close</span>()
+
+    n, _ := io.<span class="fn">Copy</span>(io.Discard, resp.Body)
+    <span class="kw">return</span> <span class="ty">CrawlResult</span>{
+        URL:        url,
+        StatusCode: resp.StatusCode,
+        BodySize:   n,
+        Duration:   time.<span class="fn">Since</span>(start),
+    }
+}
+
+<span class="kw">func</span> <span class="fn">isFatalError</span>(err <span class="ty">error</span>) <span class="ty">bool</span> {
+    <span class="cm">// Chỉ fatal nếu là lỗi auth hoặc forbidden</span>
+    <span class="kw">return</span> <span class="va">false</span> <span class="cm">// tùy business logic</span>
+}
+
+<span class="cm">// --- MAIN USAGE ---</span>
+
+<span class="kw">func</span> <span class="fn">ExampleCrawler</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nu">60</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    crawler := <span class="fn">NewCrawler</span>(
+        <span class="nu">20</span>,  <span class="cm">// max 20 concurrent requests</span>
+        <span class="nu">10</span>,  <span class="cm">// max 10 requests/second</span>
+        <span class="nu">3</span>,   <span class="cm">// retry tối đa 3 lần</span>
+    )
+
+    urls := []<span class="ty">string</span>{
+        <span class="st">"https://example.com/page/1"</span>,
+        <span class="st">"https://example.com/page/2"</span>,
+        <span class="cm">// ... 10000 URLs</span>
+    }
+
+    results, err := crawler.<span class="fn">CrawlAll</span>(ctx, urls)
+    <span class="kw">if</span> err != <span class="va">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="st">"Fatal error: %v\n"</span>, err)
+    }
+
+    <span class="kw">var</span> success, failed <span class="ty">int</span>
+    <span class="kw">for</span> _, r := <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err != <span class="va">nil</span> {
+            failed++
+        } <span class="kw">else</span> {
+            success++
+        }
+    }
+    fmt.<span class="fn">Printf</span>(<span class="st">"Thành công: %d, Thất bại: %d\n"</span>, success, failed)
+}</pre>
+      </div>
+    </div>
+
+    <!-- SECTION 9: EXPERT ETL -->
+    <div class="section" id="exp2">
+      <h2>9. Expert — ETL Pipeline hoàn chỉnh</h2>
+      <div class="section-header" style="margin: 0 0 16px">
+        <span class="badge expert">★ Expert</span>
+        <span style="color:var(--text2);font-size:13px">Multi-source Extract → Transform → Bounded Load với Dead Letter Queue</span>
+      </div>
+
+      <!-- ETL DIAGRAM -->
+      <div class="diagram-wrap">
+        <div class="diagram-header">🏗 ETL PIPELINE ARCHITECTURE — Bounded Parallelism</div>
+        <div class="diagram-body">
+          <svg viewBox="0 0 760 240" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+            <defs>
+              <marker id="etlarr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#39d0d8"/>
+              </marker>
+            </defs>
+
+            <!-- EXTRACT label -->
+            <text x="80" y="18" text-anchor="middle" fill="#39d0d8" font-size="11" font-weight="700">EXTRACT</text>
+            <!-- TRANSFORM label -->
+            <text x="340" y="18" text-anchor="middle" fill="#f0883e" font-size="11" font-weight="700">TRANSFORM</text>
+            <!-- LOAD label -->
+            <text x="630" y="18" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">LOAD</text>
+
+            <!-- Sources -->
+            <rect x="10" y="28" width="80" height="28" rx="5" fill="#1c2128" stroke="#39d0d8"/>
+            <text x="50" y="47" text-anchor="middle" fill="#39d0d8" font-size="10">CSV Files</text>
+
+            <rect x="10" y="64" width="80" height="28" rx="5" fill="#1c2128" stroke="#39d0d8"/>
+            <text x="50" y="83" text-anchor="middle" fill="#39d0d8" font-size="10">REST API</text>
+
+            <rect x="10" y="100" width="80" height="28" rx="5" fill="#1c2128" stroke="#39d0d8"/>
+            <text x="50" y="119" text-anchor="middle" fill="#39d0d8" font-size="10">Kafka</text>
+
+            <!-- Arrows to FanIn -->
+            <line x1="90" y1="42" x2="155" y2="80" stroke="#39d0d8" stroke-width="1.2" marker-end="url(#etlarr)"/>
+            <line x1="90" y1="78" x2="155" y2="80" stroke="#39d0d8" stroke-width="1.2" marker-end="url(#etlarr)"/>
+            <line x1="90" y1="114" x2="155" y2="80" stroke="#39d0d8" stroke-width="1.2" marker-end="url(#etlarr)"/>
+
+            <!-- FanIn Merge -->
+            <rect x="157" y="58" width="80" height="44" rx="6" fill="#2b1a4a" stroke="#bc8cff" stroke-width="1.5"/>
+            <text x="197" y="76" text-anchor="middle" fill="#bc8cff" font-size="10" font-weight="600">FanIn</text>
+            <text x="197" y="91" text-anchor="middle" fill="#6e7681" font-size="9">Merge</text>
+
+            <line x1="237" y1="80" x2="270" y2="80" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#etlarr)"/>
+
+            <!-- Transform stages (errgroup bounded) -->
+            <rect x="272" y="34" width="135" height="28" rx="5" fill="#1c2128" stroke="#f0883e"/>
+            <text x="339" y="52" text-anchor="middle" fill="#f0883e" font-size="10">Validate (limit=10)</text>
+
+            <rect x="272" y="70" width="135" height="28" rx="5" fill="#1c2128" stroke="#f0883e"/>
+            <text x="339" y="88" text-anchor="middle" fill="#f0883e" font-size="10">Normalize (limit=10)</text>
+
+            <rect x="272" y="106" width="135" height="28" rx="5" fill="#1c2128" stroke="#f0883e"/>
+            <text x="339" y="124" text-anchor="middle" fill="#f0883e" font-size="10">Enrich API (limit=5)</text>
+
+            <!-- Batch box -->
+            <rect x="452" y="50" width="95" height="60" rx="6" fill="#2b2000" stroke="#e3b341" stroke-width="1.5"/>
+            <text x="499" y="70" text-anchor="middle" fill="#e3b341" font-size="10" font-weight="600">Batch</text>
+            <text x="499" y="84" text-anchor="middle" fill="#6e7681" font-size="9">1000 items</text>
+            <text x="499" y="98" text-anchor="middle" fill="#6e7681" font-size="9">buffer</text>
+
+            <line x1="407" y1="48" x2="450" y2="72" stroke="#39d0d8" stroke-width="1.2" marker-end="url(#etlarr)"/>
+            <line x1="407" y1="84" x2="450" y2="84" stroke="#39d0d8" stroke-width="1.2" marker-end="url(#etlarr)"/>
+            <line x1="407" y1="120" x2="450" y2="96" stroke="#39d0d8" stroke-width="1.2" marker-end="url(#etlarr)"/>
+
+            <line x1="547" y1="80" x2="578" y2="80" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#etlarr)"/>
+
+            <!-- PostgreSQL -->
+            <rect x="580" y="52" width="95" height="56" rx="6" fill="#0d4a1f" stroke="#3fb950" stroke-width="1.5"/>
+            <text x="627" y="72" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">PostgreSQL</text>
+            <text x="627" y="87" text-anchor="middle" fill="#6e7681" font-size="9">Bulk Insert</text>
+            <text x="627" y="99" text-anchor="middle" fill="#6e7681" font-size="9">ON CONFLICT</text>
+
+            <!-- Retry/DLQ -->
+            <rect x="580" y="118" width="95" height="26" rx="5" fill="#3d1f00" stroke="#f0883e" stroke-dasharray="4,3"/>
+            <text x="627" y="135" text-anchor="middle" fill="#f0883e" font-size="9">Retry + Dead Letter</text>
+
+            <!-- Error channel -->
+            <rect x="237" y="158" width="270" height="26" rx="5" fill="#3d0f0c" stroke="#f85149"/>
+            <text x="372" y="175" text-anchor="middle" fill="#f85149" font-size="9">Error Channel → Dead Letter Queue → Alert</text>
+
+            <!-- Error arrows -->
+            <line x1="339" y1="134" x2="339" y2="157" stroke="#f85149" stroke-width="1" stroke-dasharray="3,3"/>
+            <line x1="499" y1="110" x2="499" y2="158" stroke="#f85149" stroke-width="1" stroke-dasharray="3,3" transform="translate(-127,0)"/>
+
+            <!-- errgroup annotation -->
+            <rect x="272" y="200" width="135" height="28" rx="5" fill="rgba(57,208,216,0.07)" stroke="rgba(57,208,216,0.3)"/>
+            <text x="339" y="218" text-anchor="middle" fill="#39d0d8" font-size="9">errgroup.SetLimit(N) ⬆</text>
+          </svg>
+        </div>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">etl_bounded.go — ETL với Bounded Parallelism + Dead Letter Queue</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">etl</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"database/sql"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"log/slog"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">type</span> <span class="ty">Record</span> <span class="kw">struct</span> {
+    ID        <span class="ty">string</span>
+    Source    <span class="ty">string</span>
+    RawData   []<span class="ty">byte</span>
+    Processed <span class="ty">bool</span>
+}
+
+<span class="kw">type</span> <span class="ty">ETLConfig</span> <span class="kw">struct</span> {
+    ExtractWorkers   <span class="ty">int</span> <span class="cm">// Số goroutines đọc dữ liệu</span>
+    TransformWorkers <span class="ty">int</span> <span class="cm">// Số goroutines transform</span>
+    LoadWorkers      <span class="ty">int</span> <span class="cm">// Số goroutines ghi DB</span>
+    BatchSize        <span class="ty">int</span> <span class="cm">// Số records mỗi batch</span>
+    DLQBufferSize    <span class="ty">int</span> <span class="cm">// Dead Letter Queue buffer</span>
+}
+
+<span class="kw">func</span> <span class="fn">DefaultConfig</span>() <span class="ty">ETLConfig</span> {
+    <span class="kw">return</span> <span class="ty">ETLConfig</span>{
+        ExtractWorkers:   <span class="nu">3</span>,
+        TransformWorkers: <span class="nu">10</span>,
+        LoadWorkers:      <span class="nu">5</span>,
+        BatchSize:        <span class="nu">1000</span>,
+        DLQBufferSize:    <span class="nu">10000</span>,
+    }
+}
+
+<span class="kw">type</span> <span class="ty">ETLPipeline</span> <span class="kw">struct</span> {
+    config <span class="ty">ETLConfig</span>
+    db     *sql.<span class="ty">DB</span>
+    logger *slog.<span class="ty">Logger</span>
+    dlq    <span class="kw">chan</span> <span class="ty">FailedRecord</span>
+}
+
+<span class="kw">type</span> <span class="ty">FailedRecord</span> <span class="kw">struct</span> {
+    Record <span class="ty">Record</span>
+    Err    <span class="ty">error</span>
+    Stage  <span class="ty">string</span>
+    RetryCount <span class="ty">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewETLPipeline</span>(cfg <span class="ty">ETLConfig</span>, db *sql.<span class="ty">DB</span>) *<span class="ty">ETLPipeline</span> {
+    <span class="kw">return</span> &amp;<span class="ty">ETLPipeline</span>{
+        config: cfg,
+        db:     db,
+        logger: slog.<span class="fn">Default</span>(),
+        dlq:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">FailedRecord</span>, cfg.DLQBufferSize),
+    }
+}
+
+<span class="cm">// Run chạy toàn bộ ETL pipeline</span>
+<span class="kw">func</span> (p *<span class="ty">ETLPipeline</span>) <span class="fn">Run</span>(ctx <span class="ty">context.Context</span>, sources []<span class="ty">DataSource</span>) <span class="ty">error</span> {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+
+    <span class="cm">// --- STAGE 1: EXTRACT ---</span>
+    rawCh := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>, p.config.ExtractWorkers*<span class="nu">2</span>)
+
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">defer</span> <span class="fn">close</span>(rawCh)
+        eg, egCtx := errgroup.<span class="fn">WithContext</span>(ctx)
+        eg.<span class="fn">SetLimit</span>(p.config.ExtractWorkers) <span class="cm">// ⭐ Bounded Extract</span>
+
+        <span class="kw">for</span> _, src := <span class="kw">range</span> sources {
+            src := src
+            eg.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+                <span class="kw">return</span> src.<span class="fn">Extract</span>(egCtx, rawCh)
+            })
+        }
+        <span class="kw">return</span> eg.<span class="fn">Wait</span>()
+    })
+
+    <span class="cm">// --- STAGE 2: TRANSFORM ---</span>
+    transformedCh := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>, p.config.TransformWorkers*<span class="nu">2</span>)
+
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">defer</span> <span class="fn">close</span>(transformedCh)
+        tg, tCtx := errgroup.<span class="fn">WithContext</span>(ctx)
+        tg.<span class="fn">SetLimit</span>(p.config.TransformWorkers) <span class="cm">// ⭐ Bounded Transform</span>
+
+        <span class="kw">for</span> record := <span class="kw">range</span> rawCh {
+            record := record
+            tg.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+                transformed, err := p.<span class="fn">transform</span>(tCtx, record)
+                <span class="kw">if</span> err != <span class="va">nil</span> {
+                    <span class="cm">// Lỗi nhỏ → DLQ, không dừng pipeline</span>
+                    p.<span class="fn">sendToDLQ</span>(<span class="ty">FailedRecord</span>{Record: record, Err: err, Stage: <span class="st">"transform"</span>})
+                    <span class="kw">return</span> <span class="va">nil</span>
+                }
+                <span class="kw">select</span> {
+                <span class="kw">case</span> transformedCh <- transformed:
+                <span class="kw">case</span> <-tCtx.<span class="fn">Done</span>():
+                    <span class="kw">return</span> tCtx.<span class="fn">Err</span>()
+                }
+                <span class="kw">return</span> <span class="va">nil</span>
+            })
+        }
+        <span class="kw">return</span> tg.<span class="fn">Wait</span>()
+    })
+
+    <span class="cm">// --- STAGE 3: LOAD (Batch + Bounded) ---</span>
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">return</span> p.<span class="fn">batchLoad</span>(ctx, transformedCh)
+    })
+
+    <span class="cm">// --- DLQ CONSUMER ---</span>
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">return</span> p.<span class="fn">consumeDLQ</span>(ctx)
+    })
+
+    <span class="kw">return</span> g.<span class="fn">Wait</span>()
+}
+
+<span class="cm">// batchLoad thu thập records thành batch rồi insert vào DB</span>
+<span class="kw">func</span> (p *<span class="ty">ETLPipeline</span>) <span class="fn">batchLoad</span>(ctx <span class="ty">context.Context</span>, in <-<span class="kw">chan</span> <span class="ty">Record</span>) <span class="ty">error</span> {
+    lg, lCtx := errgroup.<span class="fn">WithContext</span>(ctx)
+    lg.<span class="fn">SetLimit</span>(p.config.LoadWorkers) <span class="cm">// ⭐ Bounded Load</span>
+
+    batch := <span class="fn">make</span>([]<span class="ty">Record</span>, <span class="nu">0</span>, p.config.BatchSize)
+    <span class="kw">var</span> mu sync.<span class="ty">Mutex</span>
+
+    <span class="fn">flushBatch</span> := <span class="kw">func</span>(b []<span class="ty">Record</span>) {
+        b2 := <span class="fn">make</span>([]<span class="ty">Record</span>, <span class="fn">len</span>(b))
+        <span class="fn">copy</span>(b2, b)
+        lg.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            <span class="kw">if</span> err := p.<span class="fn">bulkInsert</span>(lCtx, b2); err != <span class="va">nil</span> {
+                <span class="cm">// Retry từng record đơn lẻ</span>
+                <span class="kw">for</span> _, r := <span class="kw">range</span> b2 {
+                    p.<span class="fn">sendToDLQ</span>(<span class="ty">FailedRecord</span>{Record: r, Err: err, Stage: <span class="st">"load"</span>})
+                }
+            }
+            <span class="kw">return</span> <span class="va">nil</span>
+        })
+    }
+
+    <span class="kw">for</span> record := <span class="kw">range</span> in {
+        mu.<span class="fn">Lock</span>()
+        batch = <span class="fn">append</span>(batch, record)
+        <span class="kw">if</span> <span class="fn">len</span>(batch) >= p.config.BatchSize {
+            <span class="fn">flushBatch</span>(batch)
+            batch = batch[:<span class="nu">0</span>]
+        }
+        mu.<span class="fn">Unlock</span>()
+    }
+
+    <span class="cm">// Flush batch cuối</span>
+    <span class="kw">if</span> <span class="fn">len</span>(batch) > <span class="nu">0</span> {
+        <span class="fn">flushBatch</span>(batch)
+    }
+
+    <span class="kw">return</span> lg.<span class="fn">Wait</span>()
+}
+
+<span class="kw">func</span> (p *<span class="ty">ETLPipeline</span>) <span class="fn">sendToDLQ</span>(f <span class="ty">FailedRecord</span>) {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> p.dlq <- f:
+    <span class="kw">default</span>:
+        p.logger.<span class="fn">Error</span>(<span class="st">"DLQ full, dropping record"</span>, <span class="st">"id"</span>, f.Record.ID)
+    }
+}
+
+<span class="kw">func</span> (p *<span class="ty">ETLPipeline</span>) <span class="fn">consumeDLQ</span>(ctx <span class="ty">context.Context</span>) <span class="ty">error</span> {
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span> <span class="va">nil</span>
+        <span class="kw">case</span> f, ok := <-p.dlq:
+            <span class="kw">if</span> !ok {
+                <span class="kw">return</span> <span class="va">nil</span>
+            }
+            p.logger.<span class="fn">Warn</span>(<span class="st">"dead letter"</span>,
+                <span class="st">"id"</span>, f.Record.ID,
+                <span class="st">"stage"</span>, f.Stage,
+                <span class="st">"err"</span>, f.Err,
+            )
+        }
+    }
+}
+
+<span class="kw">func</span> (p *<span class="ty">ETLPipeline</span>) <span class="fn">transform</span>(ctx <span class="ty">context.Context</span>, r <span class="ty">Record</span>) (<span class="ty">Record</span>, <span class="ty">error</span>) {
+    <span class="cm">// validate, normalize, enrich...</span>
+    r.Processed = <span class="va">true</span>
+    <span class="kw">return</span> r, <span class="va">nil</span>
+}
+
+<span class="kw">func</span> (p *<span class="ty">ETLPipeline</span>) <span class="fn">bulkInsert</span>(ctx <span class="ty">context.Context</span>, records []<span class="ty">Record</span>) <span class="ty">error</span> {
+    <span class="cm">// PostgreSQL COPY or batch INSERT</span>
+    _ = records
+    <span class="kw">return</span> <span class="va">nil</span>
+}
+
+<span class="kw">type</span> <span class="ty">DataSource</span> <span class="kw">interface</span> {
+    <span class="fn">Extract</span>(ctx <span class="ty">context.Context</span>, out <span class="kw">chan</span><- <span class="ty">Record</span>) <span class="ty">error</span>
+}
+
+<span class="kw">var</span> _ = fmt.<span class="fn">Sprintf</span>
+<span class="kw">var</span> _ = time.Second</pre>
+      </div>
+    </div>
+
+    <!-- SECTION 10: EXPERT - ADAPTIVE THROTTLE -->
+    <div class="section" id="exp4">
+      <h2>10. Expert — Adaptive Throttle Controller</h2>
+      <div class="section-header" style="margin: 0 0 16px">
+        <span class="badge expert">★ Expert</span>
+        <span style="color:var(--text2);font-size:13px">Tự động điều chỉnh concurrency theo latency và error rate</span>
+      </div>
+
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">adaptive_throttle.go — AIMD Congestion Control</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="kw">package</span> <span class="pk">throttle</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+    <span class="st">"math"</span>
+    
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="cm">// AdaptiveThrottle implement AIMD (Additive Increase, Multiplicative Decrease)</span>
+<span class="cm">// tương tự TCP congestion control</span>
+<span class="kw">type</span> <span class="ty">AdaptiveThrottle</span> <span class="kw">struct</span> {
+    minConcurrency  <span class="ty">int64</span>
+    maxConcurrency  <span class="ty">int64</span>
+    current         <span class="ty">atomic.Int64</span>
+
+    successCount    <span class="ty">atomic.Int64</span>
+    errorCount      <span class="ty">atomic.Int64</span>
+    totalLatency    <span class="ty">atomic.Int64</span> <span class="cm">// nanoseconds</span>
+    requestCount    <span class="ty">atomic.Int64</span>
+
+    targetLatency   time.<span class="ty">Duration</span>
+    errorThreshold  <span class="ty">float64</span> <span class="cm">// 0.0 - 1.0</span>
+
+    adjustInterval  time.<span class="ty">Duration</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewAdaptiveThrottle</span>(min, max <span class="ty">int64</span>, targetLatency time.<span class="ty">Duration</span>) *<span class="ty">AdaptiveThrottle</span> {
+    t := &amp;<span class="ty">AdaptiveThrottle</span>{
+        minConcurrency: min,
+        maxConcurrency: max,
+        targetLatency:  targetLatency,
+        errorThreshold: <span class="nu">0.05</span>, <span class="cm">// 5% error rate → giảm concurrency</span>
+        adjustInterval: <span class="nu">10</span> * time.Second,
+    }
+    t.current.<span class="fn">Store</span>((min + max) / <span class="nu">2</span>)
+    <span class="kw">return</span> t
+}
+
+<span class="cm">// adjust tính lại limit dựa trên metrics</span>
+<span class="kw">func</span> (t *<span class="ty">AdaptiveThrottle</span>) <span class="fn">adjust</span>() {
+    total := t.requestCount.<span class="fn">Swap</span>(<span class="nu">0</span>)
+    errors := t.errorCount.<span class="fn">Swap</span>(<span class="nu">0</span>)
+    latency := t.totalLatency.<span class="fn">Swap</span>(<span class="nu">0</span>)
+    t.successCount.<span class="fn">Swap</span>(<span class="nu">0</span>)
+
+    <span class="kw">if</span> total == <span class="nu">0</span> {
+        <span class="kw">return</span>
+    }
+
+    errorRate := <span class="ty">float64</span>(errors) / <span class="ty">float64</span>(total)
+    avgLatency := time.<span class="fn">Duration</span>(latency / total)
+    current := t.current.<span class="fn">Load</span>()
+
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> errorRate > t.errorThreshold || avgLatency > t.targetLatency*<span class="nu">2</span>:
+        <span class="cm">// Multiplicative Decrease: bị quá tải → giảm mạnh 50%</span>
+        newLimit := <span class="ty">int64</span>(math.<span class="fn">Max</span>(<span class="ty">float64</span>(t.minConcurrency), <span class="ty">float64</span>(current)*<span class="nu">0.5</span>))
+        t.current.<span class="fn">Store</span>(newLimit)
+
+    <span class="kw">case</span> errorRate < t.errorThreshold/<span class="nu">2</span> && avgLatency < t.targetLatency:
+        <span class="cm">// Additive Increase: ổn định → tăng dần +1</span>
+        newLimit := <span class="ty">int64</span>(math.<span class="fn">Min</span>(<span class="ty">float64</span>(t.maxConcurrency), <span class="ty">float64</span>(current)+<span class="nu">1</span>))
+        t.current.<span class="fn">Store</span>(newLimit)
+    }
+}
+
+<span class="cm">// RecordResult ghi lại kết quả của một request</span>
+<span class="kw">func</span> (t *<span class="ty">AdaptiveThrottle</span>) <span class="fn">RecordResult</span>(latency time.<span class="ty">Duration</span>, err <span class="ty">error</span>) {
+    t.requestCount.<span class="fn">Add</span>(<span class="nu">1</span>)
+    t.totalLatency.<span class="fn">Add</span>(<span class="ty">int64</span>(latency))
+    <span class="kw">if</span> err != <span class="va">nil</span> {
+        t.errorCount.<span class="fn">Add</span>(<span class="nu">1</span>)
+    } <span class="kw">else</span> {
+        t.successCount.<span class="fn">Add</span>(<span class="nu">1</span>)
+    }
+}
+
+<span class="cm">// Run chạy tasks với adaptive concurrency</span>
+<span class="kw">func</span> (t *<span class="ty">AdaptiveThrottle</span>) <span class="fn">Run</span>(ctx <span class="ty">context.Context</span>, tasks <-<span class="kw">chan</span> <span class="kw">func</span>(ctx <span class="ty">context.Context</span>) <span class="ty">error</span>) <span class="ty">error</span> {
+    <span class="cm">// Goroutine điều chỉnh limit định kỳ</span>
+    adjustCtx, stopAdjust := context.<span class="fn">WithCancel</span>(ctx)
+    <span class="kw">defer</span> <span class="fn">stopAdjust</span>()
+    <span class="kw">go func</span>() {
+        ticker := time.<span class="fn">NewTicker</span>(t.adjustInterval)
+        <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <-adjustCtx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> <-ticker.C: t.<span class="fn">adjust</span>()
+            }
+        }
+    }()
+
+    g, gCtx := errgroup.<span class="fn">WithContext</span>(ctx)
+    g.<span class="fn">SetLimit</span>(<span class="ty">int</span>(t.maxConcurrency))
+
+    <span class="kw">for</span> task := <span class="kw">range</span> tasks {
+        task := task
+
+        <span class="cm">// Nếu hiện tại dưới limit → spawn, nếu không → TryGo</span>
+        current := <span class="ty">int</span>(t.current.<span class="fn">Load</span>())
+        g.<span class="fn">SetLimit</span>(current)
+
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            start := time.<span class="fn">Now</span>()
+            err := <span class="fn">task</span>(gCtx)
+            t.<span class="fn">RecordResult</span>(time.<span class="fn">Since</span>(start), err)
+            <span class="kw">return</span> <span class="va">nil</span> <span class="cm">// không propagate để tiếp tục adaptive</span>
+        })
+    }
+
+    <span class="kw">return</span> g.<span class="fn">Wait</span>()
+}</pre>
+      </div>
+    </div>
+
+    <!-- SECTION 11: PERFORMANCE -->
+    <div class="section" id="perf">
+      <h2>11. So sánh hiệu năng</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Pattern</th>
+              <th>Limit Method</th>
+              <th>Error Handling</th>
+              <th>Context Cancel</th>
+              <th>Code Lines</th>
+              <th>Use Case</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>sync.WaitGroup</code></td>
+              <td>Channel semaphore</td>
+              <td>❌ Manual</td>
+              <td>❌ Manual</td>
+              <td>~50</td>
+              <td>Simple, no errors</td>
+            </tr>
+            <tr>
+              <td><code>errgroup</code> (cũ)</td>
+              <td>N goroutines fixed</td>
+              <td>✅ First error</td>
+              <td>✅ Auto</td>
+              <td>~30</td>
+              <td>Fixed worker count</td>
+            </tr>
+            <tr>
+              <td><code>errgroup.SetLimit</code></td>
+              <td>SetLimit(n)</td>
+              <td>✅ First error</td>
+              <td>✅ Auto</td>
+              <td>~15</td>
+              <td>⭐ Recommended</td>
+            </tr>
+            <tr>
+              <td><code>semaphore.Weighted</code></td>
+              <td>Weighted acquire</td>
+              <td>❌ Manual</td>
+              <td>✅ Context</td>
+              <td>~40</td>
+              <td>Weighted resources</td>
+            </tr>
+            <tr>
+              <td>Adaptive Throttle</td>
+              <td>Dynamic + AIMD</td>
+              <td>✅ Tracked</td>
+              <td>✅ Auto</td>
+              <td>~150</td>
+              <td>Production SLA</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- BENCHMARK CHART -->
+      <div class="diagram-wrap">
+        <div class="diagram-header">📈 Throughput vs Concurrency Level (I/O-bound tasks)</div>
+        <div class="diagram-body">
+          <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto">
+            <!-- Grid -->
+            <line x1="60" y1="20" x2="60" y2="180" stroke="#30363d" stroke-width="1"/>
+            <line x1="60" y1="180" x2="660" y2="180" stroke="#30363d" stroke-width="1"/>
+            <!-- Grid lines -->
+            <line x1="60" y1="140" x2="660" y2="140" stroke="#21262d" stroke-width="0.5"/>
+            <line x1="60" y1="100" x2="660" y2="100" stroke="#21262d" stroke-width="0.5"/>
+            <line x1="60" y1="60" x2="660" y2="60" stroke="#21262d" stroke-width="0.5"/>
+
+            <!-- Y labels -->
+            <text x="50" y="183" text-anchor="end" fill="#6e7681" font-size="10">0</text>
+            <text x="50" y="143" text-anchor="end" fill="#6e7681" font-size="10">25%</text>
+            <text x="50" y="103" text-anchor="end" fill="#6e7681" font-size="10">50%</text>
+            <text x="50" y="63" text-anchor="end" fill="#6e7681" font-size="10">75%</text>
+            <text x="50" y="28" text-anchor="end" fill="#6e7681" font-size="10">100%</text>
+
+            <!-- X labels (concurrency) -->
+            <text x="100" y="195" text-anchor="middle" fill="#6e7681" font-size="10">1</text>
+            <text x="190" y="195" text-anchor="middle" fill="#6e7681" font-size="10">5</text>
+            <text x="280" y="195" text-anchor="middle" fill="#6e7681" font-size="10">10</text>
+            <text x="370" y="195" text-anchor="middle" fill="#6e7681" font-size="10">20</text>
+            <text x="460" y="195" text-anchor="middle" fill="#6e7681" font-size="10">50</text>
+            <text x="550" y="195" text-anchor="middle" fill="#6e7681" font-size="10">100</text>
+            <text x="640" y="195" text-anchor="middle" fill="#6e7681" font-size="10">500</text>
+            <text x="360" y="210" text-anchor="middle" fill="#8b949e" font-size="10">Số goroutines đồng thời</text>
+
+            <!-- Throughput line (rises then plateaus) - Green (errgroup.SetLimit optimal) -->
+            <polyline points="100,175 190,120 280,75 370,55 460,50 550,52 640,70"
+              fill="none" stroke="#3fb950" stroke-width="2.5" stroke-linejoin="round"/>
+
+            <!-- Unbounded line (rises then crashes) - Red -->
+            <polyline points="100,175 190,118 280,73 370,52 460,60 550,100 640,160"
+              fill="none" stroke="#f85149" stroke-width="2" stroke-linejoin="round" stroke-dasharray="5,3"/>
+
+            <!-- Optimal point marker -->
+            <circle cx="370" cy="55" r="5" fill="#3fb950"/>
+            <rect x="375" y="38" width="85" height="18" rx="4" fill="#0d4a1f" stroke="#3fb950"/>
+            <text x="418" y="51" text-anchor="middle" fill="#3fb950" font-size="9">Optimal ≈ 20</text>
+
+            <!-- Legend -->
+            <line x1="70" y1="215" x2="90" y2="215" stroke="#3fb950" stroke-width="2.5"/>
+            <text x="95" y="218" fill="#8b949e" font-size="10">errgroup.SetLimit (bounded)</text>
+            <line x1="250" y1="215" x2="270" y2="215" stroke="#f85149" stroke-width="2" stroke-dasharray="5,3"/>
+            <text x="275" y="218" fill="#8b949e" font-size="10">Unbounded (sụt hiệu năng)</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 12: PITFALLS -->
+    <div class="section" id="pitfalls">
+      <h2>12. Lỗi phổ biến & Cách tránh</h2>
+
+      <h3>❌ Lỗi 1: Quên capture loop variable (Go &lt; 1.22)</h3>
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">Sai vs Đúng — Loop variable capture</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="cm">// ❌ SAI: tất cả goroutines dùng cùng biến url (Go &lt; 1.22)</span>
+<span class="kw">for</span> _, url := <span class="kw">range</span> urls {
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">return</span> <span class="fn">fetch</span>(url) <span class="cm">// url luôn là giá trị CUỐI của vòng lặp!</span>
+    })
+}
+
+<span class="cm">// ✅ ĐÚNG: capture bằng shadow variable (Go &lt; 1.22)</span>
+<span class="kw">for</span> _, url := <span class="kw">range</span> urls {
+    url := url <span class="cm">// tạo bản sao mới cho mỗi iteration</span>
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+        <span class="kw">return</span> <span class="fn">fetch</span>(url)
+    })
+}
+
+<span class="cm">// ✅ ĐÚNG: Go 1.22+ tự động fix loop variable capture</span>
+<span class="cm">// Không cần shadow variable nữa!</span></pre>
+      </div>
+
+      <h3>❌ Lỗi 2: SetLimit sau khi đã gọi Go()</h3>
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">SetLimit phải gọi TRƯỚC Go()</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="cm">// ❌ SAI: panic! SetLimit phải gọi trước g.Go()</span>
+g, _ := errgroup.<span class="fn">WithContext</span>(ctx)
+g.<span class="fn">Go</span>(someTask) <span class="cm">// ← gọi Go() trước</span>
+g.<span class="fn">SetLimit</span>(<span class="nu">5</span>) <span class="cm">// ← PANIC: cannot call SetLimit after Go</span>
+
+<span class="cm">// ✅ ĐÚNG: SetLimit phải trước tất cả g.Go()</span>
+g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+g.<span class="fn">SetLimit</span>(<span class="nu">5</span>) <span class="cm">// ← SetLimit TRƯỚC</span>
+<span class="kw">for</span> _, task := <span class="kw">range</span> tasks {
+    g.<span class="fn">Go</span>(task)  <span class="cm">// ← sau đó mới Go()</span>
+}</pre>
+      </div>
+
+      <h3>❌ Lỗi 3: Goroutine leak khi không check ctx.Done()</h3>
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="code-lang">GO</span>
+          <span class="code-title">Kiểm tra context trong long-running tasks</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><span class="cm">// ❌ SAI: goroutine tiếp tục chạy dù context đã cancel</span>
+g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+    <span class="kw">for</span> item := <span class="kw">range</span> bigCh {
+        <span class="fn">process</span>(item) <span class="cm">// không check ctx → leak!</span>
+    }
+    <span class="kw">return</span> <span class="va">nil</span>
+})
+
+<span class="cm">// ✅ ĐÚNG: luôn check ctx.Done() trong vòng lặp dài</span>
+g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span> ctx.<span class="fn">Err</span>() <span class="cm">// thoát clean</span>
+        <span class="kw">case</span> item, ok := <-bigCh:
+            <span class="kw">if</span> !ok { <span class="kw">return</span> <span class="va">nil</span> }
+            <span class="kw">if</span> err := <span class="fn">process</span>(ctx, item); err != <span class="va">nil</span> {
+                <span class="kw">return</span> err
+            }
+        }
+    }
+})</pre>
+      </div>
+
+      <div class="callout tip">
+        <div class="callout-icon">🔍</div>
+        <div class="callout-body">
+          <p><strong>Phát hiện goroutine leak:</strong> Dùng <code>go test -race ./...</code> và <code>goleak</code> package (<code>go.uber.org/goleak</code>) để tự động detect goroutine leak trong unit tests.</p>
+        </div>
+      </div>
+
+      <h3>Checklist Production</h3>
+      <ul class="steps">
+        <li class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Chọn đúng limit</div>
+            <div class="step-desc">I/O-bound: 10–100 goroutines. CPU-bound: <code>runtime.NumCPU()</code>. Benchmark với production traffic.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">SetLimit trước mọi g.Go()</div>
+            <div class="step-desc">Luôn gọi <code>g.SetLimit(n)</code> ngay sau <code>errgroup.WithContext()</code>.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Capture loop variables đúng cách</div>
+            <div class="step-desc">Go 1.22+: tự động. Go cũ: <code>url := url</code> shadow variable.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Luôn check ctx.Done() trong long tasks</div>
+            <div class="step-desc">Dùng <code>select</code> với <code>ctx.Done()</code> để không bị goroutine leak.</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <div class="step-title">Quyết định error propagation strategy</div>
+            <div class="step-desc">Return error để cancel tất cả (fast-fail), hoặc log + DLQ để tiếp tục (resilient).</div>
+          </div>
+        </li>
+        <li class="step">
+          <div class="step-num">6</div>
+          <div class="step-content">
+            <div class="step-title">Test với -race flag và goleak</div>
+            <div class="step-desc"><code>go test -race -count=1 ./...</code> để phát hiện race condition và goroutine leak.</div>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+    <!-- SECTION 13: REFERENCES -->
+    <div class="section" id="refs">
+      <h2>13. Tài liệu tham khảo</h2>
+      <p>Những nguồn chất lượng cao nhất về Bounded Parallelism và errgroup trong Go:</p>
+
+      <div class="ref-grid">
+        <a class="ref-card" href="https://pkg.go.dev/golang.org/x/sync/errgroup" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">📦</span>
+            <div>
+              <div class="ref-title">golang.org/x/sync/errgroup</div>
+              <div class="ref-author">Official Go Team · pkg.go.dev</div>
+            </div>
+          </div>
+          <div class="ref-desc">Official documentation cho errgroup package — bao gồm SetLimit(), TryGo(), WithContext(). Nguồn chính xác nhất.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">official</span><span class="ref-tag">docs</span><span class="ref-tag">errgroup</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/golang/sync" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">⭐</span>
+            <div>
+              <div class="ref-title">golang/sync — GitHub Source</div>
+              <div class="ref-author">golang · github.com/golang/sync</div>
+            </div>
+          </div>
+          <div class="ref-desc">Source code của errgroup, semaphore, singleflight và các sync primitives. Đọc source để hiểu implementation chi tiết.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">source</span><span class="ref-tag">errgroup</span><span class="ref-tag">semaphore</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://go.dev/blog/pipelines" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">📝</span>
+            <div>
+              <div class="ref-title">Go Concurrency Patterns: Pipelines</div>
+              <div class="ref-author">Sameer Ajmani · The Go Blog</div>
+            </div>
+          </div>
+          <div class="ref-desc">Blog post kinh điển từ Go Team về pipeline patterns — fan-out, fan-in, cancellation, và bounded parallelism fundamentals.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">official blog</span><span class="ref-tag">pipelines</span><span class="ref-tag">fan-out</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/uber-go/goleak" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">🔍</span>
+            <div>
+              <div class="ref-title">uber-go/goleak</div>
+              <div class="ref-author">Uber · 5.8k ⭐ stars</div>
+            </div>
+          </div>
+          <div class="ref-desc">Goroutine leak detector cho Go tests. Tích hợp vào TestMain để tự động phát hiện goroutine không được dọn dẹp.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">testing</span><span class="ref-tag">goroutine-leak</span><span class="ref-tag">uber</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://go.dev/blog/context" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">📝</span>
+            <div>
+              <div class="ref-title">Go Concurrency Patterns: Context</div>
+              <div class="ref-author">Sameer Ajmani · The Go Blog</div>
+            </div>
+          </div>
+          <div class="ref-desc">Bài viết về context.Context — cách dùng đúng với cancellation, deadline, và value propagation trong concurrent programs.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">context</span><span class="ref-tag">cancellation</span><span class="ref-tag">official</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/sourcegraph/conc" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">🧩</span>
+            <div>
+              <div class="ref-title">sourcegraph/conc</div>
+              <div class="ref-author">Sourcegraph · 9.3k ⭐ stars</div>
+            </div>
+          </div>
+          <div class="ref-desc">Better structured concurrency for Go. Cung cấp pool, iter, panics — abstraction sạch hơn trên errgroup cho concurrent workloads.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">pool</span><span class="ref-tag">iter</span><span class="ref-tag">high-stars</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://golang.org/x/time/rate" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">⏱</span>
+            <div>
+              <div class="ref-title">golang.org/x/time/rate</div>
+              <div class="ref-author">Official Go Team · pkg.go.dev</div>
+            </div>
+          </div>
+          <div class="ref-desc">Token bucket rate limiter — dùng kết hợp với errgroup.SetLimit() để kiểm soát cả số lượng goroutines VÀ request per second.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">rate-limit</span><span class="ref-tag">official</span><span class="ref-tag">token-bucket</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/alitto/pond" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">🏊</span>
+            <div>
+              <div class="ref-title">alitto/pond</div>
+              <div class="ref-author">alitto · 1.5k ⭐ stars</div>
+            </div>
+          </div>
+          <div class="ref-desc">Minimalistic, high-performance worker pool. Tích hợp tốt cho production khi cần Worker Pool đầy đủ tính năng hơn errgroup thuần túy.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">worker-pool</span><span class="ref-tag">production</span>
+          </div>
+          <div class="stars">★★★★☆</div>
+        </a>
+
+        <a class="ref-card" href="https://cs.opensource.google/go/x/sync/+/refs/tags/v0.13.0:errgroup/errgroup.go" target="_blank">
+          <div class="ref-card-top">
+            <span class="ref-icon">🔬</span>
+            <div>
+              <div class="ref-title">errgroup.go Source Code</div>
+              <div class="ref-author">Google Open Source · v0.13.0</div>
+            </div>
+          </div>
+          <div class="ref-desc">Full source code của errgroup implementation. SetLimit() chỉ là 130 dòng code — đọc để hiểu rõ semaphore channel bên trong.</div>
+          <div class="ref-tags">
+            <span class="ref-tag">source-code</span><span class="ref-tag">internals</span>
+          </div>
+          <div class="stars">★★★★★</div>
+        </a>
+      </div>
+
+      <div class="callout info" style="margin-top:24px">
+        <div class="callout-icon">📚</div>
+        <div class="callout-body">
+          <p><strong>Sách khuyên đọc:</strong> <em>Concurrency in Go</em> bởi Katherine Cox-Buday (O'Reilly) — bao gồm đầy đủ về goroutines, channels, select, context, và các patterns production-grade. Đây là tài liệu toàn diện nhất về Go concurrency bằng tiếng Anh.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="border-top: 1px solid var(--border); padding-top: 24px; color: var(--text3); font-size: 12px;">
+      <p>Go Pipeline Pattern Documentation · Bounded Parallelism với errgroup · Go 1.21+</p>
+      <p style="margin-top:4px">Được biên soạn theo Go Community Best Practices · <code>golang.org/x/sync v0.13.0</code></p>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// Robust smooth scroll for all anchor links starting with #
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy', 2000);
+  });
+}
+
+// Sidebar active on scroll
+const sections = document.querySelectorAll('[id]');
+const links = document.querySelectorAll('.sidebar-links a');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.sidebar-links a[href="#${entry.target.id}"]`);
+      if (active) active.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>
