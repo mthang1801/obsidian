@@ -355,6 +355,30 @@
     .content { padding: 24px 20px 60px; }
     .compare-grid { grid-template-columns: 1fr; }
   }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg2);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -459,6 +483,11 @@
     <!-- ═══════════════════════════════════════════ -->
     <section id="concept">
       <h2>01. Or-Done Pattern là gì?</h2>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-or-done-pattern.png" alt="Go Concurrency: Or-Done Channel Pattern Mechanics" loading="lazy">
+        <div class="concept-img-caption">Hình 1.1: Sơ đồ hoạt động của Or-Done Pattern — Goroutine wrapper giám sát tín hiệu hủy từ Done channel để thoát sớm và dọn dẹp tài nguyên ngay lập tức, triệt tiêu nguy cơ rò rỉ bộ nhớ.</div>
+      </div>
 
       <p>
         <strong>Or-Done Pattern</strong> xuất phát từ cuốn sách nổi tiếng

@@ -6,35 +6,18 @@
       {
         "id": "f19c62c59159104a",
         "type": "tabs",
-        "dimension": 48.84910485933504,
+        "dimension": 99.99999999999999,
         "children": [
           {
             "id": "f16c608ce27bda0c",
             "type": "leaf",
             "state": {
-              "type": "graph",
-              "state": {},
-              "icon": "lucide-git-fork",
-              "title": "Graph view"
-            }
-          }
-        ]
-      },
-      {
-        "id": "9a127dca0d5e2be4",
-        "type": "tabs",
-        "dimension": 51.150895140664964,
-        "children": [
-          {
-            "id": "098699c8beb08fbe",
-            "type": "leaf",
-            "state": {
               "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/buffered-unbuffered-channels.html"
+                "file": "Go/Concurrency/context.html"
               },
               "icon": "lucide-file",
-              "title": "buffered-unbuffered-channels"
+              "title": "context"
             }
           }
         ]
@@ -201,13 +184,16 @@
   },
   "active": "f16c608ce27bda0c",
   "lastOpenFiles": [
-    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
-    "Go/Concurrency/wait-group.html",
     "Go/Concurrency/buffered-unbuffered-channels.html",
-    "Go/Concurrency/go-or-done-pattern.html",
-    "Go/Concurrency/go-pipeline-pattern.html",
-    "Go/Concurrency/go-race-conditions.html",
+    "Go/Concurrency/fan-out-fan-in-go.html",
     "Go/Concurrency/context.html",
+    "public/images/go-fan-out-fan-in.png",
+    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
+    "Go/Concurrency/go-pipeline-pattern.html",
+    "public/images/go-or-done-pattern.png",
+    "Go/Concurrency/go-or-done-pattern.html",
+    "Go/Concurrency/wait-group.html",
+    "Go/Concurrency/go-race-conditions.html",
     "Go/Concurrency/goroutines-guide.html",
     "public/images/go-happens-before.png",
     "public/images/go-goroutine-leak-mechanics.png",
@@ -222,10 +208,7 @@
     "public/images/go-worker-pool.png",
     "public/images/go-select-multiplexing.png",
     "public/images/go-rwmutex-concept.png",
-    "public/images/go-fan-in-fan-out.png",
-    "public/images/go-done-channel.png",
     "LENDING/2026-04-24.md",
-    "public/docs",
     "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
     "go-channels-guilde.html.md",
     "Go/Concurrency/Go Select Statement — Hướng Dẫn Toàn Diện.md",

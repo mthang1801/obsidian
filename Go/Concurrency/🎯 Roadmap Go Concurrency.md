@@ -25,7 +25,7 @@ Patterns thực tế cho production:
 
 Scale và optimize:
 
-11. **Fan-Out/Fan-In** - Distribute work + merge results
+11. [**Fan-Out/Fan-In**](./fan-out-fan-in-go.html) - Distribute work + merge results
 12. **Worker Pool** - Fixed workers cho load balancing (như BullMQ trong Node)
 13. **Tunny Worker Pool** - Production-ready pool với library
 14. **Tee Channel** - Duplicate stream cho nhiều consumers

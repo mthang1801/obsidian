@@ -1,0 +1,2657 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fan-Out / Fan-In Pattern — Go Concurrency</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2333;
+    --bg4: #21262d;
+    --border: #30363d;
+    --border2: #3d444d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --cyan: #39d0ff;
+    --cyan2: #00b4d8;
+    --green: #3fb950;
+    --green2: #56d364;
+    --yellow: #d29922;
+    --yellow2: #e3b341;
+    --orange: #db6d28;
+    --orange2: #f0883e;
+    --red: #f85149;
+    --purple: #a371f7;
+    --pink: #f778ba;
+    --blue: #58a6ff;
+    --sidebar-w: 240px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Sora', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+
+  /* ── TOPBAR ── */
+  .topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 48px;
+    background: rgba(13,17,23,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    gap: 0;
+  }
+  .topbar-brand {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 700; font-size: 15px;
+    color: var(--text);
+    text-decoration: none;
+    margin-right: 16px;
+  }
+  .topbar-brand .badge {
+    background: var(--cyan); color: #0d1117;
+    border-radius: 4px; padding: 2px 7px;
+    font-size: 11px; font-weight: 800; letter-spacing: .5px;
+  }
+  .topbar-nav { display: flex; gap: 0; }
+  .topbar-nav a {
+    color: var(--text2);
+    text-decoration: none;
+    padding: 0 14px; height: 48px;
+    display: flex; align-items: center;
+    font-size: 13px;
+    border-bottom: 2px solid transparent;
+    transition: all .15s;
+  }
+  .topbar-nav a:hover { color: var(--text); }
+  .topbar-nav a.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  /* ── BREADCRUMB ── */
+  .breadcrumb {
+    position: fixed; top: 48px; left: 0; right: 0; z-index: 99;
+    height: 32px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px;
+    gap: 6px;
+    font-size: 12px; color: var(--text3);
+  }
+  .breadcrumb span { color: var(--text2); }
+  .breadcrumb .sep { color: var(--text3); }
+  .breadcrumb .current { color: var(--cyan); font-weight: 500; }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    padding-top: 80px;
+    min-height: 100vh;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    top: 80px; left: 0; bottom: 0;
+    width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+    padding: 16px 0;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .sidebar-section {
+    padding: 12px 16px 4px;
+    font-size: 10px; font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--text3);
+    text-transform: uppercase;
+  }
+  .sidebar-item {
+    display: flex; align-items: center;
+    padding: 5px 16px;
+    color: var(--text2);
+    text-decoration: none;
+    font-size: 13px;
+    border-left: 2px solid transparent;
+    transition: all .12s;
+    cursor: pointer;
+  }
+  .sidebar-item:hover { color: var(--text); background: var(--bg3); }
+  .sidebar-item.active { color: var(--cyan); border-left-color: var(--cyan); background: rgba(57,208,255,.05); }
+
+  /* ── MAIN ── */
+  .main {
+    margin-left: var(--sidebar-w);
+    flex: 1;
+    padding: 32px 48px 80px;
+    max-width: 960px;
+  }
+
+  /* ── HERO ── */
+  .hero {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 32px;
+  }
+  .hero h1 {
+    font-size: 28px; font-weight: 800;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .hero .subtitle {
+    color: var(--cyan);
+    font-size: 16px; font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .hero p { color: var(--text2); line-height: 1.7; font-size: 14px; }
+  .hero p strong { color: var(--cyan); font-weight: 600; }
+  .hero p em { color: var(--text); font-style: italic; }
+
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 20px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid;
+  }
+  .tag.blue   { color: var(--blue);   border-color: var(--blue);   background: rgba(88,166,255,.08); }
+  .tag.green  { color: var(--green);  border-color: var(--green);  background: rgba(63,185,80,.08); }
+  .tag.cyan   { color: var(--cyan);   border-color: var(--cyan);   background: rgba(57,208,255,.08); }
+  .tag.orange { color: var(--orange2);border-color: var(--orange2);background: rgba(240,136,62,.08); }
+  .tag.yellow { color: var(--yellow2);border-color: var(--yellow2);background: rgba(227,179,65,.08); }
+  .tag.red    { color: var(--red);    border-color: var(--red);    background: rgba(248,81,73,.08); }
+  .tag.purple { color: var(--purple); border-color: var(--purple); background: rgba(163,113,247,.08); }
+
+  /* ── TOC ── */
+  .toc {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .toc-title {
+    font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 14px;
+  }
+  .toc ol { padding-left: 0; list-style: none; counter-reset: toc; }
+  .toc ol li {
+    counter-increment: toc;
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 4px 0;
+    font-size: 13px; color: var(--text2);
+  }
+  .toc ol li::before {
+    content: counter(toc, decimal-leading-zero);
+    color: var(--text3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    min-width: 22px;
+    margin-top: 2px;
+  }
+  .toc ol li a { color: var(--text2); text-decoration: none; }
+  .toc ol li a:hover { color: var(--cyan); }
+  .toc ol li.sub { padding-left: 32px; }
+  .toc ol li.sub::before { content: '○'; color: var(--text3); font-size: 9px; margin-top: 4px; }
+
+  /* ── SECTIONS ── */
+  .section { margin-bottom: 56px; }
+  .section-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    background: var(--cyan);
+    color: #0d1117;
+    font-size: 11px; font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section h2 {
+    font-size: 20px; font-weight: 700;
+    color: var(--text);
+  }
+  .section h3 {
+    font-size: 16px; font-weight: 600;
+    color: var(--text);
+    margin: 24px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section h3::before {
+    content: '';
+    width: 3px; height: 16px;
+    background: var(--cyan);
+    border-radius: 2px;
+    display: inline-block;
+  }
+  .section p { color: var(--text2); line-height: 1.75; margin-bottom: 12px; }
+  .section p strong { color: var(--text); font-weight: 600; }
+  .section p code {
+    background: var(--bg4);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+  }
+
+  /* ── CODE BLOCK ── */
+  .code-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 16px 0;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-header .lang {
+    font-size: 11px; font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text3);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .code-header .lang .dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--cyan);
+  }
+  .code-header .filename { color: var(--text2); font-size: 12px; font-family: 'JetBrains Mono', monospace; }
+  .code-body {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: var(--text);
+    tab-size: 4;
+  }
+  .code-body::-webkit-scrollbar { height: 4px; }
+  .code-body::-webkit-scrollbar-track { background: transparent; }
+  .code-body::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+  pre { white-space: pre; }
+
+  /* syntax tokens */
+  .kw { color: #ff7b72; }        /* keywords */
+  .fn { color: #d2a8ff; }        /* function names */
+  .ty { color: #ffa657; }        /* types */
+  .st { color: #a5d6ff; }        /* strings */
+  .cm { color: #6e7681; font-style: italic; } /* comments */
+  .nu { color: #79c0ff; }        /* numbers */
+  .op { color: #ff7b72; }        /* operators */
+  .va { color: #e6edf3; }        /* variables */
+  .pk { color: #ffa657; }        /* packages */
+
+  /* ── DIAGRAM ── */
+  .diagram-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3);
+    margin-bottom: 20px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .diagram-title::before {
+    content: '◆';
+    color: var(--cyan);
+    font-size: 8px;
+  }
+
+  /* SVG diagrams inline */
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── INFO BOXES ── */
+  .info-box {
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin: 16px 0;
+    border-left: 3px solid;
+    display: flex; gap: 12px;
+  }
+  .info-box .icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .info-box p { margin: 0; font-size: 13px; }
+  .info-box.tip  { background: rgba(57,208,255,.06); border-color: var(--cyan); }
+  .info-box.warn { background: rgba(227,179,65,.06); border-color: var(--yellow2); }
+  .info-box.danger { background: rgba(248,81,73,.06); border-color: var(--red); }
+  .info-box.note { background: rgba(163,113,247,.06); border-color: var(--purple); }
+
+  /* ── TABLE ── */
+  .data-table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
+  .data-table th {
+    background: var(--bg3);
+    color: var(--text3);
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: .8px;
+    padding: 10px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+    vertical-align: top;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: var(--bg3); }
+  .data-table td code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--cyan);
+    background: var(--bg4);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  .data-table td.good { color: var(--green); }
+  .data-table td.bad  { color: var(--red); }
+
+  /* ── PILL ── */
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .pill.green { background: rgba(63,185,80,.15); color: var(--green2); }
+  .pill.red   { background: rgba(248,81,73,.15);  color: var(--red); }
+  .pill.cyan  { background: rgba(57,208,255,.12); color: var(--cyan); }
+  .pill.yellow{ background: rgba(227,179,65,.12); color: var(--yellow2); }
+
+  /* ── REFERENCES ── */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .ref-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-decoration: none;
+    transition: all .15s;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .ref-card:hover {
+    border-color: var(--cyan);
+    background: rgba(57,208,255,.04);
+    transform: translateY(-1px);
+  }
+  .ref-card .ref-source {
+    font-size: 10px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text3);
+  }
+  .ref-card .ref-title {
+    font-size: 14px; font-weight: 600;
+    color: var(--text);
+    line-height: 1.4;
+  }
+  .ref-card .ref-desc { font-size: 12px; color: var(--text3); line-height: 1.5; }
+  .ref-card .ref-stars { font-size: 11px; color: var(--yellow2); }
+
+  /* ── COMPARE GRID ── */
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 16px 0;
+  }
+  .compare-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+  }
+  .compare-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+  .compare-card.good h4 { color: var(--green); }
+  .compare-card.bad  h4 { color: var(--red); }
+  .compare-card ul { padding-left: 16px; }
+  .compare-card ul li { font-size: 12.5px; color: var(--text2); margin-bottom: 5px; }
+
+  /* ── STEP FLOW ── */
+  .step-flow { display: flex; align-items: center; gap: 0; margin: 20px 0; flex-wrap: wrap; }
+  .step-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px;
+    text-align: center; min-width: 100px;
+  }
+  .step-box .step-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: .8px; }
+  .step-box .step-name  { font-size: 13px; font-weight: 600; color: var(--text); margin-top: 4px; }
+  .step-box .step-badge { font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--cyan); margin-top: 2px; }
+  .step-arrow { color: var(--cyan); font-size: 20px; padding: 0 8px; }
+
+  /* anchor offset */
+  [id] { scroll-margin-top: 96px; }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(57, 208, 255, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg2);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text2);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<nav class="topbar">
+  <a class="topbar-brand" href="#">
+    <span class="badge">Go</span>
+    Fan-Out / Fan-In <span style="color:var(--cyan)"> Pattern</span>
+  </a>
+  <div class="topbar-nav">
+    <a href="#intro" class="active">Giới thiệu</a>
+    <a href="#concept">Khái niệm</a>
+    <a href="#basic">Cơ bản</a>
+    <a href="#advanced">Nâng cao</a>
+    <a href="#expert">Expert</a>
+    <a href="#refs">Tài liệu</a>
+  </div>
+</nav>
+
+<!-- BREADCRUMB -->
+<div class="breadcrumb">
+  <span>Go</span><span class="sep">/</span>
+  <span>Concurrency</span><span class="sep">/</span>
+  <span class="current">fan-out-fan-in-pattern</span>
+</div>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="sidebar-section">Tổng quan</div>
+  <a class="sidebar-item active" href="#intro">Giới thiệu</a>
+  <a class="sidebar-item" href="#concept">Fan-Out/Fan-In là gì?</a>
+  <a class="sidebar-item" href="#why">Tại sao cần dùng?</a>
+  <a class="sidebar-item" href="#anatomy">Giải phẫu Pattern</a>
+
+  <div class="sidebar-section">Cơ bản</div>
+  <a class="sidebar-item" href="#basic-fanout">Fan-Out đơn giản</a>
+  <a class="sidebar-item" href="#basic-fanin">Fan-In — Merge</a>
+  <a class="sidebar-item" href="#worker-pool">Worker Pool</a>
+  <a class="sidebar-item" href="#pipeline">Pipeline Stage</a>
+
+  <div class="sidebar-section">Nâng cao</div>
+  <a class="sidebar-item" href="#ctx-cancel">Context Cancellation</a>
+  <a class="sidebar-item" href="#ordered">Ordered Results</a>
+  <a class="sidebar-item" href="#errgroup">ErrGroup Hybrid</a>
+  <a class="sidebar-item" href="#dynamic">Dynamic Fan-Out</a>
+  <a class="sidebar-item" href="#backpressure">Backpressure Control</a>
+
+  <div class="sidebar-section">Expert</div>
+  <a class="sidebar-item" href="#generic">Generic Fan-Out (1.18+)</a>
+  <a class="sidebar-item" href="#reactive">Reactive Stream</a>
+  <a class="sidebar-item" href="#benchmark">Benchmark & Profiling</a>
+  <a class="sidebar-item" href="#patterns">Anti-patterns</a>
+
+  <div class="sidebar-section">Tham khảo</div>
+  <a class="sidebar-item" href="#refs">Nguồn tham khảo</a>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main class="main">
+
+  <!-- HERO -->
+  <div class="hero" id="intro">
+    <h1>Fan-Out / Fan-In Pattern</h1>
+    <div class="subtitle">Phân phối công việc song song &amp; Hợp nhất kết quả</div>
+    <p>
+      <strong>Fan-Out/Fan-In</strong> là một trong những pattern concurrency mạnh mẽ nhất trong Go —
+      cho phép <em>phân phối công việc ra nhiều goroutine</em> (fan-out) và sau đó
+      <em>hợp nhất tất cả kết quả vào một luồng duy nhất</em> (fan-in).
+      Pattern này tận dụng tối đa CPU đa nhân, giảm latency, tăng throughput,
+      và là nền tảng của các hệ thống pipeline hiện đại trong Go.
+      Tài liệu này đi từ định nghĩa cơ bản đến kỹ thuật expert-level với
+      generics, reactive stream và benchmark thực tế.
+    </p>
+    <div class="tags">
+      <span class="tag blue">● Go 1.21+</span>
+      <span class="tag cyan">⚡ Goroutines</span>
+      <span class="tag green">✓ Channel-based</span>
+      <span class="tag orange">⚙ Worker Pool</span>
+      <span class="tag yellow">▲ Pipeline</span>
+      <span class="tag purple">◈ Generic (1.18+)</span>
+      <span class="tag red">● Expert Level</span>
+    </div>
+  </div>
+
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">Nội dung</div>
+    <ol>
+      <li><a href="#concept">Fan-Out/Fan-In là gì? — Định nghĩa &amp; bối cảnh</a></li>
+      <li><a href="#why">Tại sao Fan-Out/Fan-In quan trọng?</a></li>
+      <li><a href="#anatomy">Giải phẫu Pattern — Sơ đồ luồng dữ liệu</a></li>
+      <li><a href="#basic-fanout">Fan-Out cơ bản — Spawn nhiều goroutine</a></li>
+      <li><a href="#basic-fanin">Fan-In — Merge nhiều channel về một</a></li>
+      <li><a href="#worker-pool">Worker Pool với bounded concurrency</a></li>
+      <li><a href="#pipeline">Pipeline đa tầng với Fan-Out/Fan-In</a></li>
+      <li><a href="#ctx-cancel">Context Cancellation &amp; Deadline</a></li>
+      <li><a href="#ordered">Ordered Fan-In — Giữ thứ tự kết quả</a></li>
+      <li><a href="#errgroup">ErrGroup Hybrid — Xử lý lỗi đồng thời</a></li>
+      <li><a href="#dynamic">Dynamic Fan-Out — Số worker thay đổi runtime</a></li>
+      <li><a href="#backpressure">Backpressure Control — Semaphore pattern</a></li>
+      <li><a href="#generic">Generic Fan-Out — Go 1.18+</a></li>
+      <li><a href="#reactive">Reactive Stream &amp; Observable</a></li>
+      <li><a href="#benchmark">Benchmark &amp; Profiling thực tế</a></li>
+      <li><a href="#patterns">Anti-patterns &amp; Best Practices</a></li>
+      <li><a href="#refs">Tài liệu tham khảo &amp; Nguồn đọc thêm</a></li>
+    </ol>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 1 — KHÁI NIỆM
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="concept">
+    <div class="section-header">
+      <div class="section-num">01</div>
+      <h2>Fan-Out / Fan-In là gì?</h2>
+    </div>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-fan-out-fan-in.png" alt="Go Concurrency: Fan-Out / Fan-In Pattern Mechanics" loading="lazy">
+      <div class="concept-img-caption">Hình 1.1: Sơ đồ hoạt động của Fan-Out/Fan-In Pattern — Phân phối tải dữ liệu từ Inbound Channel ra nhiều Worker Goroutines độc lập (Fan-Out) rồi hợp nhất kết quả qua Merger vào Outbound Channel duy nhất (Fan-In).</div>
+    </div>
+
+    <p>
+      Trong lập trình concurrency với Go, <strong>Fan-Out</strong> là kỹ thuật
+      khởi chạy <em>nhiều goroutine cùng xử lý dữ liệu từ một input channel</em>,
+      còn <strong>Fan-In</strong> là kỹ thuật <em>hợp nhất output từ nhiều channel
+      về một channel duy nhất</em> để consumer đọc.
+    </p>
+    <p>
+      Hai khái niệm này thường đi đôi với nhau, tạo thành một cặp complementary:
+      bạn fan-out để xử lý song song, rồi fan-in để thu thập kết quả tuần tự.
+    </p>
+
+    <div class="diagram-wrap">
+      <div class="diagram-title">Sơ đồ tổng quan Fan-Out / Fan-In</div>
+      <svg width="100%" viewBox="0 0 720 260" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#39d0ff"/>
+          </marker>
+          <marker id="arr2" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+            <polygon points="0 0, 8 3, 0 6" fill="#3fb950"/>
+          </marker>
+        </defs>
+
+        <!-- Source -->
+        <rect x="20" y="100" width="100" height="60" rx="8" fill="#1c2333" stroke="#39d0ff" stroke-width="1.5"/>
+        <text x="70" y="124" text-anchor="middle" fill="#8b949e" font-size="10">INPUT</text>
+        <text x="70" y="142" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700">Source</text>
+        <text x="70" y="156" text-anchor="middle" fill="#39d0ff" font-size="10">channel</text>
+
+        <!-- FAN-OUT label -->
+        <text x="175" y="52" text-anchor="middle" fill="#d29922" font-size="11" font-weight="700">FAN-OUT</text>
+        <line x1="120" y1="51" x2="230" y2="51" stroke="#d29922" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Worker boxes -->
+        <rect x="230" y="30" width="110" height="44" rx="6" fill="#1c2333" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="285" y="49" text-anchor="middle" fill="#8b949e" font-size="9">goroutine</text>
+        <text x="285" y="65" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">Worker 1</text>
+
+        <rect x="230" y="108" width="110" height="44" rx="6" fill="#1c2333" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="285" y="127" text-anchor="middle" fill="#8b949e" font-size="9">goroutine</text>
+        <text x="285" y="143" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">Worker 2</text>
+
+        <rect x="230" y="186" width="110" height="44" rx="6" fill="#1c2333" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="285" y="205" text-anchor="middle" fill="#8b949e" font-size="9">goroutine</text>
+        <text x="285" y="221" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">Worker 3</text>
+
+        <!-- FAN-IN label -->
+        <text x="540" y="52" text-anchor="middle" fill="#a371f7" font-size="11" font-weight="700">FAN-IN</text>
+        <line x1="490" y1="51" x2="600" y2="51" stroke="#a371f7" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Merger -->
+        <rect x="430" y="100" width="110" height="60" rx="8" fill="#1c2333" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="485" y="124" text-anchor="middle" fill="#8b949e" font-size="10">MERGE</text>
+        <text x="485" y="142" text-anchor="middle" fill="#a371f7" font-size="13" font-weight="700">Fan-In</text>
+        <text x="485" y="156" text-anchor="middle" fill="#8b949e" font-size="10">goroutines</text>
+
+        <!-- Output -->
+        <rect x="600" y="100" width="100" height="60" rx="8" fill="#1c2333" stroke="#39d0ff" stroke-width="1.5"/>
+        <text x="650" y="124" text-anchor="middle" fill="#8b949e" font-size="10">OUTPUT</text>
+        <text x="650" y="142" text-anchor="middle" fill="#e6edf3" font-size="13" font-weight="700">Sink</text>
+        <text x="650" y="156" text-anchor="middle" fill="#39d0ff" font-size="10">channel</text>
+
+        <!-- Arrows: Source -> Workers -->
+        <line x1="120" y1="125" x2="225" y2="52" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="120" y1="130" x2="225" y2="130" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#arr)"/>
+        <line x1="120" y1="135" x2="225" y2="208" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#arr)"/>
+
+        <!-- Arrows: Workers -> Merger -->
+        <line x1="340" y1="52" x2="425" y2="118" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr2)"/>
+        <line x1="340" y1="130" x2="425" y2="130" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr2)"/>
+        <line x1="340" y1="208" x2="425" y2="142" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+        <!-- Arrow: Merger -> Sink -->
+        <line x1="540" y1="130" x2="595" y2="130" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#arr)"/>
+      </svg>
+    </div>
+
+    <h3>So sánh với Sequential Processing</h3>
+    <div class="compare-grid">
+      <div class="compare-card bad">
+        <h4>✗ Sequential (tuần tự)</h4>
+        <ul>
+          <li>Xử lý từng item một</li>
+          <li>CPU rảnh trong khi I/O chờ</li>
+          <li>Latency = N × single_item_time</li>
+          <li>Throughput thấp</li>
+        </ul>
+      </div>
+      <div class="compare-card good">
+        <h4>✓ Fan-Out/Fan-In (song song)</h4>
+        <ul>
+          <li>Xử lý N item đồng thời</li>
+          <li>CPU luôn bận, không lãng phí</li>
+          <li>Latency ≈ single_item_time</li>
+          <li>Throughput × N workers</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 2 — TẠI SAO
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="why">
+    <div class="section-header">
+      <div class="section-num">02</div>
+      <h2>Tại sao Fan-Out/Fan-In quan trọng?</h2>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Use case</th>
+          <th>Fan-Out giải quyết</th>
+          <th>Hiệu quả</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Gọi nhiều API đồng thời</td>
+          <td>Spawn N goroutine, mỗi cái gọi 1 API</td>
+          <td class="good">Giảm latency N lần</td>
+        </tr>
+        <tr>
+          <td>Xử lý file/image batch</td>
+          <td>Phân chia file ra N worker pool</td>
+          <td class="good">Tận dụng đa core CPU</td>
+        </tr>
+        <tr>
+          <td>Database query song song</td>
+          <td>Fan-out đến nhiều DB shard</td>
+          <td class="good">Throughput tăng tuyến tính</td>
+        </tr>
+        <tr>
+          <td>Stream data processing</td>
+          <td>Đọc Kafka/NATS, xử lý song song</td>
+          <td class="good">Real-time với low latency</td>
+        </tr>
+        <tr>
+          <td>Web scraping / crawling</td>
+          <td>N goroutine crawl URLs song song</td>
+          <td class="good">Tăng tốc N× so với tuần tự</td>
+        </tr>
+        <tr>
+          <td>MapReduce-style computation</td>
+          <td>Map (fan-out) → Reduce (fan-in)</td>
+          <td class="good">Xử lý Big Data hiệu quả</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="info-box tip">
+      <span class="icon">💡</span>
+      <p><strong>Go Concurrency Philosophy:</strong> "Do not communicate by sharing memory; share memory by communicating." — Fan-Out/Fan-In hiện thân trực tiếp triết lý này: dữ liệu chạy qua channel, không qua shared state.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 3 — GIẢI PHẪU
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="anatomy">
+    <div class="section-header">
+      <div class="section-num">03</div>
+      <h2>Giải phẫu Pattern — Sơ đồ luồng dữ liệu</h2>
+    </div>
+
+    <p>Một Fan-Out/Fan-In pattern hoàn chỉnh bao gồm 4 thành phần chính:</p>
+
+    <div class="step-flow">
+      <div class="step-box">
+        <div class="step-label">Bước 1</div>
+        <div class="step-name">Producer</div>
+        <div class="step-badge">chan&lt;- T</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box">
+        <div class="step-label">Bước 2</div>
+        <div class="step-name">Fan-Out</div>
+        <div class="step-badge">N goroutines</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box">
+        <div class="step-label">Bước 3</div>
+        <div class="step-name">Workers</div>
+        <div class="step-badge">process(T)</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box">
+        <div class="step-label">Bước 4</div>
+        <div class="step-name">Fan-In</div>
+        <div class="step-badge">merge()</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step-box">
+        <div class="step-label">Bước 5</div>
+        <div class="step-name">Consumer</div>
+        <div class="step-badge">&lt;-chan R</div>
+      </div>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="diagram-title">Chi tiết luồng dữ liệu với Channels</div>
+      <svg width="100%" viewBox="0 0 760 320" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="a1" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#39d0ff"/>
+          </marker>
+          <marker id="a2" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/>
+          </marker>
+          <marker id="a3" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#a371f7"/>
+          </marker>
+        </defs>
+
+        <!-- PRODUCER -->
+        <rect x="10" y="130" width="100" height="60" rx="6" fill="#161b22" stroke="#39d0ff" stroke-width="2"/>
+        <text x="60" y="153" text-anchor="middle" fill="#39d0ff" font-size="11" font-weight="700">Producer</text>
+        <text x="60" y="170" text-anchor="middle" fill="#6e7681" font-size="9">generate()</text>
+        <text x="60" y="183" text-anchor="middle" fill="#8b949e" font-size="9">ch&lt;- item</text>
+
+        <!-- IN CHANNEL -->
+        <rect x="125" y="142" width="90" height="36" rx="4" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="170" y="157" text-anchor="middle" fill="#6e7681" font-size="9" font-weight="700">in channel</text>
+        <text x="170" y="171" text-anchor="middle" fill="#39d0ff" font-size="10" font-weight="600">chan T</text>
+
+        <!-- Arrow: Producer -> in ch -->
+        <line x1="110" y1="160" x2="122" y2="160" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#a1)"/>
+
+        <!-- FAN-OUT arrows -->
+        <line x1="215" y1="160" x2="260" y2="70" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#a1)"/>
+        <line x1="215" y1="160" x2="260" y2="160" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#a1)"/>
+        <line x1="215" y1="160" x2="260" y2="250" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#a1)"/>
+
+        <!-- WORKERS -->
+        <rect x="262" y="44" width="130" height="52" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="327" y="64" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">Worker 1</text>
+        <text x="327" y="79" text-anchor="middle" fill="#6e7681" font-size="9">goroutine → process</text>
+        <text x="327" y="91" text-anchor="middle" fill="#8b949e" font-size="9">out1 &lt;- result</text>
+
+        <rect x="262" y="134" width="130" height="52" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="327" y="154" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">Worker 2</text>
+        <text x="327" y="169" text-anchor="middle" fill="#6e7681" font-size="9">goroutine → process</text>
+        <text x="327" y="181" text-anchor="middle" fill="#8b949e" font-size="9">out2 &lt;- result</text>
+
+        <rect x="262" y="224" width="130" height="52" rx="6" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="327" y="244" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">Worker 3</text>
+        <text x="327" y="259" text-anchor="middle" fill="#6e7681" font-size="9">goroutine → process</text>
+        <text x="327" y="271" text-anchor="middle" fill="#8b949e" font-size="9">out3 &lt;- result</text>
+
+        <!-- Arrows: Workers -> FAN-IN -->
+        <line x1="392" y1="70"  x2="445" y2="148" stroke="#3fb950" stroke-width="1.5" marker-end="url(#a2)"/>
+        <line x1="392" y1="160" x2="445" y2="160" stroke="#3fb950" stroke-width="1.5" marker-end="url(#a2)"/>
+        <line x1="392" y1="250" x2="445" y2="172" stroke="#3fb950" stroke-width="1.5" marker-end="url(#a2)"/>
+
+        <!-- FAN-IN -->
+        <rect x="448" y="130" width="110" height="60" rx="6" fill="#161b22" stroke="#a371f7" stroke-width="2"/>
+        <text x="503" y="153" text-anchor="middle" fill="#a371f7" font-size="11" font-weight="700">Fan-In</text>
+        <text x="503" y="168" text-anchor="middle" fill="#6e7681" font-size="9">merge() goroutine</text>
+        <text x="503" y="182" text-anchor="middle" fill="#8b949e" font-size="9">wg.Wait(); close(out)</text>
+
+        <!-- OUT CHANNEL -->
+        <rect x="575" y="142" width="90" height="36" rx="4" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+        <text x="620" y="157" text-anchor="middle" fill="#6e7681" font-size="9" font-weight="700">out channel</text>
+        <text x="620" y="171" text-anchor="middle" fill="#a371f7" font-size="10" font-weight="600">chan R</text>
+
+        <line x1="558" y1="160" x2="572" y2="160" stroke="#a371f7" stroke-width="1.5" marker-end="url(#a3)"/>
+
+        <!-- CONSUMER -->
+        <rect x="670" y="130" width="80" height="60" rx="6" fill="#161b22" stroke="#39d0ff" stroke-width="2"/>
+        <text x="710" y="153" text-anchor="middle" fill="#39d0ff" font-size="11" font-weight="700">Consumer</text>
+        <text x="710" y="170" text-anchor="middle" fill="#6e7681" font-size="9">for v := range</text>
+        <text x="710" y="183" text-anchor="middle" fill="#8b949e" font-size="9">outCh {...}</text>
+
+        <line x1="665" y1="160" x2="667" y2="160" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#a1)"/>
+
+        <!-- Labels -->
+        <text x="170" y="20" text-anchor="middle" fill="#d29922" font-size="10" font-weight="700">── FAN-OUT ──</text>
+        <text x="503" y="20" text-anchor="middle" fill="#a371f7" font-size="10" font-weight="700">── FAN-IN ──</text>
+
+        <!-- sync.WaitGroup note -->
+        <rect x="448" y="210" width="110" height="28" rx="4" fill="#21262d" stroke="#30363d"/>
+        <text x="503" y="225" text-anchor="middle" fill="#6e7681" font-size="9">sync.WaitGroup</text>
+        <text x="503" y="234" text-anchor="middle" fill="#39d0ff" font-size="8">tracks N goroutines</text>
+      </svg>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 4 — FAN-OUT CƠ BẢN
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="basic-fanout">
+    <div class="section-header">
+      <div class="section-num">04</div>
+      <h2>Fan-Out cơ bản — Spawn nhiều goroutine</h2>
+    </div>
+
+    <p>Ví dụ đơn giản nhất: đọc từ một <code>input channel</code> và spawn N goroutine cùng đọc từ channel đó.</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">fanout_basic.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// producer tạo các item và gửi vào channel</span>
+<span class="kw">func</span> <span class="fn">producer</span>(nums ...<span class="ty">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out) <span class="cm">// QUAN TRỌNG: chỉ sender mới close channel</span>
+        <span class="kw">for</span> _, n := <span class="kw">range</span> nums {
+            out <span class="op">&lt;-</span> n
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// worker xử lý công việc và trả về kết quả qua channel riêng</span>
+<span class="kw">func</span> <span class="fn">worker</span>(id <span class="ty">int</span>, jobs <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> job := <span class="kw">range</span> jobs { <span class="cm">// đọc cho đến khi channel bị đóng</span>
+            time.<span class="fn">Sleep</span>(<span class="nu">10</span> * time.Millisecond) <span class="cm">// simulate work</span>
+            out <span class="op">&lt;-</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"worker-%d processed %d"</span>, id, job)
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// fanOut khởi tạo N worker cùng đọc từ cùng một input channel</span>
+<span class="kw">func</span> <span class="fn">fanOut</span>(jobs <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span>, numWorkers <span class="ty">int</span>) []<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span> {
+    workers := <span class="fn">make</span>([]<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span>, numWorkers)
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> numWorkers; i++ {
+        workers[i] = <span class="fn">worker</span>(i+<span class="nu">1</span>, jobs) <span class="cm">// mỗi worker cùng nhận từ jobs</span>
+    }
+    <span class="kw">return</span> workers
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// Tạo 10 jobs</span>
+    jobs := <span class="fn">producer</span>(<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>, <span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">6</span>, <span class="nu">7</span>, <span class="nu">8</span>, <span class="nu">9</span>, <span class="nu">10</span>)
+
+    <span class="cm">// Fan-Out ra 3 workers</span>
+    workerChans := <span class="fn">fanOut</span>(jobs, <span class="nu">3</span>)
+
+    <span class="cm">// Thu thập kết quả từ từng worker (naive - chưa có fan-in)</span>
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> workerChans {
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>(c <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> result := <span class="kw">range</span> c {
+                fmt.<span class="fn">Println</span>(result)
+            }
+        }(ch)
+    }
+    wg.<span class="fn">Wait</span>()
+}</pre></div>
+    </div>
+
+    <div class="info-box warn">
+      <span class="icon">⚠️</span>
+      <p><strong>Lưu ý quan trọng:</strong> Khi nhiều goroutine cùng đọc từ một channel, Go scheduler phân phối các item ngẫu nhiên giữa các reader. Đây chính là cơ chế <strong>load balancing tự nhiên</strong> của Go channels.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 5 — FAN-IN
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="basic-fanin">
+    <div class="section-header">
+      <div class="section-num">05</div>
+      <h2>Fan-In — Merge nhiều channel về một</h2>
+    </div>
+
+    <p>
+      <strong>Fan-In</strong> (hay còn gọi là <em>multiplexing</em>) là hàm nhận
+      nhiều <code>&lt;-chan T</code> và trả về một <code>&lt;-chan T</code> duy nhất.
+      Mỗi input channel được đọc bởi một goroutine riêng, tất cả cùng ghi vào output channel.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">fanin.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// merge hợp nhất nhiều channels thành một output channel</span>
+<span class="cm">// Sử dụng context để hỗ trợ cancellation</span>
+<span class="kw">func</span> <span class="fn">merge</span>(ctx context.<span class="ty">Context</span>, channels ...<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span> {
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+    merged := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>, <span class="fn">len</span>(channels)) <span class="cm">// buffered để tránh blocking</span>
+
+    <span class="cm">// output goroutine: đọc từ một channel và gửi vào merged</span>
+    output := <span class="kw">func</span>(c <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span>) {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        <span class="kw">for</span> v := <span class="kw">range</span> c {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="cm">// thoát khi context bị cancel</span>
+                <span class="kw">return</span>
+            <span class="kw">case</span> merged <span class="op">&lt;-</span> v: <span class="cm">// gửi vào output</span>
+            }
+        }
+    }
+
+    <span class="cm">// Khởi chạy goroutine cho mỗi input channel</span>
+    wg.<span class="fn">Add</span>(<span class="fn">len</span>(channels))
+    <span class="kw">for</span> _, c := <span class="kw">range</span> channels {
+        <span class="kw">go</span> <span class="fn">output</span>(c)
+    }
+
+    <span class="cm">// Đóng merged khi tất cả goroutine hoàn thành</span>
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(merged)
+    }()
+
+    <span class="kw">return</span> merged
+}
+
+<span class="cm">// Ví dụ sử dụng merge với Fan-Out/Fan-In đầy đủ</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// Tạo input</span>
+    in := <span class="fn">producer</span>(<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>, <span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">6</span>)
+
+    <span class="cm">// Fan-Out: mỗi channel nhận một phần dữ liệu</span>
+    c1 := <span class="fn">square</span>(ctx, in)
+    c2 := <span class="fn">square</span>(ctx, in)
+    c3 := <span class="fn">square</span>(ctx, in)
+
+    <span class="cm">// Fan-In: gộp c1, c2, c3 thành một channel</span>
+    out := <span class="fn">merge</span>(ctx, c1, c2, c3)
+
+    <span class="cm">// Consumer: đọc kết quả</span>
+    <span class="kw">for</span> result := <span class="kw">range</span> out {
+        fmt.<span class="fn">Println</span>(result) <span class="cm">// thứ tự không đảm bảo</span>
+    }
+}
+
+<span class="kw">func</span> <span class="fn">square</span>(ctx context.<span class="ty">Context</span>, in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> n := <span class="kw">range</span> in {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="op">&lt;-</span> n * n:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 6 — WORKER POOL
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="worker-pool">
+    <div class="section-header">
+      <div class="section-num">06</div>
+      <h2>Worker Pool — Bounded Fan-Out</h2>
+    </div>
+
+    <p>
+      Thay vì spawn goroutine không giới hạn, <strong>Worker Pool</strong> giữ số goroutine
+      cố định, mỗi goroutine liên tục nhận job từ queue. Đây là pattern production phổ biến nhất.
+    </p>
+
+    <div class="diagram-wrap">
+      <div class="diagram-title">Worker Pool Architecture</div>
+      <svg width="100%" viewBox="0 0 680 200" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="wa" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#39d0ff"/>
+          </marker>
+          <marker id="wb" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#3fb950"/>
+          </marker>
+        </defs>
+
+        <!-- Job Queue -->
+        <rect x="10" y="70" width="120" height="60" rx="6" fill="#161b22" stroke="#d29922" stroke-width="1.5"/>
+        <text x="70" y="93" text-anchor="middle" fill="#d29922" font-size="11" font-weight="700">Job Queue</text>
+        <text x="70" y="108" text-anchor="middle" fill="#6e7681" font-size="9">chan Job</text>
+        <text x="70" y="121" text-anchor="middle" fill="#8b949e" font-size="9">buffered</text>
+
+        <!-- Workers -->
+        <rect x="200" y="20"  width="110" height="36" rx="5" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="255" y="33" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">Worker [0]</text>
+        <text x="255" y="47" text-anchor="middle" fill="#6e7681" font-size="8">for job := range jobs</text>
+
+        <rect x="200" y="82"  width="110" height="36" rx="5" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="255" y="95" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">Worker [1]</text>
+        <text x="255" y="109" text-anchor="middle" fill="#6e7681" font-size="8">for job := range jobs</text>
+
+        <rect x="200" y="144" width="110" height="36" rx="5" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="255" y="157" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">Worker [N]</text>
+        <text x="255" y="171" text-anchor="middle" fill="#6e7681" font-size="8">for job := range jobs</text>
+
+        <!-- ... -->
+        <text x="255" y="137" text-anchor="middle" fill="#6e7681" font-size="12">·  ·  ·</text>
+
+        <!-- Arrows job queue -> workers -->
+        <line x1="130" y1="95" x2="195" y2="38" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#wa)"/>
+        <line x1="130" y1="100" x2="195" y2="100" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#wa)"/>
+        <line x1="130" y1="105" x2="195" y2="162" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#wa)"/>
+
+        <!-- Result channel -->
+        <rect x="390" y="70" width="110" height="60" rx="6" fill="#161b22" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="445" y="93" text-anchor="middle" fill="#a371f7" font-size="11" font-weight="700">Results</text>
+        <text x="445" y="108" text-anchor="middle" fill="#6e7681" font-size="9">chan Result</text>
+        <text x="445" y="121" text-anchor="middle" fill="#8b949e" font-size="9">buffered</text>
+
+        <!-- Arrows workers -> results -->
+        <line x1="310" y1="38"  x2="385" y2="88" stroke="#3fb950" stroke-width="1.5" marker-end="url(#wb)"/>
+        <line x1="310" y1="100" x2="385" y2="100" stroke="#3fb950" stroke-width="1.5" marker-end="url(#wb)"/>
+        <line x1="310" y1="162" x2="385" y2="112" stroke="#3fb950" stroke-width="1.5" marker-end="url(#wb)"/>
+
+        <!-- WaitGroup -->
+        <rect x="390" y="148" width="110" height="36" rx="5" fill="#21262d" stroke="#30363d"/>
+        <text x="445" y="163" text-anchor="middle" fill="#6e7681" font-size="9">sync.WaitGroup</text>
+        <text x="445" y="177" text-anchor="middle" fill="#39d0ff" font-size="8">wg.Wait() → close(results)</text>
+
+        <!-- Consumer -->
+        <rect x="570" y="70" width="100" height="60" rx="6" fill="#161b22" stroke="#39d0ff" stroke-width="1.5"/>
+        <text x="620" y="93" text-anchor="middle" fill="#39d0ff" font-size="11" font-weight="700">Consumer</text>
+        <text x="620" y="108" text-anchor="middle" fill="#6e7681" font-size="9">for r := range</text>
+        <text x="620" y="121" text-anchor="middle" fill="#6e7681" font-size="9">results</text>
+
+        <line x1="500" y1="100" x2="566" y2="100" stroke="#a371f7" stroke-width="1.5" marker-end="url(#wa)"/>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">worker_pool.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="ty">Job</span> <span class="kw">struct</span> {
+    ID   <span class="ty">int</span>
+    Data <span class="ty">string</span>
+}
+
+<span class="kw">type</span> <span class="ty">Result</span> <span class="kw">struct</span> {
+    JobID  <span class="ty">int</span>
+    Output <span class="ty">string</span>
+    Err    <span class="ty">error</span>
+}
+
+<span class="cm">// WorkerPool tạo pool gồm numWorkers goroutine, trả về channel kết quả</span>
+<span class="kw">func</span> <span class="fn">WorkerPool</span>(
+    ctx context.<span class="ty">Context</span>,
+    numWorkers <span class="ty">int</span>,
+    jobs <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Job</span>,
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Result</span> {
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Result</span>, numWorkers) <span class="cm">// buffer = số worker</span>
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+
+    <span class="cm">// Khởi chạy numWorkers goroutine</span>
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> numWorkers; i++ {
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>(workerID <span class="ty">int</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span> <span class="cm">// context cancelled</span>
+                <span class="kw">case</span> job, ok := <span class="op">&lt;-</span>jobs:
+                    <span class="kw">if</span> !ok {
+                        <span class="kw">return</span> <span class="cm">// channel đã đóng, worker thoát</span>
+                    }
+                    result := <span class="fn">processJob</span>(ctx, workerID, job)
+                    <span class="kw">select</span> {
+                    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                        <span class="kw">return</span>
+                    <span class="kw">case</span> results <span class="op">&lt;-</span> result:
+                    }
+                }
+            }
+        }(i)
+    }
+
+    <span class="cm">// Đóng results khi tất cả worker done</span>
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(results)
+    }()
+
+    <span class="kw">return</span> results
+}
+
+<span class="kw">func</span> <span class="fn">processJob</span>(ctx context.<span class="ty">Context</span>, workerID <span class="ty">int</span>, job <span class="ty">Job</span>) <span class="ty">Result</span> {
+    <span class="cm">// Simulate CPU/IO work</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> <span class="ty">Result</span>{JobID: job.ID, Err: ctx.<span class="fn">Err</span>()}
+    <span class="kw">case</span> <span class="op">&lt;-</span>time.<span class="fn">After</span>(<span class="nu">50</span> * time.Millisecond):
+        <span class="kw">return</span> <span class="ty">Result</span>{
+            JobID:  job.ID,
+            Output: fmt.<span class="fn">Sprintf</span>(<span class="st">"[worker-%d] processed: %s"</span>, workerID, job.Data),
+        }
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nu">5</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// Tạo buffered job channel</span>
+    jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Job</span>, <span class="nu">100</span>)
+
+    <span class="cm">// Gửi jobs</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(jobs)
+        <span class="kw">for</span> i := <span class="nu">1</span>; i <span class="op">&lt;=</span> <span class="nu">20</span>; i++ {
+            jobs <span class="op">&lt;-</span> <span class="ty">Job</span>{ID: i, Data: fmt.<span class="fn">Sprintf</span>(<span class="st">"task-%d"</span>, i)}
+        }
+    }()
+
+    <span class="cm">// Chạy 5 workers</span>
+    results := <span class="fn">WorkerPool</span>(ctx, <span class="nu">5</span>, jobs)
+
+    <span class="cm">// Collect kết quả</span>
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err != <span class="kw">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="st">"❌ Job %d failed: %v\n"</span>, r.JobID, r.Err)
+            <span class="kw">continue</span>
+        }
+        fmt.<span class="fn">Println</span>(<span class="st">"✓"</span>, r.Output)
+    }
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 7 — PIPELINE
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="pipeline">
+    <div class="section-header">
+      <div class="section-num">07</div>
+      <h2>Pipeline đa tầng với Fan-Out/Fan-In</h2>
+    </div>
+
+    <p>
+      Pipeline kết hợp nhiều stage, mỗi stage có thể fan-out để tăng tốc xử lý.
+      Mô hình này phổ biến trong ETL (Extract-Transform-Load) và stream processing.
+    </p>
+
+    <div class="diagram-wrap">
+      <div class="diagram-title">Multi-Stage Pipeline với Fan-Out tại Stage 2</div>
+      <svg width="100%" viewBox="0 0 700 160" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker id="pa" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="#39d0ff"/>
+          </marker>
+        </defs>
+
+        <!-- Stage 1: Read -->
+        <rect x="10" y="55" width="100" height="50" rx="6" fill="#161b22" stroke="#58a6ff" stroke-width="1.5"/>
+        <text x="60" y="74" text-anchor="middle" fill="#8b949e" font-size="9">Stage 1</text>
+        <text x="60" y="88" text-anchor="middle" fill="#58a6ff" font-size="12" font-weight="700">Read</text>
+        <text x="60" y="100" text-anchor="middle" fill="#6e7681" font-size="8">1 goroutine</text>
+
+        <line x1="110" y1="80" x2="155" y2="80" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+        <!-- Stage 2: Transform (Fan-Out) -->
+        <rect x="158" y="20" width="105" height="42" rx="5" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="210" y="37" text-anchor="middle" fill="#8b949e" font-size="9">Stage 2a</text>
+        <text x="210" y="52" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">Transform</text>
+
+        <rect x="158" y="79" width="105" height="42" rx="5" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="210" y="96" text-anchor="middle" fill="#8b949e" font-size="9">Stage 2b</text>
+        <text x="210" y="111" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">Transform</text>
+
+        <rect x="158" y="138" width="105" height="42" rx="5" fill="#161b22" stroke="#3fb950" stroke-width="1.5"/>
+        <text x="210" y="155" text-anchor="middle" fill="#8b949e" font-size="9">Stage 2c</text>
+        <text x="210" y="170" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">Transform</text>
+
+        <!-- Fan-out arrows -->
+        <line x1="155" y1="80" x2="155" y2="41" stroke="#39d0ff" stroke-width="1" stroke-dasharray="2,2"/>
+        <line x1="155" y1="80" x2="155" y2="159" stroke="#39d0ff" stroke-width="1" stroke-dasharray="2,2"/>
+        <line x1="155" y1="41" x2="155" y2="41" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#pa)"/>
+        <line x1="155" y1="100" x2="155" y2="100" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#pa)"/>
+        <line x1="155" y1="159" x2="155" y2="159" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+        <!-- Fan-in arrows -->
+        <line x1="263" y1="41" x2="370" y2="80" stroke="#3fb950" stroke-width="1.5" marker-end="url(#pa)"/>
+        <line x1="263" y1="100" x2="370" y2="90" stroke="#3fb950" stroke-width="1.5" marker-end="url(#pa)"/>
+        <line x1="263" y1="159" x2="370" y2="100" stroke="#3fb950" stroke-width="1.5" marker-end="url(#pa)"/>
+
+        <!-- Stage 3: Validate -->
+        <rect x="373" y="55" width="100" height="50" rx="6" fill="#161b22" stroke="#f0883e" stroke-width="1.5"/>
+        <text x="423" y="74" text-anchor="middle" fill="#8b949e" font-size="9">Stage 3</text>
+        <text x="423" y="88" text-anchor="middle" fill="#f0883e" font-size="12" font-weight="700">Validate</text>
+        <text x="423" y="100" text-anchor="middle" fill="#6e7681" font-size="8">1 goroutine</text>
+
+        <line x1="473" y1="80" x2="520" y2="80" stroke="#39d0ff" stroke-width="1.5" marker-end="url(#pa)"/>
+
+        <!-- Stage 4: Write -->
+        <rect x="523" y="55" width="100" height="50" rx="6" fill="#161b22" stroke="#a371f7" stroke-width="1.5"/>
+        <text x="573" y="74" text-anchor="middle" fill="#8b949e" font-size="9">Stage 4</text>
+        <text x="573" y="88" text-anchor="middle" fill="#a371f7" font-size="12" font-weight="700">Write</text>
+        <text x="573" y="100" text-anchor="middle" fill="#6e7681" font-size="8">1 goroutine</text>
+
+        <!-- Labels -->
+        <text x="210" y="15" text-anchor="middle" fill="#d29922" font-size="9" font-weight="700">FAN-OUT</text>
+        <text x="320" y="15" text-anchor="middle" fill="#a371f7" font-size="9" font-weight="700">FAN-IN</text>
+      </svg>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">pipeline_multistage.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"strings"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="kw">type</span> <span class="ty">Record</span> <span class="kw">struct</span> {
+    ID    <span class="ty">int</span>
+    Value <span class="ty">string</span>
+}
+
+<span class="cm">// Stage 1: Đọc dữ liệu nguồn</span>
+<span class="kw">func</span> <span class="fn">readStage</span>(ctx context.<span class="ty">Context</span>, data []<span class="ty">Record</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>, <span class="fn">len</span>(data))
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> _, r := <span class="kw">range</span> data {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="op">&lt;-</span> r:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// Stage 2: Transform (chạy song song nhiều instance)</span>
+<span class="kw">func</span> <span class="fn">transformStage</span>(ctx context.<span class="ty">Context</span>, in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> r := <span class="kw">range</span> in {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="op">&lt;-</span> <span class="ty">Record</span>{
+                ID:    r.ID,
+                Value: strings.<span class="fn">ToUpper</span>(r.Value), <span class="cm">// transform</span>
+            }:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// fanOutTransform: spawn N transform instances và merge kết quả</span>
+<span class="kw">func</span> <span class="fn">fanOutTransform</span>(ctx context.<span class="ty">Context</span>, in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span>, n <span class="ty">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span> {
+    <span class="cm">// Fan-Out: tạo N transform stages</span>
+    outputs := <span class="fn">make</span>([]<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> outputs {
+        outputs[i] = <span class="fn">transformStage</span>(ctx, in)
+    }
+
+    <span class="cm">// Fan-In: merge N outputs về 1</span>
+    <span class="kw">return</span> <span class="fn">mergeRecords</span>(ctx, outputs...)
+}
+
+<span class="cm">// mergeRecords: generic fan-in cho Record channel</span>
+<span class="kw">func</span> <span class="fn">mergeRecords</span>(ctx context.<span class="ty">Context</span>, channels ...<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span> {
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+    merged := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>, <span class="fn">len</span>(channels))
+
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> channels {
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>(c <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> r := <span class="kw">range</span> c {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> merged <span class="op">&lt;-</span> r:
+                }
+            }
+        }(ch)
+    }
+
+    <span class="kw">go func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(merged) }()
+    <span class="kw">return</span> merged
+}
+
+<span class="cm">// Stage 3: Validate</span>
+<span class="kw">func</span> <span class="fn">validateStage</span>(ctx context.<span class="ty">Context</span>, in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">Record</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">Record</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> r := <span class="kw">range</span> in {
+            <span class="kw">if</span> r.Value == <span class="st">""</span> { <span class="kw">continue</span> } <span class="cm">// skip invalid</span>
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="op">&lt;-</span> r:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    data := []<span class="ty">Record</span>{
+        {<span class="nu">1</span>, <span class="st">"hello"</span>}, {<span class="nu">2</span>, <span class="st">"world"</span>}, {<span class="nu">3</span>, <span class="st">"golang"</span>},
+        {<span class="nu">4</span>, <span class="st">"fan-out"</span>}, {<span class="nu">5</span>, <span class="st">"fan-in"</span>}, {<span class="nu">6</span>, <span class="st">"pattern"</span>},
+    }
+
+    <span class="cm">// Pipeline: Read → FanOut(Transform×3) → Validate → Sink</span>
+    stage1 := <span class="fn">readStage</span>(ctx, data)
+    stage2 := <span class="fn">fanOutTransform</span>(ctx, stage1, <span class="nu">3</span>) <span class="cm">// 3 parallel transforms</span>
+    stage3 := <span class="fn">validateStage</span>(ctx, stage2)
+
+    <span class="kw">for</span> r := <span class="kw">range</span> stage3 {
+        fmt.<span class="fn">Printf</span>(<span class="st">"ID=%d Value=%s\n"</span>, r.ID, r.Value)
+    }
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 8 — CONTEXT CANCELLATION
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="ctx-cancel">
+    <div class="section-header">
+      <div class="section-num">08</div>
+      <h2>Context Cancellation &amp; Deadline</h2>
+    </div>
+
+    <p>
+      Mọi hàm trong pipeline phải lắng nghe <code>ctx.Done()</code> để thoát sạch
+      khi có cancel hoặc timeout. Đây là yêu cầu bắt buộc trong production.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">context_fanout.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// fetchURL giả lập HTTP call có thể timeout</span>
+<span class="kw">func</span> <span class="fn">fetchURL</span>(ctx context.<span class="ty">Context</span>, url <span class="ty">string</span>) (<span class="ty">string</span>, <span class="ty">error</span>) {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> <span class="st">""</span>, fmt.<span class="fn">Errorf</span>(<span class="st">"cancelled: %s"</span>, url)
+    <span class="kw">case</span> <span class="op">&lt;-</span>time.<span class="fn">After</span>(<span class="nu">200</span> * time.Millisecond): <span class="cm">// simulate latency</span>
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"OK: %s"</span>, url), <span class="kw">nil</span>
+    }
+}
+
+<span class="kw">type</span> <span class="ty">URLResult</span> <span class="kw">struct</span> {
+    URL    <span class="ty">string</span>
+    Body   <span class="ty">string</span>
+    Err    <span class="ty">error</span>
+}
+
+<span class="cm">// FetchAll fan-out nhiều URL song song với context deadline</span>
+<span class="kw">func</span> <span class="fn">FetchAll</span>(ctx context.<span class="ty">Context</span>, urls []<span class="ty">string</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">URLResult</span> {
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">URLResult</span>, <span class="fn">len</span>(urls))
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+
+    <span class="kw">for</span> _, url := <span class="kw">range</span> urls {
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>(u <span class="ty">string</span>) { <span class="cm">// capture loop variable</span>
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            body, err := <span class="fn">fetchURL</span>(ctx, u)
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>():
+                results <span class="op">&lt;-</span> <span class="ty">URLResult</span>{URL: u, Err: ctx.<span class="fn">Err</span>()}
+            <span class="kw">case</span> results <span class="op">&lt;-</span> <span class="ty">URLResult</span>{URL: u, Body: body, Err: err}:
+            }
+        }(url)
+    }
+
+    <span class="kw">go func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(results) }()
+    <span class="kw">return</span> results
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// Deadline: tất cả URL phải fetch xong trong 1 giây</span>
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="nu">1</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    urls := []<span class="ty">string</span>{
+        <span class="st">"https://api.example.com/v1/users"</span>,
+        <span class="st">"https://api.example.com/v1/orders"</span>,
+        <span class="st">"https://api.example.com/v1/products"</span>,
+        <span class="st">"https://api.example.com/v1/reviews"</span>,
+    }
+
+    results := <span class="fn">FetchAll</span>(ctx, urls)
+
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        <span class="kw">if</span> r.Err != <span class="kw">nil</span> {
+            fmt.<span class="fn">Printf</span>(<span class="st">"❌ %s → %v\n"</span>, r.URL, r.Err)
+        } <span class="kw">else</span> {
+            fmt.<span class="fn">Printf</span>(<span class="st">"✓  %s\n"</span>, r.Body)
+        }
+    }
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 9 — ORDERED FAN-IN
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="ordered">
+    <div class="section-header">
+      <div class="section-num">09</div>
+      <h2>Ordered Fan-In — Giữ thứ tự kết quả</h2>
+    </div>
+
+    <p>
+      Mặc định, Fan-In không đảm bảo thứ tự. Để giữ thứ tự gốc, cần gán <strong>sequence number</strong>
+      cho từng item và dùng <strong>min-heap</strong> hoặc map để reorder trước khi xuất.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">ordered_fanin.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="kw">type</span> <span class="ty">IndexedJob</span> <span class="kw">struct</span> {
+    Index <span class="ty">int</span>    <span class="cm">// vị trí gốc</span>
+    Value <span class="ty">int</span>
+}
+
+<span class="kw">type</span> <span class="ty">IndexedResult</span> <span class="kw">struct</span> {
+    Index  <span class="ty">int</span>
+    Result <span class="ty">int</span>
+}
+
+<span class="cm">// orderedWorker xử lý và giữ nguyên Index</span>
+<span class="kw">func</span> <span class="fn">orderedWorker</span>(ctx context.<span class="ty">Context</span>, in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">IndexedJob</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">IndexedResult</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">IndexedResult</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> job := <span class="kw">range</span> in {
+            <span class="cm">// Simulate non-uniform processing time</span>
+            time.<span class="fn">Sleep</span>(time.<span class="fn">Duration</span>((<span class="nu">10</span>-job.Index%<span class="nu">5</span>)*<span class="nu">10</span>) * time.Millisecond)
+            result := job.Value * job.Value
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="op">&lt;-</span> <span class="ty">IndexedResult</span>{Index: job.Index, Result: result}:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// mergeOrdered: merge nhiều channel và reorder theo Index</span>
+<span class="kw">func</span> <span class="fn">mergeOrdered</span>(
+    ctx context.<span class="ty">Context</span>,
+    total <span class="ty">int</span>,
+    channels ...<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">IndexedResult</span>,
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">int</span> {
+    <span class="cm">// Step 1: Fan-In unordered</span>
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+    unordered := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">IndexedResult</span>, total)
+
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> channels {
+        wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>(c <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">IndexedResult</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> r := <span class="kw">range</span> c {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">case</span> unordered <span class="op">&lt;-</span> r:
+                }
+            }
+        }(ch)
+    }
+    <span class="kw">go func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(unordered) }()
+
+    <span class="cm">// Step 2: Reorder bằng map</span>
+    ordered := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>, total)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(ordered)
+        buffer := <span class="fn">make</span>(<span class="kw">map</span>[<span class="ty">int</span>]<span class="ty">int</span>) <span class="cm">// index → result</span>
+        next := <span class="nu">0</span>
+        <span class="kw">for</span> r := <span class="kw">range</span> unordered {
+            buffer[r.Index] = r.Result
+            <span class="cm">// Xuất các item liên tiếp theo thứ tự</span>
+            <span class="kw">for</span> {
+                v, ok := buffer[next]
+                <span class="kw">if</span> !ok { <span class="kw">break</span> }
+                ordered <span class="op">&lt;-</span> v
+                <span class="fn">delete</span>(buffer, next)
+                next++
+            }
+        }
+    }()
+    <span class="kw">return</span> ordered
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx := context.<span class="fn">Background</span>()
+    inputs := []<span class="ty">int</span>{<span class="nu">1</span>, <span class="nu">2</span>, <span class="nu">3</span>, <span class="nu">4</span>, <span class="nu">5</span>, <span class="nu">6</span>, <span class="nu">7</span>, <span class="nu">8</span>}
+
+    <span class="cm">// Tạo indexed jobs</span>
+    jobs := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">IndexedJob</span>, <span class="fn">len</span>(inputs))
+    <span class="kw">for</span> i, v := <span class="kw">range</span> inputs {
+        jobs <span class="op">&lt;-</span> <span class="ty">IndexedJob</span>{Index: i, Value: v}
+    }
+    <span class="fn">close</span>(jobs)
+
+    <span class="cm">// Fan-Out 4 workers</span>
+    w1 := <span class="fn">orderedWorker</span>(ctx, jobs)
+    w2 := <span class="fn">orderedWorker</span>(ctx, jobs)
+    w3 := <span class="fn">orderedWorker</span>(ctx, jobs)
+    w4 := <span class="fn">orderedWorker</span>(ctx, jobs)
+
+    <span class="cm">// Fan-In với reordering</span>
+    result := <span class="fn">mergeOrdered</span>(ctx, <span class="fn">len</span>(inputs), w1, w2, w3, w4)
+
+    fmt.<span class="fn">Print</span>(<span class="st">"Ordered results: ["</span>)
+    <span class="kw">for</span> v := <span class="kw">range</span> result {
+        fmt.<span class="fn">Printf</span>(<span class="st">"%d "</span>, v)
+    }
+    fmt.<span class="fn">Println</span>(<span class="st">"]"</span>)
+    <span class="cm">// Output: Ordered results: [1 4 9 16 25 36 49 64]</span>
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 10 — ERRGROUP
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="errgroup">
+    <div class="section-header">
+      <div class="section-num">10</div>
+      <h2>ErrGroup Hybrid — Xử lý lỗi đồng thời</h2>
+    </div>
+
+    <p>
+      <code>golang.org/x/sync/errgroup</code> cung cấp cách gọn hơn để fan-out nhiều task
+      và thu thập lỗi đầu tiên xảy ra, đồng thời cancel tất cả goroutine còn lại.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">errgroup_fanout.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">type</span> <span class="ty">APIResponse</span> <span class="kw">struct</span> {
+    Service <span class="ty">string</span>
+    Data    <span class="ty">string</span>
+}
+
+<span class="cm">// GatherServices: fan-out đến nhiều service, dừng ngay khi có lỗi</span>
+<span class="kw">func</span> <span class="fn">GatherServices</span>(ctx context.<span class="ty">Context</span>, services []<span class="ty">string</span>) ([]<span class="ty">APIResponse</span>, <span class="ty">error</span>) {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx) <span class="cm">// ctx mới sẽ cancel khi có lỗi</span>
+
+    results := <span class="fn">make</span>([]<span class="ty">APIResponse</span>, <span class="fn">len</span>(services))
+    <span class="kw">var</span> mu sync.<span class="ty">Mutex</span>
+
+    <span class="kw">for</span> i, svc := <span class="kw">range</span> services {
+        i, svc := i, svc <span class="cm">// capture loop variables (Go &lt;1.22)</span>
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            resp, err := <span class="fn">callService</span>(ctx, svc)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="st">"service %s: %w"</span>, svc, err)
+            }
+            mu.<span class="fn">Lock</span>()
+            results[i] = resp
+            mu.<span class="fn">Unlock</span>()
+            <span class="kw">return</span> <span class="kw">nil</span>
+        })
+    }
+
+    <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, err <span class="cm">// trả về lỗi đầu tiên</span>
+    }
+    <span class="kw">return</span> results, <span class="kw">nil</span>
+}
+
+<span class="cm">// GatherWithLimit: fan-out với giới hạn số goroutine đồng thời</span>
+<span class="kw">func</span> <span class="fn">GatherWithLimit</span>(ctx context.<span class="ty">Context</span>, services []<span class="ty">string</span>, limit <span class="ty">int</span>) ([]<span class="ty">APIResponse</span>, <span class="ty">error</span>) {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+    g.<span class="fn">SetLimit</span>(limit) <span class="cm">// max goroutine đồng thời = limit</span>
+
+    results := <span class="fn">make</span>([]<span class="ty">APIResponse</span>, <span class="fn">len</span>(services))
+    <span class="kw">var</span> mu sync.<span class="ty">Mutex</span>
+
+    <span class="kw">for</span> i, svc := <span class="kw">range</span> services {
+        i, svc := i, svc
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="ty">error</span> {
+            resp, err := <span class="fn">callService</span>(ctx, svc)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                <span class="kw">return</span> err
+            }
+            mu.<span class="fn">Lock</span>()
+            results[i] = resp
+            mu.<span class="fn">Unlock</span>()
+            <span class="kw">return</span> <span class="kw">nil</span>
+        })
+    }
+
+    <span class="kw">return</span> results, g.<span class="fn">Wait</span>()
+}
+
+<span class="kw">func</span> <span class="fn">callService</span>(ctx context.<span class="ty">Context</span>, name <span class="ty">string</span>) (<span class="ty">APIResponse</span>, <span class="ty">error</span>) {
+    <span class="cm">// Simulate service call</span>
+    <span class="kw">return</span> <span class="ty">APIResponse</span>{Service: name, Data: <span class="st">"ok"</span>}, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx := context.<span class="fn">Background</span>()
+    services := []<span class="ty">string</span>{<span class="st">"auth"</span>, <span class="st">"user"</span>, <span class="st">"payment"</span>, <span class="st">"notification"</span>, <span class="st">"analytics"</span>}
+
+    results, err := <span class="fn">GatherWithLimit</span>(ctx, services, <span class="nu">3</span>) <span class="cm">// max 3 đồng thời</span>
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="st">"❌ Error: %v\n"</span>, err)
+        <span class="kw">return</span>
+    }
+    <span class="kw">for</span> _, r := <span class="kw">range</span> results {
+        fmt.<span class="fn">Printf</span>(<span class="st">"✓ %s: %s\n"</span>, r.Service, r.Data)
+    }
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 11 — DYNAMIC FAN-OUT
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="dynamic">
+    <div class="section-header">
+      <div class="section-num">11</div>
+      <h2>Dynamic Fan-Out — Số worker thay đổi runtime</h2>
+    </div>
+
+    <p>
+      Thay vì số worker cố định, <strong>Dynamic Fan-Out</strong> cho phép thêm/bớt worker
+      tại runtime dựa trên tải hệ thống, queue size hoặc metrics.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">dynamic_fanout.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+    <span class="st">"sync/atomic"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// DynamicPool: worker pool có thể scale in/out lúc runtime</span>
+<span class="kw">type</span> <span class="ty">DynamicPool</span> <span class="kw">struct</span> {
+    jobs       <span class="kw">chan</span> <span class="ty">int</span>
+    results    <span class="kw">chan</span> <span class="ty">string</span>
+    workerCnt  atomic.<span class="ty">Int32</span>
+    wg         sync.<span class="ty">WaitGroup</span>
+    ctx        context.<span class="ty">Context</span>
+    cancel     context.<span class="ty">CancelFunc</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewDynamicPool</span>(bufSize <span class="ty">int</span>) *<span class="ty">DynamicPool</span> {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">return</span> &<span class="ty">DynamicPool</span>{
+        jobs:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>, bufSize),
+        results: <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, bufSize),
+        ctx:     ctx,
+        cancel:  cancel,
+    }
+}
+
+<span class="cm">// Scale thêm n worker vào pool</span>
+<span class="kw">func</span> (p *<span class="ty">DynamicPool</span>) <span class="fn">Scale</span>(n <span class="ty">int</span>) {
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> n; i++ {
+        p.wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+        p.workerCnt.<span class="fn">Add</span>(<span class="nu">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> p.wg.<span class="fn">Done</span>()
+            <span class="kw">defer</span> p.workerCnt.<span class="fn">Add</span>(-<span class="nu">1</span>)
+            <span class="kw">for</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>p.ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> job, ok := <span class="op">&lt;-</span>p.jobs:
+                    <span class="kw">if</span> !ok { <span class="kw">return</span> }
+                    time.<span class="fn">Sleep</span>(<span class="nu">20</span> * time.Millisecond)
+                    p.results <span class="op">&lt;-</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"processed(%d)"</span>, job)
+                }
+            }
+        }()
+    }
+}
+
+<span class="kw">func</span> (p *<span class="ty">DynamicPool</span>) <span class="fn">WorkerCount</span>() <span class="ty">int32</span> { <span class="kw">return</span> p.workerCnt.<span class="fn">Load</span>() }
+
+<span class="kw">func</span> (p *<span class="ty">DynamicPool</span>) <span class="fn">Submit</span>(job <span class="ty">int</span>) { p.jobs <span class="op">&lt;-</span> job }
+
+<span class="kw">func</span> (p *<span class="ty">DynamicPool</span>) <span class="fn">Results</span>() <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span> { <span class="kw">return</span> p.results }
+
+<span class="kw">func</span> (p *<span class="ty">DynamicPool</span>) <span class="fn">Shutdown</span>() {
+    p.cancel()
+    <span class="fn">close</span>(p.jobs)
+    p.wg.<span class="fn">Wait</span>()
+    <span class="fn">close</span>(p.results)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    pool := <span class="fn">NewDynamicPool</span>(<span class="nu">100</span>)
+
+    <span class="cm">// Bắt đầu với 2 worker</span>
+    pool.<span class="fn">Scale</span>(<span class="nu">2</span>)
+    fmt.<span class="fn">Printf</span>(<span class="st">"Workers: %d\n"</span>, pool.<span class="fn">WorkerCount</span>())
+
+    <span class="cm">// Submit 10 jobs</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">for</span> i := <span class="nu">1</span>; i <span class="op">&lt;=</span> <span class="nu">10</span>; i++ {
+            pool.<span class="fn">Submit</span>(i)
+        }
+    }()
+
+    <span class="cm">// Scale up thêm 3 worker sau 100ms</span>
+    time.<span class="fn">AfterFunc</span>(<span class="nu">100</span>*time.Millisecond, <span class="kw">func</span>() {
+        pool.<span class="fn">Scale</span>(<span class="nu">3</span>)
+        fmt.<span class="fn">Printf</span>(<span class="st">"Scaled up! Workers: %d\n"</span>, pool.<span class="fn">WorkerCount</span>())
+    })
+
+    <span class="cm">// Đọc 10 kết quả rồi shutdown</span>
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> <span class="nu">10</span>; i++ {
+        fmt.<span class="fn">Println</span>(<span class="op">&lt;-</span>pool.<span class="fn">Results</span>())
+    }
+    pool.<span class="fn">Shutdown</span>()
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 12 — BACKPRESSURE
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="backpressure">
+    <div class="section-header">
+      <div class="section-num">12</div>
+      <h2>Backpressure Control — Semaphore Pattern</h2>
+    </div>
+
+    <p>
+      Khi producer nhanh hơn consumer, cần <strong>backpressure</strong> để tránh
+      goroutine leak và memory explosion. Semaphore (channel-based hoặc <code>x/sync/semaphore</code>)
+      là giải pháp chuẩn.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">backpressure_semaphore.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"golang.org/x/sync/semaphore"</span>
+    <span class="st">"time"</span>
+)
+
+<span class="cm">// Semaphore bằng channel (không cần external package)</span>
+<span class="kw">type</span> <span class="ty">Semaphore</span> <span class="kw">chan</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> <span class="fn">NewSemaphore</span>(n <span class="ty">int</span>) <span class="ty">Semaphore</span> { <span class="kw">return</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, n) }
+
+<span class="kw">func</span> (s <span class="ty">Semaphore</span>) <span class="fn">Acquire</span>() { s <span class="op">&lt;-</span> <span class="kw">struct</span>{}{} }
+<span class="kw">func</span> (s <span class="ty">Semaphore</span>) <span class="fn">Release</span>() { <span class="op">&lt;-</span>s }
+<span class="kw">func</span> (s <span class="ty">Semaphore</span>) <span class="fn">TryAcquire</span>() <span class="ty">bool</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> s <span class="op">&lt;-</span> <span class="kw">struct</span>{}{}:
+        <span class="kw">return</span> <span class="kw">true</span>
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="kw">false</span> <span class="cm">// channel đầy = không acquire được</span>
+    }
+}
+
+<span class="cm">// FanOutWithBackpressure: giới hạn số goroutine đồng thời bằng semaphore</span>
+<span class="kw">func</span> <span class="fn">FanOutWithBackpressure</span>(
+    ctx context.<span class="ty">Context</span>,
+    items []<span class="ty">int</span>,
+    maxConcurrent <span class="ty">int</span>,
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span> {
+    sem := <span class="fn">NewSemaphore</span>(maxConcurrent) <span class="cm">// max goroutine đồng thời</span>
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, <span class="fn">len</span>(items))
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(results)
+        <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+
+        <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">default</span>:
+            }
+
+            sem.<span class="fn">Acquire</span>() <span class="cm">// block nếu đang có maxConcurrent goroutine</span>
+            wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+            <span class="kw">go func</span>(v <span class="ty">int</span>) {
+                <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+                <span class="kw">defer</span> sem.<span class="fn">Release</span>() <span class="cm">// luôn release khi xong</span>
+
+                time.<span class="fn">Sleep</span>(<span class="nu">30</span> * time.Millisecond)
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">case</span> results <span class="op">&lt;-</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"result(%d)"</span>, v*v):
+                }
+            }(item)
+        }
+        wg.<span class="fn">Wait</span>()
+    }()
+
+    <span class="kw">return</span> results
+}
+
+<span class="cm">// Dùng x/sync/semaphore.Weighted cho context-aware acquire</span>
+<span class="kw">func</span> <span class="fn">FanOutWeighted</span>(ctx context.<span class="ty">Context</span>, items []<span class="ty">int</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">string</span> {
+    sem := semaphore.<span class="fn">NewWeighted</span>(<span class="nu">5</span>) <span class="cm">// max 5 concurrent</span>
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">string</span>, <span class="fn">len</span>(items))
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(results)
+        <span class="kw">var</span> wg <span class="ty">sync.WaitGroup</span>
+        <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+            <span class="kw">if</span> err := sem.<span class="fn">Acquire</span>(ctx, <span class="nu">1</span>); err != <span class="kw">nil</span> { <span class="kw">break</span> }
+            wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+            <span class="kw">go func</span>(v <span class="ty">int</span>) {
+                <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+                <span class="kw">defer</span> sem.<span class="fn">Release</span>(<span class="nu">1</span>)
+                results <span class="op">&lt;-</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"weighted(%d)"</span>, v)
+            }(item)
+        }
+        wg.<span class="fn">Wait</span>()
+    }()
+    <span class="kw">return</span> results
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx := context.<span class="fn">Background</span>()
+    items := []<span class="ty">int</span>{<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">3</span>,<span class="nu">4</span>,<span class="nu">5</span>,<span class="nu">6</span>,<span class="nu">7</span>,<span class="nu">8</span>,<span class="nu">9</span>,<span class="nu">10</span>}
+
+    results := <span class="fn">FanOutWithBackpressure</span>(ctx, items, <span class="nu">3</span>) <span class="cm">// max 3 đồng thời</span>
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        fmt.<span class="fn">Println</span>(r)
+    }
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 13 — GENERIC FAN-OUT
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="generic">
+    <div class="section-header">
+      <div class="section-num">13</div>
+      <h2>Generic Fan-Out — Go 1.18+</h2>
+    </div>
+
+    <p>
+      Go 1.18 giới thiệu Generics, cho phép viết hàm fan-out/fan-in
+      <strong>type-safe và reusable</strong> cho mọi kiểu dữ liệu, không cần <code>interface{}</code>.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go 1.18+</div>
+        <div class="filename">generic_fanout.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// Merge: generic fan-in — hợp nhất nhiều channels cùng kiểu T</span>
+<span class="kw">func</span> <span class="fn">Merge</span>[<span class="ty">T any</span>](ctx context.<span class="ty">Context</span>, channels ...<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span> {
+    <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+    merged := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">T</span>, <span class="fn">len</span>(channels))
+
+    output := <span class="kw">func</span>(c <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>) {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        <span class="kw">for</span> v := <span class="kw">range</span> c {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> merged <span class="op">&lt;-</span> v:
+            }
+        }
+    }
+
+    wg.<span class="fn">Add</span>(<span class="fn">len</span>(channels))
+    <span class="kw">for</span> _, c := <span class="kw">range</span> channels {
+        <span class="kw">go</span> <span class="fn">output</span>(c)
+    }
+    <span class="kw">go func</span>() { wg.<span class="fn">Wait</span>(); <span class="fn">close</span>(merged) }()
+    <span class="kw">return</span> merged
+}
+
+<span class="cm">// FanOut: generic fan-out — phân phối T từ input ra N workers</span>
+<span class="kw">func</span> <span class="fn">FanOut</span>[<span class="ty">T, R any</span>](
+    ctx context.<span class="ty">Context</span>,
+    input <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>,
+    numWorkers <span class="ty">int</span>,
+    process <span class="kw">func</span>(context.<span class="ty">Context</span>, <span class="ty">T</span>) (<span class="ty">R</span>, <span class="ty">error</span>),
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">R</span> {
+    <span class="cm">// Tạo N worker channels</span>
+    workerOuts := <span class="fn">make</span>([]<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">R</span>, numWorkers)
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> numWorkers; i++ {
+        workerOuts[i] = <span class="fn">runWorker</span>(ctx, input, process)
+    }
+    <span class="cm">// Fan-In generic</span>
+    <span class="kw">return</span> <span class="fn">Merge</span>(ctx, workerOuts...)
+}
+
+<span class="kw">func</span> <span class="fn">runWorker</span>[<span class="ty">T, R any</span>](
+    ctx context.<span class="ty">Context</span>,
+    in <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>,
+    process <span class="kw">func</span>(context.<span class="ty">Context</span>, <span class="ty">T</span>) (<span class="ty">R</span>, <span class="ty">error</span>),
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">R</span> {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">R</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> item := <span class="kw">range</span> in {
+            result, err := <span class="fn">process</span>(ctx, item)
+            <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">continue</span> }
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="op">&lt;-</span> result:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// Pipeline: compose nhiều bước transform type-safe</span>
+<span class="kw">func</span> <span class="fn">Pipeline</span>[<span class="ty">T any</span>](
+    ctx context.<span class="ty">Context</span>,
+    source <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>,
+    stages ...<span class="kw">func</span>(<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>,
+) <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span> {
+    current := source
+    <span class="kw">for</span> _, stage := <span class="kw">range</span> stages {
+        current = <span class="fn">stage</span>(current)
+    }
+    <span class="kw">return</span> current
+}
+
+<span class="cm">// ─── Ví dụ sử dụng ───────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx := context.<span class="fn">Background</span>()
+
+    <span class="cm">// Source: int channel</span>
+    source := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>, <span class="nu">10</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(source)
+        <span class="kw">for</span> i := <span class="nu">1</span>; i <span class="op">&lt;=</span> <span class="nu">12</span>; i++ { source <span class="op">&lt;-</span> i }
+    }()
+
+    <span class="cm">// Generic FanOut: int → string với 4 workers</span>
+    results := <span class="fn">FanOut</span>(ctx, source, <span class="nu">4</span>, <span class="kw">func</span>(ctx context.<span class="ty">Context</span>, n <span class="ty">int</span>) (<span class="ty">string</span>, <span class="ty">error</span>) {
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="st">"n=%d, n²=%d"</span>, n, n*n), <span class="kw">nil</span>
+    })
+
+    <span class="kw">for</span> r := <span class="kw">range</span> results {
+        fmt.<span class="fn">Println</span>(r)
+    }
+}</pre></div>
+    </div>
+
+    <div class="info-box note">
+      <span class="icon">◈</span>
+      <p><strong>Type Inference:</strong> Go compiler có thể tự suy ra type parameter từ arguments, nên thường không cần viết <code>FanOut[int, string](...)</code> mà chỉ cần <code>FanOut(...)</code>.</p>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 14 — REACTIVE STREAM
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="reactive">
+    <div class="section-header">
+      <div class="section-num">14</div>
+      <h2>Reactive Stream &amp; Observable</h2>
+    </div>
+
+    <p>
+      Kết hợp Fan-Out/Fan-In với pattern <strong>Observable</strong> cho phép subscribe nhiều
+      consumer vào cùng một data stream, với operator như <code>Map</code>, <code>Filter</code>, <code>Take</code>.
+    </p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">reactive_stream.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">main</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"fmt"</span>
+    <span class="st">"sync"</span>
+)
+
+<span class="cm">// Stream là một channel-based observable</span>
+<span class="kw">type</span> <span class="ty">Stream</span>[<span class="ty">T any</span>] <span class="kw">struct</span> {
+    source <span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">T</span>
+    ctx    context.<span class="ty">Context</span>
+}
+
+<span class="cm">// FromSlice tạo Stream từ slice</span>
+<span class="kw">func</span> <span class="fn">FromSlice</span>[<span class="ty">T any</span>](ctx context.<span class="ty">Context</span>, items []<span class="ty">T</span>) *<span class="ty">Stream</span>[<span class="ty">T</span>] {
+    ch := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">T</span>, <span class="fn">len</span>(items))
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(ch)
+        <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="op">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="op">&lt;-</span> item:
+            }
+        }
+    }()
+    <span class="kw">return</span> &<span class="ty">Stream</span>[<span class="ty">T</span>]{source: ch, ctx: ctx}
+}
+
+<span class="cm">// Map biến đổi mỗi element với fan-out N workers</span>
+<span class="kw">func</span> <span class="fn">Map</span>[<span class="ty">T, R any</span>](s *<span class="ty">Stream</span>[<span class="ty">T</span>], workers <span class="ty">int</span>, fn <span class="kw">func</span>(<span class="ty">T</span>) <span class="ty">R</span>) *<span class="ty">Stream</span>[<span class="ty">R</span>] {
+    outs := <span class="fn">make</span>([]<span class="op">&lt;-</span><span class="kw">chan</span> <span class="ty">R</span>, workers)
+    <span class="kw">for</span> i := <span class="kw">range</span> outs {
+        out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">R</span>)
+        outs[i] = out
+        <span class="kw">go func</span>(o <span class="kw">chan</span> <span class="ty">R</span>) {
+            <span class="kw">defer</span> <span class="fn">close</span>(o)
+            <span class="kw">for</span> v := <span class="kw">range</span> s.source {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>s.ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">case</span> o <span class="op">&lt;-</span> <span class="fn">fn</span>(v):
+                }
+            }
+        }(out)
+    }
+    merged := <span class="fn">Merge</span>(s.ctx, outs...)
+    <span class="kw">return</span> &<span class="ty">Stream</span>[<span class="ty">R</span>]{source: merged, ctx: s.ctx}
+}
+
+<span class="cm">// Filter giữ lại element thỏa điều kiện</span>
+<span class="kw">func</span> <span class="fn">Filter</span>[<span class="ty">T any</span>](s *<span class="ty">Stream</span>[<span class="ty">T</span>], pred <span class="kw">func</span>(<span class="ty">T</span>) <span class="ty">bool</span>) *<span class="ty">Stream</span>[<span class="ty">T</span>] {
+    out := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">T</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(out)
+        <span class="kw">for</span> v := <span class="kw">range</span> s.source {
+            <span class="kw">if</span> <span class="fn">pred</span>(v) {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="op">&lt;-</span>s.ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">case</span> out <span class="op">&lt;-</span> v:
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> &<span class="ty">Stream</span>[<span class="ty">T</span>]{source: out, ctx: s.ctx}
+}
+
+<span class="cm">// Broadcast: fan-out 1 stream ra N subscriber channels</span>
+<span class="kw">func</span> <span class="fn">Broadcast</span>[<span class="ty">T any</span>](s *<span class="ty">Stream</span>[<span class="ty">T</span>], n <span class="ty">int</span>) []*<span class="ty">Stream</span>[<span class="ty">T</span>] {
+    outs := <span class="fn">make</span>([]<span class="kw">chan</span> <span class="ty">T</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> outs {
+        outs[i] = <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">T</span>, <span class="nu">8</span>)
+    }
+    <span class="kw">go func</span>() {
+        <span class="kw">defer func</span>() {
+            <span class="kw">for</span> _, o := <span class="kw">range</span> outs { <span class="fn">close</span>(o) }
+        }()
+        <span class="kw">var</span> wg sync.<span class="ty">WaitGroup</span>
+        <span class="kw">for</span> v := <span class="kw">range</span> s.source {
+            v := v
+            <span class="kw">for</span> _, o := <span class="kw">range</span> outs {
+                wg.<span class="fn">Add</span>(<span class="nu">1</span>)
+                <span class="kw">go func</span>(ch <span class="kw">chan</span> <span class="ty">T</span>) {
+                    <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+                    ch <span class="op">&lt;-</span> v
+                }(o)
+            }
+            wg.<span class="fn">Wait</span>()
+        }
+    }()
+    streams := <span class="fn">make</span>([]*<span class="ty">Stream</span>[<span class="ty">T</span>], n)
+    <span class="kw">for</span> i, o := <span class="kw">range</span> outs {
+        streams[i] = &<span class="ty">Stream</span>[<span class="ty">T</span>]{source: o, ctx: s.ctx}
+    }
+    <span class="kw">return</span> streams
+}
+
+<span class="cm">// Collect thu thập tất cả element vào slice</span>
+<span class="kw">func</span> <span class="fn">Collect</span>[<span class="ty">T any</span>](s *<span class="ty">Stream</span>[<span class="ty">T</span>]) []<span class="ty">T</span> {
+    <span class="kw">var</span> result []<span class="ty">T</span>
+    <span class="kw">for</span> v := <span class="kw">range</span> s.source { result = <span class="fn">append</span>(result, v) }
+    <span class="kw">return</span> result
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx := context.<span class="fn">Background</span>()
+
+    <span class="cm">// Chain: FromSlice → Map(×3 workers) → Filter → Collect</span>
+    result := <span class="fn">Collect</span>(
+        <span class="fn">Filter</span>(
+            <span class="fn">Map</span>(<span class="fn">FromSlice</span>(ctx, []<span class="ty">int</span>{<span class="nu">1</span>,<span class="nu">2</span>,<span class="nu">3</span>,<span class="nu">4</span>,<span class="nu">5</span>,<span class="nu">6</span>,<span class="nu">7</span>,<span class="nu">8</span>,<span class="nu">9</span>,<span class="nu">10</span>}),
+                <span class="nu">3</span>,
+                <span class="kw">func</span>(n <span class="ty">int</span>) <span class="ty">int</span> { <span class="kw">return</span> n * n }, <span class="cm">// bình phương</span>
+            ),
+            <span class="kw">func</span>(n <span class="ty">int</span>) <span class="ty">bool</span> { <span class="kw">return</span> n%<span class="nu">2</span> == <span class="nu">0</span> }, <span class="cm">// chỉ lấy số chẵn</span>
+        ),
+    )
+    fmt.<span class="fn">Println</span>(result) <span class="cm">// [4 16 36 64 100] (thứ tự có thể thay đổi)</span>
+}</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 15 — BENCHMARK
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="benchmark">
+    <div class="section-header">
+      <div class="section-num">15</div>
+      <h2>Benchmark &amp; Profiling thực tế</h2>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Go</div>
+        <div class="filename">fanout_bench_test.go</div>
+      </div>
+      <div class="code-body"><pre><span class="kw">package</span> <span class="pk">fanout_test</span>
+
+<span class="kw">import</span> (
+    <span class="st">"context"</span>
+    <span class="st">"math"</span>
+    <span class="st">"testing"</span>
+)
+
+<span class="kw">func</span> <span class="fn">heavyCompute</span>(n <span class="ty">int</span>) <span class="ty">float64</span> {
+    <span class="kw">return</span> math.<span class="fn">Sqrt</span>(math.<span class="fn">Pow</span>(<span class="kw">float64</span>(n), <span class="nu">2.5</span>))
+}
+
+<span class="cm">// Sequential baseline</span>
+<span class="kw">func</span> <span class="fn">BenchmarkSequential</span>(b *testing.<span class="ty">B</span>) {
+    items := <span class="fn">make</span>([]<span class="ty">int</span>, <span class="nu">1000</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> items { items[i] = i + <span class="nu">1</span> }
+
+    b.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> b.N; i++ {
+        <span class="kw">for</span> _, v := <span class="kw">range</span> items {
+            <span class="fn">heavyCompute</span>(v)
+        }
+    }
+}
+
+<span class="cm">// Fan-Out với 4 workers</span>
+<span class="kw">func</span> <span class="fn">BenchmarkFanOut4Workers</span>(b *testing.<span class="ty">B</span>) {
+    items := <span class="fn">make</span>([]<span class="ty">int</span>, <span class="nu">1000</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> items { items[i] = i + <span class="nu">1</span> }
+
+    b.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> i := <span class="nu">0</span>; i <span class="op">&lt;</span> b.N; i++ {
+        ctx := context.<span class="fn">Background</span>()
+        source := <span class="fn">make</span>(<span class="kw">chan</span> <span class="ty">int</span>, <span class="fn">len</span>(items))
+        <span class="kw">for</span> _, v := <span class="kw">range</span> items { source <span class="op">&lt;-</span> v }
+        <span class="fn">close</span>(source)
+
+        results := <span class="fn">FanOut</span>(ctx, source, <span class="nu">4</span>, <span class="kw">func</span>(_ context.<span class="ty">Context</span>, n <span class="ty">int</span>) (<span class="ty">float64</span>, <span class="ty">error</span>) {
+            <span class="kw">return</span> <span class="fn">heavyCompute</span>(n), <span class="kw">nil</span>
+        })
+        <span class="kw">for</span> <span class="kw">range</span> results {} <span class="cm">// drain</span>
+    }
+}
+
+<span class="cm">// Fan-Out với runtime.NumCPU() workers</span>
+<span class="kw">func</span> <span class="fn">BenchmarkFanOutCPUWorkers</span>(b *testing.<span class="ty">B</span>) {
+    <span class="cm">// ... similar with numWorkers = runtime.NumCPU()</span>
+}</pre></div>
+    </div>
+
+    <div class="diagram-wrap">
+      <div class="diagram-title">Kết quả benchmark điển hình (1000 items, CPU-bound task)</div>
+      <svg width="100%" viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background grid -->
+        <line x1="120" y1="20" x2="120" y2="160" stroke="#30363d" stroke-width="1"/>
+        <line x1="120" y1="160" x2="560" y2="160" stroke="#30363d" stroke-width="1"/>
+
+        <!-- Y-axis labels -->
+        <text x="110" y="30" text-anchor="end" fill="#6e7681" font-size="10">Sequential</text>
+        <text x="110" y="75" text-anchor="end" fill="#6e7681" font-size="10">2 workers</text>
+        <text x="110" y="115" text-anchor="end" fill="#6e7681" font-size="10">4 workers</text>
+        <text x="110" y="155" text-anchor="end" fill="#6e7681" font-size="10">8 workers</text>
+
+        <!-- Bars -->
+        <!-- Sequential: 100% -->
+        <rect x="122" y="18" width="380" height="20" rx="3" fill="#f85149" opacity=".7"/>
+        <text x="508" y="32" fill="#f85149" font-size="10" font-weight="700">100% (baseline ~8.2ms)</text>
+
+        <!-- 2 workers: ~55% -->
+        <rect x="122" y="63" width="209" height="20" rx="3" fill="#f0883e" opacity=".7"/>
+        <text x="337" y="77" fill="#f0883e" font-size="10" font-weight="700">~55% (4.5ms, 1.8×)</text>
+
+        <!-- 4 workers: ~28% -->
+        <rect x="122" y="103" width="106" height="20" rx="3" fill="#3fb950" opacity=".8"/>
+        <text x="234" y="117" fill="#3fb950" font-size="10" font-weight="700">~28% (2.3ms, 3.6×)</text>
+
+        <!-- 8 workers: ~18% -->
+        <rect x="122" y="143" width="68" height="20" rx="3" fill="#39d0ff" opacity=".8"/>
+        <text x="196" y="157" fill="#39d0ff" font-size="10" font-weight="700">~18% (1.5ms, 5.5×)</text>
+
+        <!-- X-axis label -->
+        <text x="340" y="185" text-anchor="middle" fill="#6e7681" font-size="10">Thời gian xử lý (% so với sequential)</text>
+      </svg>
+    </div>
+
+    <h3>Lệnh benchmark</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <div class="lang"><span class="dot"></span> Shell</div>
+        <div class="filename">terminal</div>
+      </div>
+      <div class="code-body"><pre><span class="cm"># Chạy benchmark với profiling</span>
+go test -bench=. -benchmem -benchtime=5s ./...
+
+<span class="cm"># CPU profile</span>
+go test -bench=BenchmarkFanOut4Workers -cpuprofile=cpu.prof
+go tool pprof cpu.prof
+
+<span class="cm"># Memory profile</span>
+go test -bench=. -memprofile=mem.prof
+go tool pprof -alloc_objects mem.prof
+
+<span class="cm"># Race detector</span>
+go test -race -bench=. ./...
+
+<span class="cm"># Trace (goroutine timeline)</span>
+go test -bench=BenchmarkFanOut4Workers -trace=trace.out
+go tool trace trace.out</pre></div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 16 — ANTI-PATTERNS
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="patterns">
+    <div class="section-header">
+      <div class="section-num">16</div>
+      <h2>Anti-patterns &amp; Best Practices</h2>
+    </div>
+
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Anti-pattern</th>
+          <th>Vấn đề</th>
+          <th>Giải pháp</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>goroutine leak</code></td>
+          <td class="bad">Goroutine không có exit path, tồn tại mãi mãi</td>
+          <td>Luôn lắng nghe <code>ctx.Done()</code> hoặc channel đóng</td>
+        </tr>
+        <tr>
+          <td><code>close từ receiver</code></td>
+          <td class="bad">Panic: <code>send on closed channel</code></td>
+          <td>Chỉ sender mới được <code>close(ch)</code></td>
+        </tr>
+        <tr>
+          <td><code>unbounded fan-out</code></td>
+          <td class="bad">OOM: spawn goroutine = số item input</td>
+          <td>Dùng Worker Pool hoặc Semaphore</td>
+        </tr>
+        <tr>
+          <td><code>shared mutable state</code></td>
+          <td class="bad">Data race giữa các worker</td>
+          <td>Dùng <code>sync.Mutex</code> hoặc channel để truyền data</td>
+        </tr>
+        <tr>
+          <td><code>nil channel block</code></td>
+          <td class="bad">Send/receive trên <code>nil</code> channel block mãi mãi</td>
+          <td>Kiểm tra channel khác nil trước khi dùng</td>
+        </tr>
+        <tr>
+          <td><code>buffer quá nhỏ</code></td>
+          <td class="bad">Worker block chờ consumer, giảm hiệu năng</td>
+          <td>Buffer size = số worker hoặc dự tính throughput</td>
+        </tr>
+        <tr>
+          <td><code>không xử lý lỗi</code></td>
+          <td class="bad">Lỗi bị nuốt im lặng, khó debug</td>
+          <td>Dùng <code>Result</code> struct hoặc <code>errgroup</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Checklist production</h3>
+    <div class="compare-grid">
+      <div class="compare-card good">
+        <h4>✓ Nên làm</h4>
+        <ul>
+          <li>Luôn truyền <code>context.Context</code> vào goroutine</li>
+          <li>Đóng channel từ phía sender duy nhất</li>
+          <li>Dùng <code>sync.WaitGroup</code> để chờ goroutine</li>
+          <li>Buffer channel khi biết số lượng</li>
+          <li>Dùng <code>-race</code> flag khi test</li>
+          <li>Giới hạn goroutine bằng semaphore/pool</li>
+          <li>Xử lý lỗi rõ ràng qua <code>Result</code> struct</li>
+        </ul>
+      </div>
+      <div class="compare-card bad">
+        <h4>✗ Không nên</h4>
+        <ul>
+          <li>Spawn goroutine không giới hạn cho input lớn</li>
+          <li>Bỏ qua <code>ctx.Done()</code> trong goroutine</li>
+          <li>Close channel từ nhiều nơi</li>
+          <li>Dùng <code>time.Sleep</code> để sync goroutine</li>
+          <li>Share mutable map giữa nhiều goroutine</li>
+          <li>Viết goroutine không có exit condition</li>
+          <li>Panic trong goroutine không được recover</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION 17 — REFERENCES
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="refs">
+    <div class="section-header">
+      <div class="section-num">17</div>
+      <h2>Tài liệu tham khảo &amp; Nguồn đọc thêm</h2>
+    </div>
+
+    <h3>Official Go Documentation</h3>
+    <div class="ref-grid">
+      <a class="ref-card" href="https://go.dev/blog/pipelines" target="_blank">
+        <div class="ref-source">📄 Go Official Blog</div>
+        <div class="ref-title">Go Concurrency Patterns: Pipelines and cancellation</div>
+        <div class="ref-desc">Bài viết chính thức của Go team về pipeline pattern, fan-out/fan-in với context cancellation.</div>
+        <div class="ref-stars">⭐ Official — Must Read</div>
+      </a>
+      <a class="ref-card" href="https://go.dev/blog/context" target="_blank">
+        <div class="ref-source">📄 Go Official Blog</div>
+        <div class="ref-title">Go Concurrency Patterns: Context</div>
+        <div class="ref-desc">Hướng dẫn sử dụng context.Context cho cancellation và deadline trong goroutine.</div>
+        <div class="ref-stars">⭐ Official</div>
+      </a>
+      <a class="ref-card" href="https://pkg.go.dev/golang.org/x/sync/errgroup" target="_blank">
+        <div class="ref-source">📦 pkg.go.dev</div>
+        <div class="ref-title">golang.org/x/sync/errgroup</div>
+        <div class="ref-desc">Package errgroup với SetLimit() cho fan-out có giới hạn concurrency và auto-cancel on error.</div>
+        <div class="ref-stars">⭐ Official Package</div>
+      </a>
+    </div>
+
+    <h3>GitHub — Top Repositories</h3>
+    <div class="ref-grid">
+      <a class="ref-card" href="https://github.com/nicholasjackson/pipe" target="_blank">
+        <div class="ref-source">⭐ GitHub</div>
+        <div class="ref-title">nicholasjackson/pipe</div>
+        <div class="ref-desc">Thư viện pipeline với fan-out/fan-in, type-safe operators cho Go generics.</div>
+        <div class="ref-stars">★ Generic Pipeline Library</div>
+      </a>
+      <a class="ref-card" href="https://github.com/reugn/go-streams" target="_blank">
+        <div class="ref-source">⭐ GitHub — 2k+ stars</div>
+        <div class="ref-title">reugn/go-streams</div>
+        <div class="ref-desc">Stream processing library với Fan-Out, Fan-In, Map, Filter, Sink operators. Tương tự RxJava cho Go.</div>
+        <div class="ref-stars">★★★★☆ Production-ready</div>
+      </a>
+      <a class="ref-card" href="https://github.com/sourcegraph/conc" target="_blank">
+        <div class="ref-source">⭐ GitHub — 9k+ stars</div>
+        <div class="ref-title">sourcegraph/conc</div>
+        <div class="ref-desc">Better structured concurrency cho Go, bao gồm pool, iter.Map (fan-out), WaitGroup wrapper an toàn hơn.</div>
+        <div class="ref-stars">★★★★★ Highly Recommended</div>
+      </a>
+      <a class="ref-card" href="https://github.com/panjf2000/ants" target="_blank">
+        <div class="ref-source">⭐ GitHub — 12k+ stars</div>
+        <div class="ref-title">panjf2000/ants</div>
+        <div class="ref-desc">High-performance goroutine pool cho Go, hỗ trợ fan-out với worker reuse, memory efficient.</div>
+        <div class="ref-stars">★★★★★ Most Popular Pool</div>
+      </a>
+      <a class="ref-card" href="https://github.com/alitto/pond" target="_blank">
+        <div class="ref-source">⭐ GitHub — 1.5k+ stars</div>
+        <div class="ref-title">alitto/pond</div>
+        <div class="ref-desc">Minimalistic goroutine worker pool với dynamic sizing, graceful shutdown, và task groups.</div>
+        <div class="ref-stars">★★★★☆ Clean API</div>
+      </a>
+      <a class="ref-card" href="https://github.com/gammazero/workerpool" target="_blank">
+        <div class="ref-source">⭐ GitHub</div>
+        <div class="ref-title">gammazero/workerpool</div>
+        <div class="ref-desc">Simple goroutine worker pool với queue, submit task, Stop, và StopWait API.</div>
+        <div class="ref-stars">★★★☆☆ Simple &amp; Reliable</div>
+      </a>
+    </div>
+
+    <h3>Sách &amp; Khóa học</h3>
+    <div class="ref-grid">
+      <a class="ref-card" href="https://www.oreilly.com/library/view/concurrency-in-go/9781491941294/" target="_blank">
+        <div class="ref-source">📚 O'Reilly Book</div>
+        <div class="ref-title">Concurrency in Go — Katherine Cox-Buday</div>
+        <div class="ref-desc">Sách chuyên sâu nhất về concurrency patterns trong Go, bao gồm toàn bộ chapter về Fan-Out/Fan-In.</div>
+        <div class="ref-stars">⭐ The Definitive Book</div>
+      </a>
+      <a class="ref-card" href="https://go.dev/tour/concurrency/1" target="_blank">
+        <div class="ref-source">🎓 Go Tour</div>
+        <div class="ref-title">A Tour of Go — Concurrency</div>
+        <div class="ref-desc">Interactive tour về goroutines, channels, select statement — nền tảng của mọi concurrency pattern.</div>
+        <div class="ref-stars">⭐ Free Interactive</div>
+      </a>
+      <a class="ref-card" href="https://youtu.be/f6kdp27TYZs" target="_blank">
+        <div class="ref-source">🎥 YouTube — GopherCon</div>
+        <div class="ref-title">Go Concurrency Patterns — Rob Pike</div>
+        <div class="ref-desc">Talk kinh điển của Rob Pike tại Google I/O 2012, trình bày fan-out/fan-in và các patterns cốt lõi.</div>
+        <div class="ref-stars">⭐ Must Watch</div>
+      </a>
+    </div>
+
+    <div class="info-box tip" style="margin-top: 24px;">
+      <span class="icon">💡</span>
+      <p>
+        <strong>Lộ trình học:</strong> 
+        (1) Go Tour → (2) Rob Pike Talk → (3) Official Pipeline Blog →
+        (4) Concurrency in Go Book → (5) sourcegraph/conc source code →
+        (6) Implement benchmark thực tế với <code>go test -bench -race</code>
+      </p>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<script>
+  // Active sidebar tracking
+  const sections = document.querySelectorAll('[id]');
+  const sidebarItems = document.querySelectorAll('.sidebar-item');
+
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        sidebarItems.forEach(item => {
+          item.classList.toggle('active', item.getAttribute('href') === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-80px 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  // Robust smooth scroll for all anchor links starting with #
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e) {
+      const href = this.getAttribute('href');
+      if (!href || href === '#' || href.startsWith('#/')) return;
+      try {
+        const targetElement = document.querySelector(href);
+        if (targetElement) {
+          e.preventDefault();
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'start'
+          });
+          history.pushState(null, null, href);
+        }
+      } catch (err) {
+        console.warn("Invalid selector:", href, err);
+      }
+    });
+  });
+</script>
+</body>
+</html>
