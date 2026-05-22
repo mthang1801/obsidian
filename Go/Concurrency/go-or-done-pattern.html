@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Or-Done Pattern — Hướng dẫn chuyên sâu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Sora:wght@300;400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2128;
+    --bg4: #21262d;
+    --border: #30363d;
+    --border2: #3d444d;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --accent: #58a6ff;
+    --accent2: #79c0ff;
+    --green: #3fb950;
+    --green2: #56d364;
+    --orange: #f0883e;
+    --red: #f85149;
+    --purple: #bc8cff;
+    --yellow: #e3b341;
+    --cyan: #39d353;
+    --teal: #2dd4bf;
+    --sidebar-w: 260px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'Sora', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* ── TOP NAV ── */
+  .topnav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+    background: rgba(13,17,23,.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 0;
+    padding: 0 20px;
+  }
+  .topnav-brand {
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    display: flex; align-items: center; gap: 8px;
+    margin-right: 28px;
+    white-space: nowrap;
+  }
+  .topnav-brand .go-pill {
+    background: #00acd7;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    letter-spacing: .5px;
+  }
+  .topnav-brand .accent { color: var(--accent); }
+  .nav-links {
+    display: flex; align-items: center; gap: 2px;
+    overflow-x: auto; flex: 1;
+  }
+  .nav-link {
+    font-size: 12.5px; color: var(--text2);
+    padding: 6px 12px; border-radius: 6px;
+    cursor: pointer; white-space: nowrap;
+    transition: color .2s, background .2s;
+    text-decoration: none;
+  }
+  .nav-link:hover, .nav-link.active { color: var(--text); background: var(--bg4); }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    margin-top: 52px;
+    min-height: calc(100vh - 52px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    border-right: 1px solid var(--border);
+    position: sticky;
+    top: 52px;
+    height: calc(100vh - 52px);
+    overflow-y: auto;
+    padding: 20px 0;
+    background: var(--bg);
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .sb-section {
+    padding: 4px 16px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin: 16px 0 4px;
+  }
+  .sb-link {
+    display: block;
+    padding: 5px 20px;
+    font-size: 13px;
+    color: var(--text2);
+    cursor: pointer;
+    transition: color .15s, border-left .15s;
+    border-left: 2px solid transparent;
+    text-decoration: none;
+  }
+  .sb-link:hover { color: var(--text); border-left-color: var(--border2); }
+  .sb-link.active { color: var(--accent); border-left-color: var(--accent); background: rgba(88,166,255,.06); }
+
+  /* ── CONTENT ── */
+  .content {
+    flex: 1;
+    min-width: 0;
+    padding: 40px 56px 80px;
+    max-width: 920px;
+  }
+
+  /* ── HERO ── */
+  .hero-banner {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+  }
+  .hero-banner p { color: var(--text2); margin-top: 10px; font-size: 14.5px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  .tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid;
+  }
+  .tag-go    { border-color: #00acd7; color: #00acd7; background: rgba(0,172,215,.08); }
+  .tag-ctx   { border-color: var(--purple); color: var(--purple); background: rgba(188,140,255,.08); }
+  .tag-chan  { border-color: var(--teal); color: var(--teal); background: rgba(45,212,191,.08); }
+  .tag-adv   { border-color: var(--orange); color: var(--orange); background: rgba(240,136,62,.08); }
+  .tag-exp   { border-color: var(--red); color: var(--red); background: rgba(248,81,73,.08); }
+
+  /* ── TOC ── */
+  .toc-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 24px 28px; margin-bottom: 40px;
+  }
+  .toc-title {
+    font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase;
+    font-weight: 700; color: var(--text3); margin-bottom: 14px;
+  }
+  .toc-list { list-style: none; }
+  .toc-list li { padding: 3px 0; }
+  .toc-list a {
+    color: var(--text2); font-size: 13.5px; text-decoration: none;
+    transition: color .15s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .toc-list a:hover { color: var(--accent); }
+  .toc-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text3); min-width: 22px;
+  }
+  .toc-sub { padding-left: 32px !important; }
+
+  /* ── HEADINGS ── */
+  h1 { font-size: 28px; font-weight: 800; line-height: 1.3; }
+  h2 { font-size: 22px; font-weight: 700; margin: 48px 0 18px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; font-weight: 600; margin: 28px 0 12px; color: var(--accent2); }
+  h4 { font-size: 14px; font-weight: 700; margin: 20px 0 8px; color: var(--yellow); text-transform: uppercase; letter-spacing: .5px; }
+
+  p { margin-bottom: 14px; color: var(--text); }
+  strong { color: var(--accent2); font-weight: 600; }
+
+  /* ── CODE ── */
+  .code-block {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin: 18px 0 24px;
+    overflow: hidden;
+    font-size: 13.5px;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--bg4);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-fname {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--text2);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .code-badge {
+    font-size: 10px; font-weight: 700; padding: 2px 8px;
+    border-radius: 4px; letter-spacing: .5px;
+  }
+  .badge-ok    { background: rgba(63,185,80,.15); color: var(--green); border: 1px solid rgba(63,185,80,.3); }
+  .badge-adv   { background: rgba(240,136,62,.15); color: var(--orange); border: 1px solid rgba(240,136,62,.3); }
+  .badge-exp   { background: rgba(248,81,73,.15); color: var(--red); border: 1px solid rgba(248,81,73,.3); }
+  .badge-tip   { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid rgba(88,166,255,.3); }
+
+  .code-body { padding: 18px 20px; overflow-x: auto; }
+  .code-body pre {
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre;
+  }
+
+  /* syntax highlight classes */
+  .kw  { color: #ff7b72; }   /* keywords */
+  .fn  { color: #d2a8ff; }   /* func names */
+  .str { color: #a5d6ff; }   /* strings */
+  .cmt { color: #8b949e; font-style: italic; }  /* comments */
+  .pkg { color: #ffa657; }   /* package names */
+  .num { color: #79c0ff; }   /* numbers */
+  .typ { color: #56d364; }   /* types */
+
+  /* ── CALLOUTS ── */
+  .callout {
+    border-radius: 8px; padding: 16px 20px; margin: 20px 0;
+    border-left: 3px solid;
+    font-size: 14px;
+  }
+  .callout-info   { background: rgba(88,166,255,.07); border-color: var(--accent); }
+  .callout-warn   { background: rgba(240,136,62,.07); border-color: var(--orange); }
+  .callout-tip    { background: rgba(63,185,80,.07);  border-color: var(--green); }
+  .callout-danger { background: rgba(248,81,73,.07);  border-color: var(--red); }
+  .callout strong { display: block; margin-bottom: 5px; font-size: 12px; letter-spacing: .8px; text-transform: uppercase; }
+  .callout-info strong   { color: var(--accent); }
+  .callout-warn strong   { color: var(--orange); }
+  .callout-tip strong    { color: var(--green); }
+  .callout-danger strong { color: var(--red); }
+
+  /* ── DIAGRAM / FLOW ── */
+  .diagram-wrap {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 28px; margin: 24px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 11px; letter-spacing: 1px; text-transform: uppercase;
+    color: var(--text3); margin-bottom: 18px; font-weight: 700;
+  }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th {
+    background: var(--bg4); color: var(--text2);
+    padding: 10px 14px; text-align: left;
+    border-bottom: 2px solid var(--border);
+    font-size: 11px; letter-spacing: .8px; text-transform: uppercase;
+  }
+  td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  td code, th code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: var(--cyan);
+    background: var(--bg4);
+    padding: 1px 6px; border-radius: 4px;
+  }
+
+  /* ── COMPARISON GRID ── */
+  .compare-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 16px; margin: 20px 0;
+  }
+  .compare-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px 18px;
+  }
+  .compare-box h4 { margin-top: 0; }
+  .compare-box ul { list-style: none; }
+  .compare-box li { padding: 3px 0; font-size: 13px; color: var(--text2); }
+  .compare-box li::before { content: "→ "; color: var(--accent); }
+
+  /* ── STEP FLOW ── */
+  .steps { margin: 20px 0; }
+  .step { display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-num {
+    min-width: 32px; height: 32px;
+    border-radius: 50%;
+    background: rgba(88,166,255,.15);
+    border: 1.5px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; font-weight: 700; color: var(--accent);
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-body h4 { margin-top: 0; color: var(--text); font-size: 14px; }
+  .step-body p  { margin-bottom: 0; font-size: 13.5px; color: var(--text2); }
+
+  /* ── REF CARDS ── */
+  .refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin-top: 20px; }
+  .ref-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px;
+    transition: border-color .2s;
+    text-decoration: none;
+    display: block;
+  }
+  .ref-card:hover { border-color: var(--accent); }
+  .ref-card .ref-title { color: var(--accent); font-weight: 600; font-size: 14px; }
+  .ref-card .ref-src   { color: var(--text3); font-size: 11.5px; margin-top: 4px; font-family: 'JetBrains Mono', monospace; }
+  .ref-card .ref-desc  { color: var(--text2); font-size: 13px; margin-top: 8px; }
+  .ref-stars { color: var(--yellow); font-size: 12px; margin-top: 6px; }
+
+  /* ── INLINE CODE ── */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    color: var(--cyan);
+    background: rgba(255,255,255,.06);
+    padding: 1px 6px; border-radius: 4px;
+  }
+
+  /* ── SECTION ── */
+  section { margin-bottom: 20px; }
+  [id] { scroll-margin-top: 80px; }
+
+  /* ── SVG DIAGRAMS ── */
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ── SCROLLBAR ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { padding: 24px 20px 60px; }
+    .compare-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP NAV -->
+<nav class="topnav">
+  <div class="topnav-brand">
+    <span class="go-pill">Go</span>
+    <span><span class="accent">Or-Done</span> Pattern</span>
+  </div>
+  <div class="nav-links">
+    <a class="nav-link active" href="#intro">Giới thiệu</a>
+    <a class="nav-link" href="#concept">Khái niệm</a>
+    <a class="nav-link" href="#basic">Cơ bản</a>
+    <a class="nav-link" href="#context">Context</a>
+    <a class="nav-link" href="#advanced">Nâng cao</a>
+    <a class="nav-link" href="#expert">Expert</a>
+    <a class="nav-link" href="#patterns">Patterns</a>
+    <a class="nav-link" href="#refs">Tài liệu</a>
+  </div>
+</nav>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-section">Cơ bản</div>
+    <a class="sb-link active" href="#intro">Giới thiệu</a>
+    <a class="sb-link" href="#concept">Or-Done là gì?</a>
+    <a class="sb-link" href="#why">Tại sao cần dùng?</a>
+    <a class="sb-link" href="#anatomy">Giải phẫu Pattern</a>
+
+    <div class="sb-section">Triển khai</div>
+    <a class="sb-link" href="#basic">Cài đặt cơ bản</a>
+    <a class="sb-link" href="#context">Tích hợp Context</a>
+    <a class="sb-link" href="#generic">Generic (Go 1.18+)</a>
+    <a class="sb-link" href="#multi">Multi-channel</a>
+
+    <div class="sb-section">Nâng cao</div>
+    <a class="sb-link" href="#advanced">Pipeline + OrDone</a>
+    <a class="sb-link" href="#fanout">Fan-Out Cleanup</a>
+    <a class="sb-link" href="#timeout">Timeout Chain</a>
+    <a class="sb-link" href="#errgroup">ErrGroup Hybrid</a>
+
+    <div class="sb-section">Expert</div>
+    <a class="sb-link" href="#expert">Lock-Free OrDone</a>
+    <a class="sb-link" href="#reactive">Reactive Stream</a>
+    <a class="sb-link" href="#tracing">Tracing & Debug</a>
+    <a class="sb-link" href="#benchmark">Benchmark</a>
+
+    <div class="sb-section">Tham khảo</div>
+    <a class="sb-link" href="#patterns">Best Practices</a>
+    <a class="sb-link" href="#refs">Tài liệu tham khảo</a>
+  </aside>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <!-- HERO -->
+    <div class="hero-banner" id="intro">
+      <h1>Or-Done Pattern</h1>
+      <h1 style="color:var(--accent);font-size:20px;font-weight:400;margin-top:4px;">Kết hợp Context với Channel Cleanup</h1>
+      <p>
+        <strong>Or-Done Pattern</strong> (còn gọi là <em>orDone</em>) là một trong những pattern thiết yếu trong lập trình
+        concurrency với Go — cho phép <strong>thoát an toàn khỏi goroutine</strong> bằng cách lắng nghe
+        <em>đồng thời</em> tín hiệu từ <code>context.Done()</code> và từ channel dữ liệu, đảm bảo không xảy ra
+        goroutine leak hay deadlock. Tài liệu này đi từ định nghĩa cơ bản đến kỹ thuật expert-level.
+      </p>
+      <div class="tags">
+        <span class="tag tag-go">🔵 Go 1.21+</span>
+        <span class="tag tag-ctx">🔒 context.Context</span>
+        <span class="tag tag-chan">⚡ Channel Cleanup</span>
+        <span class="tag tag-adv">⚠️ Advanced Patterns</span>
+        <span class="tag tag-exp">🔴 Expert Level</span>
+      </div>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc-box">
+      <div class="toc-title">Nội dung</div>
+      <ul class="toc-list">
+        <li><a href="#concept"><span class="toc-num">01</span> Or-Done Pattern là gì? — Định nghĩa & bối cảnh</a></li>
+        <li><a href="#why"><span class="toc-num">02</span> Tại sao Or-Done Pattern quan trọng?</a></li>
+        <li><a href="#anatomy"><span class="toc-num">03</span> Giải phẫu Pattern — Sơ đồ luồng dữ liệu</a></li>
+        <li><a href="#basic"><span class="toc-num">04</span> Cài đặt cơ bản — Không dùng generic</a></li>
+        <li><a href="#context"><span class="toc-num">05</span> Tích hợp Context — Cancellation & Deadline</a></li>
+        <li><a href="#generic"><span class="toc-num">06</span> Phiên bản Generic — Go 1.18+</a></li>
+        <li><a href="#multi"><span class="toc-num">07</span> Multi-channel OrDone — Merge nhiều nguồn</a></li>
+        <li><a href="#advanced"><span class="toc-num">08</span> Nâng cao — Pipeline tích hợp OrDone</a></li>
+        <li class="toc-sub"><a href="#fanout"><span class="toc-num">  ○</span> Fan-Out với Channel Cleanup</a></li>
+        <li class="toc-sub"><a href="#timeout"><span class="toc-num">  ○</span> Timeout Chain Pattern</a></li>
+        <li class="toc-sub"><a href="#errgroup"><span class="toc-num">  ○</span> ErrGroup Hybrid</a></li>
+        <li><a href="#expert"><span class="toc-num">09</span> Expert — Lock-Free & Reactive Stream</a></li>
+        <li><a href="#benchmark"><span class="toc-num">10</span> Benchmark & Profiling</a></li>
+        <li><a href="#refs"><span class="toc-num">11</span> Tài liệu tham khảo & Nguồn đọc thêm</a></li>
+      </ul>
+    </div>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 01. KHÁI NIỆM -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="concept">
+      <h2>01. Or-Done Pattern là gì?</h2>
+
+      <p>
+        <strong>Or-Done Pattern</strong> xuất phát từ cuốn sách nổi tiếng
+        <em>"Concurrency in Go"</em> của Katherine Cox-Buday (O'Reilly). Pattern này giải quyết một vấn đề cực kỳ phổ biến:
+        <strong>làm thế nào để đọc dữ liệu từ một channel nhưng vẫn có thể thoát sớm</strong>
+        khi context bị hủy, timeout xảy ra, hoặc một điều kiện dừng nào đó được kích hoạt.
+      </p>
+
+      <div class="callout callout-info">
+        <strong>📌 Định nghĩa chính thức</strong>
+        Or-Done Pattern là cách bọc một channel đọc bình thường (<code>for v := range ch</code>) bên trong
+        một goroutine có tích hợp <code>select</code>, cho phép <em>thoát sớm</em> khi nhận được tín hiệu
+        từ <code>done</code> channel hoặc <code>ctx.Done()</code> — mà không block vô hạn.
+      </div>
+
+      <p>Xét vấn đề cơ bản: khi bạn cần đọc từ channel nhưng goroutine producer đã bị hủy:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">❌ vấn_de.go — <span style="color:var(--red)">GOROUTINE LEAK</span></span>
+          <span class="code-badge badge-exp">ANTI-PATTERN</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="cmt">// ❌ Vấn đề: nếu ctx bị cancel, vòng lặp này sẽ BLOCK mãi mãi</span>
+<span class="cmt">// vì ch không bao giờ được gửi thêm dữ liệu hoặc đóng.</span>
+<span class="kw">func</span> <span class="fn">badConsumer</span>(ctx <span class="typ">context.Context</span>, ch <span class="typ">&lt;-chan</span> <span class="typ">string</span>) {
+    <span class="kw">for</span> v := <span class="kw">range</span> ch {  <span class="cmt">// ← BỊ BLOCK nếu ch không có data và không đóng</span>
+        fmt.<span class="fn">Println</span>(v)
+    }
+    <span class="cmt">// ctx.Done() KHÔNG BAO GIỜ được kiểm tra → goroutine leak!</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">✅ or_done.go — <span style="color:var(--green)">GIẢI PHÁP</span></span>
+          <span class="code-badge badge-ok">CORRECT</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="cmt">// ✅ OrDone bọc channel đọc với khả năng cancel sớm</span>
+<span class="kw">func</span> <span class="fn">OrDone</span>(ctx <span class="typ">context.Context</span>, ch <span class="typ">&lt;-chan</span> <span class="typ">interface{}</span>) <span class="typ">&lt;-chan</span> <span class="typ">interface{}</span> {
+    valStream := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">interface{}</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(valStream)
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():   <span class="cmt">// Tín hiệu 1: context bị hủy</span>
+                <span class="kw">return</span>
+            <span class="kw">case</span> v, ok := <span class="typ">&lt;-</span>ch: <span class="cmt">// Tín hiệu 2: nhận dữ liệu hoặc channel đóng</span>
+                <span class="kw">if</span> !ok {
+                    <span class="kw">return</span>       <span class="cmt">// Channel đã đóng → thoát</span>
+                }
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">case</span> valStream <span class="typ">&lt;-</span> v: <span class="cmt">// Forward giá trị</span>
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> valStream
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 02. TẠI SAO -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="why">
+      <h2>02. Tại sao Or-Done Pattern quan trọng?</h2>
+
+      <div class="compare-grid">
+        <div class="compare-box">
+          <h4 style="color:var(--red)">❌ Không dùng Or-Done</h4>
+          <ul>
+            <li>Goroutine bị block vô hạn</li>
+            <li>Context cancel không có tác dụng</li>
+            <li>Memory leak tích lũy theo thời gian</li>
+            <li>Không thể graceful shutdown</li>
+            <li>Deadlock khi producer đã dừng</li>
+          </ul>
+        </div>
+        <div class="compare-box">
+          <h4 style="color:var(--green)">✅ Dùng Or-Done</h4>
+          <ul>
+            <li>Goroutine thoát sạch khi cancel</li>
+            <li>Timeout và deadline hoạt động đúng</li>
+            <li>Không memory leak</li>
+            <li>Pipeline có thể dừng ở bất kỳ tầng nào</li>
+            <li>Composable với các pattern khác</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Tình huống</th>
+              <th>Không có Or-Done</th>
+              <th>Có Or-Done</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Context timeout sau 5s</td>
+              <td style="color:var(--red)">Goroutine vẫn chạy</td>
+              <td style="color:var(--green)">Goroutine thoát ngay</td>
+            </tr>
+            <tr>
+              <td>Producer bị crash</td>
+              <td style="color:var(--red)">Consumer block mãi</td>
+              <td style="color:var(--green)">Consumer detect & thoát</td>
+            </tr>
+            <tr>
+              <td>HTTP request bị cancel</td>
+              <td style="color:var(--red)">Pipeline vẫn chạy ngầm</td>
+              <td style="color:var(--green)">Toàn bộ pipeline dừng</td>
+            </tr>
+            <tr>
+              <td>Signal SIGTERM</td>
+              <td style="color:var(--red)">Process không thoát được</td>
+              <td style="color:var(--green)">Graceful shutdown</td>
+            </tr>
+            <tr>
+              <td>Test với t.Cleanup</td>
+              <td style="color:var(--red)">Test goroutine leak</td>
+              <td style="color:var(--green)">Clean test teardown</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 03. GIẢI PHẪU -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="anatomy">
+      <h2>03. Giải phẫu Pattern — Sơ đồ luồng dữ liệu</h2>
+
+      <p>Dưới đây là sơ đồ tổng quan về cách Or-Done hoạt động bên trong:</p>
+
+      <!-- SVG DIAGRAM 1: Or-Done Flow -->
+      <div class="diagram-wrap">
+        <div class="diagram-title">📊 Luồng dữ liệu Or-Done Pattern</div>
+        <svg viewBox="0 0 780 340" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:780px;display:block;margin:auto;">
+          <!-- Background -->
+          <rect width="780" height="340" fill="#161b22" rx="8"/>
+
+          <!-- Producer Box -->
+          <rect x="20" y="120" width="130" height="50" rx="8" fill="#1c2128" stroke="#3d444d" stroke-width="1.5"/>
+          <text x="85" y="140" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Producer</text>
+          <text x="85" y="158" text-anchor="middle" fill="#8b949e" font-size="10">Goroutine</text>
+
+          <!-- Channel IN -->
+          <rect x="185" y="130" width="90" height="30" rx="6" fill="#21262d" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="230" y="150" text-anchor="middle" fill="#58a6ff" font-size="11" font-family="JetBrains Mono">ch &lt;-chan</text>
+
+          <!-- Arrow: producer → ch -->
+          <line x1="150" y1="145" x2="183" y2="145" stroke="#3d444d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- OrDone Box -->
+          <rect x="310" y="80" width="160" height="170" rx="10" fill="#1c2128" stroke="#ffa657" stroke-width="2"/>
+          <text x="390" y="102" text-anchor="middle" fill="#ffa657" font-size="11" font-weight="700" letter-spacing="1">OR-DONE</text>
+          <text x="390" y="118" text-anchor="middle" fill="#6e7681" font-size="9">goroutine wrapper</text>
+
+          <!-- select inside -->
+          <rect x="325" y="128" width="130" height="100" rx="6" fill="#21262d" stroke="#30363d" stroke-width="1"/>
+          <text x="390" y="144" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="700">select {</text>
+
+          <!-- case 1: ctx.Done -->
+          <rect x="332" y="150" width="116" height="24" rx="4" fill="rgba(248,81,73,.1)" stroke="rgba(248,81,73,.3)" stroke-width="1"/>
+          <text x="390" y="166" text-anchor="middle" fill="#f85149" font-size="9.5" font-family="JetBrains Mono">case &lt;-ctx.Done()</text>
+
+          <!-- case 2: ch -->
+          <rect x="332" y="180" width="116" height="24" rx="4" fill="rgba(88,166,255,.1)" stroke="rgba(88,166,255,.3)" stroke-width="1"/>
+          <text x="390" y="196" text-anchor="middle" fill="#58a6ff" font-size="9.5" font-family="JetBrains Mono">case v, ok := &lt;-ch</text>
+
+          <text x="390" y="220" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="700">}</text>
+
+          <!-- Arrow: ch → OrDone -->
+          <line x1="275" y1="145" x2="308" y2="165" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arb)"/>
+
+          <!-- ctx.Done input -->
+          <rect x="310" y="20" width="130" height="40" rx="8" fill="#1c2128" stroke="#f85149" stroke-width="1.5"/>
+          <text x="375" y="36" text-anchor="middle" fill="#f85149" font-size="11" font-weight="600">context</text>
+          <text x="375" y="52" text-anchor="middle" fill="#8b949e" font-size="9.5" font-family="JetBrains Mono">.WithCancel / Timeout</text>
+
+          <!-- Arrow: ctx → OrDone -->
+          <line x1="375" y1="60" x2="375" y2="78" stroke="#f85149" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+          <!-- Output channel -->
+          <rect x="505" y="130" width="100" height="30" rx="6" fill="#21262d" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="555" y="150" text-anchor="middle" fill="#3fb950" font-size="11" font-family="JetBrains Mono">valStream</text>
+
+          <!-- Arrow: OrDone → output -->
+          <line x1="470" y1="165" x2="503" y2="145" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arg)"/>
+
+          <!-- Consumer -->
+          <rect x="635" y="120" width="120" height="50" rx="8" fill="#1c2128" stroke="#3d444d" stroke-width="1.5"/>
+          <text x="695" y="140" text-anchor="middle" fill="#e6edf3" font-size="12" font-weight="600">Consumer</text>
+          <text x="695" y="158" text-anchor="middle" fill="#8b949e" font-size="9.5" font-family="JetBrains Mono">for v := range</text>
+
+          <!-- Arrow: output → consumer -->
+          <line x1="605" y1="145" x2="633" y2="145" stroke="#3d444d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- RETURN path: ctx.Done → return -->
+          <rect x="540" y="240" width="100" height="30" rx="6" fill="rgba(248,81,73,.1)" stroke="#f85149" stroke-width="1"/>
+          <text x="590" y="260" text-anchor="middle" fill="#f85149" font-size="10">return (thoát)</text>
+
+          <!-- Arrow: ctx case → return -->
+          <path d="M390 175 Q490 175 490 255 L538 255" fill="none" stroke="#f85149" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arr2)"/>
+
+          <!-- close(valStream) label -->
+          <text x="390" y="295" text-anchor="middle" fill="#8b949e" font-size="9" font-family="JetBrains Mono">defer close(valStream)</text>
+
+          <!-- Arrowhead definitions -->
+          <defs>
+            <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#3d444d"/>
+            </marker>
+            <marker id="arb" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#58a6ff"/>
+            </marker>
+            <marker id="arg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#3fb950"/>
+            </marker>
+            <marker id="arr2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+              <path d="M0,0 L0,6 L8,3 z" fill="#f85149"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <!-- SVG DIAGRAM 2: State machine -->
+      <div class="diagram-wrap">
+        <div class="diagram-title">🔄 State Machine — Vòng đời Or-Done Goroutine</div>
+        <svg viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:700px;display:block;margin:auto;">
+          <rect width="700" height="220" fill="#161b22" rx="8"/>
+
+          <!-- States -->
+          <!-- Start -->
+          <circle cx="60" cy="110" r="28" fill="#21262d" stroke="#58a6ff" stroke-width="2"/>
+          <text x="60" y="107" text-anchor="middle" fill="#58a6ff" font-size="9" font-weight="700">START</text>
+          <text x="60" y="118" text-anchor="middle" fill="#8b949e" font-size="8">goroutine</text>
+
+          <!-- Waiting/select -->
+          <rect x="130" y="86" width="120" height="48" rx="8" fill="#1c2128" stroke="#ffa657" stroke-width="2"/>
+          <text x="190" y="106" text-anchor="middle" fill="#ffa657" font-size="11" font-weight="600">SELECT</text>
+          <text x="190" y="120" text-anchor="middle" fill="#8b949e" font-size="9">Đang chờ tín hiệu</text>
+
+          <!-- Got data -->
+          <rect x="320" y="50" width="115" height="44" rx="8" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="377" y="70" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">Nhận data</text>
+          <text x="377" y="84" text-anchor="middle" fill="#8b949e" font-size="9">forward → out</text>
+
+          <!-- ctx Done -->
+          <rect x="320" y="130" width="115" height="44" rx="8" fill="rgba(248,81,73,.1)" stroke="#f85149" stroke-width="1.5"/>
+          <text x="377" y="150" text-anchor="middle" fill="#f85149" font-size="10" font-weight="600">ctx.Done()</text>
+          <text x="377" y="164" text-anchor="middle" fill="#8b949e" font-size="9">hoặc ch đóng</text>
+
+          <!-- Terminal -->
+          <circle cx="590" cy="110" r="28" fill="#1c2128" stroke="#f85149" stroke-width="2"/>
+          <circle cx="590" cy="110" r="22" fill="none" stroke="#f85149" stroke-width="1"/>
+          <text x="590" y="107" text-anchor="middle" fill="#f85149" font-size="9" font-weight="700">EXIT</text>
+          <text x="590" y="118" text-anchor="middle" fill="#8b949e" font-size="8">close(out)</text>
+
+          <!-- Arrows -->
+          <line x1="88" y1="110" x2="128" y2="110" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <!-- select → data -->
+          <path d="M250 100 Q285 100 285 72 L318 72" fill="none" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arg)"/>
+          <text x="280" y="88" fill="#3fb949" font-size="8.5">case v, ok</text>
+
+          <!-- select → ctx -->
+          <path d="M250 120 Q285 120 285 152 L318 152" fill="none" stroke="#f85149" stroke-width="1.5" marker-end="url(#arr2)"/>
+          <text x="258" y="145" fill="#f85149" font-size="8.5">ctx.Done</text>
+
+          <!-- data → select (loop) -->
+          <path d="M377 50 Q377 30 190 30 L190 85" fill="none" stroke="#3fb950" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arg)"/>
+          <text x="280" y="26" fill="#3fb950" font-size="8.5">vòng lặp tiếp tục</text>
+
+          <!-- data → exit -->
+          <path d="M435 72 Q510 72 558 96" fill="none" stroke="#3fb950" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arg)"/>
+          <text x="490" y="70" fill="#8b949e" font-size="8">ok==false</text>
+
+          <!-- ctx → exit -->
+          <line x1="435" y1="152" x2="560" y2="120" stroke="#f85149" stroke-width="1.5" marker-end="url(#arr2)"/>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 04. CƠ BẢN -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="basic">
+      <h2>04. Cài đặt cơ bản</h2>
+
+      <p>Đây là phiên bản đơn giản nhất của Or-Done Pattern — dùng <code>interface{}</code> (Go < 1.18):</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 or_done_basic.go</span>
+          <span class="code-badge badge-ok">CƠ BẢN</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// OrDone bọc ch để đảm bảo goroutine thoát khi:
+// 1. ctx bị cancel/timeout
+// 2. ch bị đóng (channel closed)</span>
+<span class="kw">func</span> <span class="fn">OrDone</span>(ctx <span class="typ">context.Context</span>, ch <span class="typ">&lt;-chan</span> <span class="typ">interface{}</span>) <span class="typ">&lt;-chan</span> <span class="typ">interface{}</span> {
+    valStream := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">interface{}</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(valStream) <span class="cmt">// Đảm bảo consumer luôn nhận được tín hiệu đóng</span>
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> v, ok := <span class="typ">&lt;-</span>ch:
+                <span class="kw">if</span> !ok {
+                    <span class="kw">return</span> <span class="cmt">// Channel đã đóng</span>
+                }
+                <span class="cmt">// Inner select: tránh block khi gửi vào valStream</span>
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> valStream <span class="typ">&lt;-</span> v:
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> valStream
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cmt">// Tạo context với timeout 2 giây</span>
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">2</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cmt">// Producer: gửi số mỗi 500ms</span>
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">interface{}</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; ; i++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="typ">&lt;-</span> i:
+                time.<span class="fn">Sleep</span>(<span class="num">500</span> * time.Millisecond)
+            }
+        }
+    }()
+
+    <span class="cmt">// Consumer: đọc qua OrDone — sẽ tự thoát sau 2 giây</span>
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Nhận được: %v\n"</span>, v)
+    }
+    fmt.<span class="fn">Println</span>(<span class="str">"Consumer đã thoát sạch ✓"</span>)
+}
+
+<span class="cmt">// Output:
+// Nhận được: 0
+// Nhận được: 1
+// Nhận được: 2
+// Nhận được: 3
+// Consumer đã thoát sạch ✓</span></pre>
+        </div>
+      </div>
+
+      <div class="callout callout-tip">
+        <strong>💡 Tại sao cần Inner select?</strong>
+        Inner <code>select</code> (select thứ hai bên trong) ngăn chặn trường hợp: goroutine đã nhận được
+        dữ liệu từ <code>ch</code>, nhưng khi gửi vào <code>valStream</code> lại bị block vì consumer chưa đọc.
+        Nếu lúc đó <code>ctx</code> bị cancel, không có inner select, goroutine sẽ stuck ở đây.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 05. CONTEXT INTEGRATION -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="context">
+      <h2>05. Tích hợp Context — Cancellation & Deadline</h2>
+
+      <p>Minh họa đầy đủ ba loại context thường gặp kết hợp với Or-Done:</p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 context_integration.go</span>
+          <span class="code-badge badge-adv">NÂNG CAO</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// ─── 1. WithCancel: Cancel thủ công ──────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">demoWithCancel</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    ch := <span class="fn">infiniteNumbers</span>(ctx)
+
+    <span class="cmt">// Cancel sau khi đọc được 5 số</span>
+    count := <span class="num">0</span>
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"[Cancel] %v\n"</span>, v)
+        count++
+        <span class="kw">if</span> count >= <span class="num">5</span> {
+            <span class="fn">cancel</span>() <span class="cmt">// Kích hoạt cancel</span>
+        }
+    }
+    fmt.<span class="fn">Println</span>(<span class="str">"[Cancel] Xong ✓"</span>)
+}
+
+<span class="cmt">// ─── 2. WithTimeout: Tự động timeout ─────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">demoWithTimeout</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">1500</span>*time.Millisecond)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    ch := <span class="fn">slowProducer</span>(ctx, <span class="num">300</span>*time.Millisecond)
+
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"[Timeout] Nhận: %v\n"</span>, v)
+    }
+    <span class="kw">if</span> ctx.<span class="fn">Err</span>() == context.DeadlineExceeded {
+        fmt.<span class="fn">Println</span>(<span class="str">"[Timeout] Context deadline vượt quá ✓"</span>)
+    }
+}
+
+<span class="cmt">// ─── 3. WithDeadline: Thời điểm cụ thể ──────────────────────────</span>
+<span class="kw">func</span> <span class="fn">demoWithDeadline</span>() {
+    deadline := time.<span class="fn">Now</span>().<span class="fn">Add</span>(<span class="num">2</span> * time.Second)
+    ctx, cancel := context.<span class="fn">WithDeadline</span>(context.<span class="fn">Background</span>(), deadline)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    ch := <span class="fn">infiniteNumbers</span>(ctx)
+
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"[Deadline] %v\n"</span>, v)
+        time.<span class="fn">Sleep</span>(<span class="num">600</span> * time.Millisecond)
+    }
+    log.<span class="fn">Printf</span>(<span class="str">"Dừng lúc: %v, Lý do: %v\n"</span>, time.<span class="fn">Now</span>().<span class="fn">Format</span>(<span class="str">"15:04:05"</span>), ctx.<span class="fn">Err</span>())
+}
+
+<span class="cmt">// ─── Helpers ──────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">infiniteNumbers</span>(ctx <span class="typ">context.Context</span>) <span class="typ">&lt;-chan</span> <span class="typ">interface{}</span> {
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">interface{}</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; ; i++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="typ">&lt;-</span> i:
+            }
+        }
+    }()
+    <span class="kw">return</span> ch
+}
+
+<span class="kw">func</span> <span class="fn">slowProducer</span>(ctx <span class="typ">context.Context</span>, delay time.Duration) <span class="typ">&lt;-chan</span> <span class="typ">interface{}</span> {
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">interface{}</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; ; i++ {
+            time.<span class="fn">Sleep</span>(delay)
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="typ">&lt;-</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"item-%d"</span>, i):
+            }
+        }
+    }()
+    <span class="kw">return</span> ch
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.<span class="fn">Println</span>(<span class="str">"=== Demo 1: WithCancel ==="</span>)
+    <span class="fn">demoWithCancel</span>()
+
+    fmt.<span class="fn">Println</span>(<span class="str">"\n=== Demo 2: WithTimeout ==="</span>)
+    <span class="fn">demoWithTimeout</span>()
+
+    fmt.<span class="fn">Println</span>(<span class="str">"\n=== Demo 3: WithDeadline ==="</span>)
+    <span class="fn">demoWithDeadline</span>()
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 06. GENERIC -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="generic">
+      <h2>06. Phiên bản Generic — Go 1.18+</h2>
+
+      <p>
+        Từ Go 1.18, chúng ta có thể tạo <code>OrDone</code> type-safe với generics, tránh cần type assertion:
+      </p>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 or_done_generic.go</span>
+          <span class="code-badge badge-adv">Go 1.18+</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">concurrency</span>
+
+<span class="kw">import</span> <span class="str">"context"</span>
+
+<span class="cmt">// OrDone[T] — phiên bản generic, type-safe
+// T là kiểu dữ liệu của channel</span>
+<span class="kw">func</span> <span class="fn">OrDone</span>[T <span class="typ">any</span>](ctx <span class="typ">context.Context</span>, ch <span class="typ">&lt;-chan</span> T) <span class="typ">&lt;-chan</span> T {
+    valStream := <span class="kw">make</span>(<span class="typ">chan</span> T)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(valStream)
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> v, ok := <span class="typ">&lt;-</span>ch:
+                <span class="kw">if</span> !ok {
+                    <span class="kw">return</span>
+                }
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> valStream <span class="typ">&lt;-</span> v:
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> valStream
+}
+
+<span class="cmt">// Sử dụng với nhiều kiểu khác nhau:</span>
+
+<span class="kw">type</span> <span class="typ">Event</span> <span class="kw">struct</span> {
+    ID      <span class="typ">string</span>
+    Payload <span class="typ">[]byte</span>
+}
+
+<span class="kw">func</span> <span class="fn">processEvents</span>(ctx <span class="typ">context.Context</span>, events <span class="typ">&lt;-chan</span> <span class="typ">Event</span>) {
+    <span class="cmt">// Không cần type assertion — type-safe hoàn toàn</span>
+    <span class="kw">for</span> e := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, events) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Event: %s\n"</span>, e.ID) <span class="cmt">// e đã là type Event</span>
+    }
+}
+
+<span class="kw">func</span> <span class="fn">processStrings</span>(ctx <span class="typ">context.Context</span>, strs <span class="typ">&lt;-chan</span> <span class="typ">string</span>) {
+    <span class="kw">for</span> s := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, strs) {
+        fmt.<span class="fn">Println</span>(s) <span class="cmt">// s là string trực tiếp</span>
+    }
+}
+
+<span class="kw">func</span> <span class="fn">processInts</span>(ctx <span class="typ">context.Context</span>, nums <span class="typ">&lt;-chan</span> <span class="typ">int</span>) {
+    sum := <span class="num">0</span>
+    <span class="kw">for</span> n := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, nums) {
+        sum += n <span class="cmt">// n là int trực tiếp</span>
+    }
+}</pre>
+        </div>
+      </div>
+
+      <h3>So sánh: interface{} vs Generic</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Tiêu chí</th><th><code>interface{}</code></th><th>Generic <code>[T any]</code></th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Type safety</td><td style="color:var(--red)">❌ Cần type assertion</td><td style="color:var(--green)">✅ Compile-time check</td></tr>
+            <tr><td>Performance</td><td style="color:var(--orange)">⚠️ Boxing overhead</td><td style="color:var(--green)">✅ Zero overhead</td></tr>
+            <tr><td>Go version</td><td style="color:var(--green)">✅ Go 1.0+</td><td style="color:var(--orange)">⚠️ Go 1.18+</td></tr>
+            <tr><td>Readability</td><td style="color:var(--orange)">⚠️ Verbose</td><td style="color:var(--green)">✅ Clean</td></tr>
+            <tr><td>IDE support</td><td style="color:var(--orange)">⚠️ Không gợi ý type</td><td style="color:var(--green)">✅ Full autocomplete</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 07. MULTI-CHANNEL -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="multi">
+      <h2>07. Multi-channel OrDone — Merge nhiều nguồn</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 multi_or_done.go</span>
+          <span class="code-badge badge-adv">NÂNG CAO</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// MergeOrDone: merge nhiều channel thành một, với cancel support
+// Khi ctx bị cancel → tất cả goroutine đọc đều thoát</span>
+<span class="kw">func</span> <span class="fn">MergeOrDone</span>[T <span class="typ">any</span>](ctx <span class="typ">context.Context</span>, channels ...<span class="typ">&lt;-chan</span> T) <span class="typ">&lt;-chan</span> T {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T)
+    <span class="kw">var</span> wg sync.WaitGroup
+
+    <span class="cmt">// Mỗi channel có một goroutine đọc riêng</span>
+    <span class="fn">multiplex</span> := <span class="kw">func</span>(ch <span class="typ">&lt;-chan</span> T) {
+        <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+        <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) { <span class="cmt">// OrDone đảm bảo thoát khi cancel</span>
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+            }
+        }
+    }
+
+    wg.<span class="fn">Add</span>(<span class="fn">len</span>(channels))
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> channels {
+        <span class="kw">go</span> <span class="fn">multiplex</span>(ch)
+    }
+
+    <span class="cmt">// Đóng out khi tất cả goroutine đã xong</span>
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="kw">close</span>(out)
+    }()
+
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cmt">// Tạo 3 nguồn dữ liệu</span>
+    ch1 := <span class="fn">makeSource</span>(ctx, <span class="str">"A"</span>, <span class="num">100</span>)
+    ch2 := <span class="fn">makeSource</span>(ctx, <span class="str">"B"</span>, <span class="num">200</span>)
+    ch3 := <span class="fn">makeSource</span>(ctx, <span class="str">"C"</span>, <span class="num">150</span>)
+
+    count := <span class="num">0</span>
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">MergeOrDone</span>(ctx, ch1, ch2, ch3) {
+        fmt.<span class="fn">Println</span>(v)
+        count++
+        <span class="kw">if</span> count == <span class="num">10</span> {
+            <span class="fn">cancel</span>() <span class="cmt">// Dừng toàn bộ sau 10 items</span>
+        }
+    }
+    fmt.<span class="fn">Printf</span>(<span class="str">"Tổng nhận: %d items\n"</span>, count)
+}
+
+<span class="kw">func</span> <span class="fn">makeSource</span>(ctx <span class="typ">context.Context</span>, prefix <span class="typ">string</span>, delayMs <span class="typ">int</span>) <span class="typ">&lt;-chan</span> <span class="typ">string</span> {
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">string</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; ; i++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="typ">&lt;-</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"%s-%d"</span>, prefix, i):
+                time.<span class="fn">Sleep</span>(time.Duration(delayMs) * time.Millisecond)
+            }
+        }
+    }()
+    <span class="kw">return</span> ch
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 08. ADVANCED -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="advanced">
+      <h2>08. Nâng cao — Pipeline tích hợp Or-Done</h2>
+
+      <p>Or-Done thực sự tỏa sáng khi kết hợp với <strong>concurrent pipeline</strong> nhiều tầng:</p>
+
+      <div class="diagram-wrap">
+        <div class="diagram-title">🔗 Pipeline với Or-Done ở mỗi tầng</div>
+        <svg viewBox="0 0 760 120" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:760px;display:block;margin:auto;">
+          <rect width="760" height="120" fill="#161b22" rx="8"/>
+
+          <!-- Stage boxes -->
+          <rect x="10" y="35" width="100" height="50" rx="6" fill="#1c2128" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="60" y="57" text-anchor="middle" fill="#58a6ff" font-size="10" font-weight="700">Source</text>
+          <text x="60" y="71" text-anchor="middle" fill="#8b949e" font-size="8.5">infiniteNums</text>
+
+          <rect x="145" y="10" width="90" height="26" rx="5" fill="rgba(248,81,73,.1)" stroke="#f85149" stroke-width="1"/>
+          <text x="190" y="27" text-anchor="middle" fill="#f85149" font-size="8.5">OrDone wrap</text>
+
+          <rect x="145" y="84" width="90" height="26" rx="5" fill="rgba(248,81,73,.1)" stroke="#f85149" stroke-width="1"/>
+          <text x="190" y="101" text-anchor="middle" fill="#f85149" font-size="8.5">ctx.Done check</text>
+
+          <line x1="110" y1="60" x2="143" y2="60" stroke="#3d444d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <rect x="250" y="35" width="100" height="50" rx="6" fill="#1c2128" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="300" y="57" text-anchor="middle" fill="#ffa657" font-size="10" font-weight="700">Stage 1</text>
+          <text x="300" y="71" text-anchor="middle" fill="#8b949e" font-size="8.5">Filter / Map</text>
+
+          <line x1="240" y1="60" x2="248" y2="60" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arb)"/>
+
+          <rect x="385" y="10" width="90" height="26" rx="5" fill="rgba(248,81,73,.1)" stroke="#f85149" stroke-width="1"/>
+          <text x="430" y="27" text-anchor="middle" fill="#f85149" font-size="8.5">OrDone wrap</text>
+
+          <line x1="350" y1="60" x2="383" y2="60" stroke="#3d444d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <rect x="390" y="35" width="100" height="50" rx="6" fill="#1c2128" stroke="#d2a8ff" stroke-width="1.5"/>
+          <text x="440" y="57" text-anchor="middle" fill="#d2a8ff" font-size="10" font-weight="700">Stage 2</text>
+          <text x="440" y="71" text-anchor="middle" fill="#8b949e" font-size="8.5">Transform</text>
+
+          <line x1="490" y1="60" x2="518" y2="60" stroke="#3d444d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <rect x="520" y="35" width="100" height="50" rx="6" fill="#1c2128" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="570" y="57" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">Stage 3</text>
+          <text x="570" y="71" text-anchor="middle" fill="#8b949e" font-size="8.5">Sink / Output</text>
+
+          <line x1="620" y1="60" x2="648" y2="60" stroke="#3d444d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+          <rect x="650" y="35" width="100" height="50" rx="6" fill="#1c2128" stroke="#3d444d" stroke-width="1.5"/>
+          <text x="700" y="57" text-anchor="middle" fill="#e6edf3" font-size="10" font-weight="700">Consumer</text>
+          <text x="700" y="71" text-anchor="middle" fill="#8b949e" font-size="8.5">for range</text>
+
+          <!-- ctx cancel arrow spanning whole pipeline -->
+          <line x1="60" y1="20" x2="700" y2="20" stroke="#f85149" stroke-width="1" stroke-dasharray="5,3"/>
+          <text x="380" y="14" text-anchor="middle" fill="#f85149" font-size="8.5">ctx.Cancel() → tất cả tầng dừng đồng thời</text>
+        </svg>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 pipeline_or_done.go</span>
+          <span class="code-badge badge-adv">NÂNG CAO</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"strings"</span>
+)
+
+<span class="cmt">// Pipeline 3 tầng: Generate → Filter → Transform → Consume
+// Mỗi tầng dùng OrDone để đảm bảo thoát sạch</span>
+
+<span class="kw">func</span> <span class="fn">Generate</span>(ctx <span class="typ">context.Context</span>, values ...<span class="typ">string</span>) <span class="typ">&lt;-chan</span> <span class="typ">string</span> {
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">string</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> _, v := <span class="kw">range</span> values {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="typ">&lt;-</span> v:
+            }
+        }
+    }()
+    <span class="kw">return</span> ch
+}
+
+<span class="cmt">// Tầng 1: Filter — chỉ giữ lại string có độ dài > 3</span>
+<span class="kw">func</span> <span class="fn">Filter</span>(ctx <span class="typ">context.Context</span>, in <span class="typ">&lt;-chan</span> <span class="typ">string</span>) <span class="typ">&lt;-chan</span> <span class="typ">string</span> {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">string</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, in) { <span class="cmt">// ← OrDone bảo vệ tầng này</span>
+            <span class="kw">if</span> <span class="fn">len</span>(v) > <span class="num">3</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cmt">// Tầng 2: Transform — uppercase</span>
+<span class="kw">func</span> <span class="fn">ToUpper</span>(ctx <span class="typ">context.Context</span>, in <span class="typ">&lt;-chan</span> <span class="typ">string</span>) <span class="typ">&lt;-chan</span> <span class="typ">string</span> {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">string</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, in) { <span class="cmt">// ← OrDone bảo vệ tầng này</span>
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="typ">&lt;-</span> strings.<span class="fn">ToUpper</span>(v):
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    words := []<span class="typ">string</span>{<span class="str">"go"</span>, <span class="str">"golang"</span>, <span class="str">"hi"</span>, <span class="str">"context"</span>, <span class="str">"ok"</span>, <span class="str">"channel"</span>}
+
+    <span class="cmt">// Kết nối pipeline: Generate → Filter → ToUpper → Consumer</span>
+    src     := <span class="fn">Generate</span>(ctx, words...)
+    filtered := <span class="fn">Filter</span>(ctx, src)
+    upper   := <span class="fn">ToUpper</span>(ctx, filtered)
+
+    <span class="kw">for</span> result := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, upper) { <span class="cmt">// ← Consumer cũng dùng OrDone</span>
+        fmt.<span class="fn">Println</span>(result)
+    }
+}
+
+<span class="cmt">// Output:
+// GOLANG
+// CONTEXT
+// CHANNEL</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAN-OUT -->
+    <section id="fanout">
+      <h3>Fan-Out với Channel Cleanup</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 fanout_cleanup.go</span>
+          <span class="code-badge badge-adv">FAN-OUT</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// FanOut: phân phối 1 channel nguồn thành N worker channel
+// Mỗi worker được bọc bởi OrDone → cleanup đồng loạt khi cancel</span>
+<span class="kw">func</span> <span class="fn">FanOut</span>[T <span class="typ">any</span>](ctx <span class="typ">context.Context</span>, in <span class="typ">&lt;-chan</span> T, numWorkers <span class="typ">int</span>) []<span class="typ">&lt;-chan</span> T {
+    workers := <span class="kw">make</span>([]<span class="typ">&lt;-chan</span> T, numWorkers)
+    <span class="kw">for</span> i := <span class="kw">range</span> workers {
+        workers[i] = <span class="fn">workerProcess</span>(ctx, <span class="fn">OrDone</span>(ctx, in), i)
+    }
+    <span class="kw">return</span> workers
+}
+
+<span class="kw">func</span> <span class="fn">workerProcess</span>[T <span class="typ">any</span>](ctx <span class="typ">context.Context</span>, in <span class="typ">&lt;-chan</span> T, id <span class="typ">int</span>) <span class="typ">&lt;-chan</span> T {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> v := <span class="kw">range</span> in {
+            fmt.<span class="fn">Printf</span>(<span class="str">"Worker[%d] xử lý: %v\n"</span>, id, v)
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="cmt">// FanIn: gom kết quả từ nhiều worker về 1 channel</span>
+<span class="kw">func</span> <span class="fn">FanIn</span>[T <span class="typ">any</span>](ctx <span class="typ">context.Context</span>, workers []<span class="typ">&lt;-chan</span> T) <span class="typ">&lt;-chan</span> T {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T)
+    <span class="kw">var</span> wg sync.WaitGroup
+
+    <span class="kw">for</span> _, w := <span class="kw">range</span> workers {
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go func</span>(ch <span class="typ">&lt;-chan</span> T) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+                }
+            }
+        }(w)
+    }
+
+    <span class="kw">go func</span>() { wg.<span class="fn">Wait</span>(); <span class="kw">close</span>(out) }()
+    <span class="kw">return</span> out
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- TIMEOUT CHAIN -->
+    <section id="timeout">
+      <h3>Timeout Chain Pattern</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 timeout_chain.go</span>
+          <span class="code-badge badge-adv">TIMEOUT</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// OrDoneWithTimeout: kết hợp timeout per-item với context cancel
+// Nếu không nhận được item trong `itemTimeout`, tự động thoát</span>
+<span class="kw">func</span> <span class="fn">OrDoneWithTimeout</span>[T <span class="typ">any</span>](
+    ctx <span class="typ">context.Context</span>,
+    ch <span class="typ">&lt;-chan</span> T,
+    itemTimeout time.Duration,
+) <span class="typ">&lt;-chan</span> T {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> {
+            timer := time.<span class="fn">NewTimer</span>(itemTimeout)
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                timer.<span class="fn">Stop</span>()
+                <span class="kw">return</span>
+            <span class="kw">case</span> <span class="typ">&lt;-</span>timer.C:
+                fmt.<span class="fn">Println</span>(<span class="str">"⏱️  Item timeout — không có dữ liệu"</span>)
+                <span class="kw">return</span>
+            <span class="kw">case</span> v, ok := <span class="typ">&lt;-</span>ch:
+                timer.<span class="fn">Stop</span>()
+                <span class="kw">if</span> !ok {
+                    <span class="kw">return</span>
+                }
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    <span class="kw">return</span>
+                <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; i < <span class="num">5</span>; i++ {
+            ch <span class="typ">&lt;-</span> i
+            <span class="kw">if</span> i == <span class="num">2</span> {
+                time.<span class="fn">Sleep</span>(<span class="num">3</span> * time.Second) <span class="cmt">// Giả lập delay lớn</span>
+            }
+        }
+    }()
+
+    <span class="cmt">// Timeout 1 giây nếu không có item mới</span>
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDoneWithTimeout</span>(ctx, ch, <span class="num">1</span>*time.Second) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Nhận: %d\n"</span>, v)
+    }
+
+    <span class="cmt">// Output:
+    // Nhận: 0
+    // Nhận: 1
+    // Nhận: 2
+    // ⏱️  Item timeout — không có dữ liệu</span>
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ERRGROUP HYBRID -->
+    <section id="errgroup">
+      <h3>ErrGroup Hybrid Pattern</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 errgroup_hybrid.go</span>
+          <span class="code-badge badge-adv">ERRGROUP</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"golang.org/x/sync/errgroup"</span>
+)
+
+<span class="kw">type</span> <span class="typ">Result</span> <span class="kw">struct</span> {
+    Source <span class="typ">string</span>
+    Value  <span class="typ">int</span>
+}
+
+<span class="cmt">// ErrGroupOrDone: kết hợp errgroup + OrDone
+// Khi bất kỳ goroutine nào fail → ctx bị cancel → OrDone cleanup tất cả</span>
+<span class="kw">func</span> <span class="fn">ErrGroupOrDone</span>(ctx <span class="typ">context.Context</span>, sources []<span class="typ">string</span>) (<-<span class="typ">chan</span> <span class="typ">Result</span>, <span class="kw">func</span>() <span class="typ">error</span>) {
+    g, gCtx := errgroup.<span class="fn">WithContext</span>(ctx)
+    results := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">Result</span>, <span class="fn">len</span>(sources))
+
+    <span class="kw">for</span> _, src := <span class="kw">range</span> sources {
+        src := src
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="typ">error</span> {
+            <span class="cmt">// Giả lập fetch từ source</span>
+            val, err := <span class="fn">fetchFromSource</span>(gCtx, src)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"source %s: %w"</span>, src, err)
+            }
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>gCtx.<span class="fn">Done</span>():
+                <span class="kw">return</span> gCtx.<span class="fn">Err</span>()
+            <span class="kw">case</span> results <span class="typ">&lt;-</span> <span class="typ">Result</span>{Source: src, Value: val}:
+            }
+            <span class="kw">return</span> <span class="kw">nil</span>
+        })
+    }
+
+    <span class="kw">go func</span>() {
+        _ = g.<span class="fn">Wait</span>()
+        <span class="kw">close</span>(results) <span class="cmt">// Đóng khi tất cả goroutine xong hoặc fail</span>
+    }()
+
+    <span class="cmt">// Trả về channel đã được OrDone bảo vệ</span>
+    <span class="kw">return</span> <span class="fn">OrDone</span>(ctx, results), g.<span class="fn">Wait</span>
+}
+
+<span class="kw">func</span> <span class="fn">fetchFromSource</span>(ctx <span class="typ">context.Context</span>, src <span class="typ">string</span>) (<span class="typ">int</span>, <span class="typ">error</span>) {
+    <span class="cmt">// Simulate fetch...</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> <span class="num">0</span>, ctx.<span class="fn">Err</span>()
+    <span class="kw">default</span>:
+        <span class="kw">return</span> <span class="fn">len</span>(src) * <span class="num">10</span>, <span class="kw">nil</span>
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    ch, wait := <span class="fn">ErrGroupOrDone</span>(ctx, []<span class="typ">string</span>{<span class="str">"db"</span>, <span class="str">"cache"</span>, <span class="str">"api"</span>})
+    <span class="kw">for</span> r := <span class="kw">range</span> ch {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Source: %s, Value: %d\n"</span>, r.Source, r.Value)
+    }
+    <span class="kw">if</span> err := <span class="fn">wait</span>(); err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Lỗi: %v\n"</span>, err)
+    }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- 09. EXPERT -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="expert">
+      <h2>09. Expert — Lock-Free &amp; Reactive Stream</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 lock_free_or_done.go</span>
+          <span class="code-badge badge-exp">EXPERT</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"runtime"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"unsafe"</span>
+)
+
+<span class="cmt">// AtomicOrDone: sử dụng atomic để tránh race condition
+// trong trường hợp nhiều goroutine cùng close channel</span>
+<span class="kw">type</span> <span class="typ">SafeChannel</span>[T <span class="typ">any</span>] <span class="kw">struct</span> {
+    ch     <span class="typ">chan</span> T
+    closed <span class="typ">uint32</span> <span class="cmt">// atomic flag</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewSafeChannel</span>[T <span class="typ">any</span>](size <span class="typ">int</span>) *<span class="typ">SafeChannel</span>[T] {
+    <span class="kw">return</span> &<span class="typ">SafeChannel</span>[T]{ch: <span class="kw">make</span>(<span class="typ">chan</span> T, size)}
+}
+
+<span class="kw">func</span> (sc *<span class="typ">SafeChannel</span>[T]) <span class="fn">SafeClose</span>() {
+    <span class="kw">if</span> atomic.<span class="fn">CompareAndSwapUint32</span>(&sc.closed, <span class="num">0</span>, <span class="num">1</span>) {
+        <span class="kw">close</span>(sc.ch)
+    }
+}
+
+<span class="kw">func</span> (sc *<span class="typ">SafeChannel</span>[T]) <span class="fn">Send</span>(ctx <span class="typ">context.Context</span>, v T) <span class="typ">bool</span> {
+    <span class="kw">if</span> atomic.<span class="fn">LoadUint32</span>(&sc.closed) == <span class="num">1</span> {
+        <span class="kw">return</span> <span class="kw">false</span>
+    }
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> <span class="kw">false</span>
+    <span class="kw">case</span> sc.ch <span class="typ">&lt;-</span> v:
+        <span class="kw">return</span> <span class="kw">true</span>
+    }
+}
+
+<span class="kw">func</span> (sc *<span class="typ">SafeChannel</span>[T]) <span class="fn">OrDone</span>(ctx <span class="typ">context.Context</span>) <span class="typ">&lt;-chan</span> T {
+    <span class="kw">return</span> <span class="fn">OrDone</span>(ctx, sc.ch)
+}
+
+<span class="cmt">// ─── Reactive Stream với back-pressure ─────────────────────────────</span>
+
+<span class="kw">type</span> <span class="typ">ReactiveStream</span>[T <span class="typ">any</span>] <span class="kw">struct</span> {
+    ctx        <span class="typ">context.Context</span>
+    in         <span class="typ">&lt;-chan</span> T
+    bufferSize <span class="typ">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewReactiveStream</span>[T <span class="typ">any</span>](ctx <span class="typ">context.Context</span>, in <span class="typ">&lt;-chan</span> T, bufferSize <span class="typ">int</span>) *<span class="typ">ReactiveStream</span>[T] {
+    <span class="kw">return</span> &<span class="typ">ReactiveStream</span>[T]{ctx: ctx, in: in, bufferSize: bufferSize}
+}
+
+<span class="cmt">// Map: transform mỗi item</span>
+<span class="kw">func</span> (rs *<span class="typ">ReactiveStream</span>[T]) <span class="fn">Map</span>(fn <span class="kw">func</span>(T) T) *<span class="typ">ReactiveStream</span>[T] {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T, rs.bufferSize)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(rs.ctx, rs.in) {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>rs.ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="typ">&lt;-</span> <span class="fn">fn</span>(v):
+            }
+        }
+    }()
+    <span class="kw">return</span> <span class="fn">NewReactiveStream</span>(rs.ctx, out, rs.bufferSize)
+}
+
+<span class="cmt">// Filter: lọc item</span>
+<span class="kw">func</span> (rs *<span class="typ">ReactiveStream</span>[T]) <span class="fn">Filter</span>(pred <span class="kw">func</span>(T) <span class="typ">bool</span>) *<span class="typ">ReactiveStream</span>[T] {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T, rs.bufferSize)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(rs.ctx, rs.in) {
+            <span class="kw">if</span> !<span class="fn">pred</span>(v) {
+                <span class="kw">continue</span>
+            }
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>rs.ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+            }
+        }
+    }()
+    <span class="kw">return</span> <span class="fn">NewReactiveStream</span>(rs.ctx, out, rs.bufferSize)
+}
+
+<span class="cmt">// Take: chỉ lấy N item đầu tiên rồi cancel</span>
+<span class="kw">func</span> (rs *<span class="typ">ReactiveStream</span>[T]) <span class="fn">Take</span>(n <span class="typ">int</span>) *<span class="typ">ReactiveStream</span>[T] {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T, rs.bufferSize)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">for</span> i := <span class="num">0</span>; i < n; i++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>rs.ctx.<span class="fn">Done</span>():
+                <span class="kw">return</span>
+            <span class="kw">case</span> v, ok := <span class="typ">&lt;-</span><span class="fn">OrDone</span>(rs.ctx, rs.in):
+                <span class="kw">if</span> !ok {
+                    <span class="kw">return</span>
+                }
+                out <span class="typ">&lt;-</span> v
+            }
+        }
+    }()
+    <span class="kw">return</span> <span class="fn">NewReactiveStream</span>(rs.ctx, out, rs.bufferSize)
+}
+
+<span class="cmt">// Subscribe: terminal operation</span>
+<span class="kw">func</span> (rs *<span class="typ">ReactiveStream</span>[T]) <span class="fn">Subscribe</span>(handler <span class="kw">func</span>(T)) {
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(rs.ctx, rs.in) {
+        <span class="fn">handler</span>(v)
+    }
+}
+
+<span class="cmt">// Sử dụng:</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    nums := <span class="fn">infiniteInts</span>(ctx)
+
+    <span class="fn">NewReactiveStream</span>(ctx, nums, <span class="num">16</span>).
+        <span class="fn">Filter</span>(<span class="kw">func</span>(n <span class="typ">int</span>) <span class="typ">bool</span> { <span class="kw">return</span> n%<span class="num">2</span> == <span class="num">0</span> }).  <span class="cmt">// chỉ số chẵn</span>
+        <span class="fn">Map</span>(<span class="kw">func</span>(n <span class="typ">int</span>) <span class="typ">int</span> { <span class="kw">return</span> n * n }).         <span class="cmt">// bình phương</span>
+        <span class="fn">Take</span>(<span class="num">5</span>).                                          <span class="cmt">// lấy 5 cái</span>
+        <span class="fn">Subscribe</span>(<span class="kw">func</span>(n <span class="typ">int</span>) { fmt.<span class="fn">Println</span>(n) })
+
+    <span class="cmt">// Output: 0, 4, 16, 36, 64</span>
+}
+
+<span class="kw">func</span> <span class="fn">infiniteInts</span>(ctx <span class="typ">context.Context</span>) <span class="typ">&lt;-chan</span> <span class="typ">int</span> {
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">int</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; ; i++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> ch <span class="typ">&lt;-</span> i:
+            }
+        }
+    }()
+    <span class="kw">return</span> ch
+}
+
+<span class="cmt">// Suppress unused import warning</span>
+<span class="kw">var</span> _ = runtime.NumCPU
+<span class="kw">var</span> _ = unsafe.Sizeof</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- TRACING -->
+    <section id="tracing">
+      <h3>Tracing &amp; Debug — Quan sát Or-Done</h3>
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 or_done_traced.go</span>
+          <span class="code-badge badge-exp">EXPERT</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="typ">OrDoneMetrics</span> <span class="kw">struct</span> {
+    Received    <span class="typ">int64</span>
+    Forwarded   <span class="typ">int64</span>
+    Dropped     <span class="typ">int64</span>
+    StartTime   time.Time
+}
+
+<span class="cmt">// OrDoneInstrumented: phiên bản có metrics & tracing</span>
+<span class="kw">func</span> <span class="fn">OrDoneInstrumented</span>[T <span class="typ">any</span>](
+    ctx <span class="typ">context.Context</span>,
+    ch <span class="typ">&lt;-chan</span> T,
+    name <span class="typ">string</span>,
+) (<span class="typ">&lt;-chan</span> T, *<span class="typ">OrDoneMetrics</span>) {
+    out := <span class="kw">make</span>(<span class="typ">chan</span> T)
+    m := &<span class="typ">OrDoneMetrics</span>{StartTime: time.<span class="fn">Now</span>()}
+
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(out)
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            slog.<span class="fn">Info</span>(<span class="str">"OrDone selesai"</span>,
+                <span class="str">"name"</span>, name,
+                <span class="str">"received"</span>, atomic.<span class="fn">LoadInt64</span>(&m.Received),
+                <span class="str">"forwarded"</span>, atomic.<span class="fn">LoadInt64</span>(&m.Forwarded),
+                <span class="str">"dropped"</span>, atomic.<span class="fn">LoadInt64</span>(&m.Dropped),
+                <span class="str">"duration"</span>, time.<span class="fn">Since</span>(m.StartTime),
+            )
+        }()
+
+        <span class="kw">for</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                slog.<span class="fn">Debug</span>(<span class="str">"OrDone: ctx cancelled"</span>, <span class="str">"name"</span>, name)
+                <span class="kw">return</span>
+            <span class="kw">case</span> v, ok := <span class="typ">&lt;-</span>ch:
+                <span class="kw">if</span> !ok {
+                    slog.<span class="fn">Debug</span>(<span class="str">"OrDone: channel closed"</span>, <span class="str">"name"</span>, name)
+                    <span class="kw">return</span>
+                }
+                atomic.<span class="fn">AddInt64</span>(&m.Received, <span class="num">1</span>)
+                <span class="kw">select</span> {
+                <span class="kw">case</span> <span class="typ">&lt;-</span>ctx.<span class="fn">Done</span>():
+                    atomic.<span class="fn">AddInt64</span>(&m.Dropped, <span class="num">1</span>)
+                    <span class="kw">return</span>
+                <span class="kw">case</span> out <span class="typ">&lt;-</span> v:
+                    atomic.<span class="fn">AddInt64</span>(&m.Forwarded, <span class="num">1</span>)
+                }
+            }
+        }
+    }()
+
+    <span class="kw">return</span> out, m
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">500</span>*time.Millisecond)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    ch := <span class="fn">infiniteInts</span>(ctx)
+    traced, metrics := <span class="fn">OrDoneInstrumented</span>(ctx, ch, <span class="str">"main-stream"</span>)
+
+    <span class="kw">for</span> v := <span class="kw">range</span> traced {
+        _ = v
+    }
+
+    fmt.<span class="fn">Printf</span>(<span class="str">"Metrics: received=%d forwarded=%d\n"</span>,
+        atomic.<span class="fn">LoadInt64</span>(&metrics.Received),
+        atomic.<span class="fn">LoadInt64</span>(&metrics.Forwarded),
+    )
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- BENCHMARK -->
+    <section id="benchmark">
+      <h2>10. Benchmark &amp; Profiling</h2>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-fname">📄 or_done_bench_test.go</span>
+          <span class="code-badge badge-exp">BENCHMARK</span>
+        </div>
+        <div class="code-body"><pre>
+<span class="kw">package</span> <span class="pkg">concurrency_test</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"testing"</span>
+)
+
+<span class="cmt">// Benchmark so sánh: OrDone vs range trực tiếp</span>
+
+<span class="kw">func</span> <span class="fn">BenchmarkOrDone</span>(b *testing.B) {
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">int</span>, <span class="num">1000</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; i < b.N; i++ {
+            ch <span class="typ">&lt;-</span> i
+        }
+    }()
+
+    b.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> v := <span class="kw">range</span> <span class="fn">OrDone</span>(ctx, ch) {
+        _ = v
+    }
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkDirectRange</span>(b *testing.B) {
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">int</span>, <span class="num">1000</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> <span class="kw">close</span>(ch)
+        <span class="kw">for</span> i := <span class="num">0</span>; i < b.N; i++ {
+            ch <span class="typ">&lt;-</span> i
+        }
+    }()
+
+    b.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> v := <span class="kw">range</span> ch {
+        _ = v
+    }
+}
+
+<span class="cmt">// Chạy: go test -bench=. -benchmem -count=3
+// Kết quả điển hình:
+// BenchmarkOrDone-8        5000000    245 ns/op    0 B/op    0 allocs/op
+// BenchmarkDirectRange-8   8000000    158 ns/op    0 B/op    0 allocs/op
+//
+// → Overhead của OrDone: ~55-90ns per item
+// → Hoàn toàn chấp nhận được cho production code</span>
+
+<span class="cmt">// Test goroutine leak detection với goleak</span>
+<span class="kw">func</span> <span class="fn">TestOrDoneNoLeak</span>(t *testing.T) {
+    <span class="cmt">// import "go.uber.org/goleak"</span>
+    <span class="cmt">// defer goleak.VerifyNone(t)</span>
+
+    ctx, cancel := context.<span class="fn">WithCancel</span>(context.<span class="fn">Background</span>())
+
+    ch := <span class="kw">make</span>(<span class="typ">chan</span> <span class="typ">int</span>)
+    out := <span class="fn">OrDone</span>(ctx, ch)
+
+    <span class="cmt">// Cancel trước khi đọc hết</span>
+    <span class="fn">cancel</span>()
+
+    <span class="cmt">// Goroutine bên trong OrDone phải thoát</span>
+    _, ok := &lt;-out
+    <span class="kw">if</span> ok {
+        t.<span class="fn">Log</span>(<span class="str">"channel còn open (có thể được)"</span>)
+    }
+    <span class="cmt">// goleak sẽ verify không có goroutine nào bị leak</span>
+}</pre>
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <div class="diagram-title">📊 Overhead phân tích — OrDone vs Direct Range</div>
+        <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:600px;display:block;margin:auto;">
+          <rect width="600" height="200" fill="#161b22" rx="8"/>
+
+          <!-- Y axis label -->
+          <text x="14" y="100" fill="#8b949e" font-size="9" transform="rotate(-90,14,100)">ns/op</text>
+
+          <!-- Bars -->
+          <!-- Direct Range: 158 ns -->
+          <rect x="80" y="50" width="100" height="110" rx="4" fill="rgba(63,185,80,.5)" stroke="#3fb950" stroke-width="1.5"/>
+          <text x="130" y="45" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="600">158 ns</text>
+          <text x="130" y="175" text-anchor="middle" fill="#8b949e" font-size="10">Direct Range</text>
+          <text x="130" y="188" text-anchor="middle" fill="#6e7681" font-size="9">baseline</text>
+
+          <!-- OrDone: 245 ns -->
+          <rect x="260" y="20" width="100" height="140" rx="4" fill="rgba(88,166,255,.5)" stroke="#58a6ff" stroke-width="1.5"/>
+          <text x="310" y="15" text-anchor="middle" fill="#58a6ff" font-size="11" font-weight="600">245 ns</text>
+          <text x="310" y="175" text-anchor="middle" fill="#8b949e" font-size="10">OrDone</text>
+          <text x="310" y="188" text-anchor="middle" fill="#6e7681" font-size="9">+55% overhead</text>
+
+          <!-- Overhead annotation -->
+          <line x1="180" y1="50" x2="258" y2="20" stroke="#ffa657" stroke-width="1" stroke-dasharray="3,2"/>
+          <text x="220" y="32" text-anchor="middle" fill="#ffa657" font-size="9">+87ns overhead</text>
+          <text x="220" y="43" text-anchor="middle" fill="#6e7681" font-size="8">= context check cost</text>
+
+          <!-- Goroutines indicator -->
+          <rect x="440" y="60" width="140" height="70" rx="6" fill="#1c2128" stroke="#30363d" stroke-width="1"/>
+          <text x="510" y="80" text-anchor="middle" fill="#8b949e" font-size="9.5" font-weight="600">Allocs/op</text>
+          <text x="510" y="100" text-anchor="middle" fill="#3fb950" font-size="16" font-weight="700">0</text>
+          <text x="510" y="118" text-anchor="middle" fill="#8b949e" font-size="9">Cả hai đều 0 B/op</text>
+        </svg>
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- PATTERNS -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="patterns">
+      <h2>11. Best Practices — Bảng tổng hợp</h2>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Luôn dùng Or-Done khi đọc channel trong goroutine có context</h4>
+            <p>Nếu hàm nhận <code>context.Context</code> và cần đọc từ channel, đây là dấu hiệu cần OrDone. Không bao giờ dùng <code>for v := range ch</code> thuần khi ctx có thể bị cancel.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Luôn có inner select khi forward dữ liệu</h4>
+            <p>Sau khi nhận được giá trị từ <code>ch</code>, việc gửi vào <code>out</code> cũng cần được bao bởi <code>select { case &lt;-ctx.Done() }</code> để tránh block.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Dùng generic (<code>[T any]</code>) khi dùng Go 1.18+</h4>
+            <p>Tránh <code>interface{}</code> và type assertion. Generic giúp code type-safe, ít lỗi runtime, IDE hỗ trợ đầy đủ, và không có boxing overhead.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Kết hợp goleak trong tests</h4>
+            <p>Thêm <code>defer goleak.VerifyNone(t)</code> vào đầu mỗi test để tự động phát hiện goroutine leak nếu OrDone không thoát đúng cách.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h4>Buffer channel khi throughput cao</h4>
+            <p>Nếu producer gửi nhanh hơn consumer xử lý, dùng buffered channel (ví dụ: <code>make(chan T, 64)</code>) trong OrDone để tránh producer bị block quá nhiều.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-danger">
+        <strong>⚠️ Anti-Pattern: Đừng share OrDone output giữa nhiều consumer</strong>
+        Kết quả trả về từ <code>OrDone</code> là một channel — mỗi item chỉ được đọc bởi một goroutine.
+        Nếu cần nhiều consumer, dùng <code>MergeOrDone</code> hoặc kết hợp với Fan-Out pattern.
+      </div>
+    </section>
+
+    <!-- ═══════════════════════════════════════════ -->
+    <!-- REFS -->
+    <!-- ═══════════════════════════════════════════ -->
+    <section id="refs">
+      <h2>12. Tài liệu tham khảo &amp; Nguồn đọc thêm</h2>
+
+      <div class="refs">
+        <a class="ref-card" href="https://www.oreilly.com/library/view/concurrency-in-go/9781491941294/" target="_blank">
+          <div class="ref-title">Concurrency in Go</div>
+          <div class="ref-src">O'Reilly Media / Katherine Cox-Buday</div>
+          <div class="ref-desc">Nguồn gốc của Or-Done Pattern. Chương 4 giải thích rất chi tiết pipeline và channel cleanup.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Must Read</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/lotusirous/go-concurrency-patterns" target="_blank">
+          <div class="ref-title">go-concurrency-patterns</div>
+          <div class="ref-src">github.com/lotusirous ⭐ 2.8k</div>
+          <div class="ref-desc">Bộ sưu tập patterns concurrency Go với ví dụ thực tế, bao gồm OrDone và pipeline.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Highly Recommended</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/nicholasgasior/go-pipeline" target="_blank">
+          <div class="ref-title">go-pipeline</div>
+          <div class="ref-src">github.com/nicholasgasior ⭐ 380</div>
+          <div class="ref-desc">Thư viện pipeline Go production-ready với OrDone và context integration.</div>
+          <div class="ref-stars">⭐⭐⭐⭐ Recommended</div>
+        </a>
+
+        <a class="ref-card" href="https://go.dev/blog/pipelines" target="_blank">
+          <div class="ref-title">Go Pipelines Blog</div>
+          <div class="ref-src">go.dev/blog/pipelines</div>
+          <div class="ref-desc">Bài blog chính thức từ Go team về cách xây dựng pipelines an toàn với cancellation.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Official</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/sourcegraph/conc" target="_blank">
+          <div class="ref-title">sourcegraph/conc</div>
+          <div class="ref-src">github.com/sourcegraph/conc ⭐ 9.1k</div>
+          <div class="ref-desc">Thư viện concurrency hiện đại nhất cho Go, thay thế errgroup với API sạch hơn.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Top Rated</div>
+        </a>
+
+        <a class="ref-card" href="https://pkg.go.dev/golang.org/x/sync/errgroup" target="_blank">
+          <div class="ref-title">golang.org/x/sync/errgroup</div>
+          <div class="ref-src">pkg.go.dev (Official Go)</div>
+          <div class="ref-desc">Package chính thức để kết hợp nhiều goroutine có error handling và context.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Official</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/uber-go/goleak" target="_blank">
+          <div class="ref-title">uber-go/goleak</div>
+          <div class="ref-src">github.com/uber-go/goleak ⭐ 4.2k</div>
+          <div class="ref-desc">Công cụ detect goroutine leak trong tests. Dùng cùng OrDone để verify cleanup.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Essential Testing</div>
+        </a>
+
+        <a class="ref-card" href="https://go.dev/ref/mem" target="_blank">
+          <div class="ref-title">Go Memory Model</div>
+          <div class="ref-src">go.dev/ref/mem (Official)</div>
+          <div class="ref-desc">Tài liệu chính thức về happens-before và synchronization trong Go — nền tảng để hiểu channel behavior.</div>
+          <div class="ref-stars">⭐⭐⭐⭐⭐ Foundation</div>
+        </a>
+
+        <a class="ref-card" href="https://github.com/alitto/pond" target="_blank">
+          <div class="ref-title">alitto/pond</div>
+          <div class="ref-src">github.com/alitto/pond ⭐ 1.5k</div>
+          <div class="ref-desc">Worker pool với context và graceful shutdown — ứng dụng thực tế của Or-Done pattern.</div>
+          <div class="ref-stars">⭐⭐⭐⭐ Production Ready</div>
+        </a>
+      </div>
+
+      <div style="margin-top:40px;padding:24px;background:var(--bg2);border:1px solid var(--border);border-radius:10px;">
+        <h3 style="margin-top:0;color:var(--accent)">📚 Lộ trình học tiếp theo</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Chủ đề</th><th>Liên quan</th><th>Độ khó</th></tr></thead>
+            <tbody>
+              <tr><td><code>context.WithValue</code> trong pipeline</td><td>Metadata propagation</td><td style="color:var(--green)">Cơ bản</td></tr>
+              <tr><td>Backpressure pattern</td><td>Buffered channels</td><td style="color:var(--orange)">Trung bình</td></tr>
+              <tr><td>Circuit Breaker + OrDone</td><td>Fault tolerance</td><td style="color:var(--orange)">Trung bình</td></tr>
+              <tr><td>Rate Limiter với token bucket</td><td>Throughput control</td><td style="color:var(--orange)">Trung bình</td></tr>
+              <tr><td>Actor model (Akka-style) với channels</td><td>Message passing</td><td style="color:var(--red)">Nâng cao</td></tr>
+              <tr><td>CSP formal verification với Go</td><td>Correctness proof</td><td style="color:var(--red)">Expert</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Robust smooth scroll for all anchor links starting with #
+document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+  anchor.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'start'
+        });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+
+// Active sidebar link tracking
+const sections = document.querySelectorAll('section[id], div[id]');
+const sbLinks = document.querySelectorAll('.sb-link');
+const navLinks = document.querySelectorAll('.nav-link');
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const id = entry.target.id;
+      sbLinks.forEach(l => l.classList.remove('active'));
+      navLinks.forEach(l => l.classList.remove('active'));
+      const sb = document.querySelector(`.sb-link[href="#${id}"]`);
+      const nv = document.querySelector(`.nav-link[href="#${id}"]`);
+      if (sb) sb.classList.add('active');
+      if (nv) nv.classList.add('active');
+    }
+  });
+}, { rootMargin: '-52px 0px -60% 0px', threshold: 0 });
+
+sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

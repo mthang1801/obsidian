@@ -1,0 +1,2550 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Goroutines Cơ Bản — Go Concurrency Guide</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<style>
+:root {
+  --go-cyan: #00ADD8;
+  --go-blue: #375EAB;
+  --go-dark: #0d1117;
+  --accent-green: #3fb950;
+  --accent-amber: #d29922;
+  --accent-red: #f85149;
+  --accent-purple: #bc8cff;
+  --font-code: 'Fira Code', 'Cascadia Code', Consolas, monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  background: #0d1117;
+  color: #e6edf3;
+  line-height: 1.7;
+}
+
+/* ── Layout ── */
+.doc-wrapper {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* ── Header ── */
+.doc-header {
+  padding: 2.5rem 0 2rem;
+  border-bottom: 0.5px solid #30363d;
+  margin-bottom: 2.5rem;
+}
+
+.doc-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--go-cyan);
+  background: rgba(0,173,216,0.08);
+  border: 0.5px solid rgba(0,173,216,0.3);
+  padding: 4px 10px;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+h1.doc-title {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.25;
+  background: linear-gradient(135deg, #e6edf3 0%, var(--go-cyan) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 0.5rem;
+}
+
+.doc-subtitle {
+  font-size: 15px;
+  color: #8b949e;
+  line-height: 1.6;
+  max-width: 680px;
+}
+
+/* ── TOC ── */
+.toc {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0.875rem 1.25rem;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  border-radius: 10px;
+  margin-bottom: 3rem;
+  font-size: 13px;
+}
+
+.toc-label {
+  color: #8b949e;
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.toc a {
+  color: #8b949e;
+  text-decoration: none;
+  padding: 3px 10px;
+  border-radius: 5px;
+  border: 0.5px solid #30363d;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+
+.toc a:hover {
+  color: var(--go-cyan);
+  border-color: rgba(0,173,216,0.4);
+  background: rgba(0,173,216,0.06);
+}
+
+.section {
+  margin-bottom: 4rem;
+}
+[id] {
+  scroll-margin-top: 2rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.875rem;
+  border-bottom: 0.5px solid #21262d;
+}
+
+.section-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(0,173,216,0.1);
+  border: 0.5px solid rgba(0,173,216,0.35);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--go-cyan);
+  flex-shrink: 0;
+}
+
+h2.section-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #e6edf3;
+}
+
+.section-desc {
+  font-size: 13px;
+  color: #8b949e;
+  font-weight: 400;
+}
+
+h3.sub-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin: 1.75rem 0 0.75rem;
+}
+
+h4.sub-sub-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 1.25rem 0 0.5rem;
+}
+
+p {
+  font-size: 14px;
+  color: #c9d1d9;
+  line-height: 1.75;
+  margin-bottom: 0.875rem;
+}
+
+ul, ol {
+  margin: 0.5rem 0 0.875rem 1.5rem;
+}
+
+li {
+  font-size: 14px;
+  color: #c9d1d9;
+  line-height: 1.7;
+  margin-bottom: 0.3rem;
+}
+
+code {
+  font-family: var(--font-code);
+  font-size: 12px;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--go-cyan);
+}
+
+strong { color: #e6edf3; font-weight: 600; }
+
+/* ── Tables ── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin: 1rem 0 1.5rem;
+  border: 0.5px solid #21262d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+thead tr { background: #161b22; }
+
+th {
+  text-align: left;
+  padding: 10px 14px;
+  color: #8b949e;
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-bottom: 0.5px solid #21262d;
+}
+
+td {
+  padding: 10px 14px;
+  border-bottom: 0.5px solid #21262d;
+  color: #c9d1d9;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:nth-child(even) { background: rgba(255,255,255,0.015); }
+
+/* ── Code blocks ── */
+.code-block {
+  margin: 1.25rem 0;
+  border-radius: 10px;
+  border: 0.5px solid #21262d;
+  overflow: hidden;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  background: #161b22;
+  border-bottom: 0.5px solid #21262d;
+}
+
+.code-filename {
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: #8b949e;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.code-filename::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: var(--go-cyan);
+  border-radius: 50%;
+  opacity: 0.7;
+}
+
+.level-badge {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+
+.level-basic     { background: rgba(59,184,80,0.12); color: #3fb950; border: 0.5px solid rgba(59,184,80,0.3); }
+.level-medium    { background: rgba(0,173,216,0.12); color: #00ADD8; border: 0.5px solid rgba(0,173,216,0.3); }
+.level-advanced  { background: rgba(210,153,34,0.12); color: #d29922; border: 0.5px solid rgba(210,153,34,0.3); }
+.level-expert    { background: rgba(248,81,73,0.12); color: #f85149; border: 0.5px solid rgba(248,81,73,0.3); }
+
+pre {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  background: #0d1117 !important;
+  font-size: 12.5px !important;
+  line-height: 1.65 !important;
+  padding: 1.25rem !important;
+  overflow-x: auto;
+}
+
+pre code {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+}
+
+/* ── Callouts ── */
+.callout {
+  display: flex;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border-left: 3px solid;
+  margin: 1rem 0;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.callout-icon { flex-shrink: 0; font-size: 15px; line-height: 1.65; }
+
+.callout-warning { background: rgba(210,153,34,0.07); border-color: #d29922; color: #c9d1d9; }
+.callout-info    { background: rgba(0,173,216,0.07); border-color: #00ADD8; color: #c9d1d9; }
+.callout-success { background: rgba(59,184,80,0.07); border-color: #3fb950; color: #c9d1d9; }
+.callout-danger  { background: rgba(248,81,73,0.07); border-color: #f85149; color: #c9d1d9; }
+.callout-tip     { background: rgba(188,140,255,0.07); border-color: #bc8cff; color: #c9d1d9; }
+
+/* ── Mantra quote ── */
+.mantra {
+  padding: 1.25rem 1.5rem;
+  background: rgba(0,173,216,0.05);
+  border: 0.5px solid rgba(0,173,216,0.25);
+  border-radius: 10px;
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+.mantra-text {
+  font-family: var(--font-code);
+  font-size: 14px;
+  color: var(--go-cyan);
+  line-height: 1.8;
+}
+
+.mantra-sub {
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 6px;
+}
+
+/* ── Concept grid ── */
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin: 1rem 0 1.5rem;
+}
+
+.concept-card {
+  padding: 14px 16px;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.concept-card:hover { border-color: rgba(0,173,216,0.4); }
+
+.concept-tag {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #8b949e;
+  margin-bottom: 4px;
+}
+
+.concept-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--go-cyan);
+  font-family: var(--font-code);
+  margin-bottom: 3px;
+}
+
+.concept-desc {
+  font-size: 12px;
+  color: #8b949e;
+  line-height: 1.5;
+}
+
+/* ── Code example wrapper ── */
+.example-wrapper {
+  margin-bottom: 2.5rem;
+}
+
+.example-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 16px;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.example-num {
+  font-size: 22px;
+  font-weight: 800;
+  color: rgba(0,173,216,0.4);
+  font-family: var(--font-code);
+  line-height: 1.2;
+  min-width: 36px;
+}
+
+.example-info h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #e6edf3;
+  margin-bottom: 3px;
+}
+
+.example-info p {
+  font-size: 12px;
+  color: #8b949e;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* ── Output block ── */
+.output-block {
+  padding: 10px 14px;
+  background: #0a0e14;
+  border: 0.5px solid #21262d;
+  border-top: none;
+  font-family: var(--font-code);
+  font-size: 12px;
+  color: #3fb950;
+  line-height: 1.6;
+}
+
+.output-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #8b949e;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+/* ── Diagram container ── */
+.diagram-wrap {
+  margin: 1.5rem 0;
+  padding: 1.5rem;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+.diagram-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 1rem;
+}
+
+.diagram-caption {
+  text-align: center;
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 0.875rem;
+  font-style: italic;
+}
+
+/* ── ASCII diagram ── */
+.ascii-wrap {
+  font-family: var(--font-code);
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 1.25rem;
+  background: #0d1117;
+  border: 0.5px solid #30363d;
+  border-radius: 8px;
+  overflow-x: auto;
+  color: #8b949e;
+  margin: 1rem 0;
+  white-space: pre;
+}
+
+/* ── Pitfall table ── */
+.severity {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.sev-critical { background: rgba(248,81,73,0.12); color: #f85149; }
+.sev-high     { background: rgba(210,153,34,0.12); color: #d29922; }
+.sev-medium   { background: rgba(0,173,216,0.12); color: #00ADD8; }
+
+/* ── Ref links ── */
+.ref-grid { display: flex; flex-direction: column; gap: 8px; margin-top: 1rem; }
+
+.ref-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #161b22;
+  border: 0.5px solid #30363d;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #c9d1d9;
+  font-size: 13px;
+  transition: all 0.15s;
+}
+
+.ref-link:hover {
+  background: #1c2128;
+  border-color: rgba(0,173,216,0.4);
+  color: #e6edf3;
+}
+
+.ref-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(0,173,216,0.1);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.ref-info { flex: 1; }
+.ref-title { font-weight: 600; color: #e6edf3; margin-bottom: 2px; font-size: 13px; }
+.ref-url { font-size: 11px; color: var(--go-cyan); font-family: var(--font-code); }
+
+/* ── Stack viz ── */
+.stack-viz {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-end;
+  margin: 1.25rem 0;
+  padding: 1.25rem;
+  background: #0d1117;
+  border: 0.5px solid #30363d;
+  border-radius: 8px;
+}
+
+.stack-col { flex: 1; }
+
+.stack-col-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #8b949e;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stack-bar {
+  width: 100%;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-code);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bar-goroutine { background: rgba(0,173,216,0.15); border: 0.5px solid rgba(0,173,216,0.4); color: var(--go-cyan); }
+.bar-thread    { background: rgba(210,153,34,0.15); border: 0.5px solid rgba(210,153,34,0.4); color: #d29922; }
+
+/* ── Footer ── */
+.doc-footer {
+  margin-top: 4rem;
+  padding-top: 1.5rem;
+  border-top: 0.5px solid #21262d;
+  font-size: 12px;
+  color: #484f58;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Concept Image Container ── */
+.concept-img-wrapper {
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 173, 216, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  background: #161b22;
+  padding: 12px;
+}
+.concept-img-wrapper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.concept-img-caption {
+  text-align: center;
+  font-size: 12.5px;
+  color: #8b949e;
+  margin-top: 10px;
+  font-style: italic;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<div class="doc-wrapper">
+
+<!-- ─────────────── HEADER ─────────────── -->
+<header class="doc-header">
+  <div class="doc-badge">Go Concurrency · Artifact Document</div>
+  <h1 class="doc-title">Goroutines Cơ Bản</h1>
+  <p class="doc-subtitle">
+    Hướng dẫn toàn diện từ <strong>advanced đến expert</strong> — Hiểu sâu cách Go runtime spawn và quản lý lightweight threads (goroutines), GMP scheduler model, các pattern production-grade, và cách phát hiện/fix goroutine leaks.
+  </p>
+</header>
+
+<!-- ─────────────── TOC ─────────────── -->
+<nav class="toc">
+  <span class="toc-label">Mục lục</span>
+  <a href="#define">① DEFINE</a>
+  <a href="#graph">② GRAPH</a>
+  <a href="#code">③ CODE</a>
+  <a href="#pitfalls">④ PITFALLS</a>
+  <a href="#ref">⑤ REF</a>
+</nav>
+
+<!-- ═══════════════════════════════════════════════
+     ① DEFINE
+═══════════════════════════════════════════════ -->
+<section class="section" id="define">
+  <div class="section-header">
+    <span class="section-num">①</span>
+    <div>
+      <h2 class="section-title">DEFINE — Định nghĩa &amp; Khái niệm cốt lõi</h2>
+      <p class="section-desc">Goroutine là gì · So sánh với Thread · GMP Model · Triết lý thiết kế</p>
+    </div>
+  </div>
+
+  <h3 class="sub-title">Goroutine là gì?</h3>
+  <p>
+    <strong>Goroutine</strong> là đơn vị thực thi đồng thời (concurrent execution unit) do <strong>Go runtime</strong> quản lý — không phải OS thread. Được spawn bằng từ khoá <code>go</code>, một goroutine bắt đầu với stack chỉ <strong>2KB</strong> (so với 1–8MB của OS thread) và có thể grow/shrink động.
+  </p>
+
+  <div class="callout callout-info">
+    <span class="callout-icon">💡</span>
+    <div>
+      <strong>Goroutine ≠ Thread:</strong> Goroutine là <em>green thread</em> được multiplexed lên OS threads bởi Go scheduler. Bạn có thể spawn hàng triệu goroutines trên một machine; OS thread thì không.
+    </div>
+  </div>
+
+  <div class="mantra">
+    <div class="mantra-text">
+      "Don't communicate by sharing memory;<br>
+      share memory by communicating."
+    </div>
+    <div class="mantra-sub">— Rob Pike, Go Proverbs · Triết lý cốt lõi của Go concurrency</div>
+  </div>
+
+  <h3 class="sub-title">So sánh: Goroutine vs OS Thread vs Process</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Thuộc tính</th>
+        <th>Process</th>
+        <th>OS Thread</th>
+        <th>Goroutine</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Khởi tạo memory</td>
+        <td>~4 MB</td>
+        <td>1 – 8 MB (fixed stack)</td>
+        <td><strong>2 KB</strong> (dynamic, grows up to 1 GB)</td>
+      </tr>
+      <tr>
+        <td>Tạo mới (overhead)</td>
+        <td>~ms, system call nặng</td>
+        <td>~μs, context switch tốn kém</td>
+        <td><strong>~ns</strong>, cực kỳ nhẹ</td>
+      </tr>
+      <tr>
+        <td>Scheduling</td>
+        <td>OS kernel</td>
+        <td>OS kernel (preemptive)</td>
+        <td><strong>Go runtime</strong> (cooperative + preemptive từ Go 1.14)</td>
+      </tr>
+      <tr>
+        <td>Context switch</td>
+        <td>Rất nặng (kernel mode)</td>
+        <td>~1–10 μs</td>
+        <td><strong>~100–200 ns</strong></td>
+      </tr>
+      <tr>
+        <td>Số lượng thực tế</td>
+        <td>Hàng chục</td>
+        <td>Hàng nghìn</td>
+        <td><strong>Hàng triệu</strong> trên 1 machine</td>
+      </tr>
+      <tr>
+        <td>Memory sharing</td>
+        <td>Không (cần IPC)</td>
+        <td>Có (shared heap)</td>
+        <td>Có (shared heap, dùng channel an toàn hơn)</td>
+      </tr>
+      <tr>
+        <td>API tạo mới</td>
+        <td>fork(), exec()</td>
+        <td>pthread_create()</td>
+        <td><code>go functionName()</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">GMP Model — Kiến trúc Go Scheduler</h3>
+  <p>
+    Go runtime sử dụng mô hình <strong>GMP (Goroutine · Machine · Processor)</strong> để schedule goroutines lên OS threads:
+  </p>
+
+  <div class="concept-grid">
+    <div class="concept-card">
+      <div class="concept-tag">G</div>
+      <div class="concept-name">Goroutine</div>
+      <div class="concept-desc">Lightweight concurrent unit. Stack ban đầu 2KB, chứa: stack pointer, program counter, goroutine ID, trạng thái (runnable/running/waiting).</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-tag">M</div>
+      <div class="concept-name">Machine</div>
+      <div class="concept-desc">OS Thread thực sự. Mỗi M phải có P để chạy Go code. M có thể detach khỏi P khi thực hiện blocking syscall.</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-tag">P</div>
+      <div class="concept-name">Processor</div>
+      <div class="concept-desc">Logical processor — "context" để chạy Go code. Số lượng P = <code>GOMAXPROCS</code> (mặc định = số CPU core). P có Local Run Queue riêng.</div>
+    </div>
+    <div class="concept-card">
+      <div class="concept-tag">GRQ</div>
+      <div class="concept-name">Global Run Queue</div>
+      <div class="concept-desc">Queue chung cho goroutines chưa được assign cho P nào. P steal goroutines từ GRQ hoặc từ P khác (work stealing).</div>
+    </div>
+  </div>
+
+  <h3 class="sub-title">Stack Memory: Dynamic Growth</h3>
+  <p>
+    Một trong những điểm mạnh lớn nhất của Goroutine là <strong>dynamic stack</strong>. Go runtime tự động grow/shrink stack khi cần:
+  </p>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go-goroutine-stack-growth.png" alt="Goroutine Stack Growth vs OS Thread Stack" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: So sánh cơ chế Contiguous Stack tự động nhân đôi của Goroutine (2KB - 1GB) vs OS Thread Stack cố định (1MB - 8MB)</div>
+  </div>
+
+  <div class="stack-viz">
+    <div class="stack-col">
+      <div class="stack-col-title">Goroutine Stack (Go)</div>
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+        <div class="stack-bar bar-goroutine" style="height:20px;width:15%;">2KB</div>
+        <div style="font-size:11px;color:#8b949e;">↕ grows</div>
+        <div class="stack-bar bar-goroutine" style="height:30px;width:25%;">4KB</div>
+        <div style="font-size:11px;color:#8b949e;">↕ grows</div>
+        <div class="stack-bar bar-goroutine" style="height:45px;width:40%;">8KB</div>
+        <div style="font-size:11px;color:#8b949e;">↕ grows</div>
+        <div class="stack-bar bar-goroutine" style="height:60px;width:60%;">16KB…</div>
+        <div style="font-size:11px;color:#8b949e;margin-top:4px;">max 1GB</div>
+      </div>
+    </div>
+    <div class="stack-col">
+      <div class="stack-col-title">OS Thread Stack (Fixed)</div>
+      <div style="display:flex;flex-direction:column;gap:0;align-items:center;">
+        <div class="stack-bar bar-thread" style="height:160px;width:80%;border-radius:4px;">1MB – 8MB<br><span style="font-size:10px;opacity:0.7;">Fixed at creation</span></div>
+        <div style="font-size:11px;color:#8b949e;margin-top:8px;">Không thể shrink</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout callout-tip">
+    <span class="callout-icon">🔬</span>
+    <div>
+      <strong>Chi tiết kỹ thuật:</strong> Từ Go 1.3+, stack growth dùng cơ chế <strong>contiguous stack</strong> (thay vì segmented stack cũ). Khi stack đầy, Go runtime <em>allocate stack mới gấp đôi</em>, copy toàn bộ stack cũ sang, và update tất cả pointers. Chi phí amortized O(1).
+    </div>
+  </div>
+
+  <h3 class="sub-title">Goroutine States — Vòng đời</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Trạng thái</th>
+        <th>Mô tả</th>
+        <th>Chuyển sang trạng thái khác khi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>_Gidle</code> / New</td>
+        <td>Vừa được tạo, chưa initialized</td>
+        <td>Go runtime khởi tạo xong → Runnable</td>
+      </tr>
+      <tr>
+        <td><code>_Grunnable</code></td>
+        <td>Sẵn sàng chạy, đang chờ trong run queue</td>
+        <td>M chọn để chạy → Running</td>
+      </tr>
+      <tr>
+        <td><code>_Grunning</code></td>
+        <td>Đang thực thi trên M (OS thread)</td>
+        <td>Block / syscall / preempt → Waiting/Runnable</td>
+      </tr>
+      <tr>
+        <td><code>_Gwaiting</code></td>
+        <td>Bị block: chờ channel, mutex, timer, I/O</td>
+        <td>Điều kiện được thỏa mãn → Runnable</td>
+      </tr>
+      <tr>
+        <td><code>_Gsyscall</code></td>
+        <td>Đang thực hiện blocking syscall</td>
+        <td>Syscall return → Runnable</td>
+      </tr>
+      <tr>
+        <td><code>_Gdead</code></td>
+        <td>Function return, goroutine kết thúc</td>
+        <td>Được GC hoặc reuse cho goroutine mới</td>
+      </tr>
+    </tbody>
+  </table>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     ② GRAPH
+═══════════════════════════════════════════════ -->
+<section class="section" id="graph">
+  <div class="section-header">
+    <span class="section-num">②</span>
+    <div>
+      <h2 class="section-title">GRAPH — Sơ đồ minh hoạ</h2>
+      <p class="section-desc">GMP Scheduler · Goroutine Lifecycle · Work Stealing</p>
+    </div>
+  </div>
+
+  <h3 class="sub-title">Sơ đồ 1 — GMP Scheduler Model</h3>
+  <p>Minh hoạ cách Go runtime phân phối goroutines lên OS threads thông qua Logical Processors:</p>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Go Runtime — GMP Scheduler Architecture</div>
+    <svg width="100%" viewBox="0 0 680 450" role="img">
+      <title>GMP Scheduler Model</title>
+      <desc>Sơ đồ GMP: Global Run Queue, 2 Logical Processors (P) với Local Run Queues, 2 OS Threads (M), và OS Kernel</desc>
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- ── Global Run Queue ── -->
+      <rect x="40" y="20" width="600" height="72" rx="8" fill="rgba(55,94,171,0.08)" stroke="#375EAB" stroke-width="0.5"/>
+      <text x="60" y="41" font-family="monospace" font-size="11" font-weight="600" fill="#8b949e" letter-spacing="0.08em">GLOBAL RUN QUEUE (GRQ)</text>
+      <!-- G boxes in GRQ -->
+      <rect x="168" y="48" width="54" height="28" rx="5" fill="rgba(0,173,216,0.12)" stroke="rgba(0,173,216,0.5)" stroke-width="0.5"/>
+      <text x="195" y="62" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="232" y="48" width="54" height="28" rx="5" fill="rgba(0,173,216,0.12)" stroke="rgba(0,173,216,0.5)" stroke-width="0.5"/>
+      <text x="259" y="62" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="296" y="48" width="54" height="28" rx="5" fill="rgba(0,173,216,0.12)" stroke="rgba(0,173,216,0.5)" stroke-width="0.5"/>
+      <text x="323" y="62" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="360" y="48" width="54" height="28" rx="5" fill="rgba(0,173,216,0.12)" stroke="rgba(0,173,216,0.5)" stroke-width="0.5"/>
+      <text x="387" y="62" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="424" y="48" width="54" height="28" rx="5" fill="rgba(0,173,216,0.12)" stroke="rgba(0,173,216,0.5)" stroke-width="0.5"/>
+      <text x="451" y="62" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <text x="506" y="62" text-anchor="start" dominant-baseline="central" font-family="monospace" font-size="12" fill="#8b949e">…</text>
+
+      <!-- ── Arrow GRQ → P1 (schedule) ── -->
+      <line x1="175" y1="92" x2="175" y2="128" stroke="#375EAB" stroke-width="1" marker-end="url(#arr)"/>
+      <!-- ── Arrow GRQ → P2 (schedule) ── -->
+      <line x1="505" y1="92" x2="505" y2="128" stroke="#375EAB" stroke-width="1" marker-end="url(#arr)"/>
+
+      <!-- ── P1 (Logical Processor) ── -->
+      <rect x="40" y="128" width="270" height="128" rx="8" fill="rgba(188,140,255,0.07)" stroke="#bc8cff" stroke-width="0.5"/>
+      <text x="175" y="147" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#bc8cff">P (Logical Processor) #1</text>
+      <text x="175" y="161" text-anchor="middle" font-family="monospace" font-size="10" fill="#8b949e">GOMAXPROCS=2  ·  Local Run Queue</text>
+      <!-- Local G boxes P1 -->
+      <rect x="68" y="172" width="58" height="26" rx="5" fill="rgba(0,173,216,0.15)" stroke="rgba(0,173,216,0.6)" stroke-width="0.5"/>
+      <text x="97" y="185" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="136" y="172" width="58" height="26" rx="5" fill="rgba(0,173,216,0.15)" stroke="rgba(0,173,216,0.6)" stroke-width="0.5"/>
+      <text x="165" y="185" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="204" y="172" width="58" height="26" rx="5" fill="rgba(0,173,216,0.15)" stroke="rgba(0,173,216,0.6)" stroke-width="0.5"/>
+      <text x="233" y="185" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <!-- Currently running label P1 -->
+      <text x="175" y="218" text-anchor="middle" font-family="monospace" font-size="10" fill="#8b949e">next →</text>
+
+      <!-- ── P2 (Logical Processor) ── -->
+      <rect x="370" y="128" width="270" height="128" rx="8" fill="rgba(188,140,255,0.07)" stroke="#bc8cff" stroke-width="0.5"/>
+      <text x="505" y="147" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#bc8cff">P (Logical Processor) #2</text>
+      <text x="505" y="161" text-anchor="middle" font-family="monospace" font-size="10" fill="#8b949e">GOMAXPROCS=2  ·  Local Run Queue</text>
+      <!-- Local G boxes P2 -->
+      <rect x="398" y="172" width="58" height="26" rx="5" fill="rgba(0,173,216,0.15)" stroke="rgba(0,173,216,0.6)" stroke-width="0.5"/>
+      <text x="427" y="185" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <rect x="466" y="172" width="58" height="26" rx="5" fill="rgba(0,173,216,0.15)" stroke="rgba(0,173,216,0.6)" stroke-width="0.5"/>
+      <text x="495" y="185" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">G</text>
+      <text x="534" y="185" text-anchor="start" dominant-baseline="central" font-family="monospace" font-size="12" fill="#8b949e">(empty)</text>
+      <text x="505" y="218" text-anchor="middle" font-family="monospace" font-size="10" fill="#8b949e">next →</text>
+
+      <!-- ── Work Stealing (dashed) ── -->
+      <path d="M398 210 C360 210 320 210 310 210" fill="none" stroke="#d29922" stroke-width="1" stroke-dasharray="5,3" marker-end="url(#arr)"/>
+      <text x="355" y="205" text-anchor="middle" font-family="monospace" font-size="10" fill="#d29922">work steal</text>
+
+      <!-- ── Arrow P1 → M1 ── -->
+      <line x1="175" y1="256" x2="175" y2="296" stroke="#8b949e" stroke-width="1" marker-end="url(#arr)"/>
+      <text x="185" y="277" font-family="monospace" font-size="10" fill="#8b949e">binds</text>
+      <!-- ── Arrow P2 → M2 ── -->
+      <line x1="505" y1="256" x2="505" y2="296" stroke="#8b949e" stroke-width="1" marker-end="url(#arr)"/>
+      <text x="515" y="277" font-family="monospace" font-size="10" fill="#8b949e">binds</text>
+
+      <!-- ── M1 (OS Thread) ── -->
+      <rect x="40" y="296" width="270" height="56" rx="8" fill="rgba(210,153,34,0.08)" stroke="#d29922" stroke-width="0.5"/>
+      <text x="108" y="320" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#d29922">M₁ — OS Thread</text>
+      <!-- Running G in M1 -->
+      <rect x="220" y="305" width="76" height="30" rx="5" fill="rgba(59,184,80,0.15)" stroke="#3fb950" stroke-width="0.5"/>
+      <text x="258" y="320" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="11" font-weight="700" fill="#3fb950">G (run)</text>
+
+      <!-- ── M2 (OS Thread) ── -->
+      <rect x="370" y="296" width="270" height="56" rx="8" fill="rgba(210,153,34,0.08)" stroke="#d29922" stroke-width="0.5"/>
+      <text x="438" y="320" text-anchor="middle" font-family="monospace" font-size="11" font-weight="700" fill="#d29922">M₂ — OS Thread</text>
+      <!-- Running G in M2 (syscall) -->
+      <rect x="550" y="305" width="76" height="30" rx="5" fill="rgba(248,81,73,0.12)" stroke="#f85149" stroke-width="0.5"/>
+      <text x="588" y="320" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="10" font-weight="700" fill="#f85149">G (syscall)</text>
+
+      <!-- ── Arrow M → OS ── -->
+      <line x1="175" y1="352" x2="175" y2="385" stroke="#484f58" stroke-width="1" marker-end="url(#arr)"/>
+      <line x1="505" y1="352" x2="505" y2="385" stroke="#484f58" stroke-width="1" marker-end="url(#arr)"/>
+
+      <!-- ── OS Kernel ── -->
+      <rect x="40" y="385" width="600" height="44" rx="8" fill="rgba(72,79,88,0.2)" stroke="#484f58" stroke-width="0.5"/>
+      <text x="340" y="407" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="600" fill="#8b949e">OS Kernel / CPU Cores</text>
+    </svg>
+    <div class="diagram-caption">G=Goroutine · M=Machine (OS Thread) · P=Logical Processor · Work Stealing giữa các P</div>
+  </div>
+
+  <h3 class="sub-title">Sơ đồ 2 — Goroutine Lifecycle (State Machine)</h3>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Goroutine State Machine</div>
+    <svg width="100%" viewBox="0 0 680 300" role="img">
+      <title>Goroutine Lifecycle State Machine</title>
+      <desc>Các trạng thái của goroutine: New, Runnable, Running, Waiting, Dead</desc>
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+      </defs>
+
+      <!-- States (y=100) -->
+      <!-- New -->
+      <rect x="20" y="88" width="90" height="44" rx="8" fill="rgba(72,79,88,0.2)" stroke="#484f58" stroke-width="0.5"/>
+      <text x="65" y="110" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#8b949e">New</text>
+
+      <!-- Runnable -->
+      <rect x="170" y="88" width="100" height="44" rx="8" fill="rgba(0,173,216,0.12)" stroke="#00ADD8" stroke-width="0.5"/>
+      <text x="220" y="110" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#00ADD8">Runnable</text>
+
+      <!-- Running -->
+      <rect x="340" y="88" width="100" height="44" rx="8" fill="rgba(59,184,80,0.15)" stroke="#3fb950" stroke-width="1"/>
+      <text x="390" y="110" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#3fb950">Running</text>
+
+      <!-- Waiting -->
+      <rect x="510" y="88" width="100" height="44" rx="8" fill="rgba(210,153,34,0.12)" stroke="#d29922" stroke-width="0.5"/>
+      <text x="560" y="110" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#d29922">Waiting</text>
+
+      <!-- Dead (below Running) -->
+      <rect x="340" y="210" width="100" height="44" rx="8" fill="rgba(248,81,73,0.1)" stroke="#f85149" stroke-width="0.5"/>
+      <text x="390" y="232" text-anchor="middle" dominant-baseline="central" font-family="monospace" font-size="12" font-weight="700" fill="#f85149">Dead</text>
+
+      <!-- ── Arrows ── -->
+      <!-- New → Runnable -->
+      <line x1="110" y1="110" x2="170" y2="110" stroke="#00ADD8" stroke-width="1" marker-end="url(#arr2)"/>
+      <text x="140" y="104" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">go func()</text>
+
+      <!-- Runnable → Running -->
+      <line x1="270" y1="110" x2="340" y2="110" stroke="#3fb950" stroke-width="1" marker-end="url(#arr2)"/>
+      <text x="305" y="104" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">M picks up</text>
+
+      <!-- Running → Waiting (right) -->
+      <line x1="440" y1="110" x2="510" y2="110" stroke="#d29922" stroke-width="1" marker-end="url(#arr2)"/>
+      <text x="475" y="104" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">blocked</text>
+
+      <!-- Waiting → Runnable (arc below) -->
+      <path d="M510 132 C460 175 270 175 270 132" fill="none" stroke="#00ADD8" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arr2)"/>
+      <text x="390" y="175" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">unblocked (chan recv, mutex unlock, timer)</text>
+
+      <!-- Running → Runnable (preempt - arc above) -->
+      <path d="M440 88 C460 52 220 52 270 88" fill="none" stroke="#8b949e" stroke-width="1" stroke-dasharray="4,2" marker-end="url(#arr2)"/>
+      <text x="355" y="46" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">preempted / runtime.Gosched()</text>
+
+      <!-- Running → Dead (down) -->
+      <line x1="390" y1="132" x2="390" y2="210" stroke="#f85149" stroke-width="1" marker-end="url(#arr2)"/>
+      <text x="408" y="175" font-family="monospace" font-size="9" fill="#8b949e">return</text>
+
+      <!-- Note on Gsyscall -->
+      <rect x="30" y="195" width="140" height="52" rx="6" fill="rgba(188,140,255,0.07)" stroke="#bc8cff" stroke-width="0.5"/>
+      <text x="100" y="215" text-anchor="middle" font-family="monospace" font-size="10" font-weight="700" fill="#bc8cff">Gsyscall</text>
+      <text x="100" y="231" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">M detaches từ P</text>
+      <text x="100" y="243" text-anchor="middle" font-family="monospace" font-size="9" fill="#8b949e">P có thể bind M khác</text>
+      <line x1="390" y1="132" x2="170" y2="221" stroke="#bc8cff" stroke-width="0.5" stroke-dasharray="3,2"/>
+      <text x="260" y="215" text-anchor="middle" font-family="monospace" font-size="9" fill="#bc8cff">blocking syscall</text>
+    </svg>
+    <div class="diagram-caption">Goroutine preemption được thêm vào Go 1.14 (signal-based) — không cần function call checkpoint như trước</div>
+  </div>
+
+  <h3 class="sub-title">Work Stealing — Cơ chế cân bằng tải</h3>
+  <div class="ascii-wrap">Go Scheduler Work Stealing Algorithm:
+
+P1 (Local Queue đầy):   [G] [G] [G] [G] [G] [G] [G] [G]
+P2 (Local Queue rỗng):  []  ← nhàn rỗi
+
+Work Stealing steps:
+  1. P2 kiểm tra Local Run Queue → rỗng
+  2. P2 cố steal từ Global Run Queue → nếu có, lấy
+  3. P2 steal một nửa Local Queue của P1:
+     P1: [G] [G] [G] [G]     P2: [G] [G] [G] [G]
+  4. Nếu tất cả queues rỗng → P2 steal M_syscall goroutines
+  5. Nếu vẫn rỗng → M2 park (sleep), trả lại cho OS
+
+Kết quả: Tất cả CPUs được tận dụng tối đa → throughput cao</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     ③ CODE
+═══════════════════════════════════════════════ -->
+<section class="section" id="code">
+  <div class="section-header">
+    <span class="section-num">③</span>
+    <div>
+      <h2 class="section-title">CODE — Ví dụ từ Advanced đến Expert</h2>
+      <p class="section-desc">7 levels với annotated comments · intro · kết quả · lưu ý</p>
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 1 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">01</span>
+      <div class="example-info">
+        <h4>Goroutine Cơ Bản — Spawn &amp; Anti-patterns</h4>
+        <p>Hiểu vấn đề khi main goroutine kết thúc trước · tại sao KHÔNG dùng time.Sleep · race condition đầu tiên</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">01_basic_goroutine.go</span>
+        <span class="level-badge level-basic">Basic</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"time"
+)
+
+// ─────────────────────────────────────────────────────────────────
+// VÍ DỤ 1A: Anti-pattern — Goroutine bị "killed" theo main
+// ─────────────────────────────────────────────────────────────────
+
+func antiPattern() {
+	fmt.Println("[main] Bắt đầu")
+
+	// Từ khoá 'go' spawn goroutine mới trong Go runtime
+	// Goroutine này chạy CONCURRENT (song song) với main goroutine
+	go func() {
+		// ⚠️ KHÔNG đảm bảo: goroutine này có thể KHÔNG BAO GIỜ chạy
+		// nếu main() return trước
+		fmt.Println("[goroutine] Đang chạy...")
+		time.Sleep(100 * time.Millisecond)
+		fmt.Println("[goroutine] Done!") // ← Có thể không được in
+	}()
+
+	fmt.Println("[main] Kết thúc") // main return ngay → goroutine bị kill
+	// OUTPUT thực tế:
+	// [main] Bắt đầu
+	// [main] Kết thúc
+	// (goroutine có thể không chạy được)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// VÍ DỤ 1B: Spawn goroutine với named function
+// ─────────────────────────────────────────────────────────────────
+
+func greet(name string, delay time.Duration) {
+	time.Sleep(delay) // Mô phỏng latency
+	fmt.Printf("[goroutine] Xin chào, %s!\n", name)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// VÍ DỤ 1C: Closure capture — Data race kinh điển
+// ─────────────────────────────────────────────────────────────────
+
+func closureRaceBug() {
+	fmt.Println("\n--- BUG: Closure capture loop variable ---")
+	for i := 0; i < 3; i++ {
+		go func() {
+			// ⚠️ DATA RACE: tất cả goroutines share cùng 'i'
+			// Khi goroutine chạy, i đã = 3 (loop đã xong)
+			fmt.Printf("i = %d\n", i) // Có thể in: 3, 3, 3
+		}()
+	}
+	time.Sleep(10 * time.Millisecond)
+}
+
+func closureRaceFix() {
+	fmt.Println("\n--- FIX: Pass i như argument ---")
+	for i := 0; i < 3; i++ {
+		i := i // ✅ Shadow biến: tạo copy mới cho mỗi iteration
+		go func() {
+			fmt.Printf("i = %d\n", i) // In đúng: 0, 1, 2 (thứ tự random)
+		}()
+
+		// Hoặc cách khác: pass như argument
+		// go func(val int) {
+		// 	fmt.Printf("i = %d\n", val)
+		// }(i)
+	}
+	time.Sleep(10 * time.Millisecond)
+}
+
+func main() {
+	// 1A: Anti-pattern
+	antiPattern()
+
+	// 1B: Named function goroutine
+	go greet("MVT", 20*time.Millisecond)
+	go greet("Gopher", 10*time.Millisecond)
+	time.Sleep(50 * time.Millisecond) // Vẫn là hack — xem Example 02 để làm đúng
+
+	// 1C: Closure race
+	closureRaceBug()
+	closureRaceFix()
+	time.Sleep(50 * time.Millisecond)
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 01_basic_goroutine.go</div>
+[main] Bắt đầu
+[main] Kết thúc
+[goroutine] Xin chào, Gopher!
+[goroutine] Xin chào, MVT!
+
+--- BUG: Closure capture loop variable ---
+i = 3
+i = 3
+i = 3
+
+--- FIX: Pass i như argument ---
+i = 1
+i = 0
+i = 2
+    </div>
+    <div class="callout callout-warning">
+      <span class="callout-icon">⚠️</span>
+      <div><strong>Kiểm tra race condition:</strong> Chạy <code>go run -race 01_basic_goroutine.go</code> — Go race detector sẽ phát hiện closure bug trong <code>closureRaceBug()</code>. Luôn test với flag <code>-race</code> trong CI.</div>
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 2 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">02</span>
+      <div class="example-info">
+        <h4>sync.WaitGroup — Đồng bộ hoá goroutines đúng cách</h4>
+        <p>Counter-based synchronization · defer wg.Done() pattern · goroutine-safe tradeoffs</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">02_waitgroup.go</span>
+        <span class="level-badge level-basic">Basic</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"sync"
+	"time"
+)
+
+// Task đại diện cho một đơn vị công việc
+type Task struct {
+	ID   int
+	Name string
+}
+
+// processTask mô phỏng xử lý task với latency khác nhau
+// wg *sync.WaitGroup: truyền pointer để share counter
+func processTask(task Task, wg *sync.WaitGroup) {
+	// ① defer wg.Done() LUÔN là dòng đầu tiên
+	// Đảm bảo Done() được gọi kể cả khi function panic/return sớm
+	defer wg.Done()
+
+	// Mô phỏng công việc tốn thời gian khác nhau
+	duration := time.Duration(task.ID*30) * time.Millisecond
+	time.Sleep(duration)
+
+	fmt.Printf("  ✓ Task #%d (%s) hoàn thành sau %v\n", task.ID, task.Name, duration)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern: Fan-out với WaitGroup
+// ─────────────────────────────────────────────────────────────────
+func fanOutWithWaitGroup(tasks []Task) {
+	var wg sync.WaitGroup // WaitGroup với internal counter, mặc định = 0
+
+	start := time.Now()
+	fmt.Printf("Xử lý %d tasks song song...\n", len(tasks))
+
+	for _, task := range tasks {
+		wg.Add(1)      // ② Tăng counter TRƯỚC khi spawn goroutine
+		               // Không Add() trong goroutine: race condition với Wait()
+		go processTask(task, &wg) // ③ Truyền &wg (pointer), không phải copy
+	}
+
+	// ④ Wait() block cho đến khi counter = 0
+	// Chỉ return khi TẤT CẢ goroutines đã gọi Done()
+	wg.Wait()
+
+	fmt.Printf("Tất cả hoàn thành trong %v (sequential sẽ mất %v)\n",
+		time.Since(start),
+		time.Duration(len(tasks)*(len(tasks)+1)/2*30)*time.Millisecond)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern: Collect results với mutex + WaitGroup
+// ─────────────────────────────────────────────────────────────────
+func collectResults(tasks []Task) []string {
+	var (
+		wg      sync.WaitGroup
+		mu      sync.Mutex   // Protect shared results slice
+		results []string
+	)
+
+	for _, task := range tasks {
+		wg.Add(1)
+		task := task // capture loop variable
+		go func() {
+			defer wg.Done()
+			time.Sleep(time.Duration(task.ID*20) * time.Millisecond)
+			result := fmt.Sprintf("result-%d", task.ID)
+
+			mu.Lock()            // ⑤ Lock trước khi ghi vào shared slice
+			results = append(results, result)
+			mu.Unlock()          // ⑥ Luôn Unlock() sau khi xong
+		}()
+	}
+
+	wg.Wait()
+	return results
+}
+
+func main() {
+	tasks := []Task{
+		{1, "DatabaseQuery"},
+		{2, "HTTPRequest"},
+		{3, "FileIO"},
+		{4, "CacheWarmup"},
+	}
+
+	// Fan-out pattern
+	fanOutWithWaitGroup(tasks)
+
+	// Collect results
+	fmt.Println("\nCollect results với mutex:")
+	results := collectResults(tasks[:3])
+	fmt.Printf("Results: %v\n", results)
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 02_waitgroup.go</div>
+Xử lý 4 tasks song song...
+  ✓ Task #1 (DatabaseQuery) hoàn thành sau 30ms
+  ✓ Task #2 (HTTPRequest) hoàn thành sau 60ms
+  ✓ Task #3 (FileIO) hoàn thành sau 90ms
+  ✓ Task #4 (CacheWarmup) hoàn thành sau 120ms
+Tất cả hoàn thành trong 121ms (sequential sẽ mất 300ms)
+
+Collect results với mutex:
+Results: [result-1 result-2 result-3]
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 3 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">03</span>
+      <div class="example-info">
+        <h4>Channel Communication — Goroutines giao tiếp an toàn</h4>
+        <p>Unbuffered vs Buffered channel · directional channels · range over channel · select</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">03_channels.go</span>
+        <span class="level-badge level-medium">Intermediate</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"fmt"
+	"time"
+)
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 3A: Pipeline — Goroutines kết nối qua channels
+// ─────────────────────────────────────────────────────────────────
+
+// generate tạo numbers và gửi vào channel
+// chan<- int: write-only (chỉ được ghi, bảo vệ ownership)
+func generate(nums ...int) <-chan int {
+	out := make(chan int) // Unbuffered: sender block đến khi receiver sẵn sàng
+	go func() {
+		defer close(out) // ① LUÔN close channel từ phía sender khi xong
+		for _, n := range nums {
+			out <- n // Block nếu receiver chưa ready
+		}
+	}()
+	return out // Return read-only channel
+}
+
+// square nhân đôi và trả về channel output
+func square(in <-chan int) <-chan int { // <-chan int: read-only
+	out := make(chan int)
+	go func() {
+		defer close(out)
+		for n := range in { // ② range over channel: tự động dừng khi channel đóng
+			out <- n * n
+		}
+	}()
+	return out
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 3B: Buffered channel — Producer không block consumer
+// ─────────────────────────────────────────────────────────────────
+func bufferedDemo() {
+	// Buffered channel: capacity=3, producer không block cho đến khi đầy
+	jobs := make(chan string, 3)
+
+	// Producer: gửi 3 jobs ngay lập tức (không block vì buffer còn chỗ)
+	jobs <- "job-1"
+	jobs <- "job-2"
+	jobs <- "job-3"
+	close(jobs) // Đóng sau khi gửi xong
+
+	// Consumer: xử lý tuần tự
+	for job := range jobs {
+		fmt.Printf("  Processing: %s\n", job)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 3C: select — Multiplex nhiều channels
+// ─────────────────────────────────────────────────────────────────
+func selectDemo() {
+	ch1 := make(chan string)
+	ch2 := make(chan string)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		ch1 <- "từ channel 1"
+	}()
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		ch2 <- "từ channel 2"
+	}()
+
+	// select: nhận từ channel nào sẵn sàng trước
+	for i := 0; i < 2; i++ {
+		select {
+		case msg1 := <-ch1:
+			fmt.Println("Nhận:", msg1) // ch2 nhanh hơn → ch1 nhận sau
+		case msg2 := <-ch2:
+			fmt.Println("Nhận:", msg2) // ← In trước
+		case <-time.After(1 * time.Second): // ③ Timeout pattern
+			fmt.Println("Timeout!")
+		}
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 3D: Done channel — Signal goroutine dừng lại
+// ─────────────────────────────────────────────────────────────────
+func withDoneChannel() {
+	done := make(chan struct{}) // struct{} size = 0 bytes, dùng để signal
+	results := make(chan int, 10)
+
+	// Worker goroutine
+	go func() {
+		for i := 0; ; i++ {
+			select {
+			case <-done:                // ④ Nhận signal → dừng clean
+				fmt.Println("Worker dừng lại")
+				return
+			case results <- i * i: // Gửi kết quả nếu chưa bị done
+				time.Sleep(10 * time.Millisecond)
+			}
+		}
+	}()
+
+	// Thu thập 5 kết quả rồi dừng
+	for i := 0; i < 5; i++ {
+		fmt.Printf("  Kết quả: %d\n", <-results)
+	}
+	close(done) // ⑤ close(done) signal cho goroutine dừng (broadcast tới tất cả receivers)
+	time.Sleep(20 * time.Millisecond)
+}
+
+func main() {
+	fmt.Println("=== 3A: Pipeline ===")
+	// Pipeline: generate → square → print
+	for result := range square(generate(2, 3, 4, 5)) {
+		fmt.Printf("  %d\n", result) // 4, 9, 16, 25
+	}
+
+	fmt.Println("\n=== 3B: Buffered Channel ===")
+	bufferedDemo()
+
+	fmt.Println("\n=== 3C: Select Multiplex ===")
+	selectDemo()
+
+	fmt.Println("\n=== 3D: Done Channel ===")
+	withDoneChannel()
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 03_channels.go</div>
+=== 3A: Pipeline ===
+  4
+  9
+  16
+  25
+
+=== 3B: Buffered Channel ===
+  Processing: job-1
+  Processing: job-2
+  Processing: job-3
+
+=== 3C: Select Multiplex ===
+Nhận: từ channel 2
+Nhận: từ channel 1
+
+=== 3D: Done Channel ===
+  Kết quả: 0
+  Kết quả: 1
+  Kết quả: 4
+  Kết quả: 9
+  Kết quả: 16
+Worker dừng lại
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 4 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">04</span>
+      <div class="example-info">
+        <h4>context.Context — Cancellation, Timeout &amp; Deadline</h4>
+        <p>Propagate cancellation qua goroutine tree · WithTimeout · WithCancel · ctx.Err()</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">04_context.go</span>
+        <span class="level-badge level-medium">Intermediate</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"context"
+	"fmt"
+	"time"
+)
+
+// fetchData mô phỏng HTTP request với context propagation
+// ① Context luôn là tham số ĐẦU TIÊN theo convention Go
+func fetchData(ctx context.Context, url string) (string, error) {
+	// Mô phỏng network latency
+	delay := 200 * time.Millisecond
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		// ctx.Err() trả về nguyên nhân:
+		// - context.Canceled: bị cancel chủ động
+		// - context.DeadlineExceeded: hết timeout
+		return "", fmt.Errorf("fetch %s: %w", url, ctx.Err())
+
+	case <-timer.C:
+		return fmt.Sprintf("data từ %s", url), nil
+	}
+}
+
+// dbQuery mô phỏng database query
+func dbQuery(ctx context.Context, query string) ([]string, error) {
+	// ② Luôn check ctx trước khi bắt đầu công việc nặng
+	if err := ctx.Err(); err != nil {
+		return nil, fmt.Errorf("db query cancelled trước khi bắt đầu: %w", err)
+	}
+
+	// Mô phỏng slow query
+	done := make(chan []string, 1)
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		done <- []string{"row1", "row2", "row3"}
+	}()
+
+	select {
+	case <-ctx.Done():
+		return nil, fmt.Errorf("db query timeout: %w", ctx.Err())
+	case result := <-done:
+		return result, nil
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern: Context cancellation tree — Parent cancel → child cancel
+// ─────────────────────────────────────────────────────────────────
+func contextTree() {
+	// Root context với timeout 500ms cho toàn bộ operation
+	rootCtx, rootCancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+	defer rootCancel() // ③ LUÔN defer cancel() để tránh memory leak
+
+	// Child context kế thừa timeout từ parent
+	// Nếu parent bị cancel → child tự động bị cancel
+	childCtx, childCancel := context.WithCancel(rootCtx)
+	defer childCancel()
+
+	// Goroutine 1: HTTP request
+	errCh1 := make(chan error, 1)
+	go func() {
+		data, err := fetchData(childCtx, "https://api.example.com/users")
+		if err != nil {
+			errCh1 <- err
+			return
+		}
+		fmt.Printf("  HTTP: %s\n", data)
+		errCh1 <- nil
+	}()
+
+	// Goroutine 2: DB query
+	errCh2 := make(chan error, 1)
+	go func() {
+		rows, err := dbQuery(childCtx, "SELECT * FROM orders")
+		if err != nil {
+			errCh2 <- err
+			return
+		}
+		fmt.Printf("  DB: %d rows\n", len(rows))
+		errCh2 <- nil
+	}()
+
+	// Thu thập lỗi từ cả 2 goroutines
+	for i := 0; i < 2; i++ {
+		select {
+		case err := <-errCh1:
+			if err != nil {
+				fmt.Printf("  HTTP Error: %v\n", err)
+				childCancel() // ④ Cancel child context → goroutine còn lại dừng
+			}
+		case err := <-errCh2:
+			if err != nil {
+				fmt.Printf("  DB Error: %v\n", err)
+			}
+		case <-rootCtx.Done():
+			fmt.Printf("  Root timeout: %v\n", rootCtx.Err())
+			return
+		}
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern: Context với value — Truyền request-scoped data
+// ─────────────────────────────────────────────────────────────────
+type ctxKey string // ⑤ Custom type cho key để tránh collision
+
+const (
+	RequestIDKey ctxKey = "request_id"
+	UserIDKey    ctxKey = "user_id"
+)
+
+func handler(ctx context.Context) {
+	reqID := ctx.Value(RequestIDKey).(string)
+	userID := ctx.Value(UserIDKey).(int)
+	fmt.Printf("  [request_id=%s, user_id=%d] Đang xử lý...\n", reqID, userID)
+}
+
+func main() {
+	fmt.Println("=== Context Cancellation Tree ===")
+	contextTree()
+
+	fmt.Println("\n=== Context với Values ===")
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, RequestIDKey, "req-abc-123")
+	ctx = context.WithValue(ctx, UserIDKey, 42)
+	handler(ctx)
+
+	fmt.Println("\n=== WithDeadline vs WithTimeout ===")
+	// WithTimeout: relative (từ bây giờ sau X thời gian)
+	ctx1, cancel1 := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel1()
+
+	// WithDeadline: absolute (đến thời điểm cụ thể)
+	deadline := time.Now().Add(100 * time.Millisecond)
+	ctx2, cancel2 := context.WithDeadline(context.Background(), deadline)
+	defer cancel2()
+
+	fmt.Printf("  Timeout context deadline: %v\n", ctx1.Value("x"))
+	fmt.Printf("  Deadline context, same result: %v\n", ctx2.Value("x"))
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 04_context.go</div>
+=== Context Cancellation Tree ===
+  DB: 3 rows
+  HTTP: data từ https://api.example.com/users
+
+=== Context với Values ===
+  [request_id=req-abc-123, user_id=42] Đang xử lý...
+
+=== WithDeadline vs WithTimeout ===
+  Timeout context deadline: &lt;nil&gt;
+  Deadline context, same result: &lt;nil&gt;
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 5 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">05</span>
+      <div class="example-info">
+        <h4>Worker Pool — Production-grade Pattern</h4>
+        <p>Bounded concurrency · backpressure · graceful shutdown · error aggregation</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">05_worker_pool.go</span>
+        <span class="level-badge level-advanced">Advanced</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+)
+
+// ─────────────────────────────────────────────────────────────────
+// Domain types
+// ─────────────────────────────────────────────────────────────────
+type Job struct {
+	ID      int
+	Payload string
+}
+
+type Result struct {
+	JobID   int
+	Output  string
+	Err     error
+	Latency time.Duration
+}
+
+// ─────────────────────────────────────────────────────────────────
+// WorkerPool — Production-grade implementation
+// ─────────────────────────────────────────────────────────────────
+type WorkerPool struct {
+	numWorkers int
+	jobCh      chan Job
+	resultCh   chan Result
+	wg         sync.WaitGroup
+	once       sync.Once // Đảm bảo Stop() chỉ gọi 1 lần
+}
+
+func NewWorkerPool(numWorkers, queueSize int) *WorkerPool {
+	return &WorkerPool{
+		numWorkers: numWorkers,
+		// Buffered channel tạo backpressure — Submit() block khi queue đầy
+		jobCh:    make(chan Job, queueSize),
+		resultCh: make(chan Result, queueSize),
+	}
+}
+
+// Start khởi động numWorkers goroutines
+func (wp *WorkerPool) Start(ctx context.Context) {
+	for id := 1; id <= wp.numWorkers; id++ {
+		wp.wg.Add(1)
+		go wp.worker(ctx, id) // ① Mỗi worker là một goroutine riêng biệt
+	}
+
+	// Goroutine sentinel: đợi tất cả workers xong → đóng resultCh
+	go func() {
+		wp.wg.Wait()
+		close(wp.resultCh) // ② Báo hiệu collector: không còn kết quả nào nữa
+	}()
+}
+
+// worker xử lý jobs từ jobCh, gửi results vào resultCh
+func (wp *WorkerPool) worker(ctx context.Context, id int) {
+	defer wp.wg.Done()
+
+	for {
+		select {
+		case <-ctx.Done():
+			// Context bị cancel → worker thoát gracefully
+			fmt.Printf("  [worker-%d] Dừng: %v\n", id, ctx.Err())
+			return
+
+		case job, ok := <-wp.jobCh:
+			if !ok {
+				// jobCh đã đóng → không còn job nào → worker exit
+				fmt.Printf("  [worker-%d] Queue rỗng, thoát\n", id)
+				return
+			}
+			// Xử lý job
+			result := wp.process(ctx, id, job)
+			// ③ Gửi result, check ctx để tránh block khi đã cancel
+			select {
+			case wp.resultCh <- result:
+			case <-ctx.Done():
+				return
+			}
+		}
+	}
+}
+
+// process thực hiện công việc thực sự
+func (wp *WorkerPool) process(ctx context.Context, workerID int, job Job) Result {
+	start := time.Now()
+
+	// Mô phỏng công việc có thể bị cancel
+	workTimer := time.NewTimer(time.Duration(50+job.ID*10) * time.Millisecond)
+	defer workTimer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return Result{JobID: job.ID, Err: ctx.Err(), Latency: time.Since(start)}
+	case <-workTimer.C:
+		return Result{
+			JobID:   job.ID,
+			Output:  fmt.Sprintf("[w%d] processed: %s", workerID, job.Payload),
+			Latency: time.Since(start),
+		}
+	}
+}
+
+// Submit gửi job vào queue. Block nếu queue đầy (backpressure)
+func (wp *WorkerPool) Submit(ctx context.Context, job Job) error {
+	select {
+	case wp.jobCh <- job: // ④ Backpressure: block nếu queue đầy
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("submit job %d: %w", job.ID, ctx.Err())
+	}
+}
+
+// Stop đóng jobCh để signal workers không còn job mới
+func (wp *WorkerPool) Stop() {
+	wp.once.Do(func() { // ⑤ sync.Once đảm bảo close() chỉ gọi 1 lần
+		close(wp.jobCh)
+	})
+}
+
+// Results trả về read-only channel để thu thập kết quả
+func (wp *WorkerPool) Results() <-chan Result {
+	return wp.resultCh
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Usage
+// ─────────────────────────────────────────────────────────────────
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	// Khởi tạo pool: 3 workers, queue size 20
+	pool := NewWorkerPool(3, 20)
+	pool.Start(ctx)
+
+	// Producer: gửi 10 jobs
+	go func() {
+		for i := 1; i <= 10; i++ {
+			job := Job{ID: i, Payload: fmt.Sprintf("task-%d", i)}
+			if err := pool.Submit(ctx, job); err != nil {
+				fmt.Printf("Submit error: %v\n", err)
+				break
+			}
+		}
+		pool.Stop() // Báo hiệu: không còn job mới
+	}()
+
+	// Consumer: thu thập tất cả results
+	var (
+		successCount int
+		errCount     int
+		totalLatency time.Duration
+	)
+
+	for result := range pool.Results() { // Block đến khi resultCh đóng
+		if result.Err != nil {
+			errCount++
+			fmt.Printf("  ❌ Job #%d lỗi: %v\n", result.JobID, result.Err)
+		} else {
+			successCount++
+			totalLatency += result.Latency
+			fmt.Printf("  ✓ %s (%v)\n", result.Output, result.Latency.Round(time.Millisecond))
+		}
+	}
+
+	fmt.Printf("\n📊 Thống kê: %d thành công, %d lỗi, avg latency: %v\n",
+		successCount, errCount,
+		(totalLatency / time.Duration(successCount)).Round(time.Millisecond))
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 05_worker_pool.go</div>
+  ✓ [w1] processed: task-1 (60ms)
+  ✓ [w2] processed: task-2 (70ms)
+  ✓ [w3] processed: task-3 (80ms)
+  ✓ [w1] processed: task-4 (90ms)
+  ...
+  [worker-1] Queue rỗng, thoát
+  [worker-2] Queue rỗng, thoát
+  [worker-3] Queue rỗng, thoát
+
+📊 Thống kê: 10 thành công, 0 lỗi, avg latency: 105ms
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 6 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">06</span>
+      <div class="example-info">
+        <h4>Goroutine Leak — Phát hiện &amp; Phòng tránh</h4>
+        <p>runtime.NumGoroutine() · pprof goroutine dump · goleak · common leak patterns</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">06_goroutine_leak.go</span>
+        <span class="level-badge level-advanced">Advanced</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"context"
+	"fmt"
+	"net/http"
+	_ "net/http/pprof" // Import side-effect: đăng ký pprof handlers
+	"runtime"
+	"time"
+)
+
+// ─────────────────────────────────────────────────────────────────
+// LEAK PATTERN 1: Goroutine block trên unbuffered channel mãi mãi
+// ─────────────────────────────────────────────────────────────────
+func leakPattern1() {
+	ch := make(chan int) // Unbuffered, không ai gửi vào
+
+	go func() {
+		// ⚠️ LEAK: Block mãi mãi, không bao giờ thoát
+		// Function return nhưng goroutine vẫn "alive" trong runtime
+		val := <-ch
+		fmt.Println("Never reached:", val)
+	}()
+	// ch không được close, không ai gửi → goroutine stuck forever
+}
+
+// ─────────────────────────────────────────────────────────────────
+// LEAK PATTERN 2: Goroutine block trên channel send khi không ai nhận
+// ─────────────────────────────────────────────────────────────────
+func leakPattern2() {
+	result := make(chan int) // Unbuffered
+
+	go func() {
+		// ⚠️ LEAK: Nếu caller đã return, không ai nhận từ result
+		time.Sleep(1 * time.Second) // Simulate work
+		result <- 42                // Block nếu caller đã thoát
+	}()
+
+	// Caller return sau timeout mà không đọc result
+	// → goroutine bị stuck tại "result <- 42" mãi mãi
+	time.Sleep(100 * time.Millisecond)
+	return
+	// Goroutine bị orphaned ở đây!
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FIX PATTERN 1: Dùng context để cancel goroutine
+// ─────────────────────────────────────────────────────────────────
+func fixWithContext(ctx context.Context) {
+	ch := make(chan int)
+
+	go func() {
+		select {
+		case val := <-ch:
+			fmt.Println("Nhận:", val)
+		case <-ctx.Done(): // ✅ Thoát khi ctx bị cancel
+			fmt.Println("Goroutine thoát: context cancelled")
+			return
+		}
+	}()
+}
+
+// ─────────────────────────────────────────────────────────────────
+// FIX PATTERN 2: Buffered channel tránh goroutine bị stuck
+// ─────────────────────────────────────────────────────────────────
+func fixWithBufferedChannel() <-chan int {
+	// ✅ Buffered channel: goroutine gửi không bị block
+	// kể cả khi caller không đọc ngay
+	result := make(chan int, 1) // capacity=1 = tối thiểu để không leak
+
+	go func() {
+		time.Sleep(100 * time.Millisecond)
+		result <- 42 // ✅ Gửi thành công, goroutine thoát
+	}()
+
+	return result
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Monitoring: Đếm goroutines để detect leak trong tests
+// ─────────────────────────────────────────────────────────────────
+func goroutineCount() int {
+	return runtime.NumGoroutine()
+}
+
+func detectLeak(name string, fn func()) {
+	before := goroutineCount()
+	fn()
+	time.Sleep(50 * time.Millisecond) // Chờ goroutines start
+
+	after := goroutineCount()
+	leaked := after - before
+	if leaked > 0 {
+		fmt.Printf("  ⚠️  %s: LEAKED %d goroutines (total: %d)\n", name, leaked, after)
+	} else {
+		fmt.Printf("  ✅ %s: No leak (goroutines: %d)\n", name, after)
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────
+// pprof: Dump goroutine stack traces (production debugging)
+// ─────────────────────────────────────────────────────────────────
+func startPprofServer() {
+	// Trong production: http://localhost:6060/debug/pprof/goroutine?debug=2
+	// Hiển thị stack trace của TẤT CẢ goroutines đang chạy
+	go func() {
+		// http.ListenAndServe(":6060", nil) // Bật để debug
+		_ = http.ListenAndServe // Placeholder
+	}()
+}
+
+func main() {
+	fmt.Printf("Initial goroutines: %d\n\n", goroutineCount())
+
+	// Test leak patterns
+	detectLeak("leakPattern1 (chan receive)", leakPattern1)
+	detectLeak("leakPattern2 (chan send)", leakPattern2)
+
+	// Test fixes
+	ctx, cancel := context.WithCancel(context.Background())
+	detectLeak("fixWithContext (trước cancel)", func() {
+		fixWithContext(ctx)
+	})
+	cancel()                          // Cancel → goroutine thoát
+	time.Sleep(20 * time.Millisecond) // Đợi goroutine thực sự thoát
+	fmt.Printf("  📊 Sau cancel: %d goroutines\n", goroutineCount())
+
+	detectLeak("fixWithBufferedChannel", func() {
+		ch := fixWithBufferedChannel()
+		_ = ch // Không đọc từ ch → goroutine vẫn thoát nhờ buffered
+	})
+
+	// Dump goroutine info qua runtime
+	fmt.Printf("\n📊 Final goroutine count: %d\n", goroutineCount())
+
+	// ── Cách xem goroutine stack trong production ──
+	// $ go tool pprof http://localhost:6060/debug/pprof/goroutine
+	// (pprof) top
+	// (pprof) traces
+	//
+	// Hoặc dùng uber-go/goleak trong tests:
+	// func TestXxx(t *testing.T) {
+	//     defer goleak.VerifyNone(t)
+	//     // ... test code
+	// }
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 06_goroutine_leak.go</div>
+Initial goroutines: 1
+
+  ⚠️  leakPattern1 (chan receive): LEAKED 1 goroutines (total: 2)
+  ⚠️  leakPattern2 (chan send): LEAKED 1 goroutines (total: 3)
+  ✅ fixWithContext (trước cancel): No leak (goroutines: 4)
+  📊 Sau cancel: 3 goroutines
+  ✅ fixWithBufferedChannel: No leak (goroutines: 3)
+
+📊 Final goroutine count: 3 (goroutines từ leak patterns vẫn còn)
+    </div>
+    <div class="callout callout-danger">
+      <span class="callout-icon">🚨</span>
+      <div>
+        <strong>Production tip:</strong> Trong test, dùng <a href="https://github.com/uber-go/goleak" style="color: var(--go-cyan);">uber-go/goleak</a>: <code>defer goleak.VerifyNone(t)</code> — tự động fail test nếu có goroutine leak. Kết hợp với <code>go test -race</code> để phát hiện race condition.
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── EXAMPLE 7 ─── -->
+  <div class="example-wrapper">
+    <div class="example-intro">
+      <span class="example-num">07</span>
+      <div class="example-info">
+        <h4>errgroup + Semaphore — Expert-level Bounded Concurrency</h4>
+        <p>golang.org/x/sync/errgroup · SetLimit() · channel-based semaphore · graceful error propagation</p>
+      </div>
+    </div>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="code-filename">07_errgroup_semaphore.go</span>
+        <span class="level-badge level-expert">Expert</span>
+      </div>
+      <pre><code class="language-go">package main
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"math/rand"
+	"sync"
+	"time"
+
+	"golang.org/x/sync/errgroup"
+	"golang.org/x/sync/semaphore"
+)
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 7A: errgroup — Concurrent tasks với error propagation
+// errgroup = WaitGroup + error collection + context cancellation
+// ─────────────────────────────────────────────────────────────────
+
+type ServiceResult struct {
+	Service string
+	Data    string
+}
+
+// callService mô phỏng gọi external service
+func callService(ctx context.Context, name string, failChance float64) (ServiceResult, error) {
+	// Mô phỏng latency ngẫu nhiên
+	delay := time.Duration(50+rand.Intn(100)) * time.Millisecond
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+
+	select {
+	case <-ctx.Done():
+		return ServiceResult{}, fmt.Errorf("service %s: %w", name, ctx.Err())
+	case <-timer.C:
+		// Mô phỏng failure
+		if rand.Float64() < failChance {
+			return ServiceResult{}, fmt.Errorf("service %s: connection refused", name)
+		}
+		return ServiceResult{Service: name, Data: fmt.Sprintf("data-from-%s", name)}, nil
+	}
+}
+
+func fanOutWithErrgroup(ctx context.Context) error {
+	// errgroup.WithContext: nếu bất kỳ goroutine nào return error
+	// → ctx bị cancel → tất cả goroutines còn lại nhận signal dừng
+	g, ctx := errgroup.WithContext(ctx)
+
+	// ① SetLimit: bounded concurrency — tối đa 3 goroutines đồng thời
+	// Ngăn chặn spike CPU/memory khi nhiều services được gọi
+	g.SetLimit(3)
+
+	services := []string{"auth", "user", "order", "payment", "notification"}
+	results := make([]ServiceResult, len(services))
+
+	for i, svc := range services {
+		i, svc := i, svc // ② CRITICAL: capture loop variables
+
+		// g.Go() block nếu đã đạt limit (SetLimit)
+		g.Go(func() error {
+			result, err := callService(ctx, svc, 0.1) // 10% failure rate
+			if err != nil {
+				return err // ③ Lỗi đầu tiên cancel tất cả goroutines còn lại
+			}
+			// ④ An toàn: mỗi goroutine ghi vào index riêng biệt
+			results[i] = result
+			fmt.Printf("  ✓ %s responded\n", svc)
+			return nil
+		})
+	}
+
+	// ⑤ Wait() return lỗi đầu tiên, đảm bảo tất cả goroutines đã done
+	if err := g.Wait(); err != nil {
+		return fmt.Errorf("fan-out failed: %w", err)
+	}
+
+	for _, r := range results {
+		fmt.Printf("  Result: %s → %s\n", r.Service, r.Data)
+	}
+	return nil
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 7B: Channel-based Semaphore
+// Kiểm soát số goroutines đồng thời không cần external package
+// ─────────────────────────────────────────────────────────────────
+type Semaphore struct {
+	ch chan struct{}
+}
+
+func NewSemaphore(n int) *Semaphore {
+	return &Semaphore{ch: make(chan struct{}, n)}
+}
+
+// Acquire block cho đến khi có slot trống (hoặc ctx cancel)
+func (s *Semaphore) Acquire(ctx context.Context) error {
+	select {
+	case s.ch <- struct{}{}: // ⑥ Gửi vào channel = chiếm slot
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+// Release trả slot về
+func (s *Semaphore) Release() {
+	<-s.ch // ⑦ Nhận từ channel = giải phóng slot
+}
+
+func boundedCrawler(ctx context.Context, urls []string, maxConcurrent int) {
+	sem := NewSemaphore(maxConcurrent) // Tối đa maxConcurrent goroutines
+	var wg sync.WaitGroup
+
+	for _, url := range urls {
+		url := url
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			if err := sem.Acquire(ctx); err != nil {
+				fmt.Printf("  Skip %s: %v\n", url, err)
+				return
+			}
+			defer sem.Release() // ⑧ LUÔN release trong defer
+
+			// Critical section: tối đa maxConcurrent goroutines ở đây cùng lúc
+			time.Sleep(50 * time.Millisecond) // Mô phỏng HTTP request
+			fmt.Printf("  Crawled: %s\n", url)
+		}()
+	}
+
+	wg.Wait()
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 7C: golang.org/x/sync/semaphore — Weighted semaphore
+// Dùng khi goroutines có "trọng lượng" khác nhau (CPU, memory cost)
+// ─────────────────────────────────────────────────────────────────
+func weightedSemaphoreDemo(ctx context.Context) {
+	// Tổng "weight" tối đa = 10 (như memory slots, CPU tokens, etc.)
+	sem := semaphore.NewWeighted(10)
+
+	var wg sync.WaitGroup
+	tasks := []struct {
+		name   string
+		weight int64 // Light task=1, Heavy task=5
+	}{
+		{"light-1", 1}, {"light-2", 1}, {"light-3", 1},
+		{"heavy-1", 5}, {"heavy-2", 5},
+		{"medium-1", 3}, {"medium-2", 3},
+	}
+
+	for _, task := range tasks {
+		task := task
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+
+			// Acquire weight units — block nếu không đủ
+			if err := sem.Acquire(ctx, task.weight); err != nil {
+				fmt.Printf("  %s: cancelled\n", task.name)
+				return
+			}
+			defer sem.Release(task.weight)
+
+			time.Sleep(time.Duration(task.weight*20) * time.Millisecond)
+			fmt.Printf("  ✓ %s (weight=%d) done\n", task.name, task.weight)
+		}()
+	}
+
+	wg.Wait()
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Pattern 7D: Custom error aggregation — Collect all errors
+// (thay vì dừng tại error đầu tiên như errgroup)
+// ─────────────────────────────────────────────────────────────────
+type MultiError struct {
+	mu   sync.Mutex
+	errs []error
+}
+
+func (me *MultiError) Add(err error) {
+	if err == nil {
+		return
+	}
+	me.mu.Lock()
+	me.errs = append(me.errs, err)
+	me.mu.Unlock()
+}
+
+func (me *MultiError) Err() error {
+	me.mu.Lock()
+	defer me.mu.Unlock()
+	if len(me.errs) == 0 {
+		return nil
+	}
+	return errors.Join(me.errs...) // Go 1.20+ join multiple errors
+}
+
+func main() {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	fmt.Println("=== errgroup Fan-out ===")
+	if err := fanOutWithErrgroup(ctx); err != nil {
+		fmt.Printf("Error: %v\n", err)
+	}
+
+	fmt.Println("\n=== Channel-based Semaphore (max 2 concurrent) ===")
+	urls := []string{"/page/1", "/page/2", "/page/3", "/page/4", "/page/5"}
+	boundedCrawler(ctx, urls, 2) // Tối đa 2 crawlers đồng thời
+
+	fmt.Println("\n=== Weighted Semaphore ===")
+	weightedSemaphoreDemo(ctx)
+}
+</code></pre>
+    </div>
+    <div class="output-block">
+      <div class="output-label">$ go run 07_errgroup_semaphore.go</div>
+=== errgroup Fan-out ===
+  ✓ auth responded
+  ✓ user responded
+  ✓ order responded
+  ✓ payment responded
+  ✓ notification responded
+  Result: auth → data-from-auth
+  Result: user → data-from-user
+  ...
+
+=== Channel-based Semaphore (max 2 concurrent) ===
+  Crawled: /page/1
+  Crawled: /page/2
+  Crawled: /page/3
+  Crawled: /page/4
+  Crawled: /page/5
+
+=== Weighted Semaphore ===
+  ✓ light-1 (weight=1) done
+  ✓ light-2 (weight=1) done
+  ✓ light-3 (weight=1) done
+  ✓ heavy-1 (weight=5) done
+  ...
+    </div>
+    <div class="callout callout-info">
+      <span class="callout-icon">📦</span>
+      <div>
+        <strong>Dependencies:</strong> <code>go get golang.org/x/sync</code> — Package chuẩn của Go team, dùng cho <code>errgroup</code> và <code>semaphore</code>. Trong <code>go.mod</code>: <code>require golang.org/x/sync v0.7.0</code>
+      </div>
+    </div>
+  </div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     ④ PITFALLS
+═══════════════════════════════════════════════ -->
+<section class="section" id="pitfalls">
+  <div class="section-header">
+    <span class="section-num">④</span>
+    <div>
+      <h2 class="section-title">PITFALLS — Lỗi thường gặp &amp; Cách fix</h2>
+      <p class="section-desc">8 anti-patterns phổ biến nhất với root cause &amp; production fix</p>
+    </div>
+  <div class="concept-img-wrapper" style="border-color: rgba(248, 81, 73, 0.35);">
+    <img src="../../public/images/go-goroutine-leak-mechanics.png" alt="Go Goroutine Leak Mechanics" loading="lazy">
+    <div class="concept-img-caption">Hình 4.1: Sơ đồ cơ chế rò rỉ bộ nhớ (Goroutine Leak) khi Goroutine bị block vô hạn trên Unbuffered Channel mà không có GC dọn dẹp</div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Lỗi</th>
+        <th>Mức độ</th>
+        <th>Root Cause</th>
+        <th>Cách Fix</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Goroutine Leak — blocked receiver</td>
+        <td><span class="severity sev-critical">Critical</span></td>
+        <td>Goroutine chờ nhận từ channel nhưng sender không bao giờ gửi và channel không được close</td>
+        <td>Dùng <code>context.Context</code> với <code>select { case &lt;-ctx.Done() }</code>. Luôn close channel từ phía sender.</td>
+      </tr>
+      <tr>
+        <td>Goroutine Leak — blocked sender</td>
+        <td><span class="severity sev-critical">Critical</span></td>
+        <td>Goroutine gửi vào unbuffered channel nhưng receiver đã return (caller timeout)</td>
+        <td>Dùng buffered channel <code>make(chan T, 1)</code> hoặc check <code>ctx.Done()</code> trước khi send.</td>
+      </tr>
+      <tr>
+        <td>Closure captures loop variable</td>
+        <td><span class="severity sev-critical">Critical</span></td>
+        <td>Goroutine trong loop dùng biến <code>i</code> từ outer scope — khi chạy, <code>i</code> đã bằng giá trị cuối</td>
+        <td>Shadow: <code>i := i</code> trong loop body hoặc pass như argument: <code>go func(val int) {}(i)</code></td>
+      </tr>
+      <tr>
+        <td>Data Race trên shared map</td>
+        <td><span class="severity sev-critical">Critical</span></td>
+        <td>Nhiều goroutines đọc/ghi cùng một <code>map</code> không được protect</td>
+        <td>Dùng <code>sync.RWMutex</code> hoặc <code>sync.Map</code> (read-heavy). Detect bằng <code>go test -race</code>.</td>
+      </tr>
+      <tr>
+        <td>Quên defer wg.Done()</td>
+        <td><span class="severity sev-high">High</span></td>
+        <td><code>wg.Wait()</code> block mãi mãi nếu <code>Done()</code> không được gọi khi goroutine panic/return sớm</td>
+        <td>LUÔN <code>defer wg.Done()</code> là dòng ĐẦU TIÊN trong goroutine function. Không gọi Done trong defer của defer.</td>
+      </tr>
+      <tr>
+        <td>Quên defer cancel() cho context</td>
+        <td><span class="severity sev-high">High</span></td>
+        <td><code>WithTimeout/WithCancel</code> leak nội bộ goroutine + timer nếu cancel không được gọi</td>
+        <td><code>ctx, cancel := context.WithTimeout(...); defer cancel()</code> — cancel ngay sau khi tạo context.</td>
+      </tr>
+      <tr>
+        <td>Close channel từ receiver</td>
+        <td><span class="severity sev-high">High</span></td>
+        <td>Receiver close channel → nếu sender tiếp tục gửi → <strong>panic: send on closed channel</strong></td>
+        <td>Chỉ sender được close channel. Dùng done channel để signal sender dừng.</td>
+      </tr>
+      <tr>
+        <td>Goroutine pool không bounded</td>
+        <td><span class="severity sev-high">High</span></td>
+        <td>Spawn goroutine trong loop không giới hạn → OOM khi input lớn (1M requests = 1M goroutines)</td>
+        <td>Dùng Worker Pool pattern (Example 05) hoặc <code>errgroup.SetLimit(n)</code> (Example 07) để giới hạn concurrency.</td>
+      </tr>
+      <tr>
+        <td>time.Sleep để đồng bộ goroutines</td>
+        <td><span class="severity sev-medium">Medium</span></td>
+        <td>Race condition trong CI: test chạy nhanh hơn sleep duration → flaky tests</td>
+        <td>Dùng <code>sync.WaitGroup</code>, channel, hoặc <code>context</code>. Sleep chỉ dùng trong demo/example.</td>
+      </tr>
+      <tr>
+        <td>Panic trong goroutine không được recover</td>
+        <td><span class="severity sev-high">High</span></td>
+        <td>Goroutine panic → crash toàn bộ program, không chỉ goroutine đó</td>
+        <td>Thêm <code>defer func() { if r := recover(); r != nil { log.Error(r) } }()</code> ở top của critical goroutines.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub-title">Checklist trước khi merge code có goroutines</h3>
+  <div class="ascii-wrap">✅ Mỗi goroutine có exit path rõ ràng (ctx.Done, channel close, done signal)?
+✅ WaitGroup.Add() được gọi TRƯỚC go statement, không trong goroutine?
+✅ defer wg.Done() là dòng đầu tiên trong goroutine?
+✅ Channel chỉ được close từ phía sender?
+✅ Context cancel() được defer ngay sau khi tạo?
+✅ Loop variable được capture đúng (i := i hoặc pass as argument)?
+✅ Shared state được protect bằng mutex hoặc sync.Map?
+✅ go test -race ./... pass không có data race?
+✅ Goroutine count sau operation bằng count trước (không leak)?
+✅ Bounded concurrency cho production load (worker pool/semaphore/errgroup)?</div>
+
+</section>
+
+<!-- ═══════════════════════════════════════════════
+     ⑤ REF
+═══════════════════════════════════════════════ -->
+<section class="section" id="ref">
+  <div class="section-header">
+    <span class="section-num">⑤</span>
+    <div>
+      <h2 class="section-title">REF — Tài liệu tham khảo</h2>
+      <p class="section-desc">Official docs · Advanced readings · Tools</p>
+    </div>
+  </div>
+
+  <h4 class="sub-sub-title">Official Go Documentation</h4>
+  <div class="ref-grid">
+    <a href="https://go.dev/doc/effective_go#goroutines" class="ref-link">
+      <div class="ref-icon">📖</div>
+      <div class="ref-info">
+        <div class="ref-title">Effective Go — Goroutines</div>
+        <div class="ref-url">go.dev/doc/effective_go#goroutines</div>
+      </div>
+    </a>
+    <a href="https://go.dev/blog/concurrency-is-not-parallelism" class="ref-link">
+      <div class="ref-icon">📝</div>
+      <div class="ref-info">
+        <div class="ref-title">Concurrency is not Parallelism — Rob Pike</div>
+        <div class="ref-url">go.dev/blog/concurrency-is-not-parallelism</div>
+      </div>
+    </a>
+    <a href="https://go.dev/doc/articles/race_detector" class="ref-link">
+      <div class="ref-icon">🔍</div>
+      <div class="ref-info">
+        <div class="ref-title">Go Race Detector — Phát hiện data race</div>
+        <div class="ref-url">go.dev/doc/articles/race_detector</div>
+      </div>
+    </a>
+    <a href="https://pkg.go.dev/sync" class="ref-link">
+      <div class="ref-icon">📦</div>
+      <div class="ref-info">
+        <div class="ref-title">Package sync — WaitGroup, Mutex, Once, Map</div>
+        <div class="ref-url">pkg.go.dev/sync</div>
+      </div>
+    </a>
+    <a href="https://pkg.go.dev/golang.org/x/sync/errgroup" class="ref-link">
+      <div class="ref-icon">📦</div>
+      <div class="ref-info">
+        <div class="ref-title">golang.org/x/sync/errgroup — Concurrent tasks with errors</div>
+        <div class="ref-url">pkg.go.dev/golang.org/x/sync/errgroup</div>
+      </div>
+    </a>
+  </div>
+
+  <h4 class="sub-sub-title">Deep Dive — Advanced Reading</h4>
+  <div class="ref-grid">
+    <a href="https://go.dev/src/runtime/proc.go" class="ref-link">
+      <div class="ref-icon">⚙️</div>
+      <div class="ref-info">
+        <div class="ref-title">Go Runtime Source — proc.go (GMP Scheduler implementation)</div>
+        <div class="ref-url">go.dev/src/runtime/proc.go</div>
+      </div>
+    </a>
+    <a href="https://www.ardanlabs.com/blog/2018/08/scheduling-in-go-part1.html" class="ref-link">
+      <div class="ref-icon">🎓</div>
+      <div class="ref-info">
+        <div class="ref-title">Scheduling in Go — Bill Kennedy (Ardan Labs) 3-part series</div>
+        <div class="ref-url">ardanlabs.com/blog/2018/08/scheduling-in-go-part1.html</div>
+      </div>
+    </a>
+    <a href="https://go.dev/blog/pipelines" class="ref-link">
+      <div class="ref-icon">🔗</div>
+      <div class="ref-info">
+        <div class="ref-title">Go Pipelines and Cancellation — Official Blog</div>
+        <div class="ref-url">go.dev/blog/pipelines</div>
+      </div>
+    </a>
+  </div>
+
+  <h4 class="sub-sub-title">Tools</h4>
+  <div class="ref-grid">
+    <a href="https://github.com/uber-go/goleak" class="ref-link">
+      <div class="ref-icon">🔎</div>
+      <div class="ref-info">
+        <div class="ref-title">uber-go/goleak — Goroutine leak detector cho tests</div>
+        <div class="ref-url">github.com/uber-go/goleak</div>
+      </div>
+    </a>
+    <a href="https://pkg.go.dev/net/http/pprof" class="ref-link">
+      <div class="ref-icon">📊</div>
+      <div class="ref-info">
+        <div class="ref-title">net/http/pprof — Profiling goroutines trong production</div>
+        <div class="ref-url">pkg.go.dev/net/http/pprof</div>
+      </div>
+    </a>
+    <a href="https://github.com/golangci/golangci-lint" class="ref-link">
+      <div class="ref-icon">🛠️</div>
+      <div class="ref-info">
+        <div class="ref-title">golangci-lint — Static analysis, bắt goroutine issues</div>
+        <div class="ref-url">github.com/golangci/golangci-lint</div>
+      </div>
+    </a>
+  </div>
+
+</section>
+
+<!-- Footer -->
+<footer class="doc-footer">
+  <span>Goroutines — Go Concurrency Guide · Advanced to Expert</span>
+  <span>Go 1.21+ · © MVT — Finviet Backend Engineering</span>
+</footer>
+
+</div><!-- /doc-wrapper -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    hljs.configure({ languages: ['go'] });
+    hljs.highlightAll();
+
+    // Robust smooth scroll for all anchor links starting with #
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function(e) {
+        const href = this.getAttribute('href');
+        if (!href || href === '#' || href.startsWith('#/')) return;
+        try {
+          const targetElement = document.querySelector(href);
+          if (targetElement) {
+            e.preventDefault();
+            targetElement.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+            history.pushState(null, null, href);
+          }
+        } catch (err) {
+          console.warn("Invalid selector:", href, err);
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>

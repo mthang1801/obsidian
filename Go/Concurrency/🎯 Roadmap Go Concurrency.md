@@ -3,10 +3,10 @@
 
 Học trước khi code bất kỳ concurrent system nào:
 
-1. **Goroutines cơ bản** - Hiểu cách Go spawn lightweight threads
-2. [**Unbuffered Channels**](./go-channels-guide.html) - Synchronous communication (blocking)
-3. [**Buffered Channels**](./go-channels-guide.html) - Asynchronous với capacity
-4. **Race Conditions** - Tại sao cần synchronization (chạy với `-race` flag)
+1. [**Goroutines cơ bản**](./goroutines-guide.html) - Hiểu cách Go spawn lightweight threads
+2. [**Unbuffered Channels**](buffered-unbuffered-channels.html) - Synchronous communication (blocking)
+3. [**Buffered Channels**](buffered-unbuffered-channels.html) - Asynchronous với capacity
+4. [**Race Conditions**](./go-race-conditions.html) - Tại sao cần synchronization (chạy với `-race` flag)
 5. [**Mutex & RWMutex**](./mutex-and-confinement.html) - Bảo vệ shared memory
 
 🔥 **So sánh với Node.js**: Goroutines ≈ async/await nhưng truly concurrent, channels ≈ EventEmitter nhưng type-safe
@@ -18,7 +18,7 @@ Patterns thực tế cho production:
 6. [**WaitGroup**](./wait-group.html) - Chờ nhóm goroutines (như `Promise.all()`)
 7. [**Context**](./context.html) - Cancellation, timeout, request-scoped values (giống AbortController)
 8. [**Select Statement**](./select-statement.html) - Multiplexing channels (unique trong Go)
-9. **Or-Done Pattern** - Kết hợp context với channel cleanup
+9. [**Or-Done Pattern** ](./go-or-done-pattern.html)- Kết hợp context với channel cleanup
 10. **Pipeline Pattern** - Chain processing stages (như Stream API)
 
 #### **LEVEL 3: Advanced Patterns (11-15)**

@@ -11,12 +11,14 @@
             "id": "f13b0062a2cef275",
             "type": "leaf",
             "state": {
-              "type": "html-file-view",
+              "type": "markdown",
               "state": {
-                "file": "Go/Concurrency/mutex-and-confinement.html"
+                "file": "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
+                "mode": "source",
+                "source": false
               },
               "icon": "lucide-file",
-              "title": "mutex-and-confinement"
+              "title": "🎯 Roadmap Go Concurrency"
             }
           }
         ]
@@ -76,7 +78,7 @@
       }
     ],
     "direction": "horizontal",
-    "width": 333.5
+    "width": 311.5
   },
   "right": {
     "id": "3f5721041d0b3d3a",
@@ -183,11 +185,21 @@
   },
   "active": "f13b0062a2cef275",
   "lastOpenFiles": [
-    "Go/Concurrency/go-channels-guide.html",
-    "Go/Concurrency/mutex-and-confinement.html",
+    "Go/Concurrency/go-race-conditions.html",
+    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
+    "Go/Concurrency/go-or-done-pattern.html",
     "Go/Concurrency/context.html",
+    "Go/Concurrency/goroutines-guide.html",
+    "public/images/go-happens-before.png",
+    "public/images/go-goroutine-leak-mechanics.png",
+    "public/images/go-goroutine-stack-growth.png",
+    "Go/Concurrency/buffered-unbuffered-channels.html",
+    "Go/Concurrency/mutex-and-confinement.html",
     "Go/Concurrency/wait-group.html",
     "Go/Concurrency/select-statement.html",
+    "Glosarry/AI glossary.md",
+    "Untitled.canvas",
+    "2026-05-22.md",
     "public/images/go-buffered-vs-unbuffered.png",
     "public/images/go-channels-concept.png",
     "public/images/go-worker-pool.png",
@@ -195,22 +207,14 @@
     "public/images/go-rwmutex-concept.png",
     "public/images/go-fan-in-fan-out.png",
     "public/images/go-done-channel.png",
-    "public/images/go-context-timeout.png",
-    "public/images/go-pipeline-pattern.png",
-    "public/images/go-mutex-race-condition.png",
-    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
     "LENDING/2026-04-24.md",
     "public/docs",
     "public/images",
-    "public",
     "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
     "go-channels-guilde.html.md",
-    "Go/Concurrency/Context.html",
-    "Go/Concurrency/Fan_in_fan_out.html",
     "Go/Concurrency/Go Select Statement — Hướng Dẫn Toàn Diện.md",
     "Go/Artifacts/Untitled.md",
     "Go/Artifacts/Untitled 1.md",
-    "Glosarry/AI glossary.md",
     "Diagram/Flowchart/Pattern 5 — CQRS Command Flow sử dụng Event Sourcing (Expert).md",
     "Diagram/Flowchart/Pattern 3 — Circuit Breaker + Fallback (Advanced).md",
     "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",
@@ -219,7 +223,6 @@
     "mAIvt/2026-04-24.md",
     "Test mermaid.md",
     "2026-04-29.md",
-    "Untitled.canvas",
     "Welcome.md",
     "Untitled 2.canvas",
     "Untitled 1.canvas",

@@ -1,0 +1,2086 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Race Conditions - Hướng Dẫn Toàn Diện</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --bg4: #30363d;
+    --border: #30363d;
+    --border2: #444c56;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --accent: #58a6ff;
+    --accent2: #388bfd;
+    --green: #3fb950;
+    --green2: #238636;
+    --red: #f85149;
+    --red2: #da3633;
+    --orange: #d29922;
+    --orange2: #e3b341;
+    --purple: #bc8cff;
+    --purple2: #8957e5;
+    --teal: #39d353;
+    --pink: #db61a2;
+    --yellow: #e3b341;
+    --code-bg: #161b22;
+    --code-border: #30363d;
+    --danger-bg: rgba(248, 81, 73, 0.1);
+    --danger-border: rgba(248, 81, 73, 0.4);
+    --success-bg: rgba(63, 185, 80, 0.1);
+    --success-border: rgba(63, 185, 80, 0.4);
+    --warn-bg: rgba(210, 153, 34, 0.1);
+    --warn-border: rgba(210, 153, 34, 0.4);
+    --info-bg: rgba(88, 166, 255, 0.1);
+    --info-border: rgba(88, 166, 255, 0.4);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Be Vietnam Pro', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  /* Navigation */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13, 17, 23, 0.95);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex; align-items: center; gap: 24px;
+    height: 56px;
+  }
+  .nav-logo { font-weight: 700; font-size: 16px; color: var(--text); }
+  .nav-logo span { color: var(--accent); }
+  .nav-links { display: flex; gap: 4px; flex: 1; overflow-x: auto; }
+  .nav-link {
+    color: var(--text2); font-size: 13px; text-decoration: none;
+    padding: 6px 12px; border-radius: 6px; white-space: nowrap;
+    transition: all 0.15s;
+  }
+  .nav-link:hover { background: var(--bg3); color: var(--text); }
+  .nav-badge {
+    background: var(--red2); color: #fff; font-size: 10px;
+    padding: 2px 6px; border-radius: 10px; margin-left: 4px;
+  }
+
+  /* Layout */
+  .layout { display: grid; grid-template-columns: 240px 1fr; max-width: 1280px; margin: 0 auto; }
+
+  .sidebar {
+    position: sticky; top: 56px; height: calc(100vh - 56px);
+    overflow-y: auto; border-right: 1px solid var(--border);
+    padding: 24px 16px;
+  }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
+
+  .sidebar-section { margin-bottom: 20px; }
+  .sidebar-title { font-size: 11px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; padding: 0 8px; margin-bottom: 6px; }
+  .sidebar-link {
+    display: block; padding: 5px 8px; border-radius: 6px;
+    color: var(--text2); font-size: 13px; text-decoration: none;
+    transition: all 0.15s;
+  }
+  .sidebar-link:hover { background: var(--bg3); color: var(--text); }
+  .sidebar-link.active { background: var(--info-bg); color: var(--accent); border-left: 2px solid var(--accent); }
+
+  /* Main content */
+  .content { padding: 40px 56px; max-width: 900px; }
+
+  /* Section */
+  .section { margin-bottom: 64px; }
+  [id] { scroll-margin-top: 80px; }
+
+  h1 { font-size: 32px; font-weight: 700; line-height: 1.3; margin-bottom: 16px; }
+  h1 .badge { font-size: 13px; font-weight: 500; background: var(--danger-bg); color: var(--red); border: 1px solid var(--danger-border); padding: 3px 10px; border-radius: 20px; margin-left: 12px; vertical-align: middle; }
+  h2 { font-size: 22px; font-weight: 600; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid var(--border); }
+  h3 { font-size: 17px; font-weight: 600; margin-bottom: 12px; color: var(--accent); }
+  h4 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  p { margin-bottom: 14px; color: var(--text2); }
+  p strong { color: var(--text); }
+
+  /* Hero */
+  .hero {
+    background: linear-gradient(135deg, rgba(248,81,73,0.08), rgba(88,166,255,0.05));
+    border: 1px solid var(--danger-border);
+    border-radius: 12px; padding: 32px; margin-bottom: 40px;
+  }
+  .hero-meta { display: flex; gap: 16px; margin-top: 16px; flex-wrap: wrap; }
+  .hero-tag { font-size: 12px; color: var(--text3); background: var(--bg3); padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border); }
+
+  /* Callouts */
+  .callout { border-radius: 10px; padding: 16px 20px; margin: 20px 0; border-left: 3px solid; }
+  .callout-danger { background: var(--danger-bg); border-color: var(--red); }
+  .callout-success { background: var(--success-bg); border-color: var(--green); }
+  .callout-warning { background: var(--warn-bg); border-color: var(--orange2); }
+  .callout-info { background: var(--info-bg); border-color: var(--accent); }
+  .callout-title { font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+  .callout-danger .callout-title { color: var(--red); }
+  .callout-success .callout-title { color: var(--green); }
+  .callout-warning .callout-title { color: var(--orange2); }
+  .callout-info .callout-title { color: var(--accent); }
+  .callout p { margin-bottom: 0; font-size: 14px; }
+
+  /* Code blocks */
+  .code-block {
+    background: var(--code-bg); border: 1px solid var(--code-border);
+    border-radius: 10px; overflow: hidden; margin: 16px 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg3); border-bottom: 1px solid var(--border);
+  }
+  .code-filename { font-size: 12px; color: var(--text2); font-family: 'JetBrains Mono', monospace; }
+  .code-badge-danger { font-size: 10px; background: var(--danger-bg); color: var(--red); border: 1px solid var(--danger-border); padding: 2px 8px; border-radius: 10px; }
+  .code-badge-success { font-size: 10px; background: var(--success-bg); color: var(--green); border: 1px solid var(--success-border); padding: 2px 8px; border-radius: 10px; }
+  .code-badge-warn { font-size: 10px; background: var(--warn-bg); color: var(--orange2); border: 1px solid var(--warn-border); padding: 2px 8px; border-radius: 10px; }
+  .code-badge-info { font-size: 10px; background: var(--info-bg); color: var(--accent); border: 1px solid var(--info-border); padding: 2px 8px; border-radius: 10px; }
+  pre {
+    padding: 20px; overflow-x: auto; font-size: 13.5px; line-height: 1.75;
+    color: #e6edf3;
+  }
+  .copy-btn {
+    background: none; border: 1px solid var(--border2); color: var(--text2);
+    padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .copy-btn:hover { background: var(--bg4); color: var(--text); }
+  .copy-btn.copied { color: var(--green); border-color: var(--green2); }
+
+  /* Syntax highlighting */
+  .kw { color: #ff7b72; }      /* keywords */
+  .fn { color: #d2a8ff; }      /* functions */
+  .str { color: #a5d6ff; }     /* strings */
+  .num { color: #79c0ff; }     /* numbers */
+  .cmt { color: #8b949e; font-style: italic; } /* comments */
+  .typ { color: #ffa657; }     /* types */
+  .pkg { color: #79c0ff; }     /* packages */
+  .var { color: #e6edf3; }     /* variables */
+  .op  { color: #ff7b72; }     /* operators */
+  .punc { color: #8b949e; }    /* punctuation */
+  .lit  { color: #a5d6ff; }    /* literals */
+  .err  { background: rgba(248,81,73,0.2); border-radius: 3px; padding: 1px 3px; }
+  .ok   { background: rgba(63,185,80,0.15); border-radius: 3px; padding: 1px 3px; }
+  .hl   { background: rgba(88,166,255,0.12); display: block; margin: 0 -20px; padding: 0 20px; }
+  .hl-danger { background: rgba(248,81,73,0.12); display: block; margin: 0 -20px; padding: 0 20px; }
+  .hl-success { background: rgba(63,185,80,0.1); display: block; margin: 0 -20px; padding: 0 20px; }
+  .inline-code { font-family: 'JetBrains Mono', monospace; font-size: 13px; background: var(--bg3); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: var(--orange2); }
+
+  /* Diagram */
+  .diagram-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin: 20px 0;
+    overflow-x: auto;
+  }
+  .diagram-box svg { display: block; }
+
+  /* Comparison grid */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 20px 0; }
+  .compare-card { background: var(--bg2); border-radius: 10px; overflow: hidden; }
+  .compare-header { padding: 12px 16px; font-size: 13px; font-weight: 600; }
+  .compare-header.bad { background: var(--danger-bg); color: var(--red); border-bottom: 1px solid var(--danger-border); }
+  .compare-header.good { background: var(--success-bg); color: var(--green); border-bottom: 1px solid var(--success-border); }
+  .compare-card pre { padding: 16px; font-size: 12.5px; border-radius: 0; border: none; background: transparent; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; margin: 20px 0; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  th { background: var(--bg3); color: var(--text); font-weight: 600; padding: 10px 14px; text-align: left; border: 1px solid var(--border); }
+  td { padding: 9px 14px; border: 1px solid var(--border); color: var(--text2); }
+  tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+  .td-green { color: var(--green); font-weight: 500; }
+  .td-red { color: var(--red); font-weight: 500; }
+  .td-yellow { color: var(--yellow); font-weight: 500; }
+
+  /* Badge row */
+  .badge-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .badge { font-size: 12px; padding: 4px 12px; border-radius: 20px; font-weight: 500; }
+  .badge-red { background: var(--danger-bg); color: var(--red); border: 1px solid var(--danger-border); }
+  .badge-green { background: var(--success-bg); color: var(--green); border: 1px solid var(--success-border); }
+  .badge-blue { background: var(--info-bg); color: var(--accent); border: 1px solid var(--info-border); }
+  .badge-yellow { background: var(--warn-bg); color: var(--yellow); border: 1px solid var(--warn-border); }
+  .badge-purple { background: rgba(188,140,255,0.1); color: var(--purple); border: 1px solid rgba(188,140,255,0.3); }
+
+  /* Terminal output */
+  .terminal {
+    background: #010409; border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin: 16px 0;
+  }
+  .terminal-header {
+    background: var(--bg3); padding: 8px 16px;
+    display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border);
+  }
+  .terminal-dot { width: 12px; height: 12px; border-radius: 50%; }
+  .terminal-title { font-size: 12px; color: var(--text3); font-family: 'JetBrains Mono', monospace; }
+  .terminal-body { padding: 16px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.8; }
+  .t-cmd { color: #58a6ff; }
+  .t-warn { color: #f0883e; }
+  .t-err { color: #f85149; }
+  .t-ok { color: #3fb950; }
+  .t-muted { color: #6e7681; }
+  .t-highlight { color: #ffa657; font-weight: 500; }
+
+  /* Step indicator */
+  .steps { display: flex; flex-direction: column; gap: 0; margin: 24px 0; }
+  .step { display: flex; gap: 16px; position: relative; }
+  .step:not(:last-child)::before {
+    content: ''; position: absolute; left: 19px; top: 44px;
+    width: 2px; background: var(--border); height: calc(100% - 8px);
+  }
+  .step-num {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--bg3); border: 2px solid var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; color: var(--accent);
+    flex-shrink: 0; margin-top: 4px;
+  }
+  .step-content { padding: 4px 0 24px; }
+  .step-title { font-weight: 600; font-size: 15px; margin-bottom: 4px; }
+  .step-desc { font-size: 13.5px; color: var(--text2); }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+  /* Tag pill */
+  .pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+
+  /* SVG diagram inline */
+  .svg-diagram { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin: 20px 0; }
+
+  /* Memory model */
+  .memory-visual { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 20px; margin: 16px 0; font-family: 'JetBrains Mono', monospace; }
+
+  /* Two column */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin: 20px 0; }
+
+  /* TOC */
+  .toc { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px; padding: 20px 24px; margin: 24px 0; }
+  .toc-title { font-size: 13px; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px; }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+  .toc-list a { color: var(--text2); text-decoration: none; font-size: 13.5px; }
+  .toc-list a:hover { color: var(--accent); }
+  .toc-sub { padding-left: 16px; display: flex; flex-direction: column; gap: 2px; margin-top: 2px; }
+  .toc-sub a { font-size: 12.5px; color: var(--text3); }
+  .toc-num { color: var(--text3); margin-right: 6px; font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* Note */
+  .note { font-size: 13px; color: var(--text3); font-style: italic; margin: 8px 0; }
+
+  /* Quick ref */
+  .quick-ref { background: var(--bg2); border: 1px solid var(--accent2); border-radius: 10px; padding: 20px; }
+  .quick-ref-title { color: var(--accent); font-weight: 600; font-size: 14px; margin-bottom: 12px; }
+  .quick-ref-item { display: flex; gap: 12px; margin-bottom: 8px; font-size: 13px; }
+  .quick-ref-item code { color: var(--orange2); font-family: 'JetBrains Mono', monospace; min-width: 200px; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .content { padding: 24px 20px; }
+    .compare-grid, .two-col { grid-template-columns: 1fr; }
+  }
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(88, 166, 255, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg2);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--text2);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-logo">Go <span>Race Conditions</span></div>
+  <div class="nav-links">
+    <a href="#intro" class="nav-link">Giới thiệu</a>
+    <a href="#what-is" class="nav-link">Race Condition là gì?</a>
+    <a href="#race-flag" class="nav-link">-race flag</a>
+    <a href="#sync-primitives" class="nav-link">Sync Primitives</a>
+    <a href="#patterns" class="nav-link">Patterns</a>
+    <a href="#advanced" class="nav-link">Nâng cao</a>
+    <a href="#expert" class="nav-link">Expert</a>
+    <a href="#checklist" class="nav-link">Checklist</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-title">Cơ bản</div>
+      <a href="#intro" class="sidebar-link">Giới thiệu</a>
+      <a href="#what-is" class="sidebar-link">Race Condition là gì?</a>
+      <a href="#why-dangerous" class="sidebar-link">Tại sao nguy hiểm?</a>
+      <a href="#race-flag" class="sidebar-link">-race flag</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Synchronization</div>
+      <a href="#mutex" class="sidebar-link">sync.Mutex</a>
+      <a href="#rwmutex" class="sidebar-link">sync.RWMutex</a>
+      <a href="#atomic" class="sidebar-link">sync/atomic</a>
+      <a href="#waitgroup" class="sidebar-link">sync.WaitGroup</a>
+      <a href="#once" class="sidebar-link">sync.Once</a>
+      <a href="#channel" class="sidebar-link">Channel</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Patterns</div>
+      <a href="#counter-pattern" class="sidebar-link">Counter Pattern</a>
+      <a href="#shared-map" class="sidebar-link">Shared Map</a>
+      <a href="#producer-consumer" class="sidebar-link">Producer-Consumer</a>
+      <a href="#read-write-lock" class="sidebar-link">Read-Write Lock</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Nâng cao</div>
+      <a href="#memory-model" class="sidebar-link">Go Memory Model</a>
+      <a href="#happens-before" class="sidebar-link">Happens-Before</a>
+      <a href="#data-races" class="sidebar-link">Data Race Detection</a>
+      <a href="#false-sharing" class="sidebar-link">False Sharing</a>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-title">Expert</div>
+      <a href="#lock-free" class="sidebar-link">Lock-Free Structures</a>
+      <a href="#cas" class="sidebar-link">CAS Operations</a>
+      <a href="#hazard-pointer" class="sidebar-link">Hazard Pointer</a>
+      <a href="#checklist" class="sidebar-link">Race Checklist</a>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <!-- HERO -->
+    <section id="intro" class="section">
+      <div class="hero">
+        <h1>Race Conditions trong Go <span class="badge">⚠️ Critical</span></h1>
+        <p><strong>Race condition</strong> (điều kiện tranh chấp) là một trong những lỗi concurrent programming khó phát hiện và nguy hiểm nhất. Tài liệu này đi sâu từ khái niệm cơ bản đến kỹ thuật expert-level để phòng tránh và phát hiện race conditions trong Go.</p>
+        <div class="hero-meta">
+          <span class="hero-tag">🔴 Go 1.21+</span>
+          <span class="hero-tag">⚡ Concurrency</span>
+          <span class="hero-tag">🔒 Synchronization</span>
+          <span class="hero-tag">🔬 -race flag</span>
+          <span class="hero-tag">📐 Advanced Patterns</span>
+        </div>
+      </div>
+
+      <div class="toc">
+        <div class="toc-title">Nội dung</div>
+        <ul class="toc-list">
+          <li><a href="#what-is"><span class="toc-num">01</span> Race Condition là gì? — Định nghĩa & ví dụ đơn giản</a></li>
+          <li><a href="#why-dangerous"><span class="toc-num">02</span> Tại sao Race Condition nguy hiểm?</a></li>
+          <li><a href="#race-flag"><span class="toc-num">03</span> Race Detector (-race flag) — Công cụ phát hiện</a></li>
+          <li><a href="#sync-primitives"><span class="toc-num">04</span> Synchronization Primitives — Bộ công cụ đồng bộ</a>
+            <ul class="toc-sub">
+              <li><a href="#mutex">sync.Mutex / sync.RWMutex</a></li>
+              <li><a href="#atomic">sync/atomic</a></li>
+              <li><a href="#waitgroup">sync.WaitGroup / sync.Once</a></li>
+              <li><a href="#channel">Channel-based synchronization</a></li>
+            </ul>
+          </li>
+          <li><a href="#patterns"><span class="toc-num">05</span> Patterns phổ biến — Counter, Map, Producer-Consumer</a></li>
+          <li><a href="#advanced"><span class="toc-num">06</span> Nâng cao — Go Memory Model, Happens-Before</a></li>
+          <li><a href="#expert"><span class="toc-num">07</span> Expert — Lock-Free, CAS, False Sharing</a></li>
+          <li><a href="#checklist"><span class="toc-num">08</span> Race Condition Checklist</a></li>
+        </ul>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- WHAT IS RACE CONDITION -->
+    <section id="what-is" class="section">
+      <h2>01. Race Condition là gì?</h2>
+
+      <p><strong>Race condition</strong> xảy ra khi hai hay nhiều goroutines <strong>đồng thời truy cập</strong> vào cùng một vùng dữ liệu (shared data) và ít nhất một trong số đó thực hiện thao tác <strong>ghi (write)</strong>, mà không có cơ chế đồng bộ nào.</p>
+
+      <div class="callout callout-danger">
+        <div class="callout-title">🚨 Định nghĩa chính thức</div>
+        <p>A <strong>data race</strong> occurs when two goroutines access the same variable concurrently and at least one of the accesses is a write. — <em>Go Memory Model</em></p>
+      </div>
+
+      <h3>Ví dụ cơ bản nhất</h3>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">❌ race_basic.go</span>
+          <span class="code-badge-danger">DATA RACE</span>
+        </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="kw">var</span> counter <span class="typ">int</span> <span class="cmt">// biến dùng chung</span>
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">1000</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+<span class="hl-danger">            counter++ <span class="cmt">// ⚠️ RACE: read + increment + write không atomic!</span></span>
+        }()
+    }
+
+    wg.Wait()
+    fmt.<span class="fn">Println</span>(<span class="str">"Counter:"</span>, counter) <span class="cmt">// Có thể in ra: 978, 991, 1000... bất kỳ</span>
+}</pre>
+      </div>
+
+      <p>Vấn đề ở đây: <span class="inline-code">counter++</span> thực chất là <strong>3 thao tác không phải atomic</strong>:</p>
+
+      <div class="svg-diagram">
+        <svg width="100%" viewBox="0 0 640 160">
+          <defs>
+            <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+              <path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </marker>
+          </defs>
+          <!-- Step boxes -->
+          <rect x="20" y="50" width="160" height="60" rx="8" fill="#21262d" stroke="#388bfd" stroke-width="1"/>
+          <text x="100" y="75" text-anchor="middle" font-family="'JetBrains Mono'" font-size="13" fill="#58a6ff" font-weight="600">READ</text>
+          <text x="100" y="95" text-anchor="middle" font-family="'JetBrains Mono'" font-size="11" fill="#8b949e">tmp = counter</text>
+          <text x="100" y="130" text-anchor="middle" font-family="'Be Vietnam Pro'" font-size="11" fill="#6e7681">Đọc giá trị hiện tại</text>
+
+          <line x1="180" y1="80" x2="220" y2="80" stroke="#444c56" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+          <rect x="220" y="50" width="160" height="60" rx="8" fill="#21262d" stroke="#d29922" stroke-width="1"/>
+          <text x="300" y="75" text-anchor="middle" font-family="'JetBrains Mono'" font-size="13" fill="#e3b341" font-weight="600">INCREMENT</text>
+          <text x="300" y="95" text-anchor="middle" font-family="'JetBrains Mono'" font-size="11" fill="#8b949e">tmp = tmp + 1</text>
+          <text x="300" y="130" text-anchor="middle" font-family="'Be Vietnam Pro'" font-size="11" fill="#6e7681">Cộng thêm 1</text>
+
+          <line x1="380" y1="80" x2="420" y2="80" stroke="#444c56" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+          <rect x="420" y="50" width="160" height="60" rx="8" fill="#21262d" stroke="#f85149" stroke-width="1"/>
+          <text x="500" y="75" text-anchor="middle" font-family="'JetBrains Mono'" font-size="13" fill="#f85149" font-weight="600">WRITE</text>
+          <text x="500" y="95" text-anchor="middle" font-family="'JetBrains Mono'" font-size="11" fill="#8b949e">counter = tmp</text>
+          <text x="500" y="130" text-anchor="middle" font-family="'Be Vietnam Pro'" font-size="11" fill="#6e7681">Ghi lại bộ nhớ</text>
+
+          <text x="320" y="20" text-anchor="middle" font-family="'Be Vietnam Pro'" font-size="12" fill="#6e7681">counter++ = 3 bước tách biệt → Goroutine khác có thể chen vào giữa!</text>
+        </svg>
+      </div>
+
+      <div id="why-dangerous"></div>
+      <h3>Tại sao Race Condition nguy hiểm?</h3>
+
+      <div class="two-col">
+        <div>
+          <div class="callout callout-danger">
+            <div class="callout-title">❌ Các triệu chứng</div>
+            <p>
+              • Kết quả không xác định, chạy mỗi lần khác nhau<br>
+              • Chỉ xảy ra trên máy chủ production với tải cao<br>
+              • Cực kỳ khó reproduce<br>
+              • Memory corruption dẫn đến crash<br>
+              • Deadlock không ngờ tới<br>
+              • Dữ liệu bị corrupt mà không có error
+            </p>
+          </div>
+        </div>
+        <div>
+          <div class="callout callout-warning">
+            <div class="callout-title">⚠️ Đặc điểm nguy hiểm</div>
+            <p>
+              • Chạy đúng 99.9% thời gian, sai 0.1% (worst case)<br>
+              • Không có compile-time error<br>
+              • Go runtime KHÔNG tự phát hiện (cần -race flag)<br>
+              • Behavior: undefined theo Go Memory Model<br>
+              • Có thể crash ở code không liên quan trực tiếp<br>
+              • Rất khó debug bằng print statements
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- RACE FLAG -->
+    <section id="race-flag" class="section">
+      <h2>02. Race Detector — -race flag</h2>
+
+      <p>Go cung cấp <strong>Race Detector</strong> được tích hợp sẵn dựa trên <strong>ThreadSanitizer (TSan)</strong>. Đây là công cụ PHẢI có trong workflow development.</p>
+
+      <div class="terminal">
+        <div class="terminal-header">
+          <div class="terminal-dot" style="background:#ff5f57"></div>
+          <div class="terminal-dot" style="background:#febc2e"></div>
+          <div class="terminal-dot" style="background:#28c840"></div>
+          <span class="terminal-title">Terminal</span>
+        </div>
+        <div class="terminal-body">
+<span class="t-muted"># Chạy với race detector</span>
+<span class="t-cmd">$ go run -race main.go</span>
+<span class="t-cmd">$ go test -race ./...</span>
+<span class="t-cmd">$ go build -race -o myapp ./cmd/server</span>
+
+<span class="t-muted"># Output khi phát hiện race condition:</span>
+<span class="t-err">==================</span>
+<span class="t-err">WARNING: DATA RACE</span>
+<span class="t-err">Write at 0x00c0000b4010 by goroutine 7:</span>
+<span class="t-warn">  main.main.func1()</span>
+<span class="t-warn">      /home/user/race_basic.go:14 +0x28</span>
+
+<span class="t-err">Previous write at 0x00c0000b4010 by goroutine 6:</span>
+<span class="t-warn">  main.main.func1()</span>
+<span class="t-warn">      /home/user/race_basic.go:14 +0x28</span>
+
+<span class="t-err">Goroutine 7 (running) created at:</span>
+<span class="t-warn">  main.main()</span>
+<span class="t-warn">      /home/user/race_basic.go:11 +0x68</span>
+<span class="t-err">==================</span>
+<span class="t-err">Found 1 data race(s)</span>
+<span class="t-err">exit status 66</span></div>
+      </div>
+
+      <h3>Cách đọc Race Detector Output</h3>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <div class="step-title">Loại thao tác (Write/Read)</div>
+            <div class="step-desc"><span class="inline-code">Write at 0x...c0000b4010</span> — goroutine nào đang ghi vào địa chỉ bộ nhớ nào</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <div class="step-title">Stack trace của goroutine vi phạm</div>
+            <div class="step-desc">File và dòng code chính xác gây ra race</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <div class="step-title">Thao tác xung đột trước đó</div>
+            <div class="step-desc"><span class="inline-code">Previous write</span> — thao tác nào đã xảy ra trước mà không có synchronization</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <div class="step-title">Nơi goroutine được tạo</div>
+            <div class="step-desc">Goroutine được khởi tạo ở đâu — giúp tìm nguồn gốc vấn đề</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="callout callout-warning">
+        <div class="callout-title">⚠️ Overhead của -race flag</div>
+        <p>Memory tăng ~5-10x, CPU tăng ~2-20x. <strong>Chỉ dùng trong development/testing</strong>, KHÔNG deploy production với -race (ngoại trừ debug khẩn cấp có giám sát). Luôn chạy <span class="inline-code">go test -race ./...</span> trong CI/CD pipeline.</p>
+      </div>
+
+      <h3>Cấu hình Race Detector</h3>
+
+      <div class="code-block">
+        <div class="code-header">
+          <span class="code-filename">Environment Variables</span>
+          <span class="code-badge-info">CONFIG</span>
+        </div>
+<pre><span class="cmt"># GORACE environment variable — kiểm soát behavior của race detector</span>
+<span class="t-cmd">GORACE="log_path=/tmp/race halt_on_error=1" go test -race ./...</span>
+
+<span class="cmt"># Các option quan trọng:</span>
+<span class="cmt"># log_path=/tmp/race       → ghi log ra file (prefix)</span>
+<span class="cmt"># halt_on_error=1          → dừng ngay khi phát hiện race (default: 0)</span>
+<span class="cmt"># history_size=2           → lịch sử memory access (default: 1, max: 7)</span>
+<span class="cmt"># exitcode=66              → exit code khi có race (default: 66)</span>
+<span class="cmt"># strip_path_prefix=...    → rút ngắn đường dẫn file trong output</span></pre>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- SYNC PRIMITIVES -->
+    <section id="sync-primitives" class="section">
+      <h2>03. Synchronization Primitives</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Primitive</th>
+              <th>Use Case</th>
+              <th>Performance</th>
+              <th>Complexity</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="inline-code">sync.Mutex</span></td>
+              <td>Bảo vệ critical section, read+write</td>
+              <td class="td-yellow">Trung bình</td>
+              <td class="td-green">Thấp</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">sync.RWMutex</span></td>
+              <td>Nhiều readers, ít writers</td>
+              <td class="td-green">Cao (reads)</td>
+              <td class="td-yellow">Trung bình</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">sync/atomic</span></td>
+              <td>Counters, flags đơn giản</td>
+              <td class="td-green">Rất cao</td>
+              <td class="td-yellow">Trung bình</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">channel</span></td>
+              <td>Truyền data, signal, pipeline</td>
+              <td class="td-yellow">Trung bình</td>
+              <td class="td-yellow">Trung bình</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">sync.Once</span></td>
+              <td>Khởi tạo một lần (singleton)</td>
+              <td class="td-green">Cao</td>
+              <td class="td-green">Thấp</td>
+            </tr>
+            <tr>
+              <td><span class="inline-code">sync.Map</span></td>
+              <td>Concurrent map (ít writes)</td>
+              <td class="td-yellow">Trung bình</td>
+              <td class="td-green">Thấp</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- MUTEX -->
+      <div id="mutex">
+        <h3>sync.Mutex — Khóa độc quyền</h3>
+
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="compare-header bad">❌ Không có mutex (race)</div>
+<pre style="padding:16px;font-size:12px;font-family:'JetBrains Mono';color:#e6edf3;background:#161b22"><span class="kw">type</span> <span class="typ">Counter</span> <span class="kw">struct</span> {
+    count <span class="typ">int</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">Counter</span>) <span class="fn">Increment</span>() {
+    <span class="cmt">// ⚠️ RACE CONDITION!</span>
+    c.count++
+}
+
+<span class="kw">func</span> (c *<span class="typ">Counter</span>) <span class="fn">Get</span>() <span class="typ">int</span> {
+    <span class="cmt">// ⚠️ Đọc không an toàn</span>
+    <span class="kw">return</span> c.count
+}</pre>
+          </div>
+          <div class="compare-card">
+            <div class="compare-header good">✅ Với Mutex (thread-safe)</div>
+<pre style="padding:16px;font-size:12px;font-family:'JetBrains Mono';color:#e6edf3;background:#161b22"><span class="kw">type</span> <span class="typ">Counter</span> <span class="kw">struct</span> {
+    mu    sync.<span class="typ">Mutex</span>
+    count <span class="typ">int</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">Counter</span>) <span class="fn">Increment</span>() {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.count++
+}
+
+<span class="kw">func</span> (c *<span class="typ">Counter</span>) <span class="fn">Get</span>() <span class="typ">int</span> {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> c.count
+}</pre>
+          </div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">mutex_complete.go</span>
+            <span class="code-badge-success">THREAD-SAFE</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// SafeCounter — counter thread-safe với Mutex</span>
+<span class="kw">type</span> <span class="typ">SafeCounter</span> <span class="kw">struct</span> {
+    mu    sync.<span class="typ">Mutex</span>
+    count <span class="typ">int</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">SafeCounter</span>) <span class="fn">Increment</span>() {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.count++
+}
+
+<span class="kw">func</span> (c *<span class="typ">SafeCounter</span>) <span class="fn">Add</span>(n <span class="typ">int</span>) {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.count += n
+}
+
+<span class="kw">func</span> (c *<span class="typ">SafeCounter</span>) <span class="fn">Get</span>() <span class="typ">int</span> {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> c.count
+}
+
+<span class="kw">func</span> (c *<span class="typ">SafeCounter</span>) <span class="fn">Reset</span>() {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.count = <span class="num">0</span>
+}
+
+<span class="cmt">// ⚠️ Deadlock pattern — ĐỪNG làm thế này!</span>
+<span class="kw">func</span> (c *<span class="typ">SafeCounter</span>) <span class="fn">DeadlockExample</span>() {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    <span class="cmt">// c.Get() // ❌ DEADLOCK: cố lock mutex đã bị lock!</span>
+    c.count++ <span class="cmt">// ✅ truy cập trực tiếp field thay vì gọi method</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    counter := &amp;<span class="typ">SafeCounter</span>{}
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">1000</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+            counter.<span class="fn">Increment</span>()
+        }()
+    }
+
+    wg.Wait()
+    fmt.<span class="fn">Println</span>(<span class="str">"Final count:"</span>, counter.<span class="fn">Get</span>()) <span class="cmt">// Luôn = 1000</span>
+}</pre>
+        </div>
+      </div>
+
+      <!-- RWMUTEX -->
+      <div id="rwmutex">
+        <h3>sync.RWMutex — Đọc nhiều, ghi ít</h3>
+
+        <p><span class="inline-code">RWMutex</span> cho phép <strong>nhiều goroutines đọc đồng thời</strong> nhưng <strong>chỉ một goroutine ghi độc quyền</strong>. Phù hợp cho cache, config store, lookup tables.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">rwmutex_cache.go</span>
+            <span class="code-badge-success">OPTIMIZED</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// ReadHeavyCache — tối ưu cho đọc nhiều, ghi ít</span>
+<span class="kw">type</span> <span class="typ">ReadHeavyCache</span>[K comparable, V <span class="kw">any</span>] <span class="kw">struct</span> {
+    mu   sync.<span class="typ">RWMutex</span>
+    data <span class="kw">map</span>[K]V
+    hits <span class="typ">int64</span>
+    miss <span class="typ">int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewCache</span>[K comparable, V <span class="kw">any</span>]() *<span class="typ">ReadHeavyCache</span>[K, V] {
+    <span class="kw">return</span> &amp;<span class="typ">ReadHeavyCache</span>[K, V]{
+        data: <span class="fn">make</span>(<span class="kw">map</span>[K]V),
+    }
+}
+
+<span class="cmt">// Get — nhiều goroutine có thể đọc đồng thời</span>
+<span class="kw">func</span> (c *<span class="typ">ReadHeavyCache</span>[K, V]) <span class="fn">Get</span>(key K) (V, <span class="typ">bool</span>) {
+<span class="hl">    c.mu.<span class="fn">RLock</span>()   <span class="cmt">// ✅ Read lock — không block readers khác</span>
+    <span class="kw">defer</span> c.mu.<span class="fn">RUnlock</span>()
+</span>    v, ok := c.data[key]
+    <span class="kw">if</span> ok {
+        c.hits++ <span class="cmt">// ⚠️ Vẫn là race! hits cần atomic hoặc mutex riêng</span>
+    } <span class="kw">else</span> {
+        c.miss++
+    }
+    <span class="kw">return</span> v, ok
+}
+
+<span class="cmt">// Set — writer cần lock độc quyền</span>
+<span class="kw">func</span> (c *<span class="typ">ReadHeavyCache</span>[K, V]) <span class="fn">Set</span>(key K, value V) {
+<span class="hl">    c.mu.<span class="fn">Lock</span>()    <span class="cmt">// ✅ Write lock — block tất cả readers và writers</span>
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+</span>    c.data[key] = value
+}
+
+<span class="cmt">// Delete — cũng cần write lock</span>
+<span class="kw">func</span> (c *<span class="typ">ReadHeavyCache</span>[K, V]) <span class="fn">Delete</span>(key K) {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    <span class="fn">delete</span>(c.data, key)
+}
+
+<span class="cmt">// GetOrSet — atomic check-and-set (pattern quan trọng)</span>
+<span class="kw">func</span> (c *<span class="typ">ReadHeavyCache</span>[K, V]) <span class="fn">GetOrSet</span>(key K, computeFn <span class="kw">func</span>() V) V {
+    <span class="cmt">// First try with read lock</span>
+    c.mu.<span class="fn">RLock</span>()
+    <span class="kw">if</span> v, ok := c.data[key]; ok {
+        c.mu.<span class="fn">RUnlock</span>()
+        <span class="kw">return</span> v
+    }
+    c.mu.<span class="fn">RUnlock</span>()
+
+    <span class="cmt">// Upgrade to write lock</span>
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+
+    <span class="cmt">// Double-check sau khi có write lock</span>
+    <span class="kw">if</span> v, ok := c.data[key]; ok {
+        <span class="kw">return</span> v <span class="cmt">// Goroutine khác đã set trong lúc ta chờ lock</span>
+    }
+
+    v := <span class="fn">computeFn</span>()
+    c.data[key] = v
+    <span class="kw">return</span> v
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    cache := <span class="fn">NewCache</span>[<span class="typ">string</span>, <span class="typ">string</span>]()
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+    <span class="cmt">// 100 readers đồng thời</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">100</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+            cache.<span class="fn">Get</span>(<span class="str">"key1"</span>)
+        }()
+    }
+
+    <span class="cmt">// 5 writers đồng thời</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">5</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>(n <span class="typ">int</span>) {
+            <span class="kw">defer</span> wg.Done()
+            cache.<span class="fn">Set</span>(fmt.<span class="fn">Sprintf</span>(<span class="str">"key%d"</span>, n), fmt.<span class="fn">Sprintf</span>(<span class="str">"val%d"</span>, n))
+        }(i)
+    }
+
+    wg.Wait()
+    fmt.<span class="fn">Println</span>(<span class="str">"Cache populated safely"</span>)
+    _ = time.<span class="fn">Now</span>()
+}</pre>
+        </div>
+      </div>
+
+      <!-- ATOMIC -->
+      <div id="atomic">
+        <h3>sync/atomic — Thao tác atomic cấp thấp</h3>
+
+        <p><span class="inline-code">sync/atomic</span> cung cấp các thao tác <strong>hardware-level atomic</strong> — nhanh hơn mutex nhiều, nhưng chỉ dùng cho các kiểu dữ liệu đơn giản.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">atomic_examples.go</span>
+            <span class="code-badge-success">FASTEST</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+)
+
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="cmt">// Pattern 1: Atomic Counter (phổ biến nhất)</span>
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">AtomicCounter</span> <span class="kw">struct</span> {
+    value atomic.<span class="typ">Int64</span> <span class="cmt">// Go 1.19+: atomic.Int64, Int32, Uint64, Bool, Pointer</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">AtomicCounter</span>) <span class="fn">Increment</span>() {
+    c.value.<span class="fn">Add</span>(<span class="num">1</span>)
+}
+
+<span class="kw">func</span> (c *<span class="typ">AtomicCounter</span>) <span class="fn">Get</span>() <span class="typ">int64</span> {
+    <span class="kw">return</span> c.value.<span class="fn">Load</span>()
+}
+
+<span class="kw">func</span> (c *<span class="typ">AtomicCounter</span>) <span class="fn">Reset</span>() {
+    c.value.<span class="fn">Store</span>(<span class="num">0</span>)
+}
+
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="cmt">// Pattern 2: Atomic Flag (on/off switch)</span>
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">AtomicFlag</span> <span class="kw">struct</span> {
+    enabled atomic.<span class="typ">Bool</span>
+}
+
+<span class="kw">func</span> (f *<span class="typ">AtomicFlag</span>) <span class="fn">Enable</span>()          { f.enabled.<span class="fn">Store</span>(<span class="kw">true</span>) }
+<span class="kw">func</span> (f *<span class="typ">AtomicFlag</span>) <span class="fn">Disable</span>()         { f.enabled.<span class="fn">Store</span>(<span class="kw">false</span>) }
+<span class="kw">func</span> (f *<span class="typ">AtomicFlag</span>) <span class="fn">IsEnabled</span>() <span class="typ">bool</span>  { <span class="kw">return</span> f.enabled.<span class="fn">Load</span>() }
+
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="cmt">// Pattern 3: Compare-And-Swap (CAS) — Expert</span>
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">StateMachine</span> <span class="kw">struct</span> {
+    state atomic.<span class="typ">Int32</span>
+}
+
+<span class="kw">const</span> (
+    StateIdle    = <span class="typ">int32</span>(<span class="num">0</span>)
+    StateRunning = <span class="typ">int32</span>(<span class="num">1</span>)
+    StateStopped = <span class="typ">int32</span>(<span class="num">2</span>)
+)
+
+<span class="cmt">// Start chỉ thành công nếu state hiện tại là Idle</span>
+<span class="kw">func</span> (sm *<span class="typ">StateMachine</span>) <span class="fn">Start</span>() <span class="typ">bool</span> {
+<span class="hl-success">    <span class="cmt">// CompareAndSwap: nếu state == Idle, set thành Running</span>
+    <span class="kw">return</span> sm.state.<span class="fn">CompareAndSwap</span>(StateIdle, StateRunning)</span>
+}
+
+<span class="kw">func</span> (sm *<span class="typ">StateMachine</span>) <span class="fn">Stop</span>() <span class="typ">bool</span> {
+    <span class="kw">return</span> sm.state.<span class="fn">CompareAndSwap</span>(StateRunning, StateStopped)
+}
+
+<span class="kw">func</span> (sm *<span class="typ">StateMachine</span>) <span class="fn">State</span>() <span class="typ">int32</span> {
+    <span class="kw">return</span> sm.state.<span class="fn">Load</span>()
+}
+
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="cmt">// Pattern 4: Atomic Pointer (Go 1.19+)</span>
+<span class="cmt">// ─────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">Config</span> <span class="kw">struct</span> {
+    MaxConns <span class="typ">int</span>
+    Timeout  <span class="typ">int</span>
+    Debug    <span class="typ">bool</span>
+}
+
+<span class="kw">type</span> <span class="typ">AtomicConfig</span> <span class="kw">struct</span> {
+    ptr atomic.<span class="typ">Pointer</span>[<span class="typ">Config</span>]
+}
+
+<span class="kw">func</span> (ac *<span class="typ">AtomicConfig</span>) <span class="fn">Load</span>() *<span class="typ">Config</span> {
+    <span class="kw">return</span> ac.ptr.<span class="fn">Load</span>() <span class="cmt">// Đọc config snapshot an toàn</span>
+}
+
+<span class="cmt">// Cập nhật config không làm gián đoạn readers đang dùng config cũ</span>
+<span class="kw">func</span> (ac *<span class="typ">AtomicConfig</span>) <span class="fn">Update</span>(cfg *<span class="typ">Config</span>) {
+    ac.ptr.<span class="fn">Store</span>(cfg) <span class="cmt">// Atomic swap toàn bộ pointer</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    counter := &amp;<span class="typ">AtomicCounter</span>{}
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">1000</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+            counter.<span class="fn">Increment</span>()
+        }()
+    }
+    wg.Wait()
+    fmt.<span class="fn">Println</span>(<span class="str">"Count:"</span>, counter.<span class="fn">Get</span>()) <span class="cmt">// 1000</span>
+
+    <span class="cmt">// State machine demo</span>
+    sm := &amp;<span class="typ">StateMachine</span>{}
+    fmt.<span class="fn">Println</span>(<span class="str">"Start 1:"</span>, sm.<span class="fn">Start</span>()) <span class="cmt">// true</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"Start 2:"</span>, sm.<span class="fn">Start</span>()) <span class="cmt">// false (đã running)</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"Stop:"</span>,   sm.<span class="fn">Stop</span>())  <span class="cmt">// true</span>
+}</pre>
+        </div>
+      </div>
+
+      <!-- SYNC.ONCE -->
+      <div id="once">
+        <h3>sync.Once — Khởi tạo đúng một lần</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">sync_once_singleton.go</span>
+            <span class="code-badge-success">THREAD-SAFE</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"database/sql"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// ❌ Naive singleton — KHÔNG thread-safe!</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">var</span> dbInstance *sql.<span class="typ">DB</span> <span class="cmt">// ⚠️ RACE nếu nhiều goroutine gọi getDB() đồng thời</span>
+
+<span class="kw">func</span> <span class="fn">getDB_Unsafe</span>() *sql.<span class="typ">DB</span> {
+    <span class="kw">if</span> dbInstance == <span class="kw">nil</span> { <span class="cmt">// Race: hai goroutine đều thấy nil!</span>
+        dbInstance, _ = sql.<span class="fn">Open</span>(<span class="str">"sqlite3"</span>, <span class="str">"./app.db"</span>)
+    }
+    <span class="kw">return</span> dbInstance
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// ✅ Thread-safe singleton với sync.Once</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">Database</span> <span class="kw">struct</span> {
+    once <span class="typ">sync.Once</span>
+    db   *sql.<span class="typ">DB</span>
+    err  <span class="typ">error</span>
+}
+
+<span class="kw">var</span> globalDB <span class="typ">Database</span>
+
+<span class="kw">func</span> <span class="fn">GetDB</span>() (*sql.<span class="typ">DB</span>, <span class="typ">error</span>) {
+<span class="hl-success">    globalDB.once.<span class="fn">Do</span>(<span class="kw">func</span>() {
+        globalDB.db, globalDB.err = sql.<span class="fn">Open</span>(<span class="str">"postgres"</span>, <span class="str">"postgres://..."</span>)
+        <span class="kw">if</span> globalDB.err == <span class="kw">nil</span> {
+            globalDB.err = globalDB.db.<span class="fn">Ping</span>()
+        }
+    })
+</span>    <span class="kw">return</span> globalDB.db, globalDB.err
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Advanced: Once với reset capability</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">ResettableOnce</span> <span class="kw">struct</span> {
+    mu   sync.<span class="typ">Mutex</span>
+    once *sync.<span class="typ">Once</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewResettableOnce</span>() *<span class="typ">ResettableOnce</span> {
+    <span class="kw">return</span> &amp;<span class="typ">ResettableOnce</span>{once: &amp;sync.<span class="typ">Once</span>{}}
+}
+
+<span class="kw">func</span> (r *<span class="typ">ResettableOnce</span>) <span class="fn">Do</span>(f <span class="kw">func</span>()) {
+    r.mu.<span class="fn">Lock</span>()
+    once := r.once
+    r.mu.<span class="fn">Unlock</span>()
+    once.<span class="fn">Do</span>(f)
+}
+
+<span class="kw">func</span> (r *<span class="typ">ResettableOnce</span>) <span class="fn">Reset</span>() {
+    r.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> r.mu.<span class="fn">Unlock</span>()
+    r.once = &amp;sync.<span class="typ">Once</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ro := <span class="fn">NewResettableOnce</span>()
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+    counter := <span class="num">0</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">10</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+            ro.<span class="fn">Do</span>(<span class="kw">func</span>() { counter++ })
+        }()
+    }
+    wg.Wait()
+    fmt.<span class="fn">Println</span>(<span class="str">"Counter:"</span>, counter) <span class="cmt">// Luôn = 1</span>
+}</pre>
+        </div>
+      </div>
+
+      <!-- CHANNEL -->
+      <div id="channel">
+        <h3>Channel — "Don't communicate by sharing memory"</h3>
+
+        <p>Go khuyến khích dùng <strong>channel để truyền ownership</strong> thay vì share memory giữa goroutines. Channel tự bản thân là thread-safe.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">channel_sync.go</span>
+            <span class="code-badge-info">IDIOMATIC GO</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+)
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Pattern 1: Channel thay thế mutex cho counter</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">ChannelCounter</span> <span class="kw">struct</span> {
+    inc  <span class="kw">chan</span> <span class="kw">struct</span>{}
+    get  <span class="kw">chan</span> <span class="kw">chan</span> <span class="typ">int</span>
+    done <span class="kw">chan</span> <span class="kw">struct</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">NewChannelCounter</span>() *<span class="typ">ChannelCounter</span> {
+    c := &amp;<span class="typ">ChannelCounter</span>{
+        inc:  <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, <span class="num">100</span>),
+        get:  <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">chan</span> <span class="typ">int</span>),
+        done: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}),
+    }
+    <span class="kw">go</span> c.<span class="fn">run</span>()
+    <span class="kw">return</span> c
+}
+
+<span class="cmt">// run() là goroutine duy nhất sở hữu biến count</span>
+<span class="kw">func</span> (c *<span class="typ">ChannelCounter</span>) <span class="fn">run</span>() {
+    count := <span class="num">0</span> <span class="cmt">// Chỉ goroutine này truy cập count!</span>
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> &lt;-c.inc:
+            count++
+        <span class="kw">case</span> reply := &lt;-c.get:
+            reply &lt;- count
+        <span class="kw">case</span> &lt;-c.done:
+            <span class="kw">return</span>
+        }
+    }
+}
+
+<span class="kw">func</span> (c *<span class="typ">ChannelCounter</span>) <span class="fn">Increment</span>() {
+    c.inc &lt;- <span class="kw">struct</span>{}{}
+}
+
+<span class="kw">func</span> (c *<span class="typ">ChannelCounter</span>) <span class="fn">Get</span>() <span class="typ">int</span> {
+    reply := <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">int</span>)
+    c.get &lt;- reply
+    <span class="kw">return</span> &lt;-reply
+}
+
+<span class="kw">func</span> (c *<span class="typ">ChannelCounter</span>) <span class="fn">Stop</span>() {
+    <span class="fn">close</span>(c.done)
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Pattern 2: Pipeline với ownership transfer</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">Request</span> <span class="kw">struct</span> {
+    Data     []<span class="typ">byte</span>
+    Response <span class="kw">chan</span> []<span class="typ">byte</span> <span class="cmt">// channel để nhận response</span>
+}
+
+<span class="kw">func</span> <span class="fn">processor</span>(ctx context.<span class="typ">Context</span>, requests &lt;-<span class="kw">chan</span> <span class="typ">Request</span>) {
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">case</span> req := &lt;-requests:
+            <span class="cmt">// Xử lý và trả về ownership qua channel</span>
+            result := <span class="fn">process</span>(req.Data)
+            req.Response &lt;- result
+        }
+    }
+}
+
+<span class="kw">func</span> <span class="fn">process</span>(data []<span class="typ">byte</span>) []<span class="typ">byte</span> {
+    <span class="kw">return</span> <span class="fn">append</span>([]<span class="typ">byte</span>(<span class="str">"processed: "</span>), data...)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    cc := <span class="fn">NewChannelCounter</span>()
+    <span class="kw">defer</span> cc.<span class="fn">Stop</span>()
+
+    done := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">100</span>; i++ {
+        <span class="kw">go func</span>() {
+            cc.<span class="fn">Increment</span>()
+            <span class="kw">select</span> {
+            <span class="kw">case</span> done &lt;- <span class="kw">struct</span>{}{}:
+            <span class="kw">default</span>:
+            }
+        }()
+    }
+    fmt.<span class="fn">Println</span>(<span class="str">"Count:"</span>, cc.<span class="fn">Get</span>())
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- PATTERNS -->
+    <section id="patterns" class="section">
+      <h2>04. Patterns Thực Tế</h2>
+
+      <!-- SHARED MAP -->
+      <div id="shared-map">
+        <h3>Concurrent Map — 3 cách tiếp cận</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">concurrent_map.go</span>
+            <span class="code-badge-info">3 APPROACHES</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"hash/fnv"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Cách 1: Mutex-protected map — Đơn giản, đủ dùng</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">MutexMap</span>[K comparable, V <span class="kw">any</span>] <span class="kw">struct</span> {
+    mu sync.<span class="typ">RWMutex</span>
+    m  <span class="kw">map</span>[K]V
+}
+
+<span class="kw">func</span> <span class="fn">NewMutexMap</span>[K comparable, V <span class="kw">any</span>]() *<span class="typ">MutexMap</span>[K, V] {
+    <span class="kw">return</span> &amp;<span class="typ">MutexMap</span>[K, V]{m: <span class="fn">make</span>(<span class="kw">map</span>[K]V)}
+}
+<span class="kw">func</span> (m *<span class="typ">MutexMap</span>[K, V]) <span class="fn">Set</span>(k K, v V) { m.mu.<span class="fn">Lock</span>(); <span class="kw">defer</span> m.mu.<span class="fn">Unlock</span>(); m.m[k] = v }
+<span class="kw">func</span> (m *<span class="typ">MutexMap</span>[K, V]) <span class="fn">Get</span>(k K) (V, <span class="typ">bool</span>) { m.mu.<span class="fn">RLock</span>(); <span class="kw">defer</span> m.mu.<span class="fn">RUnlock</span>(); v, ok := m.m[k]; <span class="kw">return</span> v, ok }
+<span class="kw">func</span> (m *<span class="typ">MutexMap</span>[K, V]) <span class="fn">Delete</span>(k K)          { m.mu.<span class="fn">Lock</span>(); <span class="kw">defer</span> m.mu.<span class="fn">Unlock</span>(); <span class="fn">delete</span>(m.m, k) }
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Cách 2: sync.Map — Tối ưu cho read-heavy, key stable</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">SyncMapWrapper</span>[K comparable, V <span class="kw">any</span>] <span class="kw">struct</span> {
+    m sync.<span class="typ">Map</span>
+}
+
+<span class="kw">func</span> (w *<span class="typ">SyncMapWrapper</span>[K, V]) <span class="fn">Set</span>(k K, v V) { w.m.<span class="fn">Store</span>(k, v) }
+
+<span class="kw">func</span> (w *<span class="typ">SyncMapWrapper</span>[K, V]) <span class="fn">Get</span>(k K) (V, <span class="typ">bool</span>) {
+    v, ok := w.m.<span class="fn">Load</span>(k)
+    <span class="kw">if</span> !ok {
+        <span class="kw">var</span> zero V
+        <span class="kw">return</span> zero, <span class="kw">false</span>
+    }
+    <span class="kw">return</span> v.(V), <span class="kw">true</span>
+}
+
+<span class="kw">func</span> (w *<span class="typ">SyncMapWrapper</span>[K, V]) <span class="fn">GetOrStore</span>(k K, v V) (V, <span class="typ">bool</span>) {
+    actual, loaded := w.m.<span class="fn">LoadOrStore</span>(k, v)
+    <span class="kw">return</span> actual.(V), loaded
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Cách 3: Sharded Map — Hiệu suất cao nhất cho write-heavy</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">const</span> numShards = <span class="num">32</span>
+
+<span class="kw">type</span> <span class="typ">ShardedMap</span>[V <span class="kw">any</span>] <span class="kw">struct</span> {
+    shards [numShards]<span class="kw">struct</span> {
+        sync.<span class="typ">RWMutex</span>
+        m <span class="kw">map</span>[<span class="typ">string</span>]V
+        _ [<span class="num">56</span>]<span class="typ">byte</span> <span class="cmt">// padding để tránh false sharing</span>
+    }
+}
+
+<span class="kw">func</span> <span class="fn">NewShardedMap</span>[V <span class="kw">any</span>]() *<span class="typ">ShardedMap</span>[V] {
+    sm := &amp;<span class="typ">ShardedMap</span>[V]{}
+    <span class="kw">for</span> i := <span class="kw">range</span> sm.shards {
+        sm.shards[i].m = <span class="fn">make</span>(<span class="kw">map</span>[<span class="typ">string</span>]V)
+    }
+    <span class="kw">return</span> sm
+}
+
+<span class="kw">func</span> (sm *<span class="typ">ShardedMap</span>[V]) <span class="fn">shard</span>(key <span class="typ">string</span>) <span class="typ">int</span> {
+    h := fnv.<span class="fn">New32a</span>()
+    h.<span class="fn">Write</span>([]<span class="typ">byte</span>(key))
+    <span class="kw">return</span> <span class="typ">int</span>(h.<span class="fn">Sum32</span>()) % numShards
+}
+
+<span class="kw">func</span> (sm *<span class="typ">ShardedMap</span>[V]) <span class="fn">Set</span>(key <span class="typ">string</span>, value V) {
+    s := &amp;sm.shards[sm.<span class="fn">shard</span>(key)]
+    s.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> s.<span class="fn">Unlock</span>()
+    s.m[key] = value
+}
+
+<span class="kw">func</span> (sm *<span class="typ">ShardedMap</span>[V]) <span class="fn">Get</span>(key <span class="typ">string</span>) (V, <span class="typ">bool</span>) {
+    s := &amp;sm.shards[sm.<span class="fn">shard</span>(key)]
+    s.<span class="fn">RLock</span>()
+    <span class="kw">defer</span> s.<span class="fn">RUnlock</span>()
+    v, ok := s.m[key]
+    <span class="kw">return</span> v, ok
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    sm := <span class="fn">NewShardedMap</span>[<span class="typ">int</span>]()
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">100</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>(n <span class="typ">int</span>) {
+            <span class="kw">defer</span> wg.Done()
+            sm.<span class="fn">Set</span>(fmt.<span class="fn">Sprintf</span>(<span class="str">"key%d"</span>, n), n*n)
+        }(i)
+    }
+    wg.Wait()
+    v, _ := sm.<span class="fn">Get</span>(<span class="str">"key42"</span>)
+    fmt.<span class="fn">Println</span>(<span class="str">"key42 ="</span>, v) <span class="cmt">// 1764</span>
+}</pre>
+        </div>
+      </div>
+
+      <!-- PRODUCER CONSUMER -->
+      <div id="producer-consumer">
+        <h3>Producer-Consumer với Backpressure</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">producer_consumer.go</span>
+            <span class="code-badge-success">PRODUCTION READY</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="typ">Job</span> <span class="kw">struct</span> {
+    ID      <span class="typ">int</span>
+    Payload <span class="typ">string</span>
+}
+
+<span class="kw">type</span> <span class="typ">WorkerPool</span> <span class="kw">struct</span> {
+    jobs     <span class="kw">chan</span> <span class="typ">Job</span>
+    results  <span class="kw">chan</span> <span class="typ">string</span>
+    errors   <span class="kw">chan</span> <span class="typ">error</span>
+    wg       sync.<span class="typ">WaitGroup</span>
+    processed atomic.<span class="typ">Int64</span>
+    failed    atomic.<span class="typ">Int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewWorkerPool</span>(bufSize, numWorkers <span class="typ">int</span>) *<span class="typ">WorkerPool</span> {
+    p := &amp;<span class="typ">WorkerPool</span>{
+        jobs:    <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">Job</span>, bufSize),
+        results: <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">string</span>, bufSize),
+        errors:  <span class="fn">make</span>(<span class="kw">chan</span> <span class="typ">error</span>, bufSize),
+    }
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; numWorkers; i++ {
+        p.wg.Add(<span class="num">1</span>)
+        <span class="kw">go</span> p.<span class="fn">worker</span>(i)
+    }
+    <span class="kw">return</span> p
+}
+
+<span class="kw">func</span> (p *<span class="typ">WorkerPool</span>) <span class="fn">worker</span>(id <span class="typ">int</span>) {
+    <span class="kw">defer</span> p.wg.Done()
+    <span class="kw">for</span> job := <span class="kw">range</span> p.jobs {
+        result, err := <span class="fn">processJob</span>(job)
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            p.failed.<span class="fn">Add</span>(<span class="num">1</span>)
+            p.errors &lt;- fmt.<span class="fn">Errorf</span>(<span class="str">"worker %d: job %d: %w"</span>, id, job.ID, err)
+        } <span class="kw">else</span> {
+            p.processed.<span class="fn">Add</span>(<span class="num">1</span>)
+            p.results &lt;- result
+        }
+    }
+}
+
+<span class="kw">func</span> <span class="fn">processJob</span>(job <span class="typ">Job</span>) (<span class="typ">string</span>, <span class="typ">error</span>) {
+    time.<span class="fn">Sleep</span>(<span class="num">1</span> * time.Millisecond) <span class="cmt">// simulate work</span>
+    <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"done:%d"</span>, job.ID), <span class="kw">nil</span>
+}
+
+<span class="cmt">// Submit với backpressure — blocks nếu queue đầy</span>
+<span class="kw">func</span> (p *<span class="typ">WorkerPool</span>) <span class="fn">Submit</span>(ctx context.<span class="typ">Context</span>, job <span class="typ">Job</span>) <span class="typ">error</span> {
+    <span class="kw">select</span> {
+    <span class="kw">case</span> p.jobs &lt;- job:
+        <span class="kw">return</span> <span class="kw">nil</span>
+    <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> ctx.<span class="fn">Err</span>()
+    }
+}
+
+<span class="kw">func</span> (p *<span class="typ">WorkerPool</span>) <span class="fn">Shutdown</span>() {
+    <span class="fn">close</span>(p.jobs) <span class="cmt">// signal workers để dừng</span>
+    p.wg.<span class="fn">Wait</span>()
+    <span class="fn">close</span>(p.results)
+    <span class="fn">close</span>(p.errors)
+}
+
+<span class="kw">func</span> (p *<span class="typ">WorkerPool</span>) <span class="fn">Stats</span>() (<span class="typ">int64</span>, <span class="typ">int64</span>) {
+    <span class="kw">return</span> p.processed.<span class="fn">Load</span>(), p.failed.<span class="fn">Load</span>()
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">5</span>*time.Second)
+    <span class="kw">defer</span> cancel()
+
+    pool := <span class="fn">NewWorkerPool</span>(<span class="num">50</span>, <span class="num">5</span>) <span class="cmt">// buffer=50, 5 workers</span>
+
+    <span class="cmt">// Producer goroutine</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">100</span>; i++ {
+            pool.<span class="fn">Submit</span>(ctx, <span class="typ">Job</span>{ID: i, Payload: fmt.<span class="fn">Sprintf</span>(<span class="str">"data-%d"</span>, i)})
+        }
+        pool.<span class="fn">Shutdown</span>()
+    }()
+
+    <span class="cmt">// Consumer goroutines</span>
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+    wg.Add(<span class="num">1</span>)
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> wg.Done()
+        <span class="kw">for</span> result := <span class="kw">range</span> pool.results {
+            _ = result
+        }
+    }()
+
+    wg.Wait()
+    processed, failed := pool.<span class="fn">Stats</span>()
+    fmt.<span class="fn">Printf</span>(<span class="str">"Processed: %d, Failed: %d\n"</span>, processed, failed)
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- ADVANCED -->
+    <section id="advanced" class="section">
+      <h2>05. Nâng cao — Go Memory Model</h2>
+
+      <div id="memory-model">
+        <h3>Go Memory Model</h3>
+
+        <p><strong>Go Memory Model</strong> xác định điều kiện để một goroutine có thể <strong>đảm bảo thấy</strong> giá trị được ghi bởi goroutine khác. Hiểu rõ điều này là nền tảng để viết concurrent code chính xác.</p>
+
+        <div class="callout callout-info">
+          <div class="callout-title">📖 Nguyên tắc cốt lõi</div>
+          <p>Nếu bạn phải đọc tài liệu để hiểu code của mình có đúng không, thì code đó quá thông minh. Hãy dùng synchronization primitives rõ ràng.</p>
+        </div>
+      </div>
+
+      <div id="happens-before">
+        <h3>Happens-Before Relationship</h3>
+
+        <div class="concept-img-wrapper" style="border-color: rgba(188, 140, 255, 0.35);">
+          <img src="../../public/images/go-happens-before.png" alt="Go Happens-Before Relationship" loading="lazy">
+          <div class="concept-img-caption">Hình 5.1: Minh họa quan hệ Happens-Before giữa hai Goroutines song song được đồng bộ hóa bởi biên giới (synchronization boundary) như Channel Close hoặc Mutex Unlock</div>
+        </div>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">happens_before.go</span>
+            <span class="code-badge-warn">SUBTLE</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// EXAMPLE 1: Không đảm bảo happens-before</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">var</span> msg <span class="typ">string</span>
+<span class="kw">var</span> done <span class="typ">bool</span>
+
+<span class="kw">func</span> <span class="fn">setup_unsafe</span>() {
+    msg = <span class="str">"hello"</span>
+    done = <span class="kw">true</span>
+}
+
+<span class="kw">func</span> <span class="fn">print_unsafe</span>() {
+    <span class="kw">for</span> !done { <span class="cmt">// ⚠️ Busy-wait mà không có sync!</span>
+    }
+    fmt.<span class="fn">Println</span>(msg) <span class="cmt">// Không đảm bảo thấy "hello"!</span>
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// EXAMPLE 2: Đảm bảo happens-before với channel</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">var</span> message <span class="typ">string</span>
+
+<span class="kw">func</span> <span class="fn">example_channel_sync</span>() {
+    signal := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+
+    <span class="kw">go func</span>() {
+        message = <span class="str">"hello world"</span>
+<span class="hl-success">        <span class="fn">close</span>(signal) <span class="cmt">// Send happens-before close</span>
+</span>    }()
+
+<span class="hl-success">    &lt;-signal <span class="cmt">// Receive happens-after: đảm bảo thấy message</span>
+</span>    fmt.<span class="fn">Println</span>(message) <span class="cmt">// ✅ Luôn in "hello world"</span>
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// EXAMPLE 3: Ẩn dụ "visibility" — giải thích happens-before</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">/*
+  Goroutine A:          Goroutine B:
+  ┌─────────────┐       ┌─────────────┐
+  │ x = 1       │       │             │
+  │ mu.Lock()   │       │ mu.Lock()   │── B's Lock() happens-after
+  │ y = 2       │  ──►  │ z = y       │   A's Unlock()
+  │ mu.Unlock() │       │ mu.Unlock() │
+  └─────────────┘       └─────────────┘
+
+  B sẽ thấy y=2 VÀ x=1 sau khi acquire lock
+  (tất cả writes trước Unlock() đều visible sau Lock())
+*/</span>
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// EXAMPLE 4: Race condition tinh vi — initialization</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">var</span> initialized <span class="typ">bool</span>
+<span class="kw">var</span> globalSlice []<span class="typ">int</span>
+
+<span class="kw">func</span> <span class="fn">unsafeInit</span>() {
+    <span class="kw">if</span> !initialized { <span class="cmt">// ⚠️ RACE: hai goroutines có thể cùng thấy false</span>
+        globalSlice = <span class="fn">make</span>([]<span class="typ">int</span>, <span class="num">100</span>)
+        initialized = <span class="kw">true</span>
+    }
+}
+
+<span class="cmt">// ✅ Fix với sync.Once</span>
+<span class="kw">var</span> (
+    initOnce       <span class="typ">sync.Once</span>
+    safeGlobalSlice []<span class="typ">int</span>
+)
+
+<span class="kw">func</span> <span class="fn">safeInit</span>() {
+    initOnce.<span class="fn">Do</span>(<span class="kw">func</span>() {
+        safeGlobalSlice = <span class="fn">make</span>([]<span class="typ">int</span>, <span class="num">100</span>)
+    })
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="fn">example_channel_sync</span>()
+}</pre>
+        </div>
+      </div>
+
+      <!-- FALSE SHARING -->
+      <div id="false-sharing">
+        <h3>False Sharing — Cache Line Contention</h3>
+
+        <p><strong>False sharing</strong> xảy ra khi các goroutines cập nhật các biến <em>khác nhau</em> nhưng chúng nằm trên cùng một <strong>CPU cache line</strong> (64 bytes). Không phải race condition nhưng gây performance degradation nghiêm trọng.</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">false_sharing.go</span>
+            <span class="code-badge-warn">PERFORMANCE</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"testing"</span>
+)
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// ❌ False sharing — các counter nằm liền kề trong memory</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">CountersPacked</span> <span class="kw">struct</span> {
+    c1, c2, c3, c4 <span class="typ">int64</span> <span class="cmt">// ⚠️ 4 counters trong cùng cache line (32 bytes)</span>
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkPacked</span>(b *testing.B) {
+    c := &amp;<span class="typ">CountersPacked</span>{}
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+    b.ResetTimer()
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; b.N; i++ {
+        wg.Add(<span class="num">4</span>)
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c1++ } }()
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c2++ } }()
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c3++ } }()
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c4++ } }()
+        wg.Wait()
+    }
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// ✅ Padded counter — mỗi counter trên cache line riêng (64 bytes)</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">PaddedInt64</span> <span class="kw">struct</span> {
+    value <span class="typ">int64</span>
+    _     [<span class="num">56</span>]<span class="typ">byte</span> <span class="cmt">// 56 bytes padding = total 64 bytes (1 cache line)</span>
+}
+
+<span class="kw">type</span> <span class="typ">CountersPadded</span> <span class="kw">struct</span> {
+    c1, c2, c3, c4 <span class="typ">PaddedInt64</span> <span class="cmt">// ✅ Mỗi counter = 1 cache line riêng</span>
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkPadded</span>(b *testing.B) {
+    c := &amp;<span class="typ">CountersPadded</span>{}
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+    b.ResetTimer()
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; b.N; i++ {
+        wg.Add(<span class="num">4</span>)
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c1.value++ } }()
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c2.value++ } }()
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c3.value++ } }()
+        <span class="kw">go func</span>() { <span class="kw">defer</span> wg.Done(); <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">1000</span>; j++ { c.c4.value++ } }()
+        wg.Wait()
+    }
+}
+<span class="cmt">// Kết quả benchmark điển hình:
+// BenchmarkPacked  — ~150ns/op (cache invalidation nhiều)
+// BenchmarkPadded  — ~50ns/op  (3x faster!)</span>
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.<span class="fn">Println</span>(<span class="str">"sizeof PaddedInt64:"</span>, <span class="fn">unsafe.Sizeof</span>(<span class="typ">PaddedInt64</span>{}))
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- EXPERT -->
+    <section id="expert" class="section">
+      <h2>06. Expert — Lock-Free Structures & CAS</h2>
+
+      <div id="lock-free">
+        <h3>Lock-Free Stack với CAS</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">lockfree_stack.go</span>
+            <span class="code-badge-purple">EXPERT LEVEL</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"unsafe"</span>
+)
+
+<span class="cmt">// Lock-Free Stack sử dụng Compare-And-Swap</span>
+<span class="cmt">// ABA problem: Đây là implementation đơn giản, production cần hazard pointers</span>
+
+<span class="kw">type</span> <span class="typ">LFNode</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    value T
+    next  atomic.<span class="typ">Pointer</span>[<span class="typ">LFNode</span>[T]]
+}
+
+<span class="kw">type</span> <span class="typ">LockFreeStack</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    head atomic.<span class="typ">Pointer</span>[<span class="typ">LFNode</span>[T]]
+    size atomic.<span class="typ">Int64</span>
+}
+
+<span class="kw">func</span> (s *<span class="typ">LockFreeStack</span>[T]) <span class="fn">Push</span>(val T) {
+    newNode := &amp;<span class="typ">LFNode</span>[T]{value: val}
+    <span class="kw">for</span> {
+        head := s.head.<span class="fn">Load</span>()
+        newNode.next.<span class="fn">Store</span>(head)
+<span class="hl-success">        <span class="cmt">// CAS: nếu head vẫn là giá trị cũ, swap với newNode</span>
+        <span class="kw">if</span> s.head.<span class="fn">CompareAndSwap</span>(head, newNode) {
+            s.size.<span class="fn">Add</span>(<span class="num">1</span>)
+            <span class="kw">return</span> <span class="cmt">// Thành công</span>
+        }
+        <span class="cmt">// Thất bại: goroutine khác đã thay đổi head → thử lại</span>
+</span>    }
+}
+
+<span class="kw">func</span> (s *<span class="typ">LockFreeStack</span>[T]) <span class="fn">Pop</span>() (T, <span class="typ">bool</span>) {
+    <span class="kw">for</span> {
+        head := s.head.<span class="fn">Load</span>()
+        <span class="kw">if</span> head == <span class="kw">nil</span> {
+            <span class="kw">var</span> zero T
+            <span class="kw">return</span> zero, <span class="kw">false</span>
+        }
+        next := head.next.<span class="fn">Load</span>()
+<span class="hl-success">        <span class="kw">if</span> s.head.<span class="fn">CompareAndSwap</span>(head, next) {
+            s.size.<span class="fn">Add</span>(-<span class="num">1</span>)
+            <span class="kw">return</span> head.value, <span class="kw">true</span>
+        }
+</span>    }
+}
+
+<span class="kw">func</span> (s *<span class="typ">LockFreeStack</span>[T]) <span class="fn">Len</span>() <span class="typ">int64</span> {
+    <span class="kw">return</span> s.size.<span class="fn">Load</span>()
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Lock-Free Ring Buffer — Single Producer, Single Consumer (SPSC)</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="typ">RingBuffer</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    buf  []T
+    mask <span class="typ">uint64</span>
+    head atomic.<span class="typ">Uint64</span>
+    _    [<span class="num">56</span>]<span class="typ">byte</span> <span class="cmt">// padding</span>
+    tail atomic.<span class="typ">Uint64</span>
+    _    [<span class="num">56</span>]<span class="typ">byte</span> <span class="cmt">// padding</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewRingBuffer</span>[T <span class="kw">any</span>](size <span class="typ">uint64</span>) *<span class="typ">RingBuffer</span>[T] {
+    <span class="kw">if</span> size&(size-<span class="num">1</span>) != <span class="num">0</span> {
+        <span class="fn">panic</span>(<span class="str">"size phải là lũy thừa của 2"</span>)
+    }
+    <span class="kw">return</span> &amp;<span class="typ">RingBuffer</span>[T]{buf: <span class="fn">make</span>([]T, size), mask: size - <span class="num">1</span>}
+}
+
+<span class="cmt">// Enqueue — chỉ an toàn với 1 producer goroutine</span>
+<span class="kw">func</span> (rb *<span class="typ">RingBuffer</span>[T]) <span class="fn">Enqueue</span>(val T) <span class="typ">bool</span> {
+    tail := rb.tail.<span class="fn">Load</span>()
+    head := rb.head.<span class="fn">Load</span>()
+    <span class="kw">if</span> tail-head >= <span class="typ">uint64</span>(<span class="fn">len</span>(rb.buf)) {
+        <span class="kw">return</span> <span class="kw">false</span> <span class="cmt">// Buffer đầy</span>
+    }
+    rb.buf[tail&amp;rb.mask] = val
+    rb.tail.<span class="fn">Store</span>(tail + <span class="num">1</span>) <span class="cmt">// atomic store = memory fence</span>
+    <span class="kw">return</span> <span class="kw">true</span>
+}
+
+<span class="cmt">// Dequeue — chỉ an toàn với 1 consumer goroutine</span>
+<span class="kw">func</span> (rb *<span class="typ">RingBuffer</span>[T]) <span class="fn">Dequeue</span>() (T, <span class="typ">bool</span>) {
+    head := rb.head.<span class="fn">Load</span>()
+    tail := rb.tail.<span class="fn">Load</span>()
+    <span class="kw">if</span> head >= tail {
+        <span class="kw">var</span> zero T
+        <span class="kw">return</span> zero, <span class="kw">false</span>
+    }
+    val := rb.buf[head&amp;rb.mask]
+    rb.head.<span class="fn">Store</span>(head + <span class="num">1</span>)
+    <span class="kw">return</span> val, <span class="kw">true</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    stack := &amp;<span class="typ">LockFreeStack</span>[<span class="typ">int</span>]{}
+    stack.<span class="fn">Push</span>(<span class="num">1</span>)
+    stack.<span class="fn">Push</span>(<span class="num">2</span>)
+    stack.<span class="fn">Push</span>(<span class="num">3</span>)
+
+    <span class="kw">for</span> {
+        v, ok := stack.<span class="fn">Pop</span>()
+        <span class="kw">if</span> !ok { <span class="kw">break</span> }
+        fmt.<span class="fn">Println</span>(v) <span class="cmt">// 3, 2, 1</span>
+    }
+
+    _ = unsafe.<span class="fn">Sizeof</span>(<span class="num">0</span>)
+    rb := <span class="fn">NewRingBuffer</span>[<span class="typ">int</span>](<span class="num">1024</span>)
+    rb.<span class="fn">Enqueue</span>(<span class="num">42</span>)
+    v, _ := rb.<span class="fn">Dequeue</span>()
+    fmt.<span class="fn">Println</span>(<span class="str">"Ring buffer value:"</span>, v)
+}</pre>
+        </div>
+      </div>
+
+      <!-- TESTING FOR RACES -->
+      <div id="data-races">
+        <h3>Test Race Conditions — Chiến lược toàn diện</h3>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">race_test.go</span>
+            <span class="code-badge-info">TESTING</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"sync"</span>
+    <span class="str">"testing"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Strategy 1: Concurrent test (hammer test)</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">TestCounterRace</span>(t *testing.T) {
+    counter := &amp;<span class="typ">SafeCounter</span>{}
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+    <span class="kw">const</span> goroutines = <span class="num">1000</span>
+    <span class="kw">const</span> increments = <span class="num">100</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; goroutines; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+            <span class="kw">for</span> j := <span class="num">0</span>; j &lt; increments; j++ {
+                counter.<span class="fn">Increment</span>()
+            }
+        }()
+    }
+    wg.Wait()
+
+    expected := goroutines * increments
+    <span class="kw">if</span> got := counter.<span class="fn">Get</span>(); got != expected {
+        t.<span class="fn">Errorf</span>(<span class="str">"expected %d, got %d"</span>, expected, got)
+    }
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Strategy 2: Race scenario simulation</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">TestCacheGetOrSet</span>(t *testing.T) {
+    cache := <span class="fn">NewCache</span>[<span class="typ">string</span>, <span class="typ">int</span>]()
+    <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+    computations := <span class="typ">int64</span>(<span class="num">0</span>)
+
+    <span class="cmt">// 100 goroutines cùng lúc cố get-or-set cùng key</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">100</span>; i++ {
+        wg.Add(<span class="num">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.Done()
+            cache.<span class="fn">GetOrSet</span>(<span class="str">"expensive-key"</span>, <span class="kw">func</span>() <span class="typ">int</span> {
+                computations++ <span class="cmt">// ⚠️ Nếu không có double-check, sẽ race</span>
+                <span class="kw">return</span> <span class="num">42</span>
+            })
+        }()
+    }
+    wg.Wait()
+
+    v, ok := cache.<span class="fn">Get</span>(<span class="str">"expensive-key"</span>)
+    <span class="kw">if</span> !ok || v != <span class="num">42</span> {
+        t.<span class="fn">Error</span>(<span class="str">"cache value incorrect"</span>)
+    }
+}
+
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="cmt">// Strategy 3: Table-driven concurrent tests</span>
+<span class="cmt">// ─────────────────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">TestShardedMapConcurrent</span>(t *testing.T) {
+    tests := []<span class="kw">struct</span> {
+        name       <span class="typ">string</span>
+        writers    <span class="typ">int</span>
+        readers    <span class="typ">int</span>
+        iterations <span class="typ">int</span>
+    }{
+        {<span class="str">"low contention"</span>,  <span class="num">2</span>,   <span class="num">8</span>,   <span class="num">100</span>},
+        {<span class="str">"high contention"</span>, <span class="num">10</span>,  <span class="num">50</span>,  <span class="num">1000</span>},
+        {<span class="str">"write heavy"</span>,     <span class="num">20</span>,  <span class="num">5</span>,   <span class="num">500</span>},
+        {<span class="str">"read heavy"</span>,      <span class="num">2</span>,   <span class="num">200</span>, <span class="num">1000</span>},
+    }
+
+    <span class="kw">for</span> _, tt := <span class="kw">range</span> tests {
+        t.<span class="fn">Run</span>(tt.name, <span class="kw">func</span>(t *testing.T) {
+            sm := <span class="fn">NewShardedMap</span>[<span class="typ">int</span>]()
+            <span class="kw">var</span> wg sync.<span class="typ">WaitGroup</span>
+
+            <span class="kw">for</span> i := <span class="num">0</span>; i &lt; tt.writers; i++ {
+                wg.Add(<span class="num">1</span>)
+                <span class="kw">go func</span>(id <span class="typ">int</span>) {
+                    <span class="kw">defer</span> wg.Done()
+                    <span class="kw">for</span> j := <span class="num">0</span>; j &lt; tt.iterations; j++ {
+                        sm.<span class="fn">Set</span>(fmt.<span class="fn">Sprintf</span>(<span class="str">"w%d-k%d"</span>, id, j), j)
+                    }
+                }(i)
+            }
+
+            <span class="kw">for</span> i := <span class="num">0</span>; i &lt; tt.readers; i++ {
+                wg.Add(<span class="num">1</span>)
+                <span class="kw">go func</span>(id <span class="typ">int</span>) {
+                    <span class="kw">defer</span> wg.Done()
+                    <span class="kw">for</span> j := <span class="num">0</span>; j &lt; tt.iterations; j++ {
+                        sm.<span class="fn">Get</span>(fmt.<span class="fn">Sprintf</span>(<span class="str">"w0-k%d"</span>, j%<span class="num">10</span>))
+                    }
+                }(i)
+            }
+            wg.Wait()
+        })
+    }
+}
+
+<span class="cmt">// Chạy: go test -race -count=10 ./...</span>
+<span class="cmt">// -count=10: chạy 10 lần để tăng khả năng phát hiện races</span></pre>
+        </div>
+      </div>
+    </section>
+
+    <hr class="divider">
+
+    <!-- CHECKLIST -->
+    <section id="checklist" class="section">
+      <h2>07. Race Condition Checklist</h2>
+
+      <div class="callout callout-info">
+        <div class="callout-title">📋 Dùng checklist này trước mỗi code review</div>
+        <p>Các câu hỏi cần trả lời khi review concurrent code trong Go.</p>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Kiểm tra</th>
+              <th>Câu hỏi</th>
+              <th>Fix</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>🔍 Shared state</td>
+              <td>Biến nào được nhiều goroutine truy cập?</td>
+              <td class="td-green">Dùng mutex hoặc atomic</td>
+            </tr>
+            <tr>
+              <td>🗺️ Map access</td>
+              <td>Map có được read/write từ nhiều goroutine?</td>
+              <td class="td-green">sync.Map, ShardedMap, hoặc mutex</td>
+            </tr>
+            <tr>
+              <td>🔄 counter++</td>
+              <td>Có increment/decrement không có mutex?</td>
+              <td class="td-green">atomic.Int64.Add(1)</td>
+            </tr>
+            <tr>
+              <td>📖 Init once</td>
+              <td>Lazy init có an toàn không?</td>
+              <td class="td-green">sync.Once</td>
+            </tr>
+            <tr>
+              <td>📡 Channel close</td>
+              <td>Channel có được close đúng chỗ không?</td>
+              <td class="td-green">Chỉ sender close, không receiver</td>
+            </tr>
+            <tr>
+              <td>🔒 Mutex copy</td>
+              <td>Mutex có bị copy không?</td>
+              <td class="td-green">Dùng pointer *sync.Mutex</td>
+            </tr>
+            <tr>
+              <td>⚡ Defer unlock</td>
+              <td>Unlock có được defer?</td>
+              <td class="td-green">defer mu.Unlock() ngay sau Lock()</td>
+            </tr>
+            <tr>
+              <td>🔗 Lock order</td>
+              <td>Nhiều mutex có theo thứ tự nhất quán?</td>
+              <td class="td-yellow">Luôn lock A trước B</td>
+            </tr>
+            <tr>
+              <td>🧪 -race test</td>
+              <td>CI/CD có chạy go test -race?</td>
+              <td class="td-green">Thêm vào CI pipeline</td>
+            </tr>
+            <tr>
+              <td>📊 Slice sharing</td>
+              <td>Slice có được share giữa goroutines?</td>
+              <td class="td-yellow">Copy hoặc mutex protect</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Quick Reference — Khi nào dùng gì?</h3>
+
+      <div class="quick-ref">
+        <div class="quick-ref-title">🎯 Quyết định nhanh</div>
+        <div class="quick-ref-item">
+          <code>atomic.Int64</code>
+          <span>Đếm, flag boolean, pointer swap đơn giản</span>
+        </div>
+        <div class="quick-ref-item">
+          <code>sync.Mutex</code>
+          <span>Bất kỳ struct nào cần read+write protection</span>
+        </div>
+        <div class="quick-ref-item">
+          <code>sync.RWMutex</code>
+          <span>Cache, config — đọc 10x+ nhiều hơn ghi</span>
+        </div>
+        <div class="quick-ref-item">
+          <code>sync.Once</code>
+          <span>Singleton, lazy initialization</span>
+        </div>
+        <div class="quick-ref-item">
+          <code>sync.Map</code>
+          <span>Map với keys ổn định, nhiều goroutine đọc</span>
+        </div>
+        <div class="quick-ref-item">
+          <code>channel</code>
+          <span>Pipeline, ownership transfer, event signaling</span>
+        </div>
+        <div class="quick-ref-item">
+          <code>ShardedMap</code>
+          <span>Map với write-heavy workload, high concurrency</span>
+        </div>
+      </div>
+
+      <div class="callout callout-success" style="margin-top:32px">
+        <div class="callout-title">✅ Nguyên tắc vàng</div>
+        <p>
+          1. <strong>Dùng -race flag</strong> trong mọi go test trong CI/CD<br>
+          2. <strong>Mặc định là mutex</strong> — tối ưu hóa sau khi profile<br>
+          3. <strong>Channel cho ownership transfer</strong>, mutex cho shared state<br>
+          4. <strong>Không share state</strong> nếu không cần thiết — thiết kế để tránh sharing<br>
+          5. <strong>Document</strong> rõ ai sở hữu data và goroutine nào được phép truy cập
+        </p>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// Robust smooth scroll for all anchor links starting with #
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const href = a.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn("Invalid selector:", href, err);
+    }
+  });
+});
+
+// Active sidebar highlight
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      const id = entry.target.getAttribute('id');
+      const activeLink = document.querySelector(`.sidebar-link[href="#${id}"]`);
+      if (activeLink) activeLink.classList.add('active');
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+
+// Copy button functionality
+document.querySelectorAll('.code-block').forEach(block => {
+  const btn = block.querySelector('.copy-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const code = block.querySelector('pre').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+      btn.textContent = '✓ Đã copy';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+    });
+  });
+});
+</script>
+</body>
+</html>
