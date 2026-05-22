@@ -1,0 +1,4017 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Sorting Algorithms — Tài liệu kỹ thuật</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/go.min.js"></script>
+<style>
+:root {
+  --bg-base:       #090d13;
+  --bg-nav:        #0d1117;
+  --bg-panel:      #131920;
+  --bg-code:       #0d1117;
+  --bg-card:       #161c25;
+  --bg-hover:      #1c2535;
+  --border:        #1e2a3a;
+  --border-bright: #2a3a50;
+  --text-primary:  #e2eaf5;
+  --text-secondary:#7a90a8;
+  --text-muted:    #4a5a70;
+  --green:         #3ddc84;
+  --green-dim:     #1a4a2e;
+  --cyan:          #38bdf8;
+  --cyan-dim:      #0e2a40;
+  --purple:        #a78bfa;
+  --purple-dim:    #2a1a4a;
+  --orange:        #fb923c;
+  --orange-dim:    #3a1a0a;
+  --red:           #f87171;
+  --red-dim:       #3a1010;
+  --yellow:        #fbbf24;
+  --yellow-dim:    #3a2a00;
+  --pink:          #f472b6;
+  --sidebar-w:     260px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--bg-base);
+  color: var(--text-primary);
+  display: flex;
+  min-height: 100vh;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+/* ─── SIDEBAR ─── */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--bg-nav);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-logo {
+  padding: 20px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  position: sticky; top: 0;
+  background: var(--bg-nav);
+  z-index: 10;
+}
+
+.sidebar-logo .brand {
+  font-family: 'Syne', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+}
+
+.sidebar-logo .brand span {
+  color: var(--green);
+}
+
+.sidebar-logo .subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+.nav-section {
+  padding: 16px 0 8px;
+}
+
+.nav-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 0 20px;
+  margin-bottom: 4px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 20px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-secondary);
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  text-decoration: none;
+}
+
+.nav-item:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+  border-left-color: var(--border-bright);
+}
+
+.nav-item.active {
+  color: var(--green);
+  background: var(--green-dim);
+  border-left-color: var(--green);
+}
+
+.nav-item .nav-num {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  min-width: 18px;
+}
+
+.nav-item.active .nav-num { color: var(--green); opacity: 0.7; }
+
+/* ─── MAIN CONTENT ─── */
+.main {
+  margin-left: var(--sidebar-w);
+  flex: 1;
+  min-height: 100vh;
+}
+
+/* ─── TOP NAV BAR ─── */
+.topbar {
+  position: sticky;
+  top: 0;
+  background: rgba(9,13,19,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  padding: 0 32px;
+  height: 48px;
+  gap: 4px;
+  overflow-x: auto;
+}
+
+.tab-btn {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+}
+
+.tab-btn:hover { color: var(--text-primary); background: var(--bg-hover); }
+.tab-btn.active { color: var(--green); background: var(--green-dim); }
+
+/* ─── CONTENT SECTIONS ─── */
+.content {
+  padding: 48px 52px;
+  max-width: 1000px;
+}
+
+/* ─── PAGE HEADER ─── */
+.page-header {
+  margin-bottom: 48px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-secondary);
+  letter-spacing: -0.01em;
+  margin-bottom: 10px;
+}
+
+.page-header h1 span { color: var(--green); }
+
+.page-header .desc {
+  color: var(--text-secondary);
+  font-size: 14px;
+  max-width: 640px;
+  line-height: 1.7;
+}
+
+.meta-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.meta-chip {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+/* ─── SECTION HEADER ─── */
+.section {
+  margin-bottom: 60px;
+  scroll-margin-top: 68px;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.section-num {
+  width: 28px; height: 28px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-bright);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--green);
+  flex-shrink: 0;
+}
+
+.section-header h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* ─── BADGES ─── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+.badge-green  { background: var(--green-dim);  color: var(--green);  border: 1px solid rgba(61,220,132,0.25); }
+.badge-cyan   { background: var(--cyan-dim);   color: var(--cyan);   border: 1px solid rgba(56,189,248,0.25); }
+.badge-purple { background: var(--purple-dim); color: var(--purple); border: 1px solid rgba(167,139,250,0.25); }
+.badge-orange { background: var(--orange-dim); color: var(--orange); border: 1px solid rgba(251,146,60,0.25); }
+.badge-red    { background: var(--red-dim);    color: var(--red);    border: 1px solid rgba(248,113,113,0.25); }
+.badge-yellow { background: var(--yellow-dim); color: var(--yellow); border: 1px solid rgba(251,191,36,0.25); }
+
+/* ─── ALGO HEADER CARD ─── */
+.algo-header {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  position: relative;
+  overflow: hidden;
+}
+
+.algo-header::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+
+.algo-header.green::before  { background: linear-gradient(90deg, var(--green), transparent); }
+.algo-header.cyan::before   { background: linear-gradient(90deg, var(--cyan), transparent); }
+.algo-header.purple::before { background: linear-gradient(90deg, var(--purple), transparent); }
+.algo-header.orange::before { background: linear-gradient(90deg, var(--orange), transparent); }
+.algo-header.red::before    { background: linear-gradient(90deg, var(--red), transparent); }
+.algo-header.pink::before   { background: linear-gradient(90deg, var(--pink), transparent); }
+
+.algo-header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.algo-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.algo-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.algo-desc {
+  color: var(--text-secondary);
+  font-size: 13.5px;
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+/* ─── COMPLEXITY TABLE ─── */
+.complexity-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.complexity-cell {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
+}
+
+.complexity-cell .label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 4px;
+}
+
+.complexity-cell .value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.complexity-cell .value.good   { color: var(--green); }
+.complexity-cell .value.ok     { color: var(--yellow); }
+.complexity-cell .value.bad    { color: var(--red); }
+.complexity-cell .value.info   { color: var(--cyan); }
+
+/* ─── SUB SECTIONS ─── */
+.sub-section {
+  margin-bottom: 28px;
+}
+
+.sub-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sub-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ─── ASCII DIAGRAM ─── */
+.ascii-block {
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 12px 0;
+}
+
+.ascii-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.ascii-header .dots { display: flex; gap: 6px; }
+.ascii-header .dots span { width: 10px; height: 10px; border-radius: 50%; }
+.ascii-header .dots span:nth-child(1) { background: #ff5f56; }
+.ascii-header .dots span:nth-child(2) { background: #ffbd2e; }
+.ascii-header .dots span:nth-child(3) { background: #27c93f; }
+.ascii-header .fname {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.ascii-body {
+  padding: 16px 20px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.ascii-body .hl-green  { color: var(--green); }
+.ascii-body .hl-cyan   { color: var(--cyan); }
+.ascii-body .hl-yellow { color: var(--yellow); }
+.ascii-body .hl-red    { color: var(--red); }
+.ascii-body .hl-purple { color: var(--purple); }
+.ascii-body .hl-orange { color: var(--orange); }
+
+/* ─── CODE BLOCK ─── */
+.code-block {
+  margin: 16px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+}
+
+.code-header-left { display: flex; align-items: center; gap: 10px; }
+
+.code-header .dots { display: flex; gap: 5px; }
+.code-header .dots span { width: 10px; height: 10px; border-radius: 50%; }
+.code-header .dots span:nth-child(1) { background: #ff5f56; }
+.code-header .dots span:nth-child(2) { background: #ffbd2e; }
+.code-header .dots span:nth-child(3) { background: #27c93f; }
+
+.code-lang {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(61,220,132,0.1);
+  color: var(--green);
+  border: 1px solid rgba(61,220,132,0.2);
+}
+
+.code-filename {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.code-block pre {
+  margin: 0 !important;
+  background: var(--bg-code) !important;
+  padding: 16px 20px !important;
+  overflow-x: auto;
+  font-size: 12.5px !important;
+  line-height: 1.65 !important;
+}
+
+.code-block code { font-family: 'JetBrains Mono', monospace !important; }
+
+/* ─── LEVEL TABS ─── */
+.level-tabs {
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.level-tab {
+  padding: 7px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+  border-right: 1px solid var(--border);
+}
+
+.level-tab:last-child { border-right: none; }
+.level-tab:hover { color: var(--text-primary); background: var(--bg-hover); }
+.level-tab.active { background: var(--bg-code); color: var(--green); }
+
+.level-content { display: none; }
+.level-content.active { display: block; }
+
+.level-info {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 12px;
+}
+
+.level-info p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+.level-info strong { color: var(--text-primary); }
+
+/* ─── TABLE ─── */
+.table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  margin: 12px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+thead th {
+  background: var(--bg-panel);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody td {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: var(--bg-hover); }
+
+.td-algo { font-weight: 600; color: var(--text-primary); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.td-good { color: var(--green); font-family: 'JetBrains Mono', monospace; }
+.td-ok   { color: var(--yellow); font-family: 'JetBrains Mono', monospace; }
+.td-bad  { color: var(--red); font-family: 'JetBrains Mono', monospace; }
+
+/* ─── PITFALL TABLE ─── */
+.pitfall-num {
+  display: inline-flex;
+  width: 22px; height: 22px;
+  background: var(--red-dim);
+  color: var(--red);
+  border-radius: 4px;
+  align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ─── CALLOUT ─── */
+.callout {
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  border-left: 3px solid;
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.callout-icon { font-size: 15px; flex-shrink: 0; line-height: 1.5; }
+.callout p { color: var(--text-secondary); margin: 0; line-height: 1.6; }
+.callout strong { color: var(--text-primary); }
+
+.callout-tip    { background: rgba(56,189,248,0.06); border-color: var(--cyan); }
+.callout-warn   { background: rgba(251,191,36,0.06); border-color: var(--yellow); }
+.callout-danger { background: rgba(248,113,113,0.06); border-color: var(--red); }
+.callout-info   { background: rgba(167,139,250,0.06); border-color: var(--purple); }
+
+/* ─── STEP FLOW ─── */
+.step-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 12px 0;
+}
+
+.step-item {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.step-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 28px;
+  flex-shrink: 0;
+}
+
+.step-dot {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.step-line {
+  width: 1px;
+  flex: 1;
+  min-height: 20px;
+  background: var(--border);
+  margin: 2px 0;
+}
+
+.step-body {
+  padding-bottom: 20px;
+  flex: 1;
+}
+
+.step-body h4 { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+.step-body p  { font-size: 12.5px; color: var(--text-secondary); margin: 0; }
+
+/* ─── REF CARDS ─── */
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.ref-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  text-decoration: none;
+  transition: all 0.15s;
+  display: block;
+}
+
+.ref-card:hover {
+  border-color: var(--green);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+.ref-card .ref-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--green);
+  margin-bottom: 4px;
+}
+
+.ref-card .ref-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  word-break: break-all;
+}
+
+.ref-card .ref-desc { font-size: 12px; color: var(--text-secondary); }
+
+/* ─── DIVIDER ─── */
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+/* ─── HIGHLIGHT INLINE ─── */
+code.inline {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  padding: 1px 6px;
+  border-radius: 4px;
+  color: var(--cyan);
+}
+
+p { color: var(--text-secondary); margin-bottom: 10px; }
+p:last-child { margin-bottom: 0; }
+
+ul, ol { padding-left: 20px; }
+li { color: var(--text-secondary); margin-bottom: 4px; font-size: 13.5px; }
+li strong { color: var(--text-primary); }
+
+/* ─── COMPARISON OVERVIEW TABLE ─── */
+.overview-table { font-size: 12.5px; }
+.overview-table th { font-size: 11px; }
+
+/* ─── FOOTER ─── */
+.doc-footer {
+  border-top: 1px solid var(--border);
+  padding: 28px 52px;
+  margin-left: 0;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.doc-footer span { font-family: 'JetBrains Mono', monospace; }
+/* ── Concept Image Container ── */
+.concept-img-wrapper {
+  margin: 1.5rem 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(61, 220, 132, 0.25);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  background: var(--bg-card);
+  padding: 12px;
+}
+.concept-img-wrapper img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+.concept-img-caption {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 10px;
+  font-style: italic;
+  line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════ SIDEBAR ══════════════════ -->
+<nav class="sidebar">
+  <div class="sidebar-logo">
+    <div class="brand">Go <span>Sorting</span> Algorithms</div>
+    <div class="subtitle">go 1.21+ · dsa · algorithms</div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tổng Quan</div>
+    <a class="nav-item active" href="#intro"><span class="nav-num">00</span>Giới thiệu</a>
+    <a class="nav-item" href="#overview"><span class="nav-num">01</span>So sánh tổng quan</a>
+    <a class="nav-item" href="#when-to-use"><span class="nav-num">02</span>Khi nào dùng gì</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Thuật Toán Cơ Bản</div>
+    <a class="nav-item" href="#bubble"><span class="nav-num">03</span>Bubble Sort</a>
+    <a class="nav-item" href="#selection"><span class="nav-num">04</span>Selection Sort</a>
+    <a class="nav-item" href="#insertion"><span class="nav-num">05</span>Insertion Sort</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Thuật Toán Nâng Cao</div>
+    <a class="nav-item" href="#merge"><span class="nav-num">06</span>Merge Sort</a>
+    <a class="nav-item" href="#quick"><span class="nav-num">07</span>Quick Sort</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Chuyên Sâu</div>
+    <a class="nav-item" href="#dnf"><span class="nav-num">08</span>Dutch National Flag</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tham Khảo</div>
+    <a class="nav-item" href="#refs"><span class="nav-num">09</span>References</a>
+  </div>
+</nav>
+
+<!-- ══════════════════ MAIN ══════════════════ -->
+<div class="main">
+
+  <!-- TOP TABS -->
+  <div class="topbar">
+    <button class="tab-btn active" onclick="scrollTo('intro')">Giới thiệu</button>
+    <button class="tab-btn" onclick="scrollTo('bubble')">Bubble</button>
+    <button class="tab-btn" onclick="scrollTo('selection')">Selection</button>
+    <button class="tab-btn" onclick="scrollTo('insertion')">Insertion</button>
+    <button class="tab-btn" onclick="scrollTo('merge')">Merge</button>
+    <button class="tab-btn" onclick="scrollTo('quick')">Quick</button>
+    <button class="tab-btn" onclick="scrollTo('dnf')">Dutch Flag</button>
+    <button class="tab-btn" onclick="scrollTo('refs')">Refs</button>
+  </div>
+
+  <div class="content">
+
+    <!-- ══════ PAGE HEADER ══════ -->
+    <div class="page-header" id="intro">
+      <h1>Go <span>Sorting</span> Algorithms</h1>
+      <p class="desc">
+        Tài liệu kỹ thuật chuyên sâu về 6 thuật toán sắp xếp cổ điển được triển khai bằng Go. 
+        Từ định nghĩa, minh họa trực quan, code từ Basic đến Expert, pitfalls thường gặp đến references chất lượng cao.
+      </p>
+      <div class="meta-row">
+        <span class="meta-chip">📅 2025-01-01</span>
+        <span class="meta-chip">🔄 Go 1.21+</span>
+        <span class="meta-chip">⏱ ~60 phút đọc</span>
+        <span class="meta-chip">🏷 #dsa #sorting #golang</span>
+      </div>
+    </div>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-sorting-overview.png" alt="Sorting Algorithms Comparison Overview" loading="lazy">
+      <div class="concept-img-caption">Hình 0.1: Tổng quan 6 thuật toán sắp xếp — Bubble Sort, Selection Sort, Insertion Sort (O(n²)), Merge Sort, Quick Sort (O(n log n)), và Dutch National Flag (O(n)) với so sánh Time/Space/Stability.</div>
+    </div>
+
+    <!-- ══════ OVERVIEW TABLE ══════ -->
+    <div class="section" id="overview">
+      <div class="section-header">
+        <div class="section-num">01</div>
+        <h2>So Sánh Tổng Quan</h2>
+        <span class="badge badge-cyan">Bảng tóm tắt</span>
+      </div>
+
+      <p>Bảng so sánh độ phức tạp thời gian và không gian của 6 thuật toán. <strong>Stable</strong> = giữ nguyên thứ tự các phần tử bằng nhau sau khi sắp xếp.</p>
+
+      <div class="table-wrap">
+        <table class="overview-table">
+          <thead>
+            <tr>
+              <th>Thuật toán</th>
+              <th>Best Case</th>
+              <th>Average Case</th>
+              <th>Worst Case</th>
+              <th>Space</th>
+              <th>Stable</th>
+              <th>Ghi chú</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="td-algo">Bubble Sort</td>
+              <td class="td-good">O(n)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-good">O(1)</td>
+              <td><span class="badge badge-green">✓ Yes</span></td>
+              <td>Best khi mảng gần sorted</td>
+            </tr>
+            <tr>
+              <td class="td-algo">Selection Sort</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-good">O(1)</td>
+              <td><span class="badge badge-red">✗ No</span></td>
+              <td>Tối thiểu số lần swap</td>
+            </tr>
+            <tr>
+              <td class="td-algo">Insertion Sort</td>
+              <td class="td-good">O(n)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-good">O(1)</td>
+              <td><span class="badge badge-green">✓ Yes</span></td>
+              <td>Tốt với small/nearly sorted</td>
+            </tr>
+            <tr>
+              <td class="td-algo">Merge Sort</td>
+              <td class="td-ok">O(n log n)</td>
+              <td class="td-ok">O(n log n)</td>
+              <td class="td-ok">O(n log n)</td>
+              <td class="td-ok">O(n)</td>
+              <td><span class="badge badge-green">✓ Yes</span></td>
+              <td>Guaranteed O(n log n)</td>
+            </tr>
+            <tr>
+              <td class="td-algo">Quick Sort</td>
+              <td class="td-ok">O(n log n)</td>
+              <td class="td-ok">O(n log n)</td>
+              <td class="td-bad">O(n²)</td>
+              <td class="td-ok">O(log n)</td>
+              <td><span class="badge badge-red">✗ No</span></td>
+              <td>Cache-friendly, fastest avg</td>
+            </tr>
+            <tr>
+              <td class="td-algo">Dutch Nat'l Flag</td>
+              <td class="td-ok">O(n)</td>
+              <td class="td-ok">O(n)</td>
+              <td class="td-ok">O(n)</td>
+              <td class="td-good">O(1)</td>
+              <td><span class="badge badge-red">✗ No</span></td>
+              <td>3-way partition, chuyên biệt</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════ WHEN TO USE ══════ -->
+    <div class="section" id="when-to-use">
+      <div class="section-header">
+        <div class="section-num">02</div>
+        <h2>Khi Nào Dùng Gì?</h2>
+        <span class="badge badge-purple">Decision guide</span>
+      </div>
+
+      <div class="ascii-block">
+        <div class="ascii-header">
+          <div class="dots"><span></span><span></span><span></span></div>
+          <div class="fname">decision-tree.txt</div>
+        </div>
+        <div class="ascii-body"><span class="hl-cyan">Cần sắp xếp?</span>
+    │
+    ├── Mảng nhỏ (n < 20) ──────────────────────► <span class="hl-green">Insertion Sort</span>   (overhead thấp, cache tốt)
+    │
+    ├── Mảng gần sorted ─────────────────────────► <span class="hl-green">Insertion Sort</span>   (O(n) trong best case)
+    │
+    ├── Chỉ có 3 loại giá trị (0/1/2) ─────────► <span class="hl-yellow">Dutch National Flag</span> (O(n) guaranteed)
+    │
+    ├── Cần stable sort + guaranteed O(n log n) ► <span class="hl-cyan">Merge Sort</span>       (linked list, external sort)
+    │
+    ├── Cần tốc độ nhanh nhất trên average ─────► <span class="hl-purple">Quick Sort</span>       (std::sort trong hầu hết ngôn ngữ)
+    │
+    ├── Bộ nhớ hạn chế (in-place) ──────────────► <span class="hl-purple">Quick Sort / Heap Sort</span>
+    │
+    └── Học thuật / debug ────────────────────────► <span class="hl-orange">Bubble / Selection</span>  (trực quan, dễ hiểu)
+
+<span class="hl-cyan">Go stdlib:</span> sort.Slice() dùng pattern Pdqsort (IntroSort variant)
+         = Quick Sort + Heap Sort + Insertion Sort hybrid</div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         BUBBLE SORT
+    ══════════════════════════════════════ -->
+    <div class="section" id="bubble">
+      <div class="algo-header green">
+        <div class="algo-header-top">
+          <div class="algo-title">📝 01 — Bubble Sort</div>
+          <div class="algo-badges">
+            <span class="badge badge-green">Cơ bản</span>
+            <span class="badge badge-yellow">Stable</span>
+          </div>
+        </div>
+        <div class="algo-desc">
+          Thuật toán sắp xếp đơn giản nhất: liên tục so sánh và hoán đổi các cặp phần tử liền kề sai thứ tự,
+          làm cho phần tử lớn nhất "nổi bọt" lên cuối mảng sau mỗi vòng lặp. 
+          Tên gọi xuất phát từ cách các phần tử nhỏ dần "nổi lên" về đầu mảng như bong bóng.
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-cell"><div class="label">Best Case</div><div class="value good">O(n)</div></div>
+          <div class="complexity-cell"><div class="label">Average</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Worst Case</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Space</div><div class="value good">O(1)</div></div>
+          <div class="complexity-cell"><div class="label">Stable</div><div class="value good">✓ Yes</div></div>
+          <div class="complexity-cell"><div class="label">In-place</div><div class="value good">✓ Yes</div></div>
+        </div>
+      </div>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-bubble-sort.png" alt="Bubble Sort Algorithm Step by Step" loading="lazy">
+        <div class="concept-img-caption">Hình 3.1: Bubble Sort từng bước — phần tử lớn nhất "nổi bọt" về cuối mảng qua từng pass, tối ưu hóa với cờ early exit khi không có swap.</div>
+      </div>
+
+      <!-- ① DEFINE -->
+      <div class="sub-section">
+        <div class="sub-title">① Định Nghĩa & Phân Tích</div>
+        <p><strong>Cơ chế:</strong> Mỗi pass qua mảng, so sánh <code class="inline">arr[i]</code> với <code class="inline">arr[i+1]</code>. Nếu sai thứ tự → swap. Sau mỗi pass, phần tử lớn nhất chưa được sắp xếp sẽ về đúng vị trí cuối cùng.</p>
+        <p><strong>Invariant:</strong> Sau pass thứ <em>k</em>, k phần tử lớn nhất đã ở đúng vị trí (cuối mảng). Số lượng phần tử cần xét giảm 1 sau mỗi pass.</p>
+        <p><strong>Optimized:</strong> Thêm flag <code class="inline">swapped</code> — nếu pass nào không có swap nào xảy ra, mảng đã sorted → early exit. Best case trở thành O(n).</p>
+      </div>
+
+      <!-- ② VISUAL -->
+      <div class="sub-section">
+        <div class="sub-title">② Minh Họa Trực Quan</div>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">bubble-sort-visualization.txt</div>
+          </div>
+          <div class="ascii-body">Mảng ban đầu: [<span class="hl-red">5</span>, <span class="hl-orange">3</span>, <span class="hl-yellow">8</span>, <span class="hl-green">1</span>, 2]
+
+<span class="hl-cyan">PASS 1</span> — tìm phần tử lớn nhất đặt về cuối:
+  [5, 3, 8, 1, 2]
+   ↑  ↑              5 > 3 → SWAP
+  [3, 5, 8, 1, 2]
+      ↑  ↑            5 < 8 → no swap
+  [3, 5, 8, 1, 2]
+         ↑  ↑          8 > 1 → SWAP
+  [3, 5, 1, 8, 2]
+            ↑  ↑        8 > 2 → SWAP
+  [3, 5, 1, 2, <span class="hl-green">8</span>]   ← 8 về đúng vị trí ✓
+
+<span class="hl-cyan">PASS 2</span>:
+  [3, 5, 1, 2, <span class="hl-green">8</span>]
+   ↑  ↑              3 < 5 → no swap
+  [3, 5, 1, 2, <span class="hl-green">8</span>]
+      ↑  ↑            5 > 1 → SWAP
+  [3, 1, 5, 2, <span class="hl-green">8</span>]
+         ↑  ↑          5 > 2 → SWAP
+  [3, 1, 2, <span class="hl-green">5</span>, <span class="hl-green">8</span>]  ← 5, 8 đã đúng vị trí ✓
+
+<span class="hl-cyan">PASS 3</span>:
+  [3, 1, 2, <span class="hl-green">5</span>, <span class="hl-green">8</span>]
+   ↑  ↑              3 > 1 → SWAP
+  [1, 3, 2, <span class="hl-green">5</span>, <span class="hl-green">8</span>]
+      ↑  ↑            3 > 2 → SWAP
+  [1, 2, <span class="hl-green">3</span>, <span class="hl-green">5</span>, <span class="hl-green">8</span>]  ← 3, 5, 8 đúng vị trí ✓
+
+<span class="hl-cyan">PASS 4</span>:
+  [1, 2, <span class="hl-green">3</span>, <span class="hl-green">5</span>, <span class="hl-green">8</span>]
+   ↑  ↑              1 < 2 → no swap (swapped = false → <span class="hl-yellow">EARLY EXIT</span>)
+
+<span class="hl-green">Kết quả: [1, 2, 3, 5, 8] ✓</span>
+
+<span class="hl-cyan">Số lần so sánh:</span> (n-1) + (n-2) + ... + 1 = n(n-1)/2 = O(n²)
+<span class="hl-cyan">Số lần swap tối đa:</span> n(n-1)/2 (worst case — mảng ngược)</div>
+        </div>
+      </div>
+
+      <!-- ③ CODE -->
+      <div class="sub-section">
+        <div class="sub-title">③ Mã Nguồn — 4 Mức Độ</div>
+
+        <div class="level-tabs">
+          <button class="level-tab active" onclick="switchLevel('bubble', 'basic')">🟢 Basic</button>
+          <button class="level-tab" onclick="switchLevel('bubble', 'inter')">🟡 Intermediate</button>
+          <button class="level-tab" onclick="switchLevel('bubble', 'adv')">🔴 Advanced</button>
+          <button class="level-tab" onclick="switchLevel('bubble', 'exp')">⚫ Expert</button>
+        </div>
+
+        <div id="bubble-basic" class="level-content active">
+          <div class="level-info"><p><strong>Đối tượng:</strong> Người mới học thuật toán, muốn hiểu cơ chế Bubble Sort hoạt động thế nào.</p></div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">bubble_basic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// BubbleSort sắp xếp mảng int tăng dần.
+// Ý tưởng: mỗi vòng lặp ngoài (pass), phần tử lớn nhất
+// "nổi bọt" lên cuối đoạn chưa được sắp xếp.
+func BubbleSort(arr []int) {
+    n := len(arr)
+    for i := 0; i < n-1; i++ {
+        // 💡 Mỗi pass i: [0..n-1-i] là phần chưa sorted,
+        //    [n-1-i+1..n-1] đã sorted (không cần xét nữa)
+        swapped := false // ✅ Optimized: early exit nếu không có swap
+
+        for j := 0; j < n-1-i; j++ {
+            if arr[j] > arr[j+1] {
+                // Swap: hoán đổi hai phần tử liền kề
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                swapped = true
+            }
+        }
+
+        // ⚠️ Nếu pass này không swap nào → mảng đã sorted → dừng
+        if !swapped {
+            fmt.Printf("  Early exit sau pass %d\n", i+1)
+            break
+        }
+    }
+}
+
+func main() {
+    arr := []int{5, 3, 8, 1, 2}
+    fmt.Println("Trước:", arr)
+
+    BubbleSort(arr)
+
+    fmt.Println("Sau:  ", arr)
+    // Output: Sau:   [1 2 3 5 8]
+}
+</code></pre>
+          </div>
+          <div class="callout callout-tip">
+            <div class="callout-icon">💡</div>
+            <p><strong>Kết quả:</strong> <code class="inline">Sau: [1 2 3 5 8]</code>. Biến <code class="inline">swapped</code> là tối ưu quan trọng nhất — biến Bubble Sort từ <em>luôn O(n²)</em> thành <em>O(n) với mảng đã sorted</em>.</p>
+          </div>
+        </div>
+
+        <div id="bubble-inter" class="level-content">
+          <div class="level-info"><p><strong>Đối tượng:</strong> Developer muốn dùng với các kiểu dữ liệu tùy chỉnh và comparator linh hoạt.</p></div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">bubble_generic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// Ordered: constraint cho các kiểu có thể so sánh với <, >
+type Ordered interface {
+    ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+        ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+        ~float32 | ~float64 | ~string
+}
+
+// BubbleSortGeneric sắp xếp slice bất kỳ kiểu Ordered.
+// ✅ Go 1.18+ generics: type-safe, không cần interface{}
+func BubbleSortGeneric[T Ordered](arr []T) {
+    n := len(arr)
+    for i := 0; i < n-1; i++ {
+        swapped := false
+        for j := 0; j < n-1-i; j++ {
+            if arr[j] > arr[j+1] {
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                swapped = true
+            }
+        }
+        if !swapped {
+            break
+        }
+    }
+}
+
+// BubbleSortFunc sắp xếp với comparator tùy chỉnh.
+// less(a, b) trả về true nếu a phải đứng trước b.
+func BubbleSortFunc[T any](arr []T, less func(a, b T) bool) {
+    n := len(arr)
+    for i := 0; i < n-1; i++ {
+        swapped := false
+        for j := 0; j < n-1-i; j++ {
+            // ⚠️ Stable sort: chỉ swap khi arr[j] PHẢI ĐI SAU arr[j+1]
+            // tức là !less(arr[j], arr[j+1]) && arr[j] != arr[j+1]
+            if less(arr[j+1], arr[j]) {
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                swapped = true
+            }
+        }
+        if !swapped {
+            break
+        }
+    }
+}
+
+type Person struct {
+    Name string
+    Age  int
+}
+
+func main() {
+    // Dùng với int
+    nums := []int{64, 34, 25, 12, 22, 11, 90}
+    BubbleSortGeneric(nums)
+    fmt.Println("Int:", nums)
+    // Output: [11 12 22 25 34 64 90]
+
+    // Dùng với string
+    words := []string{"banana", "apple", "cherry", "date"}
+    BubbleSortGeneric(words)
+    fmt.Println("String:", words)
+    // Output: [apple banana cherry date]
+
+    // Dùng với struct — sort theo Age tăng dần
+    people := []Person{
+        {"Alice", 30}, {"Bob", 25}, {"Charlie", 35}, {"Diana", 28},
+    }
+    BubbleSortFunc(people, func(a, b Person) bool {
+        return a.Age < b.Age
+    })
+    fmt.Println("People by Age:")
+    for _, p := range people {
+        fmt.Printf("  %s: %d\n", p.Name, p.Age)
+    }
+    // Output: Bob:25, Diana:28, Alice:30, Charlie:35
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="bubble-adv" class="level-content">
+          <div class="level-info"><p><strong>Đối tượng:</strong> Developer cần Bubble Sort với đầy đủ metrics, context cancellation, và concurrent-safe cho production.</p></div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">bubble_advanced.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+)
+
+// SortMetrics thu thập thống kê trong quá trình sort.
+type SortMetrics struct {
+    Comparisons int64
+    Swaps       int64
+    Passes      int
+    Duration    time.Duration
+    EarlyExit   bool
+}
+
+func (m SortMetrics) String() string {
+    return fmt.Sprintf(
+        "Passes=%d | Comparisons=%d | Swaps=%d | EarlyExit=%v | Duration=%v",
+        m.Passes, m.Comparisons, m.Swaps, m.EarlyExit, m.Duration,
+    )
+}
+
+// BubbleSortWithMetrics: Bubble Sort có context cancellation và metrics.
+// Dừng ngay khi ctx bị cancel — quan trọng trong long-running sort.
+func BubbleSortWithMetrics(ctx context.Context, arr []int) (SortMetrics, error) {
+    metrics := SortMetrics{}
+    n := len(arr)
+    start := time.Now()
+
+    for i := 0; i < n-1; i++ {
+        // ✅ Kiểm tra context mỗi pass — không block goroutine scheduler
+        select {
+        case <-ctx.Done():
+            metrics.Duration = time.Since(start)
+            return metrics, fmt.Errorf("sort cancelled after %d passes: %w", i, ctx.Err())
+        default:
+        }
+
+        metrics.Passes++
+        swapped := false
+
+        for j := 0; j < n-1-i; j++ {
+            metrics.Comparisons++
+            if arr[j] > arr[j+1] {
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                metrics.Swaps++
+                swapped = true
+            }
+        }
+
+        if !swapped {
+            metrics.EarlyExit = true
+            break
+        }
+    }
+
+    metrics.Duration = time.Since(start)
+    return metrics, nil
+}
+
+// BubbleSortCocktail: Cocktail Shaker Sort — cải tiến của Bubble Sort.
+// Sort theo cả 2 chiều: trái→phải rồi phải→trái.
+// Giảm "turtle problem": phần tử nhỏ ở cuối mảng di chuyển chậm về đầu.
+func BubbleSortCocktail(arr []int) int {
+    n := len(arr)
+    passes := 0
+    left, right := 0, n-1
+
+    for left < right {
+        swapped := false
+
+        // Chiều trái → phải: đưa max lên cuối
+        for i := left; i < right; i++ {
+            if arr[i] > arr[i+1] {
+                arr[i], arr[i+1] = arr[i+1], arr[i]
+                swapped = true
+            }
+        }
+        right--
+        passes++
+
+        if !swapped {
+            break
+        }
+        swapped = false
+
+        // Chiều phải → trái: đưa min về đầu
+        for i := right; i > left; i-- {
+            if arr[i] < arr[i-1] {
+                arr[i], arr[i-1] = arr[i-1], arr[i]
+                swapped = true
+            }
+        }
+        left++
+        passes++
+
+        if !swapped {
+            break
+        }
+    }
+    return passes
+}
+
+func main() {
+    // Test với context timeout
+    arr := []int{64, 34, 25, 12, 22, 11, 90, 45, 67, 8}
+
+    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+    defer cancel()
+
+    arrCopy := make([]int, len(arr))
+    copy(arrCopy, arr)
+
+    metrics, err := BubbleSortWithMetrics(ctx, arrCopy)
+    if err != nil {
+        fmt.Println("Error:", err)
+    } else {
+        fmt.Println("Sorted:", arrCopy)
+        fmt.Println("Metrics:", metrics)
+    }
+
+    // Test Cocktail Shaker
+    arr2 := []int{64, 34, 25, 12, 22, 11, 90}
+    passes := BubbleSortCocktail(arr2)
+    fmt.Printf("Cocktail sorted: %v (passes: %d)\n", arr2, passes)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="bubble-exp" class="level-content">
+          <div class="level-info"><p><strong>Đối tượng:</strong> Senior developer — Bubble Sort được tích hợp vào hệ thống streaming data với Observer pattern và real-time visualization hooks.</p></div>
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">bubble_expert.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package sorting
+
+import (
+    "context"
+    "fmt"
+    "sync"
+    "time"
+)
+
+// SortEvent: event được emit trong quá trình sort — dùng cho visualization/audit.
+type SortEvent struct {
+    Type      string // "compare", "swap", "pass_done", "complete"
+    Index1    int
+    Index2    int
+    PassNum   int
+    Timestamp time.Time
+    Snapshot  []int // bản sao mảng tại thời điểm event (chỉ emit khi cần debug)
+}
+
+// SortObserver: interface cho bất kỳ component nào muốn lắng nghe quá trình sort.
+// ✅ Dùng interface thay vì function callback → dễ mock trong test.
+type SortObserver interface {
+    OnEvent(event SortEvent)
+}
+
+// LogObserver: observer đơn giản ghi log ra stdout.
+type LogObserver struct{ mu sync.Mutex }
+
+func (l *LogObserver) OnEvent(e SortEvent) {
+    l.mu.Lock()
+    defer l.mu.Unlock()
+    if e.Type == "swap" || e.Type == "complete" {
+        fmt.Printf("[%s] pass=%d idx=[%d,%d]\n", e.Type, e.PassNum, e.Index1, e.Index2)
+    }
+}
+
+// MetricsObserver: observer thu thập metrics để export ra Prometheus/OpenTelemetry.
+type MetricsObserver struct {
+    mu          sync.Mutex
+    Comparisons int64
+    Swaps       int64
+    Passes      int
+}
+
+func (m *MetricsObserver) OnEvent(e SortEvent) {
+    m.mu.Lock()
+    defer m.mu.Unlock()
+    switch e.Type {
+    case "compare":
+        m.Comparisons++
+    case "swap":
+        m.Swaps++
+    case "pass_done":
+        m.Passes++
+    }
+}
+
+// ObservableBubbleSorter: Bubble Sort có thể gắn nhiều observer.
+type ObservableBubbleSorter struct {
+    observers []SortObserver
+    mu        sync.RWMutex
+}
+
+func NewObservableBubbleSorter() *ObservableBubbleSorter {
+    return &ObservableBubbleSorter{}
+}
+
+// AddObserver: thêm observer — thread-safe.
+func (s *ObservableBubbleSorter) AddObserver(obs SortObserver) {
+    s.mu.Lock()
+    defer s.mu.Unlock()
+    s.observers = append(s.observers, obs)
+}
+
+func (s *ObservableBubbleSorter) emit(event SortEvent) {
+    s.mu.RLock()
+    defer s.mu.RUnlock()
+    for _, obs := range s.observers {
+        obs.OnEvent(event) // ⚠️ Nếu observer chậm → blocking. Production: dùng channel buffered
+    }
+}
+
+// Sort: thực hiện bubble sort và emit events.
+func (s *ObservableBubbleSorter) Sort(ctx context.Context, arr []int) error {
+    n := len(arr)
+
+    for i := 0; i < n-1; i++ {
+        select {
+        case <-ctx.Done():
+            return fmt.Errorf("sort interrupted at pass %d: %w", i, ctx.Err())
+        default:
+        }
+
+        swapped := false
+        for j := 0; j < n-1-i; j++ {
+            s.emit(SortEvent{Type: "compare", Index1: j, Index2: j + 1, PassNum: i + 1, Timestamp: time.Now()})
+
+            if arr[j] > arr[j+1] {
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+                swapped = true
+                s.emit(SortEvent{Type: "swap", Index1: j, Index2: j + 1, PassNum: i + 1, Timestamp: time.Now()})
+            }
+        }
+
+        s.emit(SortEvent{Type: "pass_done", PassNum: i + 1, Timestamp: time.Now()})
+
+        if !swapped {
+            break
+        }
+    }
+
+    s.emit(SortEvent{Type: "complete", Timestamp: time.Now()})
+    return nil
+}
+
+// Ví dụ sử dụng
+func ExampleObservable() {
+    sorter := NewObservableBubbleSorter()
+
+    // Gắn logger
+    sorter.AddObserver(&LogObserver{})
+
+    // Gắn metrics collector
+    metrics := &MetricsObserver{}
+    sorter.AddObserver(metrics)
+
+    arr := []int{5, 3, 8, 1, 2, 9, 4}
+    ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+    defer cancel()
+
+    if err := sorter.Sort(ctx, arr); err != nil {
+        fmt.Println("Error:", err)
+        return
+    }
+
+    fmt.Printf("Sorted: %v\n", arr)
+    fmt.Printf("Stats: comparisons=%d swaps=%d passes=%d\n",
+        metrics.Comparisons, metrics.Swaps, metrics.Passes)
+}
+</code></pre>
+          </div>
+          <div class="callout callout-warn">
+            <div class="callout-icon">⚠️</div>
+            <p><strong>Production note:</strong> Trong observer <code class="inline">emit()</code>, nếu observer xử lý chậm (ghi DB, HTTP call), sort sẽ bị blocking. Giải pháp: dùng <code class="inline">chan SortEvent</code> buffered + goroutine consumer riêng.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ PITFALLS -->
+      <div class="sub-section">
+        <div class="sub-title">④ Cạm Bẫy Thường Gặp</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pitfall-num">1</span></td><td>Index out of range</td><td>Điều kiện inner loop dùng <code class="inline">j &lt; n</code> thay vì <code class="inline">j &lt; n-1-i</code></td><td>Luôn dùng <code class="inline">j &lt; n-1-i</code> để tránh truy cập arr[j+1] khi j = n-1</td></tr>
+              <tr><td><span class="pitfall-num">2</span></td><td>Không có early exit</td><td>Bỏ qua flag <code class="inline">swapped</code></td><td>Thêm <code class="inline">swapped</code> flag → O(n) với nearly sorted input</td></tr>
+              <tr><td><span class="pitfall-num">3</span></td><td>Sort trên slice gốc không mong muốn</td><td>Go truyền slice by reference — caller bị modify</td><td>Copy slice trước: <code class="inline">copy(tmp, arr)</code> rồi sort tmp</td></tr>
+              <tr><td><span class="pitfall-num">4</span></td><td>Dùng Bubble Sort cho n lớn</td><td>O(n²) quá chậm với n > 10,000</td><td>Dùng <code class="inline">sort.Slice()</code> (Pdqsort O(n log n)) hoặc Merge/Quick Sort</td></tr>
+              <tr><td><span class="pitfall-num">5</span></td><td>Outer loop đến n thay vì n-1</td><td>Pass thừa — inner loop range = 0</td><td>Outer loop: <code class="inline">i &lt; n-1</code>, không phải <code class="inline">i &lt; n</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         SELECTION SORT
+    ══════════════════════════════════════ -->
+    <div class="section" id="selection">
+      <div class="algo-header cyan">
+        <div class="algo-header-top">
+          <div class="algo-title">📝 02 — Selection Sort</div>
+          <div class="algo-badges">
+            <span class="badge badge-cyan">Cơ bản</span>
+            <span class="badge badge-red">Unstable</span>
+          </div>
+        </div>
+        <div class="algo-desc">
+          Mỗi vòng lặp tìm phần tử nhỏ nhất (hoặc lớn nhất) trong phần chưa sorted, sau đó swap nó về đúng vị trí.
+          Ưu điểm: số lần swap tối thiểu (O(n)) — hữu ích khi swap là operation đắt (ví dụ: SSD write).
+          Nhược điểm: không có early exit, luôn O(n²) bất kể input.
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-cell"><div class="label">Best Case</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Average</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Worst Case</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Space</div><div class="value good">O(1)</div></div>
+          <div class="complexity-cell"><div class="label">Stable</div><div class="value bad">✗ No</div></div>
+          <div class="complexity-cell"><div class="label">Swaps</div><div class="value good">O(n)</div></div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">① Định Nghĩa</div>
+        <p><strong>Cơ chế:</strong> Chia mảng thành 2 phần: phần sorted (bên trái) và phần unsorted (bên phải). Mỗi iteration, tìm index của phần tử min trong unsorted, swap nó với phần tử đầu tiên của unsorted.</p>
+        <p><strong>Tại sao Unstable?</strong> Swap trực tiếp có thể phá vỡ thứ tự tương đối. Ví dụ: <code class="inline">[3a, 3b, 1]</code> → sau iteration 1: <code class="inline">[1, 3b, 3a]</code> — 3b và 3a đổi chỗ.</p>
+        <p><strong>Khi nào dùng:</strong> Khi bộ nhớ ghi (write) là đắt hơn đọc (flash memory, EEPROM). Selection Sort chỉ thực hiện đúng n-1 lần swap.</p>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">② Minh Họa Trực Quan</div>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">selection-sort.txt</div>
+          </div>
+          <div class="ascii-body">Mảng: [<span class="hl-red">64</span>, <span class="hl-orange">25</span>, <span class="hl-yellow">12</span>, <span class="hl-cyan">22</span>, 11]
+
+<span class="hl-cyan">Pass 1</span>: Tìm min trong [64, 25, 12, 22, 11] → min=11 tại index 4
+         SWAP arr[0] ↔ arr[4]: [<span class="hl-green">11</span> | 25, 12, 22, 64]
+              ✓─┘                  └── sorted ──┘
+
+<span class="hl-cyan">Pass 2</span>: Tìm min trong [25, 12, 22, 64] → min=12 tại index 2
+         SWAP arr[1] ↔ arr[2]: [<span class="hl-green">11, 12</span> | 25, 22, 64]
+
+<span class="hl-cyan">Pass 3</span>: Tìm min trong [25, 22, 64] → min=22 tại index 3
+         SWAP arr[2] ↔ arr[3]: [<span class="hl-green">11, 12, 22</span> | 25, 64]
+
+<span class="hl-cyan">Pass 4</span>: Tìm min trong [25, 64] → min=25 tại index 3
+         No swap needed:        [<span class="hl-green">11, 12, 22, 25</span> | 64]
+
+<span class="hl-green">Kết quả: [11, 12, 22, 25, 64]</span>
+
+<span class="hl-yellow">Tổng số swap: 4 lần (= n-1) — tối thiểu có thể!</span>
+<span class="hl-red">Nhưng số so sánh: (n-1)+(n-2)+...+1 = O(n²) — không tránh được</span></div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">③ Mã Nguồn — 4 Mức Độ</div>
+        <div class="level-tabs">
+          <button class="level-tab active" onclick="switchLevel('sel', 'basic')">🟢 Basic</button>
+          <button class="level-tab" onclick="switchLevel('sel', 'inter')">🟡 Intermediate</button>
+          <button class="level-tab" onclick="switchLevel('sel', 'adv')">🔴 Advanced</button>
+          <button class="level-tab" onclick="switchLevel('sel', 'exp')">⚫ Expert</button>
+        </div>
+
+        <div id="sel-basic" class="level-content active">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">selection_basic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// SelectionSort: tìm min trong phần unsorted → swap về đầu.
+func SelectionSort(arr []int) {
+    n := len(arr)
+    for i := 0; i < n-1; i++ {
+        // 💡 arr[0..i-1] đã sorted, tìm min trong arr[i..n-1]
+        minIdx := i
+        for j := i + 1; j < n; j++ {
+            if arr[j] < arr[minIdx] {
+                minIdx = j // Cập nhật index của phần tử nhỏ nhất
+            }
+        }
+        // Swap phần tử nhỏ nhất về vị trí i
+        // ✅ Chỉ swap khi cần thiết (minIdx != i) → tránh swap thừa
+        if minIdx != i {
+            arr[i], arr[minIdx] = arr[minIdx], arr[i]
+        }
+    }
+}
+
+func main() {
+    arr := []int{64, 25, 12, 22, 11}
+    fmt.Println("Trước:", arr)
+    SelectionSort(arr)
+    fmt.Println("Sau:  ", arr)
+    // Output: Sau:   [11 12 22 25 64]
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="sel-inter" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">selection_double.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// SelectionSortDouble: tìm cả min VÀ max trong mỗi pass.
+// Swap min về đầu, max về cuối → giảm số pass xuống còn n/2.
+func SelectionSortDouble(arr []int) {
+    left, right := 0, len(arr)-1
+
+    for left < right {
+        minIdx, maxIdx := left, right
+
+        // 💡 Một pass duy nhất tìm cả min và max
+        for i := left; i <= right; i++ {
+            if arr[i] < arr[minIdx] {
+                minIdx = i
+            }
+            if arr[i] > arr[maxIdx] {
+                maxIdx = i
+            }
+        }
+
+        // Swap min về vị trí left
+        if minIdx != left {
+            arr[left], arr[minIdx] = arr[minIdx], arr[left]
+            // ⚠️ Nếu max đang ở vị trí left (đã bị swap), cập nhật maxIdx
+            if maxIdx == left {
+                maxIdx = minIdx
+            }
+        }
+
+        // Swap max về vị trí right
+        if maxIdx != right {
+            arr[right], arr[maxIdx] = arr[maxIdx], arr[right]
+        }
+
+        left++
+        right--
+    }
+}
+
+func main() {
+    arr := []int{64, 25, 12, 22, 11, 90, 45}
+    fmt.Println("Trước:", arr)
+    SelectionSortDouble(arr)
+    fmt.Println("Sau:  ", arr)
+    // Output: [11 12 22 25 45 64 90]
+    // ✅ Số pass: n/2 thay vì n-1
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="sel-adv" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">selection_interface.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "strings"
+)
+
+// Sorter: interface tổng quát cho bất kỳ thuật toán sort nào.
+// ✅ Dependency inversion: code phụ thuộc abstraction, không phải implementation.
+type Sorter interface {
+    Sort(data []interface{}, less func(a, b interface{}) bool)
+}
+
+// SelectionSorter: implement Sorter interface bằng Selection Sort.
+type SelectionSorter struct {
+    SwapCount int // đếm số lần swap
+}
+
+func (s *SelectionSorter) Sort(data []interface{}, less func(a, b interface{}) bool) {
+    s.SwapCount = 0
+    n := len(data)
+    for i := 0; i < n-1; i++ {
+        minIdx := i
+        for j := i + 1; j < n; j++ {
+            if less(data[j], data[minIdx]) {
+                minIdx = j
+            }
+        }
+        if minIdx != i {
+            data[i], data[minIdx] = data[minIdx], data[i]
+            s.SwapCount++
+        }
+    }
+}
+
+// StableSelectionSorter: Selection Sort STABLE bằng cách shift thay vì swap.
+// Trade-off: O(n) writes per iteration → tổng O(n²) writes (mất lợi thế swap min)
+type StableSelectionSorter struct{}
+
+func (s *StableSelectionSorter) Sort(arr []int) {
+    n := len(arr)
+    for i := 0; i < n-1; i++ {
+        minIdx := i
+        for j := i + 1; j < n; j++ {
+            if arr[j] < arr[minIdx] {
+                minIdx = j
+            }
+        }
+        // ✅ Shift thay vì swap → giữ stable order
+        key := arr[minIdx]
+        for j := minIdx; j > i; j-- {
+            arr[j] = arr[j-1] // shift phải → trái
+        }
+        arr[i] = key
+    }
+}
+
+func main() {
+    // Test Selection Sort generic
+    sorter := &SelectionSorter{}
+    data := []interface{}{"banana", "apple", "cherry", "avocado"}
+    sorter.Sort(data, func(a, b interface{}) bool {
+        return strings.ToLower(a.(string)) < strings.ToLower(b.(string))
+    })
+    fmt.Printf("Sorted strings: %v (swaps: %d)\n", data, sorter.SwapCount)
+
+    // Test stable version
+    stableSorter := &StableSelectionSorter{}
+    arr := []int{5, 3, 1, 4, 2}
+    stableSorter.Sort(arr)
+    fmt.Println("Stable sorted:", arr)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="sel-exp" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span>
+                <span class="code-filename">selection_benchmark.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "math/rand"
+    "sort"
+    "time"
+)
+
+// SortBenchmark: so sánh Selection Sort với stdlib sort.Slice
+// trong các trường hợp đặc biệt: few swaps matter (write-expensive storage).
+type BenchResult struct {
+    Algorithm string
+    N         int
+    Swaps     int
+    Duration  time.Duration
+}
+
+func selectionSortCountSwaps(arr []int) (swaps int) {
+    n := len(arr)
+    for i := 0; i < n-1; i++ {
+        minIdx := i
+        for j := i + 1; j < n; j++ {
+            if arr[j] < arr[minIdx] {
+                minIdx = j
+            }
+        }
+        if minIdx != i {
+            arr[i], arr[minIdx] = arr[minIdx], arr[i]
+            swaps++
+        }
+    }
+    return
+}
+
+// countSwapsStdlib: đếm swap trong sort.Slice bằng wrapping
+type trackedSlice struct {
+    data  []int
+    swaps int
+}
+
+func (t *trackedSlice) Len() int           { return len(t.data) }
+func (t *trackedSlice) Less(i, j int) bool { return t.data[i] < t.data[j] }
+func (t *trackedSlice) Swap(i, j int) {
+    t.data[i], t.data[j] = t.data[j], t.data[i]
+    t.swaps++
+}
+
+func runBenchmark(n int) {
+    // Tạo dữ liệu random
+    original := make([]int, n)
+    for i := range original {
+        original[i] = rand.Intn(n * 10)
+    }
+
+    // Selection Sort
+    arr1 := make([]int, n)
+    copy(arr1, original)
+    start := time.Now()
+    swaps := selectionSortCountSwaps(arr1)
+    selDur := time.Since(start)
+
+    // sort.Sort (Pdqsort)
+    arr2 := make([]int, n)
+    copy(arr2, original)
+    ts := &trackedSlice{data: arr2}
+    start = time.Now()
+    sort.Sort(ts)
+    stdDur := time.Since(start)
+
+    fmt.Printf("n=%-6d | Selection: swaps=%-6d time=%-10v | stdlib: swaps=%-6d time=%v\n",
+        n, swaps, selDur, ts.swaps, stdDur)
+
+    // ✅ Selection Sort luôn có ít swaps hơn — có giá trị khi write đắt
+    if swaps < ts.swaps {
+        fmt.Printf("         Selection Sort ít swap hơn %d lần!\n", ts.swaps-swaps)
+    }
+}
+
+func main() {
+    fmt.Println("=== Benchmark: Selection Sort vs stdlib sort ===")
+    fmt.Println("(Selection Sort: ít swap nhất, hữu ích với write-expensive storage)")
+    fmt.Println()
+
+    for _, n := range []int{100, 500, 1000} {
+        runBenchmark(n)
+    }
+}
+</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">④ Cạm Bẫy Thường Gặp</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pitfall-num">1</span></td><td>Bỏ qua bước check <code class="inline">minIdx != i</code></td><td>Swap element với chính nó — không sai nhưng thừa</td><td>Luôn kiểm tra <code class="inline">if minIdx != i</code> trước swap</td></tr>
+              <tr><td><span class="pitfall-num">2</span></td><td>Giả định Selection Sort stable</td><td>Không phải — swap có thể đổi chỗ phần tử bằng nhau</td><td>Dùng Stable version (shift thay vì swap) hoặc Insertion Sort</td></tr>
+              <tr><td><span class="pitfall-num">3</span></td><td>Double selection: maxIdx sai sau khi swap min</td><td>Swap min có thể di chuyển max sang vị trí khác</td><td>Kiểm tra <code class="inline">if maxIdx == left { maxIdx = minIdx }</code> sau swap min</td></tr>
+              <tr><td><span class="pitfall-num">4</span></td><td>Dùng Selection Sort vì "it's O(n) swaps"</td><td>Nhầm lẫn giữa swap count và time complexity</td><td>Chỉ dùng khi swap thực sự đắt; không dùng thay Merge/Quick Sort vì performance</td></tr>
+              <tr><td><span class="pitfall-num">5</span></td><td>Inner loop bắt đầu từ i thay vì i+1</td><td>So sánh phần tử với chính nó → minIdx không bao giờ update đúng</td><td>Inner loop: <code class="inline">j := i + 1</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         INSERTION SORT
+    ══════════════════════════════════════ -->
+    <div class="section" id="insertion">
+      <div class="algo-header purple">
+        <div class="algo-header-top">
+          <div class="algo-title">📝 03 — Insertion Sort</div>
+          <div class="algo-badges">
+            <span class="badge badge-purple">Cơ bản</span>
+            <span class="badge badge-green">Stable</span>
+            <span class="badge badge-cyan">Online</span>
+          </div>
+        </div>
+        <div class="algo-desc">
+          Giống như cách sắp xếp bài trong tay khi chơi bài: từng phần tử mới được chèn vào đúng vị trí trong phần đã sorted.
+          Hiệu quả với mảng nhỏ hoặc nearly-sorted. Là thuật toán Online (có thể xử lý dữ liệu đến từng phần).
+          Được dùng làm base case trong các thuật toán hybrid như Timsort và Introsort.
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-cell"><div class="label">Best Case</div><div class="value good">O(n)</div></div>
+          <div class="complexity-cell"><div class="label">Average</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Worst Case</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Space</div><div class="value good">O(1)</div></div>
+          <div class="complexity-cell"><div class="label">Stable</div><div class="value good">✓ Yes</div></div>
+          <div class="complexity-cell"><div class="label">Online</div><div class="value good">✓ Yes</div></div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">② Minh Họa Trực Quan</div>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">insertion-sort.txt</div>
+          </div>
+          <div class="ascii-body">Mảng: [5, 2, 4, 6, 1, 3]    (nghĩ như xếp bài trong tay)
+
+<span class="hl-green">[5]</span>          ← Bài đầu tiên, coi như đã sorted
+
+<span class="hl-green">[5]</span> <span class="hl-yellow">↑2</span>        ← Cầm bài 2, chèn vào đúng chỗ
+ 2 < 5 → shift 5 sang phải
+<span class="hl-green">[2, 5]</span>
+
+<span class="hl-green">[2, 5]</span> <span class="hl-yellow">↑4</span>      ← Cầm bài 4
+ 4 < 5 → shift 5; 4 > 2 → dừng, chèn
+<span class="hl-green">[2, 4, 5]</span>
+
+<span class="hl-green">[2, 4, 5]</span> <span class="hl-yellow">↑6</span>    ← Cầm bài 6
+ 6 > 5 → không shift, chèn cuối
+<span class="hl-green">[2, 4, 5, 6]</span>
+
+<span class="hl-green">[2, 4, 5, 6]</span> <span class="hl-yellow">↑1</span>  ← Cầm bài 1
+ 1 < 6, 1 < 5, 1 < 4, 1 < 2 → shift tất cả, chèn đầu
+<span class="hl-green">[1, 2, 4, 5, 6]</span>
+
+<span class="hl-green">[1, 2, 4, 5, 6]</span> <span class="hl-yellow">↑3</span> ← Cầm bài 3
+ 3 < 4, 3 > 2 → shift 4, 5, 6 sang phải, chèn 3
+<span class="hl-green">[1, 2, 3, 4, 5, 6] ✓</span>
+
+<span class="hl-cyan">Binary Insertion Sort:</span> Thay vì linear scan, dùng binary search tìm vị trí chèn
+→ Số so sánh giảm xuống O(n log n), nhưng số shift vẫn O(n²)</div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">③ Mã Nguồn — 4 Mức Độ</div>
+        <div class="level-tabs">
+          <button class="level-tab active" onclick="switchLevel('ins', 'basic')">🟢 Basic</button>
+          <button class="level-tab" onclick="switchLevel('ins', 'inter')">🟡 Intermediate</button>
+          <button class="level-tab" onclick="switchLevel('ins', 'adv')">🔴 Advanced</button>
+          <button class="level-tab" onclick="switchLevel('ins', 'exp')">⚫ Expert</button>
+        </div>
+
+        <div id="ins-basic" class="level-content active">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">insertion_basic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// InsertionSort: chèn từng phần tử vào đúng vị trí trong phần đã sorted.
+func InsertionSort(arr []int) {
+    n := len(arr)
+    for i := 1; i < n; i++ {
+        key := arr[i] // 💡 "cầm bài" lên tay
+        j := i - 1
+
+        // Dịch chuyển các phần tử lớn hơn key sang phải
+        // để tạo chỗ trống cho key
+        for j >= 0 && arr[j] > key {
+            arr[j+1] = arr[j] // shift phải
+            j--
+        }
+        // ✅ Chèn key vào vị trí đúng
+        arr[j+1] = key
+    }
+}
+
+func main() {
+    arr := []int{5, 2, 4, 6, 1, 3}
+    fmt.Println("Trước:", arr)
+    InsertionSort(arr)
+    fmt.Println("Sau:  ", arr)
+    // Output: [1 2 3 4 5 6]
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="ins-inter" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">binary_insertion.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// BinaryInsertionSort: dùng binary search tìm vị trí chèn.
+// Giảm số comparisons từ O(n²) xuống O(n log n),
+// nhưng shift vẫn O(n²) → tổng vẫn O(n²).
+// Hữu ích khi comparison đắt hơn memory move (e.g., so sánh string dài).
+func BinaryInsertionSort(arr []int) {
+    for i := 1; i < len(arr); i++ {
+        key := arr[i]
+
+        // Binary search tìm vị trí chèn trong arr[0..i-1]
+        left, right := 0, i
+        for left < right {
+            mid := left + (right-left)/2
+            // ✅ Dùng <= để đảm bảo stable: equal elements, key chèn SAU
+            if arr[mid] <= key {
+                left = mid + 1
+            } else {
+                right = mid
+            }
+        }
+
+        // Shift arr[left..i-1] sang phải 1 vị trí
+        // copy() theo chiều ngược: an toàn với overlapping slice
+        copy(arr[left+1:i+1], arr[left:i])
+        arr[left] = key
+    }
+}
+
+// InsertionSortRange: sort chỉ đoạn arr[lo..hi] (inclusive).
+// Dùng trong Merge Sort / Quick Sort hybrid khi subarray nhỏ.
+func InsertionSortRange(arr []int, lo, hi int) {
+    for i := lo + 1; i <= hi; i++ {
+        key := arr[i]
+        j := i - 1
+        for j >= lo && arr[j] > key {
+            arr[j+1] = arr[j]
+            j--
+        }
+        arr[j+1] = key
+    }
+}
+
+func main() {
+    arr := []int{64, 34, 25, 12, 22, 11, 90}
+    BinaryInsertionSort(arr)
+    fmt.Println("Binary Insertion:", arr)
+    // Output: [11 12 22 25 34 64 90]
+
+    // Dùng range version
+    arr2 := []int{10, 5, 8, 3, 7, 1}
+    InsertionSortRange(arr2, 1, 4) // chỉ sort phần [5,8,3,7]
+    fmt.Println("Sort range [1,4]:", arr2)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="ins-adv" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">shell_sort.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// ShellSort: cải tiến Insertion Sort bằng cách sort các phần tử cách nhau "gap".
+// Giảm số shift cần thiết bằng cách di chuyển phần tử xa hơn trong 1 bước.
+// Time: O(n log² n) với Ciura gap sequence — tốt hơn O(n²).
+func ShellSort(arr []int) {
+    // Ciura gap sequence (2001) — tốt nhất được biết đến thực nghiệm
+    gaps := []int{701, 301, 132, 57, 23, 10, 4, 1}
+
+    for _, gap := range gaps {
+        if gap >= len(arr) {
+            continue // bỏ qua gap lớn hơn mảng
+        }
+        // Insertion Sort với step = gap
+        for i := gap; i < len(arr); i++ {
+            key := arr[i]
+            j := i
+            for j >= gap && arr[j-gap] > key {
+                arr[j] = arr[j-gap] // shift với bước gap
+                j -= gap
+            }
+            arr[j] = key
+        }
+    }
+}
+
+// GenerateHibbardGaps: sinh Hibbard gap sequence: 2^k - 1
+// Time: O(n^(3/2))
+func GenerateHibbardGaps(n int) []int {
+    var gaps []int
+    for k := 1; (1<<k)-1 < n; k++ {
+        gaps = append([]int{(1 << k) - 1}, gaps...) // prepend để giảm dần
+    }
+    return gaps
+}
+
+func ShellSortHibbard(arr []int) {
+    gaps := GenerateHibbardGaps(len(arr))
+    for _, gap := range gaps {
+        for i := gap; i < len(arr); i++ {
+            key := arr[i]
+            j := i
+            for j >= gap && arr[j-gap] > key {
+                arr[j] = arr[j-gap]
+                j -= gap
+            }
+            arr[j] = key
+        }
+    }
+}
+
+func main() {
+    arr1 := []int{64, 34, 25, 12, 22, 11, 90, 45, 67, 8, 3, 55}
+    fmt.Println("Trước:", arr1)
+    ShellSort(arr1)
+    fmt.Println("Shell (Ciura):", arr1)
+
+    arr2 := []int{64, 34, 25, 12, 22, 11, 90, 45}
+    gaps := GenerateHibbardGaps(len(arr2))
+    fmt.Println("Hibbard gaps:", gaps)
+    ShellSortHibbard(arr2)
+    fmt.Println("Shell (Hibbard):", arr2)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="ins-exp" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">online_sorter.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+// OnlineSorter: Insertion Sort như một "Online Algorithm" —
+// nhận dữ liệu dần dần (streaming), luôn duy trì mảng đã sorted.
+// Use case: leaderboard real-time, top-k queries, sliding window sort.
+type OnlineSorter[T any] struct {
+    data []T
+    less func(a, b T) bool
+    maxSize int // 0 = không giới hạn
+}
+
+func NewOnlineSorter[T any](less func(a, b T) bool, maxSize int) *OnlineSorter[T] {
+    return &OnlineSorter[T]{less: less, maxSize: maxSize}
+}
+
+// Insert: chèn phần tử mới vào đúng vị trí — O(n) trung bình.
+// ✅ Dùng binary search để tìm vị trí → O(log n) comparisons
+func (s *OnlineSorter[T]) Insert(item T) {
+    // Binary search tìm vị trí chèn
+    pos := sort.Search(len(s.data), func(i int) bool {
+        return s.less(item, s.data[i])
+    })
+    // Chèn vào vị trí pos
+    s.data = append(s.data, item) // grow slice
+    copy(s.data[pos+1:], s.data[pos:])
+    s.data[pos] = item
+
+    // Nếu có maxSize, loại bỏ phần tử cuối (lớn nhất)
+    if s.maxSize > 0 && len(s.data) > s.maxSize {
+        s.data = s.data[:s.maxSize] // top-K smallest
+    }
+}
+
+// GetSorted: trả về snapshot của mảng sorted hiện tại.
+func (s *OnlineSorter[T]) GetSorted() []T {
+    result := make([]T, len(s.data))
+    copy(result, s.data)
+    return result
+}
+
+// Top: trả về k phần tử nhỏ nhất.
+func (s *OnlineSorter[T]) Top(k int) []T {
+    if k > len(s.data) {
+        k = len(s.data)
+    }
+    return s.data[:k]
+}
+
+// Score: simulate streaming leaderboard
+type Score struct {
+    Player string
+    Points int
+}
+
+func main() {
+    // Leaderboard: keep top 3 players by score (desc)
+    board := NewOnlineSorter[Score](func(a, b Score) bool {
+        return a.Points > b.Points // desc: cao hơn đứng trước
+    }, 3)
+
+    events := []Score{
+        {"Alice", 150}, {"Bob", 200}, {"Charlie", 175},
+        {"Diana", 220}, {"Eve", 160}, {"Frank", 190},
+    }
+
+    fmt.Println("=== Streaming Leaderboard (Top 3) ===")
+    for _, e := range events {
+        board.Insert(e)
+        top := board.Top(3)
+        fmt.Printf("  After %-8s (%3d pts): ", e.Player, e.Points)
+        for i, p := range top {
+            fmt.Printf("#%d %s(%d) ", i+1, p.Player, p.Points)
+        }
+        fmt.Println()
+    }
+}
+</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">④ Cạm Bẫy Thường Gặp</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pitfall-num">1</span></td><td>Quên điều kiện <code class="inline">j &gt;= 0</code></td><td>j có thể = -1, truy cập arr[-1] → panic</td><td>Điều kiện while: <code class="inline">j >= 0 && arr[j] > key</code></td></tr>
+              <tr><td><span class="pitfall-num">2</span></td><td>Swap thay vì shift</td><td>Swap nhiều hơn shift — viết Insertion Sort như Bubble Sort</td><td>Dùng shift: <code class="inline">arr[j+1] = arr[j]</code>, chèn key sau khi thoát loop</td></tr>
+              <tr><td><span class="pitfall-num">3</span></td><td>Binary search không stable</td><td>Dùng <code class="inline">arr[mid] < key</code> thay vì <code class="inline">arr[mid] <= key</code></td><td>Để stable: dùng <code class="inline">arr[mid] <= key</code> → equal elements, new item chèn sau</td></tr>
+              <tr><td><span class="pitfall-num">4</span></td><td>Shell Sort gap sequence kém</td><td>Dùng gap n/2, n/4, ... → O(n²) worst case</td><td>Dùng Ciura sequence: <code class="inline">[701,301,132,57,23,10,4,1]</code></td></tr>
+              <tr><td><span class="pitfall-num">5</span></td><td>Online sorter không copy khi trả về</td><td>Caller nhận pointer vào internal slice → data race</td><td>Luôn <code class="inline">copy(result, s.data)</code> trong GetSorted()</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         MERGE SORT
+    ══════════════════════════════════════ -->
+    <div class="section" id="merge">
+      <div class="algo-header orange">
+        <div class="algo-header-top">
+          <div class="algo-title">📝 04 — Merge Sort</div>
+          <div class="algo-badges">
+            <span class="badge badge-orange">Nâng cao</span>
+            <span class="badge badge-green">Stable</span>
+            <span class="badge badge-cyan">Divide & Conquer</span>
+          </div>
+        </div>
+        <div class="algo-desc">
+          Chia mảng thành 2 nửa, sort đệ quy từng nửa, sau đó merge 2 nửa đã sorted lại.
+          Guaranteed O(n log n) trong mọi trường hợp — không có worst case như Quick Sort.
+          Là thuật toán stable tốt nhất cho large datasets. Nền tảng của External Sort và Timsort.
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-cell"><div class="label">Best Case</div><div class="value ok">O(n log n)</div></div>
+          <div class="complexity-cell"><div class="label">Average</div><div class="value ok">O(n log n)</div></div>
+          <div class="complexity-cell"><div class="label">Worst Case</div><div class="value ok">O(n log n)</div></div>
+          <div class="complexity-cell"><div class="label">Space</div><div class="value ok">O(n)</div></div>
+          <div class="complexity-cell"><div class="label">Stable</div><div class="value good">✓ Yes</div></div>
+          <div class="complexity-cell"><div class="label">Parallel</div><div class="value good">✓ Yes</div></div>
+        </div>
+      </div>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-merge-sort.png" alt="Merge Sort — Divide and Conquer" loading="lazy">
+        <div class="concept-img-caption">Hình 6.1: Merge Sort — pha Divide chia đôi đệ quy xuống từng phần tử, pha Conquer merge lại theo thứ tự bằng kỹ thuật two-pointer. Đảm bảo O(n log n) mọi trường hợp, Stable, chi phí O(n) bộ nhớ phụ.</div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">② Minh Họa Trực Quan</div>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">merge-sort-tree.txt</div>
+          </div>
+          <div class="ascii-body"><span class="hl-cyan">DIVIDE PHASE</span> (top-down):
+              [38, 27, 43, 3, 9, 82, 10]
+                /                   \
+       [38, 27, 43, 3]           [9, 82, 10]
+         /         \               /      \
+    [38, 27]    [43, 3]         [9, 82]   [10]
+     /    \      /    \          /    \
+  [38]  [27]  [43]   [3]      [9]  [82]
+
+<span class="hl-yellow">MERGE PHASE</span> (bottom-up):
+  [38] + [27] → merge: [<span class="hl-green">27, 38</span>]
+  [43] + [3]  → merge: [<span class="hl-green">3, 43</span>]
+  [9]  + [82] → merge: [<span class="hl-green">9, 82</span>]
+
+  [27,38] + [3,43] → merge process:
+    L=[27,38] R=[3,43]
+    3 < 27 → take 3  → [3]
+    27 < 43 → take 27 → [3,27]
+    38 < 43 → take 38 → [3,27,38]
+    take 43            → [<span class="hl-green">3,27,38,43</span>]
+
+  [9,82] + [10] → [<span class="hl-green">9,10,82</span>]
+
+  [3,27,38,43] + [9,10,82] → <span class="hl-green">[3,9,10,27,38,43,82]</span> ✓
+
+<span class="hl-cyan">Độ sâu cây:</span> log₂(7) ≈ 3 levels
+<span class="hl-cyan">Mỗi level merge O(n)</span> → tổng O(n log n)</div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">③ Mã Nguồn — 4 Mức Độ</div>
+        <div class="level-tabs">
+          <button class="level-tab active" onclick="switchLevel('mrg', 'basic')">🟢 Basic</button>
+          <button class="level-tab" onclick="switchLevel('mrg', 'inter')">🟡 Intermediate</button>
+          <button class="level-tab" onclick="switchLevel('mrg', 'adv')">🔴 Advanced</button>
+          <button class="level-tab" onclick="switchLevel('mrg', 'exp')">⚫ Expert</button>
+        </div>
+
+        <div id="mrg-basic" class="level-content active">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">merge_basic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// MergeSort: divide & conquer — đệ quy chia đôi, merge lại.
+func MergeSort(arr []int) []int {
+    if len(arr) <= 1 {
+        return arr // base case: 0 hoặc 1 phần tử đã sorted
+    }
+
+    // 💡 Chia đôi mảng
+    mid := len(arr) / 2
+    left := MergeSort(arr[:mid])  // sort nửa trái
+    right := MergeSort(arr[mid:]) // sort nửa phải
+
+    return merge(left, right)
+}
+
+// merge: gộp 2 mảng đã sorted thành 1 mảng sorted.
+func merge(left, right []int) []int {
+    result := make([]int, 0, len(left)+len(right))
+    i, j := 0, 0
+
+    for i < len(left) && j < len(right) {
+        // ✅ Dùng <= để đảm bảo stable: left element đến trước khi bằng nhau
+        if left[i] <= right[j] {
+            result = append(result, left[i])
+            i++
+        } else {
+            result = append(result, right[j])
+            j++
+        }
+    }
+
+    // Append phần còn lại (một trong hai đã hết)
+    result = append(result, left[i:]...)
+    result = append(result, right[j:]...)
+    return result
+}
+
+func main() {
+    arr := []int{38, 27, 43, 3, 9, 82, 10}
+    fmt.Println("Trước:", arr)
+    sorted := MergeSort(arr)
+    fmt.Println("Sau:  ", sorted)
+    // Output: [3 9 10 27 38 43 82]
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="mrg-inter" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">merge_bottomup.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// MergeSortBottomUp: iterative — không dùng đệ quy, tránh stack overflow.
+// ✅ In-place với temporary buffer dùng lại → ít allocation hơn top-down.
+func MergeSortBottomUp(arr []int) {
+    n := len(arr)
+    tmp := make([]int, n) // buffer dùng lại cho tất cả merge
+
+    // width = kích thước subarray đang merge: 1, 2, 4, 8, ...
+    for width := 1; width < n; width *= 2 {
+        for lo := 0; lo < n-width; lo += 2 * width {
+            mid := lo + width
+            hi := lo + 2*width
+            if hi > n {
+                hi = n // tránh vượt biên
+            }
+            mergeInto(arr, tmp, lo, mid, hi)
+        }
+    }
+}
+
+// mergeInto: merge arr[lo..mid) và arr[mid..hi) vào tmp, copy lại arr.
+func mergeInto(arr, tmp []int, lo, mid, hi int) {
+    i, j, k := lo, mid, lo
+    for i < mid && j < hi {
+        if arr[i] <= arr[j] {
+            tmp[k] = arr[i]; i++
+        } else {
+            tmp[k] = arr[j]; j++
+        }
+        k++
+    }
+    for i < mid { tmp[k] = arr[i]; i++; k++ }
+    for j < hi  { tmp[k] = arr[j]; j++; k++ }
+    copy(arr[lo:hi], tmp[lo:hi]) // copy ngược lại arr gốc
+}
+
+// MergeSortHybrid: Merge Sort + Insertion Sort.
+// Khi subarray nhỏ (< threshold), dùng Insertion Sort thay vì tiếp tục đệ quy.
+// Đây là cách Timsort hoạt động về cơ bản.
+const threshold = 16
+
+func MergeSortHybrid(arr []int) {
+    n := len(arr)
+    // Step 1: Insertion Sort các subarray kích thước threshold
+    for i := 0; i < n; i += threshold {
+        end := i + threshold
+        if end > n { end = n }
+        insertionSortRange(arr, i, end-1)
+    }
+    // Step 2: Bottom-up merge với bước khởi đầu = threshold
+    tmp := make([]int, n)
+    for width := threshold; width < n; width *= 2 {
+        for lo := 0; lo < n-width; lo += 2 * width {
+            mid := lo + width
+            hi := lo + 2*width
+            if hi > n { hi = n }
+            mergeInto(arr, tmp, lo, mid, hi)
+        }
+    }
+}
+
+func insertionSortRange(arr []int, lo, hi int) {
+    for i := lo + 1; i <= hi; i++ {
+        key, j := arr[i], i-1
+        for j >= lo && arr[j] > key { arr[j+1] = arr[j]; j-- }
+        arr[j+1] = key
+    }
+}
+
+func main() {
+    arr := []int{38, 27, 43, 3, 9, 82, 10, 15, 6, 55}
+    fmt.Println("Bottom-up Merge Sort:")
+    fmt.Println("Trước:", arr)
+    MergeSortBottomUp(arr)
+    fmt.Println("Sau:  ", arr)
+
+    arr2 := make([]int, 50)
+    for i := range arr2 { arr2[i] = 50 - i }
+    MergeSortHybrid(arr2)
+    fmt.Println("\nHybrid (50 elements):", arr2[:10], "...")
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="mrg-adv" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">merge_parallel.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "sync"
+)
+
+// ParallelMergeSort: dùng goroutines để sort 2 nửa song song.
+// ⚠️ Chỉ hiệu quả khi n đủ lớn — goroutine overhead > lợi ích với n nhỏ.
+const parallelThreshold = 2048
+
+func ParallelMergeSort(arr []int) []int {
+    return parallelMergeHelper(arr, 0)
+}
+
+func parallelMergeHelper(arr []int, depth int) []int {
+    if len(arr) <= 1 {
+        return arr
+    }
+
+    // ✅ Chỉ tạo goroutine khi mảng đủ lớn VÀ depth không quá sâu
+    // depth limit tránh tạo 2^depth goroutines
+    if len(arr) < parallelThreshold || depth > 4 {
+        return sequentialMergeSort(arr)
+    }
+
+    mid := len(arr) / 2
+    var wg sync.WaitGroup
+    var left, right []int
+
+    wg.Add(2)
+
+    go func() {
+        defer wg.Done()
+        left = parallelMergeHelper(arr[:mid], depth+1)
+    }()
+
+    go func() {
+        defer wg.Done()
+        right = parallelMergeHelper(arr[mid:], depth+1)
+    }()
+
+    wg.Wait()
+    return merge(left, right)
+}
+
+func sequentialMergeSort(arr []int) []int {
+    if len(arr) <= 1 { return arr }
+    mid := len(arr) / 2
+    return merge(sequentialMergeSort(arr[:mid]), sequentialMergeSort(arr[mid:]))
+}
+
+func merge(left, right []int) []int {
+    result := make([]int, 0, len(left)+len(right))
+    i, j := 0, 0
+    for i < len(left) && j < len(right) {
+        if left[i] <= right[j] { result = append(result, left[i]); i++ } else { result = append(result, right[j]); j++ }
+    }
+    result = append(result, left[i:]...)
+    result = append(result, right[j:]...)
+    return result
+}
+
+// MergeSortGeneric: generic version với type constraint
+type Ordered interface {
+    ~int | ~int8 | ~int16 | ~int32 | ~int64 |
+        ~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 |
+        ~float32 | ~float64 | ~string
+}
+
+func MergeSortGeneric[T Ordered](arr []T) []T {
+    if len(arr) <= 1 { return arr }
+    mid := len(arr) / 2
+    left := MergeSortGeneric(arr[:mid])
+    right := MergeSortGeneric(arr[mid:])
+
+    result := make([]T, 0, len(arr))
+    i, j := 0, 0
+    for i < len(left) && j < len(right) {
+        if left[i] <= right[j] { result = append(result, left[i]); i++ } else { result = append(result, right[j]); j++ }
+    }
+    return append(append(result, left[i:]...), right[j:]...)
+}
+
+func main() {
+    arr := make([]int, 10000)
+    for i := range arr { arr[i] = len(arr) - i }
+
+    sorted := ParallelMergeSort(arr)
+    fmt.Printf("ParallelMergeSort: %d elements, sorted correctly: %v\n",
+        len(sorted), sorted[0] == 1 && sorted[len(sorted)-1] == 10000)
+
+    floats := []float64{3.14, 1.41, 2.71, 1.73, 0.57}
+    sortedF := MergeSortGeneric(floats)
+    fmt.Println("Generic floats:", sortedF)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="mrg-exp" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">external_merge_sort.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "bufio"
+    "fmt"
+    "os"
+    "sort"
+    "strconv"
+    "strings"
+)
+
+// ExternalMergeSort: sort file lớn hơn RAM.
+// Phase 1: Đọc từng chunk, sort trong RAM, ghi ra temp files.
+// Phase 2: K-way merge các temp files → output file.
+// Use case: sort CSV/log file hàng GB trong ETL pipeline.
+
+const chunkSize = 1000 // số dòng mỗi chunk (thực tế: vài MB)
+
+// Phase1SortChunks: đọc input, chia chunk, sort, ghi temp files.
+func Phase1SortChunks(inputPath string) ([]string, error) {
+    f, err := os.Open(inputPath)
+    if err != nil { return nil, err }
+    defer f.Close()
+
+    scanner := bufio.NewScanner(f)
+    var chunk []int
+    var tempFiles []string
+    chunkIdx := 0
+
+    flush := func() error {
+        if len(chunk) == 0 { return nil }
+        sort.Ints(chunk)
+
+        tmpPath := fmt.Sprintf("/tmp/chunk_%d.txt", chunkIdx)
+        chunkIdx++
+
+        tf, err := os.Create(tmpPath)
+        if err != nil { return err }
+        defer tf.Close()
+
+        w := bufio.NewWriter(tf)
+        for _, v := range chunk {
+            fmt.Fprintln(w, v)
+        }
+        tempFiles = append(tempFiles, tmpPath)
+        chunk = chunk[:0] // reset chunk, reuse memory
+        return w.Flush()
+    }
+
+    for scanner.Scan() {
+        line := strings.TrimSpace(scanner.Text())
+        if line == "" { continue }
+        n, err := strconv.Atoi(line)
+        if err != nil { continue }
+        chunk = append(chunk, n)
+        if len(chunk) >= chunkSize {
+            if err := flush(); err != nil { return nil, err }
+        }
+    }
+    if err := flush(); err != nil { return nil, err }
+    return tempFiles, scanner.Err()
+}
+
+// heapItem: dùng trong K-way merge heap
+type heapItem struct {
+    value     int
+    fileIndex int
+    scanner   *bufio.Scanner
+}
+
+// Phase2KWayMerge: merge tất cả temp files bằng min-heap.
+// ✅ Memory usage: O(K) thay vì O(total) — chỉ giữ 1 phần tử mỗi file
+func Phase2KWayMerge(tempFiles []string, outputPath string) error {
+    // Mở tất cả temp files
+    type fileReader struct {
+        scanner *bufio.Scanner
+        file    *os.File
+    }
+    readers := make([]fileReader, 0, len(tempFiles))
+    defer func() {
+        for _, r := range readers { r.file.Close() }
+    }()
+
+    // Priority queue đơn giản (min-heap thủ công)
+    var heap []heapItem
+
+    for i, path := range tempFiles {
+        f, err := os.Open(path)
+        if err != nil { return err }
+        s := bufio.NewScanner(f)
+        readers = append(readers, fileReader{s, f})
+        if s.Scan() {
+            n, _ := strconv.Atoi(strings.TrimSpace(s.Text()))
+            heap = append(heap, heapItem{n, i, s})
+        }
+    }
+
+    // Heapify
+    sort.Slice(heap, func(i, j int) bool { return heap[i].value < heap[j].value })
+
+    out, err := os.Create(outputPath)
+    if err != nil { return err }
+    defer out.Close()
+    w := bufio.NewWriter(out)
+    defer w.Flush()
+
+    for len(heap) > 0 {
+        // Lấy min
+        min := heap[0]
+        fmt.Fprintln(w, min.value)
+
+        // Đọc phần tử tiếp theo từ cùng file
+        if min.scanner.Scan() {
+            n, _ := strconv.Atoi(strings.TrimSpace(min.scanner.Text()))
+            heap[0] = heapItem{n, min.fileIndex, min.scanner}
+        } else {
+            // File này hết → xóa khỏi heap
+            heap[0] = heap[len(heap)-1]
+            heap = heap[:len(heap)-1]
+        }
+        // Re-heapify (simple: resort — production dùng heap.Fix)
+        sort.Slice(heap, func(i, j int) bool { return heap[i].value < heap[j].value })
+    }
+
+    return nil
+}
+
+func main() {
+    fmt.Println("External Merge Sort Pattern (simulate với 3000 số)")
+    // Trong thực tế: Phase1SortChunks("huge_file.txt")
+    // Ở đây demo kiến trúc, không chạy I/O thực
+    fmt.Println("Phase 1: Read input → sort chunks → write temp files")
+    fmt.Println("Phase 2: K-way merge temp files → sorted output")
+    fmt.Println("Memory: O(chunk_size + K) thay vì O(total_size)")
+    fmt.Println("Use case: ETL pipeline, log analysis, database external sort")
+}
+</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">④ Cạm Bẫy Thường Gặp</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pitfall-num">1</span></td><td>Stack overflow với n lớn (top-down)</td><td>Độ sâu đệ quy = O(log n) nhưng với n = 10^8 → ~27 levels, có thể ok; với n nhỏ và nhiều goroutine thì stack vẫn grow</td><td>Dùng bottom-up iterative hoặc tăng stack size với <code class="inline">runtime.GOMAXPROCS</code></td></tr>
+              <tr><td><span class="pitfall-num">2</span></td><td>Allocate new slice trong mỗi merge</td><td>GC pressure cao khi sort nhiều lần</td><td>Pre-allocate buffer O(n) dùng lại, dùng bottom-up variant</td></tr>
+              <tr><td><span class="pitfall-num">3</span></td><td>Parallel không hiệu quả với n nhỏ</td><td>Goroutine overhead > lợi ích với n < vài nghìn</td><td>Chỉ parallel khi <code class="inline">len(arr) > threshold</code> (vd: 2048) và <code class="inline">depth < maxDepth</code></td></tr>
+              <tr><td><span class="pitfall-num">4</span></td><td>Mất stable property trong parallel version</td><td>Goroutine execution order không deterministic</td><td>Stable sort đến từ logic merge, không phải parallel — merge vẫn left-first nên ok</td></tr>
+              <tr><td><span class="pitfall-num">5</span></td><td>mid = (lo + hi) / 2 — integer overflow</td><td>Khi lo và hi đều lớn, lo+hi overflow int32</td><td>Dùng <code class="inline">mid = lo + (hi-lo)/2</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         QUICK SORT
+    ══════════════════════════════════════ -->
+    <div class="section" id="quick">
+      <div class="algo-header red">
+        <div class="algo-header-top">
+          <div class="algo-title">📝 05 — Quick Sort</div>
+          <div class="algo-badges">
+            <span class="badge badge-orange">Nâng cao</span>
+            <span class="badge badge-red">Unstable</span>
+            <span class="badge badge-cyan">Cache-friendly</span>
+            <span class="badge badge-purple">★ Fastest avg</span>
+          </div>
+        </div>
+        <div class="algo-desc">
+          Chọn một pivot, partition mảng thành "nhỏ hơn pivot" và "lớn hơn pivot", sau đó sort đệ quy từng phần.
+          In-place, cache-friendly, và nhanh nhất trong thực tế với random data.
+          Worst case O(n²) khi pivot luôn chọn min/max — giải quyết bằng random pivot hoặc median-of-3.
+          Go stdlib <code>sort.Slice()</code> dùng Pdqsort (Quick Sort + Heap Sort + Insertion Sort hybrid).
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-cell"><div class="label">Best Case</div><div class="value ok">O(n log n)</div></div>
+          <div class="complexity-cell"><div class="label">Average</div><div class="value ok">O(n log n)</div></div>
+          <div class="complexity-cell"><div class="label">Worst Case</div><div class="value bad">O(n²)</div></div>
+          <div class="complexity-cell"><div class="label">Space</div><div class="value ok">O(log n)</div></div>
+          <div class="complexity-cell"><div class="label">Stable</div><div class="value bad">✗ No</div></div>
+          <div class="complexity-cell"><div class="label">In-place</div><div class="value good">✓ Yes</div></div>
+        </div>
+      </div>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-quick-sort.png" alt="Quick Sort — Partition and Pivot" loading="lazy">
+        <div class="concept-img-caption">Hình 7.1: Quick Sort — Lomuto partition scheme: chọn pivot, phân chia mảng thành ≤ pivot (trái) và > pivot (phải), đặt pivot vào vị trí đúng. Ba chiến lược chọn pivot: last element, random, median-of-three.</div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">② Minh Họa Trực Quan</div>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">quicksort-partition.txt</div>
+          </div>
+          <div class="ascii-body">Mảng: [3, 6, 8, 10, 1, 2, 1]   pivot = arr[hi] = <span class="hl-yellow">1</span>
+
+<span class="hl-cyan">PARTITION (Lomuto scheme):</span>
+  i = -1 (vị trí phần tử nhỏ hơn pivot cuối cùng)
+  j quét từ lo đến hi-1:
+
+  j=0: arr[0]=3 > pivot(1) → skip
+  j=1: arr[1]=6 > pivot(1) → skip
+  j=2: arr[2]=8 > pivot(1) → skip
+  j=3: arr[3]=10 > pivot(1)→ skip
+  j=4: arr[4]=1 ≤ pivot(1) → i++; swap arr[i]=arr[0] ↔ arr[4]=1
+       [<span class="hl-green">1</span>, 6, 8, 10, 3, 2, 1]   i=0
+  j=5: arr[5]=2 > pivot(1) → skip
+  j=6: done
+
+  Swap pivot: arr[i+1] ↔ arr[hi] → swap arr[1] ↔ arr[6]
+       [1, <span class="hl-yellow">1</span>, 8, 10, 3, 2, 6]   pivotIdx = 1
+
+<span class="hl-cyan">Kết quả partition:</span>
+  [1 | <span class="hl-yellow">1</span> | 8, 10, 3, 2, 6]
+   └─ ≤pivot ─┘     └──── ≥pivot ────┘
+
+<span class="hl-cyan">Đệ quy:</span>
+  QuickSort([1]) → trivial
+  QuickSort([8,10,3,2,6]) → tiếp tục...
+
+<span class="hl-yellow">Median-of-3 pivot selection</span> (cải thiện):
+  pivot = median(arr[lo], arr[mid], arr[hi])
+  Tránh worst case O(n²) với sorted/reverse-sorted input</div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">③ Mã Nguồn — 4 Mức Độ</div>
+        <div class="level-tabs">
+          <button class="level-tab active" onclick="switchLevel('qk', 'basic')">🟢 Basic</button>
+          <button class="level-tab" onclick="switchLevel('qk', 'inter')">🟡 Intermediate</button>
+          <button class="level-tab" onclick="switchLevel('qk', 'adv')">🔴 Advanced</button>
+          <button class="level-tab" onclick="switchLevel('qk', 'exp')">⚫ Expert</button>
+        </div>
+
+        <div id="qk-basic" class="level-content active">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">quicksort_basic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// QuickSort: Lomuto partition scheme — đơn giản, dễ hiểu.
+func QuickSort(arr []int, lo, hi int) {
+    if lo >= hi {
+        return // base case: 0 hoặc 1 phần tử
+    }
+    pivotIdx := partition(arr, lo, hi)
+    QuickSort(arr, lo, pivotIdx-1)  // sort phần bên trái pivot
+    QuickSort(arr, pivotIdx+1, hi)  // sort phần bên phải pivot
+}
+
+// partition (Lomuto): đặt pivot vào đúng vị trí, return index của pivot.
+// Phần tử ≤ pivot ở bên trái, > pivot ở bên phải.
+func partition(arr []int, lo, hi int) int {
+    pivot := arr[hi] // 💡 chọn phần tử cuối làm pivot
+    i := lo - 1     // i = index của phần tử nhỏ hơn pivot cuối cùng
+
+    for j := lo; j < hi; j++ {
+        if arr[j] <= pivot {
+            i++
+            arr[i], arr[j] = arr[j], arr[i] // swap vào phần "nhỏ hơn"
+        }
+    }
+    // Đặt pivot vào đúng vị trí: giữa 2 phần
+    arr[i+1], arr[hi] = arr[hi], arr[i+1]
+    return i + 1
+}
+
+func main() {
+    arr := []int{3, 6, 8, 10, 1, 2, 1}
+    fmt.Println("Trước:", arr)
+    QuickSort(arr, 0, len(arr)-1)
+    fmt.Println("Sau:  ", arr)
+    // Output: [1 1 2 3 6 8 10]
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="qk-inter" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">quicksort_3way.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "math/rand"
+)
+
+// QuickSort3Way: 3-way partition (Dijkstra / Dutch National Flag variant).
+// Xử lý tốt khi có nhiều phần tử BẰNG NHAU — O(n) thay vì O(n²) cho [v,v,v,...,v].
+// Chia thành 3 phần: [< pivot | == pivot | > pivot]
+func QuickSort3Way(arr []int, lo, hi int) {
+    if lo >= hi { return }
+
+    lt, gt := lo, hi
+    pivot := arr[lo]
+    i := lo + 1
+
+    for i <= gt {
+        switch {
+        case arr[i] < pivot:
+            arr[lt], arr[i] = arr[i], arr[lt]
+            lt++; i++
+        case arr[i] > pivot:
+            arr[i], arr[gt] = arr[gt], arr[i]
+            gt-- // ⚠️ không tăng i vì arr[gt] chưa được xét
+        default: // arr[i] == pivot
+            i++
+        }
+    }
+    // Sau khi xong: arr[lo..lt-1] < pivot, arr[lt..gt] == pivot, arr[gt+1..hi] > pivot
+    QuickSort3Way(arr, lo, lt-1)
+    QuickSort3Way(arr, gt+1, hi)
+}
+
+// QuickSortRandomPivot: random pivot tránh worst case O(n²).
+// ✅ Expected O(n log n) ngay cả với sorted/reverse-sorted input.
+func QuickSortRandomPivot(arr []int, lo, hi int) {
+    if lo >= hi { return }
+
+    // Random pivot: swap phần tử random vào vị trí hi trước khi partition
+    randIdx := lo + rand.Intn(hi-lo+1)
+    arr[randIdx], arr[hi] = arr[hi], arr[randIdx]
+
+    pivot := partition(arr, lo, hi)
+    QuickSortRandomPivot(arr, lo, pivot-1)
+    QuickSortRandomPivot(arr, pivot+1, hi)
+}
+
+func partition(arr []int, lo, hi int) int {
+    pivot := arr[hi]
+    i := lo - 1
+    for j := lo; j < hi; j++ {
+        if arr[j] <= pivot { i++; arr[i], arr[j] = arr[j], arr[i] }
+    }
+    arr[i+1], arr[hi] = arr[hi], arr[i+1]
+    return i + 1
+}
+
+func main() {
+    // Test 3-way: nhiều phần tử bằng nhau
+    arr1 := []int{3, 3, 1, 3, 2, 1, 3, 2}
+    QuickSort3Way(arr1, 0, len(arr1)-1)
+    fmt.Println("3-way:", arr1)
+    // Output: [1 1 2 2 3 3 3 3]
+
+    // Test random pivot
+    arr2 := make([]int, 10)
+    for i := range arr2 { arr2[i] = 10 - i } // sorted desc — worst case với fixed pivot
+    QuickSortRandomPivot(arr2, 0, len(arr2)-1)
+    fmt.Println("RandomPivot:", arr2)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="qk-adv" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">introsort.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "math"
+    "math/rand"
+)
+
+// IntroSort: Introspective Sort — hybrid algorithm.
+// Bắt đầu bằng Quick Sort, fallback sang Heap Sort khi recursion quá sâu,
+// và dùng Insertion Sort cho subarray nhỏ.
+// ✅ Đây là cơ sở của C++ std::sort và Go sort.Slice (Pdqsort).
+
+const introThreshold = 16
+
+func IntroSort(arr []int) {
+    maxDepth := 2 * int(math.Log2(float64(len(arr))+1))
+    introSortHelper(arr, 0, len(arr)-1, maxDepth)
+}
+
+func introSortHelper(arr []int, lo, hi, maxDepth int) {
+    size := hi - lo + 1
+    if size <= introThreshold {
+        // ✅ Insertion Sort cho subarray nhỏ: cache-efficient, low overhead
+        insertionSortRange(arr, lo, hi)
+        return
+    }
+    if maxDepth == 0 {
+        // ✅ Heap Sort khi recursion quá sâu: guaranteed O(n log n)
+        heapSort(arr, lo, hi)
+        return
+    }
+    // Quick Sort với median-of-3 pivot
+    pivotIdx := medianOf3Partition(arr, lo, hi)
+    introSortHelper(arr, lo, pivotIdx-1, maxDepth-1)
+    introSortHelper(arr, pivotIdx+1, hi, maxDepth-1)
+}
+
+// medianOf3: chọn pivot = median(arr[lo], arr[mid], arr[hi]) → tránh worst case
+func medianOf3Partition(arr []int, lo, hi int) int {
+    mid := lo + (hi-lo)/2
+    // Sort arr[lo], arr[mid], arr[hi] và đặt median tại arr[hi-1]
+    if arr[lo] > arr[mid]  { arr[lo], arr[mid] = arr[mid], arr[lo] }
+    if arr[lo] > arr[hi]   { arr[lo], arr[hi] = arr[hi], arr[lo] }
+    if arr[mid] > arr[hi]  { arr[mid], arr[hi] = arr[hi], arr[mid] }
+    // Đặt median (arr[mid]) vào arr[hi-1] làm pivot
+    arr[mid], arr[hi-1] = arr[hi-1], arr[mid]
+    return lomutoPartition(arr, lo, hi-1, arr[hi-1])
+}
+
+func lomutoPartition(arr []int, lo, hi, pivot int) int {
+    i := lo - 1
+    for j := lo; j < hi; j++ {
+        if arr[j] <= pivot { i++; arr[i], arr[j] = arr[j], arr[i] }
+    }
+    arr[i+1], arr[hi] = arr[hi], arr[i+1]
+    return i + 1
+}
+
+func heapSort(arr []int, lo, hi int) {
+    n := hi - lo + 1
+    sub := arr[lo : hi+1]
+    for i := n/2 - 1; i >= 0; i-- { siftDown(sub, i, n) }
+    for i := n - 1; i > 0; i-- {
+        sub[0], sub[i] = sub[i], sub[0]
+        siftDown(sub, 0, i)
+    }
+}
+
+func siftDown(arr []int, i, n int) {
+    for {
+        largest := i
+        l, r := 2*i+1, 2*i+2
+        if l < n && arr[l] > arr[largest] { largest = l }
+        if r < n && arr[r] > arr[largest] { largest = r }
+        if largest == i { break }
+        arr[i], arr[largest] = arr[largest], arr[i]
+        i = largest
+    }
+}
+
+func insertionSortRange(arr []int, lo, hi int) {
+    for i := lo + 1; i <= hi; i++ {
+        key, j := arr[i], i-1
+        for j >= lo && arr[j] > key { arr[j+1] = arr[j]; j-- }
+        arr[j+1] = key
+    }
+}
+
+func main() {
+    // Test với worst-case input cho naive quicksort
+    n := 1000
+    arr := make([]int, n)
+    for i := range arr { arr[i] = rand.Intn(n) }
+
+    IntroSort(arr)
+    fmt.Printf("IntroSort %d elements — sorted: %v\n", n, isSorted(arr))
+}
+
+func isSorted(arr []int) bool {
+    for i := 1; i < len(arr); i++ {
+        if arr[i] < arr[i-1] { return false }
+    }
+    return true
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="qk-exp" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">quicksort_concurrent.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "math/rand"
+    "runtime"
+    "sync"
+    "time"
+)
+
+// ConcurrentQuickSort: Quick Sort song song với worker pool.
+// Dùng semaphore (chan struct{}) để giới hạn số goroutines = GOMAXPROCS.
+// Pattern này tránh goroutine explosion khi mảng lớn.
+
+type ConcurrentSorter struct {
+    sem chan struct{} // semaphore giới hạn goroutines
+    wg  sync.WaitGroup
+}
+
+func NewConcurrentSorter() *ConcurrentSorter {
+    maxGoroutines := runtime.GOMAXPROCS(0)
+    return &ConcurrentSorter{
+        sem: make(chan struct{}, maxGoroutines),
+    }
+}
+
+func (cs *ConcurrentSorter) Sort(arr []int) {
+    cs.wg.Add(1)
+    cs.sort(arr, 0, len(arr)-1)
+    cs.wg.Wait()
+}
+
+func (cs *ConcurrentSorter) sort(arr []int, lo, hi int) {
+    defer cs.wg.Done()
+
+    if lo >= hi {
+        return
+    }
+
+    // Insertion Sort cho subarray nhỏ (tránh goroutine overhead)
+    if hi-lo < 32 {
+        insertionSortRange(arr, lo, hi)
+        return
+    }
+
+    pivot := cs.dualPivotPartition(arr, lo, hi)
+
+    // Thử acquire semaphore cho goroutine trái
+    select {
+    case cs.sem <- struct{}{}: // có slot
+        cs.wg.Add(1)
+        go func() {
+            defer func() { <-cs.sem }()
+            cs.sort(arr, lo, pivot-1)
+        }()
+    default: // không có slot → sort tuần tự
+        cs.wg.Add(1)
+        cs.sort(arr, lo, pivot-1)
+    }
+
+    // Sort phần phải trong goroutine hiện tại
+    cs.wg.Add(1)
+    cs.sort(arr, pivot+1, hi)
+}
+
+// dualPivotPartition: Java's Arrays.sort() pivot strategy.
+// Chọn 2 pivots p1 ≤ p2, chia thành 3 phần: [<p1 | p1≤x≤p2 | >p2]
+func (cs *ConcurrentSorter) dualPivotPartition(arr []int, lo, hi int) int {
+    if arr[lo] > arr[hi] {
+        arr[lo], arr[hi] = arr[hi], arr[lo]
+    }
+    pivot := arr[lo+(hi-lo)/2]
+
+    i := lo - 1
+    for j := lo; j < hi; j++ {
+        if arr[j] <= pivot {
+            i++
+            arr[i], arr[j] = arr[j], arr[i]
+        }
+    }
+    arr[i+1], arr[hi] = arr[hi], arr[i+1]
+    return i + 1
+}
+
+func insertionSortRange(arr []int, lo, hi int) {
+    for i := lo + 1; i <= hi; i++ {
+        key, j := arr[i], i-1
+        for j >= lo && arr[j] > key { arr[j+1] = arr[j]; j-- }
+        arr[j+1] = key
+    }
+}
+
+func isSorted(arr []int) bool {
+    for i := 1; i < len(arr); i++ { if arr[i] < arr[i-1] { return false } }
+    return true
+}
+
+func main() {
+    sizes := []int{10_000, 100_000, 500_000}
+    cs := NewConcurrentSorter()
+    fmt.Printf("GOMAXPROCS = %d\n\n", runtime.GOMAXPROCS(0))
+
+    for _, n := range sizes {
+        arr := make([]int, n)
+        for i := range arr { arr[i] = rand.Intn(n * 10) }
+
+        start := time.Now()
+        cs.Sort(arr)
+        elapsed := time.Since(start)
+
+        fmt.Printf("n=%-8d sorted=%-5v time=%v\n", n, isSorted(arr), elapsed)
+    }
+}
+</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">④ Cạm Bẫy Thường Gặp</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pitfall-num">1</span></td><td>Worst case O(n²) với sorted input</td><td>Always chọn arr[hi] hoặc arr[lo] làm pivot</td><td>Dùng random pivot hoặc median-of-3</td></tr>
+              <tr><td><span class="pitfall-num">2</span></td><td>Stack overflow với n lớn</td><td>Đệ quy sâu O(n) trong worst case</td><td>Dùng tail recursion optimization: sort phần nhỏ trước, loop phần lớn</td></tr>
+              <tr><td><span class="pitfall-num">3</span></td><td>Chậm với many duplicates</td><td>2-way partition cho mảng [v,v,v,...] → O(n²)</td><td>Dùng 3-way partition (Dutch National Flag)</td></tr>
+              <tr><td><span class="pitfall-num">4</span></td><td>Goroutine explosion</td><td>Tạo goroutine cho mỗi recursive call</td><td>Dùng semaphore hoặc chỉ parallel khi size > threshold và depth < max</td></tr>
+              <tr><td><span class="pitfall-num">5</span></td><td>Lomuto vs Hoare nhầm</td><td>Hoare partition không đặt pivot tại pivotIdx — không thể dùng <code class="inline">arr[pivotIdx]</code> sau partition</td><td>Với Hoare: <code class="inline">QuickSort(lo, p)</code> và <code class="inline">QuickSort(p+1, hi)</code>, không phải <code class="inline">QuickSort(p)</code></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         DUTCH NATIONAL FLAG
+    ══════════════════════════════════════ -->
+    <div class="section" id="dnf">
+      <div class="algo-header" style="--color: #f472b6">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#f472b6,transparent)"></div>
+        <div class="algo-header-top">
+          <div class="algo-title">📝 06 — Dutch National Flag</div>
+          <div class="algo-badges">
+            <span class="badge badge-purple">Chuyên sâu</span>
+            <span class="badge badge-cyan">3-way partition</span>
+            <span class="badge badge-green">O(n) guaranteed</span>
+          </div>
+        </div>
+        <div class="algo-desc">
+          Được đề xuất bởi Edsger Dijkstra (1976), lấy cảm hứng từ lá cờ Hà Lan (3 sọc: đỏ-trắng-xanh).
+          Sort một mảng chứa 3 loại giá trị (0, 1, 2) trong O(n) time và O(1) space — chỉ một lần duyệt.
+          Là cơ sở của Quick Sort 3-way partition và giải quyết bài LeetCode #75 "Sort Colors".
+        </div>
+        <div class="complexity-grid">
+          <div class="complexity-cell"><div class="label">Best Case</div><div class="value good">O(n)</div></div>
+          <div class="complexity-cell"><div class="label">Average</div><div class="value good">O(n)</div></div>
+          <div class="complexity-cell"><div class="label">Worst Case</div><div class="value good">O(n)</div></div>
+          <div class="complexity-cell"><div class="label">Space</div><div class="value good">O(1)</div></div>
+          <div class="complexity-cell"><div class="label">Stable</div><div class="value bad">✗ No</div></div>
+          <div class="complexity-cell"><div class="label">Passes</div><div class="value good">1 pass</div></div>
+        </div>
+      </div>
+
+      <div class="concept-img-wrapper">
+        <img src="../../public/images/go-dutch-flag.png" alt="Dutch National Flag — 3-Way Partition" loading="lazy">
+        <div class="concept-img-caption">Hình 8.1: Dutch National Flag Problem — 3-way partition với 3 con trỏ lo/mid/hi quét một lượt O(n), swap phần tử vào đúng vùng Red/White/Blue. Ứng dụng trong QuickSort 3-way cho mảng nhiều phần tử trùng lặp.</div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">① Định Nghĩa — 3 Con trỏ</div>
+        <p>Duy trì 3 con trỏ chia mảng thành 4 vùng động:</p>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">dnf-invariant.txt</div>
+          </div>
+          <div class="ascii-body">  0    lo-1   lo   mid-1  mid    hi   hi+1   n-1
+  |──────────|────────────|──────────|──────────|
+  |  <span class="hl-red">RED (0)</span>  |  <span class="hl-cyan">WHITE (1)</span> |  <span class="hl-yellow">UNKNOWN</span>  |  <span class="hl-green">BLUE (2)</span>  |
+  |          |            |          |          |
+  0 .. lo-1  lo .. mid-1   mid .. hi  hi+1 .. n-1
+
+<span class="hl-cyan">Con trỏ:</span>
+  lo  = biên phải của vùng RED (phần tử tiếp theo sẽ swap vào đây)
+  mid = phần tử đang xét (cursor)
+  hi  = biên trái của vùng BLUE
+
+<span class="hl-yellow">Invariant không đổi trong suốt quá trình:</span>
+  arr[0..lo-1]   chứa toàn số 0 (RED)
+  arr[lo..mid-1] chứa toàn số 1 (WHITE)
+  arr[hi+1..n-1] chứa toàn số 2 (BLUE)
+  arr[mid..hi]   chưa được phân loại (UNKNOWN)
+
+<span class="hl-cyan">Khi mid > hi: UNKNOWN rỗng → sort hoàn thành!</span></div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">② Minh Họa Từng Bước</div>
+        <div class="ascii-block">
+          <div class="ascii-header">
+            <div class="dots"><span></span><span></span><span></span></div>
+            <div class="fname">dnf-walkthrough.txt</div>
+          </div>
+          <div class="ascii-body">Mảng: [<span class="hl-cyan">2</span>, <span class="hl-cyan">0</span>, <span class="hl-cyan">1</span>, <span class="hl-cyan">2</span>, <span class="hl-cyan">1</span>, <span class="hl-cyan">0</span>]
+         lo=0, mid=0, hi=5
+
+<span class="hl-yellow">Step 1:</span> arr[mid=0]=2 → swap(arr[mid], arr[hi]); hi--
+  [<span class="hl-green">0</span>, 0, 1, 2, 1, 2]  lo=0, mid=0, hi=4
+
+<span class="hl-yellow">Step 2:</span> arr[mid=0]=0 → swap(arr[lo], arr[mid]); lo++; mid++
+  [<span class="hl-red">0</span>, <span class="hl-cyan">0</span>, 1, 2, 1, 2]  lo=1, mid=1, hi=4
+
+<span class="hl-yellow">Step 3:</span> arr[mid=1]=0 → swap(arr[lo], arr[mid]); lo++; mid++
+  [<span class="hl-red">0, 0</span>, <span class="hl-cyan">1</span>, 2, 1, 2]  lo=2, mid=2, hi=4
+
+<span class="hl-yellow">Step 4:</span> arr[mid=2]=1 → mid++ (đã ở đúng chỗ)
+  [<span class="hl-red">0, 0</span>, <span class="hl-cyan">1</span>, 2, 1, 2]  lo=2, mid=3, hi=4
+
+<span class="hl-yellow">Step 5:</span> arr[mid=3]=2 → swap(arr[mid], arr[hi]); hi--
+  [<span class="hl-red">0, 0</span>, <span class="hl-cyan">1, 1</span>, 2, 2]  lo=2, mid=3, hi=3
+
+<span class="hl-yellow">Step 6:</span> arr[mid=3]=1 → mid++
+  [<span class="hl-red">0, 0</span>, <span class="hl-cyan">1, 1</span>, <span class="hl-green">2, 2</span>]  lo=2, mid=4, hi=3
+
+<span class="hl-green">mid(4) > hi(3) → DONE!</span>
+<span class="hl-green">Kết quả: [0, 0, 1, 1, 2, 2] ✓ — chỉ 1 lần duyệt!</span></div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">③ Mã Nguồn — 4 Mức Độ</div>
+        <div class="level-tabs">
+          <button class="level-tab active" onclick="switchLevel('dnf', 'basic')">🟢 Basic</button>
+          <button class="level-tab" onclick="switchLevel('dnf', 'inter')">🟡 Intermediate</button>
+          <button class="level-tab" onclick="switchLevel('dnf', 'adv')">🔴 Advanced</button>
+          <button class="level-tab" onclick="switchLevel('dnf', 'exp')">⚫ Expert</button>
+        </div>
+
+        <div id="dnf-basic" class="level-content active">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">dnf_basic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// SortColors: LeetCode #75 — sắp xếp mảng chỉ gồm 0, 1, 2.
+// Dutch National Flag algorithm của Dijkstra.
+func SortColors(arr []int) {
+    lo, mid, hi := 0, 0, len(arr)-1
+
+    for mid <= hi {
+        switch arr[mid] {
+        case 0: // RED — swap về vùng trái
+            arr[lo], arr[mid] = arr[mid], arr[lo]
+            lo++
+            mid++ // arr[lo-1] đã được kiểm tra (từ vùng WHITE)
+        case 1: // WHITE — đã đúng vị trí
+            mid++
+        case 2: // BLUE — swap về vùng phải
+            arr[mid], arr[hi] = arr[hi], arr[mid]
+            hi--
+            // ⚠️ KHÔNG tăng mid: arr[mid] vừa nhận giá trị mới chưa được xét
+        }
+    }
+}
+
+func main() {
+    arr := []int{2, 0, 1, 2, 1, 0}
+    fmt.Println("Trước:", arr)
+    SortColors(arr)
+    fmt.Println("Sau:  ", arr)
+    // Output: [0 0 1 1 2 2]
+
+    // Edge cases
+    arr2 := []int{1, 1, 1}
+    SortColors(arr2)
+    fmt.Println("All 1s:", arr2) // [1 1 1]
+
+    arr3 := []int{2, 2, 0, 0}
+    SortColors(arr3)
+    fmt.Println("No 1s:", arr3)  // [0 0 2 2]
+}
+</code></pre>
+          </div>
+          <div class="callout callout-warn">
+            <div class="callout-icon">⚠️</div>
+            <p><strong>Lỗi phổ biến nhất:</strong> Khi <code class="inline">arr[mid] == 2</code>, KHÔNG được <code class="inline">mid++</code>. Vì sau swap, giá trị mới tại <code class="inline">arr[mid]</code> chưa được kiểm tra. Đây là điểm mà 90% người mắc lỗi khi implement DNF lần đầu.</p>
+          </div>
+        </div>
+
+        <div id="dnf-inter" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">dnf_generic.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import "fmt"
+
+// DNFPartition: generic 3-way partition — không chỉ 0/1/2.
+// Phân loại bất kỳ slice theo pivot: [< pivot | == pivot | > pivot].
+// ✅ Đây chính là 3-way partition trong Quick Sort 3-way.
+func DNFPartition[T any](arr []T, pivot T, cmp func(a, b T) int) (lo, hi int) {
+    // cmp(a,b) < 0: a < b; == 0: a == b; > 0: a > b
+    lo, mid, _hi := 0, 0, len(arr)-1
+
+    for mid <= _hi {
+        switch c := cmp(arr[mid], pivot); {
+        case c < 0: // arr[mid] < pivot → vùng trái
+            arr[lo], arr[mid] = arr[mid], arr[lo]
+            lo++; mid++
+        case c > 0: // arr[mid] > pivot → vùng phải
+            arr[mid], arr[_hi] = arr[_hi], arr[mid]
+            _hi--
+        default: // arr[mid] == pivot → vùng giữa
+            mid++
+        }
+    }
+    // Sau khi xong: arr[0..lo-1] < pivot, arr[lo.._hi] == pivot, arr[_hi+1..n-1] > pivot
+    return lo, _hi
+}
+
+// FlagSort: sort slice theo "flag" function — gán mỗi phần tử vào group 0, 1, hoặc 2.
+// Ví dụ: sort array của struct theo một field nhất định thành 3 nhóm.
+func FlagSort[T any](arr []T, group func(T) int) {
+    lo, mid, hi := 0, 0, len(arr)-1
+    for mid <= hi {
+        switch group(arr[mid]) {
+        case 0: arr[lo], arr[mid] = arr[mid], arr[lo]; lo++; mid++
+        case 1: mid++
+        case 2: arr[mid], arr[hi] = arr[hi], arr[mid]; hi--
+        }
+    }
+}
+
+type Priority int
+const (Low Priority = iota; Medium; High)
+
+type Task struct {
+    Name     string
+    Priority Priority
+}
+
+func main() {
+    // Test DNFPartition với int
+    arr := []int{3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5}
+    pivot := 5
+    lo, hi := DNFPartition(arr, pivot, func(a, b int) int { return a - b })
+    fmt.Printf("Pivot=%d | arr=%v | < pivot: arr[0..%d], == pivot: arr[%d..%d], > pivot: arr[%d..]\n",
+        pivot, arr, lo-1, lo, hi, hi+1)
+
+    // FlagSort với Tasks
+    tasks := []Task{
+        {"Deploy", High}, {"Review PR", Medium}, {"Fix bug", High},
+        {"Update docs", Low}, {"Code review", Medium}, {"Hotfix", High},
+    }
+    FlagSort(tasks, func(t Task) int { return int(2 - t.Priority) }) // High=0, Med=1, Low=2
+    fmt.Println("\nTasks sorted by priority:")
+    for _, t := range tasks {
+        p := []string{"High", "Medium", "Low"}[t.Priority]
+        fmt.Printf("  [%s] %s\n", p, t.Name)
+    }
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="dnf-adv" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">dnf_multiway.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "fmt"
+    "sort"
+)
+
+// MultiWayPartition: mở rộng DNF cho k phân vùng (k > 3).
+// Thuật toán: sort các bucket boundaries, assign từng phần tử vào bucket đúng.
+// Time: O(n * k), Space: O(k).
+// Use case: phân loại request theo priority tier, bucket sort.
+
+type BucketSorter[T any] struct {
+    boundaries []T         // k-1 boundaries chia thành k buckets
+    cmp        func(a, b T) int
+}
+
+func NewBucketSorter[T any](boundaries []T, cmp func(a, b T) int) *BucketSorter[T] {
+    sorted := make([]T, len(boundaries))
+    copy(sorted, boundaries)
+    sort.Slice(sorted, func(i, j int) bool { return cmp(sorted[i], sorted[j]) < 0 })
+    return &BucketSorter[T]{boundaries: sorted, cmp: cmp}
+}
+
+// GetBucket: tìm bucket index cho item bằng binary search.
+func (bs *BucketSorter[T]) GetBucket(item T) int {
+    lo, hi := 0, len(bs.boundaries)
+    for lo < hi {
+        mid := lo + (hi-lo)/2
+        if bs.cmp(item, bs.boundaries[mid]) < 0 {
+            hi = mid
+        } else {
+            lo = mid + 1
+        }
+    }
+    return lo
+}
+
+// Distribute: phân phối các items vào k+1 buckets.
+func (bs *BucketSorter[T]) Distribute(items []T) [][]T {
+    k := len(bs.boundaries) + 1
+    buckets := make([][]T, k)
+    for _, item := range items {
+        b := bs.GetBucket(item)
+        buckets[b] = append(buckets[b], item)
+    }
+    return buckets
+}
+
+// DNFCountingSort: counting sort cho mảng chỉ gồm 0..k-1
+// Time: O(n+k), Space: O(k).
+func DNFCountingSort(arr []int, k int) []int {
+    count := make([]int, k)
+    for _, v := range arr {
+        if v >= 0 && v < k { count[v]++ }
+    }
+    result := make([]int, 0, len(arr))
+    for val, cnt := range count {
+        for i := 0; i < cnt; i++ {
+            result = append(result, val)
+        }
+    }
+    return result
+}
+
+func main() {
+    // BucketSorter: phân loại scores vào F/D/C/B/A
+    sorter := NewBucketSorter([]int{60, 70, 80, 90}, func(a, b int) int { return a - b })
+    scores := []int{85, 92, 55, 73, 61, 88, 45, 79, 95, 68}
+    buckets := sorter.Distribute(scores)
+    grades := []string{"F (<60)", "D (60-69)", "C (70-79)", "B (80-89)", "A (90+)"}
+    fmt.Println("Score Distribution:")
+    for i, b := range buckets {
+        fmt.Printf("  %s: %v\n", grades[i], b)
+    }
+
+    // Counting Sort
+    arr := []int{2, 0, 1, 1, 0, 2, 1, 0, 2}
+    sorted := DNFCountingSort(arr, 3)
+    fmt.Println("\nCounting Sort:", sorted)
+}
+</code></pre>
+          </div>
+        </div>
+
+        <div id="dnf-exp" class="level-content">
+          <div class="code-block">
+            <div class="code-header">
+              <div class="code-header-left">
+                <div class="dots"><span></span><span></span><span></span></div>
+                <span class="code-lang">GO</span><span class="code-filename">dnf_stream_classifier.go</span>
+              </div>
+            </div>
+            <pre><code class="language-go">package main
+
+import (
+    "context"
+    "fmt"
+    "sync"
+    "time"
+)
+
+// StreamClassifier: phân loại event stream theo priority trong real-time.
+// Tích hợp DNF 3-way partition vào hệ thống message processing.
+// Use case: fintech transaction classifier — CRITICAL / NORMAL / LOW_PRIORITY
+
+type TxPriority int
+
+const (
+    Critical TxPriority = iota // 0: cần xử lý ngay (fraud alert, large amount)
+    Normal                     // 1: xử lý theo queue bình thường
+    LowPriority                // 2: có thể delay (batch reconciliation)
+)
+
+type Transaction struct {
+    ID       string
+    Amount   float64
+    Priority TxPriority
+    Tags     []string
+}
+
+// PriorityClassifier: phân loại transaction theo business rules.
+func PriorityClassifier(tx Transaction) TxPriority {
+    if tx.Amount > 10_000_000 { // > 10M VND → critical
+        return Critical
+    }
+    for _, tag := range tx.Tags {
+        if tag == "fraud_suspect" || tag == "velocity_check" {
+            return Critical
+        }
+    }
+    if tx.Amount < 50_000 { // < 50K → low priority
+        return LowPriority
+    }
+    return Normal
+}
+
+// ClassifierBuffer: buffer 3-lane DNF cho stream processing.
+// Thread-safe với per-lane mutex.
+type ClassifierBuffer struct {
+    mu     [3]sync.Mutex
+    lanes  [3][]Transaction
+    counts [3]int64
+}
+
+func (b *ClassifierBuffer) Push(tx Transaction) {
+    lane := int(PriorityClassifier(tx))
+    b.mu[lane].Lock()
+    defer b.mu[lane].Unlock()
+    b.lanes[lane] = append(b.lanes[lane], tx)
+    b.counts[lane]++
+}
+
+// DrainLane: drain một lane để xử lý — trả về batch và reset lane.
+func (b *ClassifierBuffer) DrainLane(priority TxPriority) []Transaction {
+    lane := int(priority)
+    b.mu[lane].Lock()
+    defer b.mu[lane].Unlock()
+    batch := b.lanes[lane]
+    b.lanes[lane] = b.lanes[lane][:0]
+    return batch
+}
+
+// Processor: background goroutine xử lý từng lane với SLA khác nhau.
+func (b *ClassifierBuffer) StartProcessors(ctx context.Context) {
+    // Critical: xử lý mỗi 100ms
+    go func() {
+        ticker := time.NewTicker(100 * time.Millisecond)
+        defer ticker.Stop()
+        for {
+            select {
+            case <-ctx.Done(): return
+            case <-ticker.C:
+                batch := b.DrainLane(Critical)
+                if len(batch) > 0 {
+                    fmt.Printf("  [CRITICAL] Xử lý %d giao dịch\n", len(batch))
+                }
+            }
+        }
+    }()
+
+    // Normal: mỗi 1s
+    go func() {
+        ticker := time.NewTicker(1 * time.Second)
+        defer ticker.Stop()
+        for {
+            select {
+            case <-ctx.Done(): return
+            case <-ticker.C:
+                batch := b.DrainLane(Normal)
+                if len(batch) > 0 {
+                    fmt.Printf("  [NORMAL] Xử lý %d giao dịch\n", len(batch))
+                }
+            }
+        }
+    }()
+}
+
+func (b *ClassifierBuffer) Stats() {
+    fmt.Printf("Stats — Critical: %d | Normal: %d | LowPri: %d\n",
+        b.counts[0], b.counts[1], b.counts[2])
+}
+
+func main() {
+    ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+    defer cancel()
+
+    buf := &ClassifierBuffer{}
+    buf.StartProcessors(ctx)
+
+    // Simulate incoming transactions
+    txns := []Transaction{
+        {ID: "TX001", Amount: 15_000_000, Tags: nil},                       // Critical (> 10M)
+        {ID: "TX002", Amount: 200_000, Tags: nil},                          // Normal
+        {ID: "TX003", Amount: 30_000, Tags: nil},                           // LowPriority
+        {ID: "TX004", Amount: 500_000, Tags: []string{"fraud_suspect"}},    // Critical (tag)
+        {ID: "TX005", Amount: 1_000_000, Tags: nil},                        // Normal
+        {ID: "TX006", Amount: 10_000, Tags: nil},                           // LowPriority
+    }
+
+    for _, tx := range txns {
+        buf.Push(tx)
+        fmt.Printf("Pushed %s (%.0f VND) → lane %d\n",
+            tx.ID, tx.Amount, PriorityClassifier(tx))
+    }
+
+    time.Sleep(2 * time.Second)
+    buf.Stats()
+}
+</code></pre>
+          </div>
+          <div class="callout callout-info">
+            <div class="callout-icon">💡</div>
+            <p><strong>Real-world pattern:</strong> DNF không chỉ dùng để sort mảng 0/1/2. Trong hệ thống fintech/lending, nó là pattern phân loại event stream theo priority tier — mỗi tier có SLA xử lý khác nhau. Đây là cách các hệ thống như Kafka Streams, AWS SQS Priority Queue, hay Redis ZADD hoạt động về mặt conceptual.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">④ Cạm Bẫy Thường Gặp</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+            <tbody>
+              <tr><td><span class="pitfall-num">1</span></td><td>Tăng mid khi swap với hi</td><td>Quên rằng arr[mid] sau swap chưa được kiểm tra</td><td>Khi arr[mid]==2: chỉ <code class="inline">hi--</code>, KHÔNG <code class="inline">mid++</code></td></tr>
+              <tr><td><span class="pitfall-num">2</span></td><td>Điều kiện loop sai</td><td>Dùng <code class="inline">mid &lt; hi</code> thay vì <code class="inline">mid &lt;= hi</code></td><td>Loop condition phải là <code class="inline">mid &lt;= hi</code> để xét phần tử tại hi</td></tr>
+              <tr><td><span class="pitfall-num">3</span></td><td>Áp dụng cho > 3 loại giá trị</td><td>DNF cơ bản chỉ handle 3 giá trị</td><td>Dùng Counting Sort hoặc BucketSorter cho k > 3 nhóm</td></tr>
+              <tr><td><span class="pitfall-num">4</span></td><td>Nhầm DNF là stable</td><td>Swap phá vỡ order của equal elements</td><td>DNF không stable — nếu cần stable, dùng 2-pass counting approach</td></tr>
+              <tr><td><span class="pitfall-num">5</span></td><td>Stream classifier không thread-safe</td><td>Nhiều goroutine push vào cùng lane mà không lock</td><td>Per-lane mutex hoặc dùng channel thay vì shared slice</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <hr class="divider">
+
+    <!-- ══════════════════════════════════════
+         REFERENCES
+    ══════════════════════════════════════ -->
+    <div class="section" id="refs">
+      <div class="section-header">
+        <div class="section-num">09</div>
+        <h2>⑤ Tham Khảo — References</h2>
+        <span class="badge badge-cyan">Curated sources</span>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Tài liệu chính thức & Sách</div>
+        <div class="ref-grid">
+          <a class="ref-card" href="https://pkg.go.dev/sort" target="_blank">
+            <div class="ref-title">Go stdlib — sort package</div>
+            <div class="ref-url">pkg.go.dev/sort</div>
+            <div class="ref-desc">Source code và docs của sort.Slice, sort.Sort, search. Xem Pdqsort implementation.</div>
+          </a>
+          <a class="ref-card" href="https://cs.opensource.google/go/go/+/main:src/sort/" target="_blank">
+            <div class="ref-title">Go Sort Source Code</div>
+            <div class="ref-url">cs.opensource.google/go/go/+/main:src/sort/</div>
+            <div class="ref-desc">Implementation thực tế của Pdqsort trong Go — pattern dqsort.go, zfuncversion.go.</div>
+          </a>
+          <a class="ref-card" href="https://www.algorithm-archive.org/" target="_blank">
+            <div class="ref-title">Algorithm Archive</div>
+            <div class="ref-url">algorithm-archive.org</div>
+            <div class="ref-desc">Tài nguyên mở, giải thích thuật toán với code nhiều ngôn ngữ, bao gồm Go.</div>
+          </a>
+          <a class="ref-card" href="https://sedgewick.io/books/algorithms/" target="_blank">
+            <div class="ref-title">Algorithms (Sedgewick)</div>
+            <div class="ref-url">sedgewick.io/books/algorithms</div>
+            <div class="ref-desc">Cuốn sách kinh điển về algorithms — Merge Sort, Quick Sort 3-way được giải thích xuất sắc.</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">GitHub Repos Chất Lượng Cao</div>
+        <div class="ref-grid">
+          <a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+            <div class="ref-title">TheAlgorithms/Go ⭐ 16k+</div>
+            <div class="ref-url">github.com/TheAlgorithms/Go</div>
+            <div class="ref-desc">Collection đầy đủ nhất của algorithms trong Go — sorting, searching, data structures. Code sạch, có tests.</div>
+          </a>
+          <a class="ref-card" href="https://github.com/arnauddri/algorithms" target="_blank">
+            <div class="ref-title">arnauddri/algorithms</div>
+            <div class="ref-url">github.com/arnauddri/algorithms</div>
+            <div class="ref-desc">Go implementation với benchmarks. Tốt để so sánh performance thực tế giữa các thuật toán.</div>
+          </a>
+          <a class="ref-card" href="https://github.com/yourbasic/graph" target="_blank">
+            <div class="ref-title">yourbasic — Go Examples</div>
+            <div class="ref-url">yourbasic.org/golang/</div>
+            <div class="ref-desc">Idiomatic Go examples và algorithms, viết bởi Stefan Nilsson (author of Go Algorithms).</div>
+          </a>
+          <a class="ref-card" href="https://github.com/nicholasgasior/gsfmt" target="_blank">
+            <div class="ref-title">golang/exp/slices</div>
+            <div class="ref-url">pkg.go.dev/golang.org/x/exp/slices</div>
+            <div class="ref-desc">Package slices experimental — slices.Sort(), slices.SortFunc() với generics (Go 1.21 đã vào stdlib).</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Visualizations & Interactive Tools</div>
+        <div class="ref-grid">
+          <a class="ref-card" href="https://visualgo.net/en/sorting" target="_blank">
+            <div class="ref-title">VisuAlgo — Sorting</div>
+            <div class="ref-url">visualgo.net/en/sorting</div>
+            <div class="ref-desc">Visualization tương tác cho tất cả thuật toán sort. Có pseudocode step-by-step. Tốt nhất cho việc hiểu trực quan.</div>
+          </a>
+          <a class="ref-card" href="https://www.toptal.com/developers/sorting-algorithms" target="_blank">
+            <div class="ref-title">Toptal Sorting Algorithms</div>
+            <div class="ref-url">toptal.com/developers/sorting-algorithms</div>
+            <div class="ref-desc">So sánh animation của các thuật toán với các loại input khác nhau (random, nearly sorted, reversed).</div>
+          </a>
+          <a class="ref-card" href="https://leetcode.com/problems/sort-colors/" target="_blank">
+            <div class="ref-title">LeetCode #75 — Sort Colors</div>
+            <div class="ref-url">leetcode.com/problems/sort-colors</div>
+            <div class="ref-desc">Bài toán Dutch National Flag chuẩn — 3.7M+ submissions. Tốt để luyện implementation.</div>
+          </a>
+          <a class="ref-card" href="https://tour.golang.org" target="_blank">
+            <div class="ref-title">A Tour of Go</div>
+            <div class="ref-url">tour.golang.org</div>
+            <div class="ref-desc">Interactive Go tutorial chính thức — nền tảng cần thiết để đọc code Go trong tài liệu này.</div>
+          </a>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Papers & Advanced Reading</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Tài nguyên</th><th>Link</th><th>Nội dung</th></tr></thead>
+            <tbody>
+              <tr><td>Pdqsort (Pattern-defeating Quicksort)</td><td><code class="inline">github.com/orlp/pdqsort</code></td><td>Thuật toán Go sort.Slice dùng (C++ original), paper giải thích thiết kế</td></tr>
+              <tr><td>Timsort — Python's sort</td><td><code class="inline">svn.python.org/listsort.txt</code></td><td>Tim Peters' original description, Merge Sort + Insertion Sort hybrid</td></tr>
+              <tr><td>Dijkstra's DNF Paper (1976)</td><td>EWD 1130 — Edsger W. Dijkstra</td><td>Paper gốc về Dutch National Flag problem và 3-way partition</td></tr>
+              <tr><td>Introsort (1997)</td><td>Musser, David R. — Software Practice & Experience</td><td>Introspective Sorting — Quick Sort + Heap Sort hybrid, cơ sở của std::sort</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="callout callout-tip" style="margin-top: 24px">
+        <div class="callout-icon">🎯</div>
+        <p><strong>Lời khuyên thực chiến:</strong> Trong Go production, hầu hết trường hợp nên dùng <code class="inline">sort.Slice()</code> hoặc <code class="inline">slices.Sort()</code> (Go 1.21+). Tự implement chỉ khi: (1) cần custom stable sort, (2) cần embedded sort trong algorithm khác (Insertion Sort trong Timsort), (3) performance-critical với specific data distribution đã biết trước, hoặc (4) educational purpose.</p>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <div class="doc-footer">
+    <span>Go Sorting Algorithms · go 1.21+ · 2025</span>
+    <span>MVT — Backend Engineer</span>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ─── Initialize highlight.js ───
+document.addEventListener('DOMContentLoaded', () => {
+  hljs.highlightAll();
+  updateActiveNav();
+});
+
+// ─── Tab navigation ───
+function scrollTo(id) {
+  try {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      history.pushState(null, null, '#' + id);
+    }
+  } catch (err) {
+    console.warn('scrollTo error:', id, err);
+  }
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+}
+
+// ── Robust smooth scroll for sidebar nav-item links ──
+document.querySelectorAll('.nav-item[href^="#"]').forEach(a => {
+  a.addEventListener('click', function(e) {
+    const href = this.getAttribute('href');
+    if (!href || href === '#') return;
+    try {
+      const targetElement = document.querySelector(href);
+      if (targetElement) {
+        e.preventDefault();
+        targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.pushState(null, null, href);
+      }
+    } catch (err) {
+      console.warn('Invalid selector:', href, err);
+    }
+  });
+});
+
+// ─── Level tabs ───
+function switchLevel(algo, level) {
+  const prefix = algo + '-';
+  const levels = ['basic', 'inter', 'adv', 'exp'];
+
+  // Hide all
+  levels.forEach(l => {
+    const el = document.getElementById(prefix + l);
+    if (el) el.classList.remove('active');
+  });
+
+  // Show selected
+  const target = document.getElementById(prefix + level);
+  if (target) target.classList.add('active');
+
+  // Update tab buttons
+  const tabContainers = document.querySelectorAll('.level-tabs');
+  tabContainers.forEach(container => {
+    const tabs = container.querySelectorAll('.level-tab');
+    const tabMap = { basic: 0, inter: 1, adv: 2, exp: 3 };
+    const parentSection = container.closest('.sub-section');
+    if (parentSection) {
+      const contents = parentSection.querySelectorAll('.level-content');
+      if (contents.length > 0 && document.getElementById(prefix + 'basic') &&
+          parentSection.contains(document.getElementById(prefix + 'basic'))) {
+        tabs.forEach((t, i) => {
+          t.classList.toggle('active', i === tabMap[level]);
+        });
+      }
+    }
+  });
+
+  // Simpler approach: find all level-tabs containers that contain the right content
+  document.querySelectorAll('.level-tab').forEach(tab => {
+    const levelNames = ['basic', 'inter', 'adv', 'exp'];
+    levelNames.forEach((l, i) => {
+      if (tab.getAttribute('onclick') === `switchLevel('${algo}', '${l}')`) {
+        tab.classList.toggle('active', l === level);
+      }
+    });
+  });
+}
+
+// ─── Active nav on scroll ───
+function updateActiveNav() {
+  const sections = ['intro', 'overview', 'when-to-use', 'bubble', 'selection', 'insertion', 'merge', 'quick', 'dnf', 'refs'];
+  const navItems = document.querySelectorAll('.nav-item');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const id = entry.target.id;
+        navItems.forEach(item => {
+          const href = item.getAttribute('href');
+          item.classList.toggle('active', href === '#' + id);
+        });
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) observer.observe(el);
+  });
+}
+
+// Re-highlight code blocks added dynamically
+function rehighlight() {
+  document.querySelectorAll('pre code:not(.hljs)').forEach(el => {
+    hljs.highlightElement(el);
+  });
+}
+</script>
+</body>
+</html>
