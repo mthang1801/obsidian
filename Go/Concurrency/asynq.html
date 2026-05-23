@@ -1,0 +1,2241 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Background Task với Asynq — Hướng dẫn chuyên sâu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,212,255,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== SIDEBAR ====== */
+  #sidebar {
+    width: 270px; min-width: 270px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; bottom: 0;
+    overflow-y: auto; z-index: 100;
+    display: flex; flex-direction: column;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, #f59e0b, #ff6b6b);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white; font-family: var(--font-mono);
+  }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+  .logo-sub { font-size: 11px; color: var(--accent-amber); font-family: var(--font-mono); }
+
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-section-title {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted); padding: 0 8px; margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; padding: 7px 8px; border-radius: 6px;
+    text-decoration: none; color: var(--text-secondary); font-size: 13px;
+    cursor: pointer; transition: all 0.15s; border: none; background: none;
+    width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active {
+    background: rgba(245,158,11,0.1); color: var(--accent-amber);
+    border-left: 2px solid var(--accent-amber); padding-left: 6px;
+  }
+
+  /* ====== TOP NAV ====== */
+  #topnav {
+    position: fixed; top: 0; left: 270px; right: 0; height: 52px;
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 32px; gap: 8px;
+    z-index: 50; overflow-x: auto;
+  }
+  .topnav-item {
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+    text-decoration: none; transition: all 0.15s; border: none; background: none;
+  }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .topnav-item.active { color: var(--accent-amber); background: rgba(245,158,11,0.1); }
+
+  /* ====== MAIN ====== */
+  #main { margin-left: 270px; margin-top: 52px; flex: 1; max-width: calc(100% - 270px); }
+  .content-area { padding: 48px 56px; max-width: 980px; }
+
+  /* ====== SECTION HEADERS ====== */
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+  }
+  .section-number {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-amber), var(--accent-coral));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    color: white; flex-shrink: 0;
+  }
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; font-family: var(--font-mono); }
+  .badge-expert  { background: rgba(168,85,247,0.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced{ background: rgba(245,158,11,0.12); color: var(--accent-amber);  border: 1px solid rgba(245,158,11,0.3); }
+  .badge-basic   { background: rgba(0,212,255,0.1);  color: var(--accent-cyan);   border: 1px solid rgba(0,212,255,0.25); }
+
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ====== PROSE ====== */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code {
+    background: rgba(245,158,11,0.08); color: var(--accent-amber);
+    padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px;
+  }
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* ====== CARDS ====== */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: border-color 0.2s;
+  }
+  .card:hover { border-color: rgba(245,158,11,0.3); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+  .card-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* ====== CONCEPT BOX ====== */
+  .concept-box {
+    background: linear-gradient(135deg, rgba(245,158,11,0.05), rgba(255,107,107,0.05));
+    border: 1px solid rgba(245,158,11,0.2); border-radius: 12px; padding: 24px; margin-bottom: 28px;
+  }
+  .concept-box .label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent-amber); margin-bottom: 8px; font-family: var(--font-mono);
+  }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+
+  /* ====== CODE BLOCKS ====== */
+  .code-block {
+    background: var(--bg-code); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 24px;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  }
+  .code-lang { font-size: 11px; font-weight: 600; color: var(--accent-amber); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+  .code-copy {
+    font-size: 11px; cursor: pointer; background: none;
+    border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px;
+    color: var(--text-secondary); transition: all 0.15s; font-family: var(--font-sans);
+  }
+  .code-copy:hover { border-color: var(--accent-amber); color: var(--accent-amber); }
+  pre {
+    margin: 0; padding: 20px; overflow-x: auto;
+    font-family: var(--font-mono); font-size: 13px; line-height: 1.7;
+  }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw  { color: #c084fc; }
+  .fn  { color: #60a5fa; }
+  .str { color: #86efac; }
+  .cm  { color: #4b5563; font-style: italic; }
+  .num { color: #fb923c; }
+  .tp  { color: #67e8f9; }
+  .pkg { color: #a78bfa; }
+  .op  { color: #f472b6; }
+
+  /* ====== DIAGRAM ====== */
+  .diagram-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 28px; overflow: hidden;
+  }
+  .diagram-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); margin-bottom: 20px; font-family: var(--font-mono); text-align: center;
+  }
+
+  /* ====== TABLE ====== */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th {
+    padding: 10px 14px; text-align: left; background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td code { background: rgba(245,158,11,0.08); color: var(--accent-amber); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+
+  /* ====== NOTES ====== */
+  .note { display: flex; gap: 12px; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .note-warn    { background: rgba(245,158,11,0.08);  border: 1px solid rgba(245,158,11,0.2);  color: #fcd34d; }
+  .note-info    { background: rgba(0,212,255,0.06);   border: 1px solid rgba(0,212,255,0.2);   color: var(--accent-cyan); }
+  .note-danger  { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,255,136,0.06);   border: 1px solid rgba(0,255,136,0.2);   color: var(--accent-green); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* ====== REFS ====== */
+  .ref-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    display: flex; align-items: flex-start; gap: 14px;
+    text-decoration: none; transition: all 0.15s; cursor: pointer;
+  }
+  .ref-card:hover { border-color: var(--accent-amber); transform: translateX(2px); }
+  .ref-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ref-body { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url   { font-size: 11px; color: var(--accent-amber); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* ====== COMPARE ====== */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .compare-head { padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--font-mono); border-bottom: 1px solid var(--border); }
+  .compare-head.cyan   { background: rgba(0,212,255,0.08);  color: var(--accent-cyan); }
+  .compare-head.amber  { background: rgba(245,158,11,0.08); color: var(--accent-amber); }
+  .compare-head.purple { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+  .compare-head.green  { background: rgba(0,255,136,0.08);  color: var(--accent-green); }
+  .compare-head.coral  { background: rgba(255,107,107,0.08);color: var(--accent-coral); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); margin: 3px; }
+  .tag-good { background: rgba(0,255,136,0.08); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-bad  { background: rgba(255,107,107,0.08); color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  .step-list { list-style: none; padding: 0; margin-bottom: 24px; }
+  .step-list li { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-secondary); }
+  .step-list li:last-child { border-bottom: none; }
+  .step-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; color: var(--accent-amber);
+    flex-shrink: 0; font-family: var(--font-mono);
+  }
+
+  .complexity-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .complexity-tag { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
+  .time-tag  { background: rgba(245,158,11,0.1);  color: var(--accent-amber);  border: 1px solid rgba(245,158,11,0.25); }
+  .space-tag { background: rgba(168,85,247,0.1);  color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.25); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  .concept-img-wrapper {
+    margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(245,158,11,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    background: var(--bg-card); padding: 12px;
+  }
+  .concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .concept-img-caption {
+    text-align: center; font-size: 13px; color: var(--text-secondary);
+    margin-top: 10px; font-style: italic; line-height: 1.5;
+  }
+
+  /* Demo */
+  .demo-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 24px; }
+  .demo-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.02); }
+  .demo-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .demo-title { font-size: 13px; color: var(--text-secondary); font-weight: 500; margin-left: 4px; }
+  .demo-body { padding: 24px; }
+  .demo-controls { display: flex; gap: 16px; align-items: center; margin-bottom: 20px; flex-wrap: wrap; }
+  .demo-btn { padding: 8px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 13px; font-weight: 600; transition: all 0.15s; }
+  .demo-btn-run { background: var(--accent-amber); color: #000; }
+  .demo-btn-run:hover { background: #d97706; }
+  .demo-btn-reset { background: rgba(255,255,255,0.08); color: var(--text-secondary); }
+  .demo-btn-reset:hover { background: rgba(255,255,255,0.12); }
+  .demo-log { background: var(--bg-code); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; height: 160px; overflow-y: auto; font-family: var(--font-mono); font-size: 12px; color: var(--text-muted); line-height: 1.8; }
+  .log-enqueue { color: var(--accent-amber); }
+  .log-process { color: var(--accent-cyan); }
+  .log-done    { color: var(--accent-green); }
+  .log-fail    { color: var(--accent-coral); }
+  .log-retry   { color: var(--accent-purple); }
+
+  /* Queue viz */
+  .queue-viz { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .task-bubble {
+    padding: 6px 14px; border-radius: 6px; font-size: 11px; font-family: var(--font-mono);
+    font-weight: 600; border: 1px solid transparent; transition: all 0.3s;
+  }
+  .tb-pending  { background: rgba(245,158,11,0.1);  color: var(--accent-amber);  border-color: rgba(245,158,11,0.3); }
+  .tb-active   { background: rgba(0,212,255,0.12);  color: var(--accent-cyan);   border-color: rgba(0,212,255,0.4); }
+  .tb-retry    { background: rgba(168,85,247,0.1);  color: var(--accent-purple); border-color: rgba(168,85,247,0.3); }
+  .tb-failed   { background: rgba(255,107,107,0.1); color: var(--accent-coral);  border-color: rgba(255,107,107,0.3); }
+  .tb-done     { background: rgba(0,255,136,0.08);  color: var(--accent-green);  border-color: rgba(0,255,136,0.25); }
+
+  @media(max-width:900px){
+    #sidebar{width:220px;min-width:220px}
+    #main{margin-left:220px}
+    #topnav{left:220px}
+    .content-area{padding:32px 24px}
+    .card-grid,.compare-grid,.card-grid-3{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <div class="logo-text">Asynq Background Task</div>
+      <div class="logo-sub">github.com/hibiken/asynq</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Cơ bản</div>
+    <button class="nav-item active" onclick="showSection('intro')">Giới thiệu</button>
+    <button class="nav-item" onclick="showSection('khai-niem')">Khái niệm &amp; Kiến trúc</button>
+    <button class="nav-item" onclick="showSection('cai-dat')">Cài đặt &amp; Cấu hình</button>
+    <button class="nav-item" onclick="showSection('api')">API Reference</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Patterns</div>
+    <button class="nav-item" onclick="showSection('co-ban')">Enqueue &amp; Worker cơ bản</button>
+    <button class="nav-item" onclick="showSection('scheduled')">Scheduled Tasks</button>
+    <button class="nav-item" onclick="showSection('priority')">Priority Queue</button>
+    <button class="nav-item" onclick="showSection('retry')">Retry &amp; Dead Letter</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Nâng cao</div>
+    <button class="nav-item" onclick="showSection('middleware')">Middleware &amp; Hooks</button>
+    <button class="nav-item" onclick="showSection('batch')">Batch Processing</button>
+    <button class="nav-item" onclick="showSection('asynqmon')">Asynqmon Dashboard</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Expert</div>
+    <button class="nav-item" onclick="showSection('gin-integration')">Tích hợp Gin + GORM</button>
+    <button class="nav-item" onclick="showSection('distributed')">Distributed Workers</button>
+    <button class="nav-item" onclick="showSection('pitfalls')">Pitfalls &amp; Best Practices</button>
+    <button class="nav-item" onclick="showSection('refs')">References</button>
+  </div>
+</nav>
+
+<!-- ===== TOP NAV ===== -->
+<nav id="topnav">
+  <button class="topnav-item active" onclick="showSection('intro')">Giới thiệu</button>
+  <button class="topnav-item" onclick="showSection('khai-niem')">Kiến trúc</button>
+  <button class="topnav-item" onclick="showSection('cai-dat')">Cài đặt</button>
+  <button class="topnav-item" onclick="showSection('api')">API</button>
+  <button class="topnav-item" onclick="showSection('co-ban')">Cơ bản</button>
+  <button class="topnav-item" onclick="showSection('scheduled')">Scheduled</button>
+  <button class="topnav-item" onclick="showSection('priority')">Priority</button>
+  <button class="topnav-item" onclick="showSection('retry')">Retry</button>
+  <button class="topnav-item" onclick="showSection('middleware')">Middleware</button>
+  <button class="topnav-item" onclick="showSection('batch')">Batch</button>
+  <button class="topnav-item" onclick="showSection('gin-integration')">Gin+GORM</button>
+  <button class="topnav-item" onclick="showSection('distributed')">Distributed</button>
+  <button class="topnav-item" onclick="showSection('refs')">References</button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main id="main">
+<div class="content-area">
+
+<!-- ===================== INTRO ===================== -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Background Task với Asynq</div>
+      <div class="section-subtitle">Hệ thống hàng đợi tác vụ nền hiệu năng cao dựa trên Redis</div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Asynq là gì?</div>
+    <p class="prose">
+      <strong>Asynq</strong> là thư viện Go mã nguồn mở giúp xử lý <strong>background task</strong> (tác vụ nền) một cách đơn giản, đáng tin cậy và hiệu quả. Asynq sử dụng <strong>Redis</strong> làm message broker — mọi task được enqueue vào Redis queue và worker sẽ dequeue để xử lý bất đồng bộ.
+    </p>
+    <p class="prose">
+      Thư viện được xây dựng bởi <strong>Ken Hibino</strong>, lấy cảm hứng từ Sidekiq (Ruby) và Celery (Python) nhưng được tối ưu cho idioms của Go. Phù hợp cho các tác vụ như: gửi email, xử lý ảnh, xuất báo cáo, đồng bộ dữ liệu, hay bất kỳ tác vụ nào cần chạy <em>ngoài request–response cycle</em>.
+    </p>
+  </div>
+
+  <!-- Architecture Diagram -->
+  <div class="diagram-container">
+    <div class="diagram-title">Asynq — Kiến trúc tổng quan: Producer → Redis → Worker</div>
+    <svg width="100%" viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Producer Box -->
+      <rect x="20" y="110" width="150" height="100" rx="10" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+      <text x="95" y="152" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b" font-family="Inter">🖥️ Producer</text>
+      <text x="95" y="172" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">asynq.Client</text>
+      <text x="95" y="190" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">HTTP Handler / Cron</text>
+
+      <!-- Arrow Producer → Redis -->
+      <line x1="172" y1="160" x2="295" y2="160" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr)"/>
+      <text x="233" y="150" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">Enqueue()</text>
+
+      <!-- Redis Box -->
+      <rect x="298" y="80" width="180" height="220" rx="10" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="388" y="112" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="Inter">🗄️ Redis</text>
+      <text x="388" y="132" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Message Broker</text>
+
+      <!-- Queues inside Redis -->
+      <rect x="318" y="145" width="140" height="28" rx="5" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.4)"/>
+      <text x="388" y="164" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">critical (pri:6)</text>
+
+      <rect x="318" y="181" width="140" height="28" rx="5" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)"/>
+      <text x="388" y="200" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">default  (pri:3)</text>
+
+      <rect x="318" y="217" width="140" height="28" rx="5" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.4)"/>
+      <text x="388" y="236" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">low      (pri:1)</text>
+
+      <text x="388" y="272" text-anchor="middle" font-size="10" fill="#4b5563" font-family="JetBrains Mono">scheduled / retry</text>
+
+      <!-- Arrow Redis → Workers -->
+      <line x1="480" y1="160" x2="582" y2="130" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="480" y1="190" x2="582" y2="190" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr2)"/>
+      <line x1="480" y1="220" x2="582" y2="250" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr2)"/>
+
+      <!-- Workers -->
+      <rect x="585" y="90" width="130" height="55" rx="8" fill="rgba(0,255,136,0.07)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+      <text x="650" y="120" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Worker #1</text>
+
+      <rect x="585" y="163" width="130" height="55" rx="8" fill="rgba(0,255,136,0.07)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+      <text x="650" y="193" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Worker #2</text>
+
+      <rect x="585" y="236" width="130" height="55" rx="8" fill="rgba(0,255,136,0.07)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+      <text x="650" y="266" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Worker #N</text>
+
+      <!-- Arrow Workers → Result -->
+      <line x1="717" y1="160" x2="775" y2="160" stroke="#00ff88" stroke-width="1.5" marker-end="url(#arr3)"/>
+      <rect x="778" y="130" width="35" height="60" rx="6" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.3)"/>
+      <text x="795" y="155" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">DB</text>
+      <text x="795" y="170" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Mail</text>
+
+      <!-- Labels bottom -->
+      <text x="95"  y="232" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">Tạo &amp; gửi task</text>
+      <text x="388" y="300" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">Persistent queue + TTL</text>
+      <text x="650" y="305" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">Concurrent xử lý</text>
+    </svg>
+  </div>
+
+  <h3>Tại sao dùng Asynq?</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">⚡ Hiệu năng cao</div>
+      <p class="prose" style="margin:0;font-size:13px">Có thể xử lý <strong>hàng triệu task/ngày</strong>. Redis làm backend đảm bảo throughput cực cao và độ trễ thấp. Worker pool tự động co giãn.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔒 Đáng tin cậy</div>
+      <p class="prose" style="margin:0;font-size:13px">Task được persist trong Redis. Nếu worker crash, task sẽ được <strong>retry tự động</strong>. Hỗ trợ Dead Letter Queue cho task thất bại vĩnh viễn.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⏰ Lên lịch linh hoạt</div>
+      <p class="prose" style="margin:0;font-size:13px">Enqueue ngay lập tức, sau X giây/phút, hoặc tại thời điểm cụ thể. <strong>Cron-like scheduler</strong> tích hợp sẵn.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 Quan sát được</div>
+      <p class="prose" style="margin:0;font-size:13px"><strong>Asynqmon</strong> là dashboard web giúp monitor task, queue, worker realtime. CLI tool để inspect và manage task.</p>
+    </div>
+  </div>
+
+  <div class="note note-info">
+    <div class="note-icon">📦</div>
+    <p>Cài đặt: <strong><code>go get github.com/hibiken/asynq</code></strong> — Yêu cầu Redis 5.0+ và Go 1.19+. Asynq có hơn <strong>10k GitHub stars</strong> và được dùng trong production tại nhiều công ty lớn.</p>
+  </div>
+
+  <h3>So sánh Asynq với các giải pháp khác</h3>
+  <table class="data-table">
+    <thead>
+      <tr><th>Tiêu chí</th><th>Asynq</th><th>Machinery</th><th>RabbitMQ</th><th>Kafka</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Backend</td><td><code>Redis</code></td><td>Redis/AMQP/SQS</td><td>AMQP</td><td>Kafka cluster</td></tr>
+      <tr><td>Độ phức tạp</td><td>✅ Đơn giản</td><td>Trung bình</td><td>Trung bình</td><td>❌ Phức tạp</td></tr>
+      <tr><td>Retry &amp; DLQ</td><td>✅ Tích hợp sẵn</td><td>Có</td><td>Có</td><td>Có</td></tr>
+      <tr><td>Scheduled Tasks</td><td>✅ Sẵn có</td><td>Có</td><td>Plugin</td><td>Không native</td></tr>
+      <tr><td>Dashboard</td><td>✅ Asynqmon</td><td>Không</td><td>RabbitMQ Mgmt</td><td>AKHQ/Kowl</td></tr>
+      <tr><td>Go-idiomatic</td><td>✅ Rất tốt</td><td>Khá tốt</td><td>Trung bình</td><td>Trung bình</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===================== KHÁI NIỆM ===================== -->
+<section class="page-section" id="s-khai-niem">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div>
+      <div class="section-title">Khái niệm &amp; Kiến trúc</div>
+      <div class="section-subtitle">Task lifecycle, Queue states, và cơ chế bên trong</div>
+    </div>
+  </div>
+
+  <h3>Vòng đời của một Task</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Task Lifecycle — Từ Enqueue đến Completion</div>
+    <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="ta2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- States -->
+      <!-- Scheduled -->
+      <rect x="20" y="70" width="100" height="40" rx="7" fill="rgba(168,85,247,0.12)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="70" y="95" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">Scheduled</text>
+      <line x1="122" y1="90" x2="148" y2="90" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#ta)"/>
+
+      <!-- Pending -->
+      <rect x="150" y="70" width="100" height="40" rx="7" fill="rgba(245,158,11,0.12)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="200" y="95" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Pending</text>
+      <line x1="252" y1="90" x2="278" y2="90" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#ta)"/>
+
+      <!-- Active -->
+      <rect x="280" y="70" width="100" height="40" rx="7" fill="rgba(0,212,255,0.12)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="330" y="95" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Active</text>
+
+      <!-- Success path -->
+      <line x1="382" y1="85" x2="448" y2="65" stroke="#00ff88" stroke-width="1.5" marker-end="url(#ta)"/>
+      <rect x="450" y="45" width="100" height="40" rx="7" fill="rgba(0,255,136,0.1)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="500" y="70" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Completed</text>
+      <text x="415" y="58" font-size="9" fill="#00ff88" font-family="Inter">success</text>
+
+      <!-- Retry path -->
+      <line x1="382" y1="95" x2="448" y2="115" stroke="#a855f7" stroke-width="1.5" marker-end="url(#ta)"/>
+      <rect x="450" y="100" width="100" height="40" rx="7" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="500" y="125" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">Retry</text>
+      <text x="415" y="112" font-size="9" fill="#a855f7" font-family="Inter">error+retry</text>
+
+      <!-- Retry → Pending (loop) -->
+      <path d="M 500 140 Q 500 170 200 165 Q 150 165 150 110" fill="none" stroke="#a855f7" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#ta)"/>
+
+      <!-- Dead -->
+      <line x1="552" y1="120" x2="638" y2="120" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#ta2)"/>
+      <rect x="640" y="100" width="100" height="40" rx="7" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="690" y="125" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">Archived</text>
+      <text x="594" y="113" font-size="9" fill="#ff6b6b" font-family="Inter">max retry</text>
+
+      <!-- Labels -->
+      <text x="70"  y="125" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Chờ đến giờ</text>
+      <text x="200" y="125" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Trong queue</text>
+      <text x="330" y="125" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Worker đang xử lý</text>
+    </svg>
+  </div>
+
+  <h3>Các thành phần cốt lõi</h3>
+  <div class="card-grid-3">
+    <div class="card">
+      <div class="card-title">📤 asynq.Client</div>
+      <p class="prose" style="font-size:13px;margin:0">Dùng để <strong>enqueue task</strong> vào Redis. Thread-safe, có thể dùng nhiều goroutine đồng thời. Thường được inject vào HTTP handler hoặc service layer.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⚙️ asynq.Server</div>
+      <p class="prose" style="font-size:13px;margin:0">Quản lý <strong>worker pool</strong>, kéo task từ Redis và dispatch đến handler tương ứng. Xử lý graceful shutdown, heartbeat, và recovery.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔀 asynq.ServeMux</div>
+      <p class="prose" style="font-size:13px;margin:0">Router để đăng ký <strong>handler function</strong> cho từng loại task. Tương tự <code>http.ServeMux</code> — dùng pattern matching theo task type.</p>
+    </div>
+  </div>
+
+  <h3>Cơ chế lưu trữ trong Redis</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Redis Data Structures được Asynq sử dụng</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <!-- Column headers -->
+      <text x="80"  y="22" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Redis Key</text>
+      <text x="280" y="22" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Data Structure</text>
+      <text x="480" y="22" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Mục đích</text>
+
+      <line x1="10" y1="30" x2="790" y2="30" stroke="#1e293b" stroke-width="1"/>
+
+      <!-- Row 1 -->
+      <rect x="10"  y="38" width="140" height="34" rx="4" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.2)"/>
+      <text x="80"  y="60" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">asynq:{q}:pending</text>
+
+      <rect x="160" y="38" width="200" height="34" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.15)"/>
+      <text x="260" y="60" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">List (LPUSH/RPOP)</text>
+
+      <text x="380" y="60" font-size="11" fill="#94a3b8" font-family="Inter">FIFO queue chứa task đang chờ</text>
+
+      <!-- Row 2 -->
+      <rect x="10"  y="80" width="140" height="34" rx="4" fill="rgba(245,158,11,0.05)" stroke="rgba(245,158,11,0.2)"/>
+      <text x="80"  y="102" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">asynq:{q}:active</text>
+
+      <rect x="160" y="80" width="200" height="34" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.15)"/>
+      <text x="260" y="102" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">List</text>
+
+      <text x="380" y="102" font-size="11" fill="#94a3b8" font-family="Inter">Task đang được worker xử lý</text>
+
+      <!-- Row 3 -->
+      <rect x="10"  y="122" width="140" height="34" rx="4" fill="rgba(168,85,247,0.05)" stroke="rgba(168,85,247,0.2)"/>
+      <text x="80"  y="144" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">asynq:{q}:scheduled</text>
+
+      <rect x="160" y="122" width="200" height="34" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.15)"/>
+      <text x="260" y="144" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Sorted Set (score=time)</text>
+
+      <text x="380" y="144" font-size="11" fill="#94a3b8" font-family="Inter">Task được lên lịch trong tương lai</text>
+
+      <!-- Row 4 -->
+      <rect x="10"  y="164" width="140" height="34" rx="4" fill="rgba(255,107,107,0.05)" stroke="rgba(255,107,107,0.2)"/>
+      <text x="80"  y="186" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">asynq:{q}:retry</text>
+
+      <rect x="160" y="164" width="200" height="34" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.15)"/>
+      <text x="260" y="186" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Sorted Set (score=retry_at)</text>
+
+      <text x="380" y="186" font-size="11" fill="#94a3b8" font-family="Inter">Task sẽ được thử lại sau khoảng thời gian</text>
+
+      <!-- Row 5 -->
+      <rect x="10"  y="206" width="140" height="34" rx="4" fill="rgba(100,116,139,0.1)" stroke="rgba(100,116,139,0.3)"/>
+      <text x="80"  y="228" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">asynq:{q}:archived</text>
+
+      <rect x="160" y="206" width="200" height="34" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.15)"/>
+      <text x="260" y="228" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Sorted Set</text>
+
+      <text x="380" y="228" font-size="11" fill="#94a3b8" font-family="Inter">Dead Letter — task thất bại hoàn toàn</text>
+    </svg>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p><strong>Lưu ý về at-least-once delivery:</strong> Asynq đảm bảo task được xử lý <em>ít nhất một lần</em>. Nếu worker crash trong khi xử lý, task sẽ được đưa lại queue sau timeout. Handler phải được thiết kế <strong>idempotent</strong> (xử lý nhiều lần cho cùng kết quả).</p>
+  </div>
+</section>
+
+<!-- ===================== CÀI ĐẶT ===================== -->
+<section class="page-section" id="s-cai-dat">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div>
+      <div class="section-title">Cài đặt &amp; Cấu hình</div>
+      <div class="section-subtitle">Setup dự án, Redis, cấu hình nâng cao</div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <h3>Cài đặt thư viện</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">bash</span><span class="code-filename">terminal</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="cm"># Cài Asynq</span>
+go get github.com/hibiken/asynq
+
+<span class="cm"># Khởi động Redis bằng Docker</span>
+docker run -d -p 6379:6379 --name redis-asynq redis:7-alpine
+
+<span class="cm"># Cài Asynqmon dashboard (optional)</span>
+go install github.com/hibiken/asynqmon@latest</pre>
+  </div>
+
+  <h3>Cấu hình RedisClientOpt</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">config/redis.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> config
+
+<span class="kw">import</span> <span class="str">"github.com/hibiken/asynq"</span>
+
+<span class="cm">// RedisOption trả về cấu hình kết nối Redis cho Asynq.</span>
+<span class="kw">func</span> <span class="fn">RedisOption</span>() <span class="tp">asynq.RedisClientOpt</span> {
+    <span class="kw">return</span> <span class="tp">asynq.RedisClientOpt</span>{
+        Addr:     <span class="str">"localhost:6379"</span>,
+        Password: <span class="str">""</span>,    <span class="cm">// không cần nếu không set AUTH</span>
+        DB:       <span class="num">0</span>,      <span class="cm">// Redis DB index</span>
+        PoolSize: <span class="num">10</span>,    <span class="cm">// connection pool size</span>
+    }
+}
+
+<span class="cm">// RedisFailoverOption — Redis Sentinel cho HA</span>
+<span class="kw">func</span> <span class="fn">RedisSentinelOption</span>() <span class="tp">asynq.RedisFailoverClientOpt</span> {
+    <span class="kw">return</span> <span class="tp">asynq.RedisFailoverClientOpt</span>{
+        MasterName:    <span class="str">"mymaster"</span>,
+        SentinelAddrs: []<span class="tp">string</span>{<span class="str">"sentinel1:26379"</span>, <span class="str">"sentinel2:26379"</span>},
+    }
+}
+
+<span class="cm">// RedisClusterOption — Redis Cluster</span>
+<span class="kw">func</span> <span class="fn">RedisClusterOption</span>() <span class="tp">asynq.RedisClusterClientOpt</span> {
+    <span class="kw">return</span> <span class="tp">asynq.RedisClusterClientOpt</span>{
+        Addrs: []<span class="tp">string</span>{<span class="str">"node1:6379"</span>, <span class="str">"node2:6379"</span>, <span class="str">"node3:6379"</span>},
+    }
+}</pre>
+  </div>
+
+  <h3>Cấu hình Server nâng cao</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">worker/server.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> worker
+
+<span class="kw">import</span> (
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">NewServer</span>(redisOpt <span class="tp">asynq.RedisClientOpt</span>) *<span class="tp">asynq.Server</span> {
+    <span class="kw">return</span> <span class="pkg">asynq</span>.<span class="fn">NewServer</span>(redisOpt, <span class="tp">asynq.Config</span>{
+        <span class="cm">// Số worker goroutine đồng thời</span>
+        Concurrency: <span class="num">20</span>,
+
+        <span class="cm">// Cấu hình queue với priority weights
+        // Worker sẽ pick task theo tỉ lệ 6:3:1</span>
+        Queues: <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{
+            <span class="str">"critical"</span>: <span class="num">6</span>,
+            <span class="str">"default"</span>:  <span class="num">3</span>,
+            <span class="str">"low"</span>:      <span class="num">1</span>,
+        },
+
+        <span class="cm">// Strict priority: xử lý hết critical trước rồi mới đến default</span>
+        StrictPriority: <span class="kw">false</span>,
+
+        <span class="cm">// Thời gian tối đa để xử lý một task</span>
+        ShutdownTimeout: <span class="num">10</span> * <span class="pkg">time</span>.Second,
+
+        <span class="cm">// Logger tuỳ chỉnh</span>
+        Logger: <span class="fn">newAsynqLogger</span>(),
+
+        <span class="cm">// Retry delay function — exponential backoff</span>
+        RetryDelayFunc: <span class="kw">func</span>(n <span class="tp">int</span>, err <span class="tp">error</span>, task *<span class="tp">asynq.Task</span>) <span class="tp">time.Duration</span> {
+            <span class="kw">return</span> <span class="tp">time.Duration</span>(n*n) * <span class="pkg">time</span>.Minute
+        },
+
+        <span class="cm">// IsFailure — quyết định lỗi nào không cần retry</span>
+        IsFailure: <span class="kw">func</span>(err <span class="tp">error</span>) <span class="tp">bool</span> {
+            <span class="kw">return</span> err != <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>
+        },
+
+        <span class="cm">// ErrorHandler — callback khi task thất bại hết retry</span>
+        ErrorHandler: <span class="tp">asynq.ErrorHandlerFunc</span>(<span class="kw">func</span>(ctx <span class="tp">context.Context</span>, task *<span class="tp">asynq.Task</span>, err <span class="tp">error</span>) {
+            <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"[FAILED] task=%s queue=%s err=%v"</span>, task.<span class="fn">Type</span>(), task.<span class="fn">ResultWriter</span>(), err)
+        }),
+    })
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== API REFERENCE ===================== -->
+<section class="page-section" id="s-api">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div>
+      <div class="section-title">API Reference</div>
+      <div class="section-subtitle">Toàn bộ options khi enqueue và xử lý task</div>
+    </div>
+    <span class="badge badge-basic">REFERENCE</span>
+  </div>
+
+  <h3>Task Options khi Enqueue</h3>
+  <table class="data-table">
+    <thead><tr><th>Option</th><th>Mô tả</th><th>Ví dụ</th></tr></thead>
+    <tbody>
+      <tr><td><code>asynq.Queue(q)</code></td><td>Chỉ định queue name</td><td><code>asynq.Queue("critical")</code></td></tr>
+      <tr><td><code>asynq.MaxRetry(n)</code></td><td>Số lần retry tối đa</td><td><code>asynq.MaxRetry(5)</code></td></tr>
+      <tr><td><code>asynq.Timeout(d)</code></td><td>Deadline xử lý</td><td><code>asynq.Timeout(30*time.Second)</code></td></tr>
+      <tr><td><code>asynq.Deadline(t)</code></td><td>Absolute deadline</td><td><code>asynq.Deadline(time.Now().Add(1*time.Hour))</code></td></tr>
+      <tr><td><code>asynq.ProcessIn(d)</code></td><td>Delay trước khi xử lý</td><td><code>asynq.ProcessIn(5*time.Minute)</code></td></tr>
+      <tr><td><code>asynq.ProcessAt(t)</code></td><td>Xử lý tại thời điểm cụ thể</td><td><code>asynq.ProcessAt(tomorrow)</code></td></tr>
+      <tr><td><code>asynq.Unique(ttl)</code></td><td>Deduplication trong TTL</td><td><code>asynq.Unique(1*time.Hour)</code></td></tr>
+      <tr><td><code>asynq.TaskID(id)</code></td><td>Set custom Task ID</td><td><code>asynq.TaskID("order-123")</code></td></tr>
+      <tr><td><code>asynq.Retention(d)</code></td><td>Giữ task đã hoàn thành trong bao lâu</td><td><code>asynq.Retention(24*time.Hour)</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Handler Function Signature</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">handler_signature.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="cm">// Handler signature — phải implement interface này</span>
+<span class="kw">type</span> <span class="tp">Handler</span> <span class="kw">interface</span> {
+    <span class="fn">ProcessTask</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span>
+}
+
+<span class="cm">// Dạng function (đơn giản hơn)</span>
+<span class="kw">type</span> <span class="tp">HandlerFunc</span> <span class="kw">func</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span>
+
+<span class="cm">// Ví dụ handler đầy đủ với error handling</span>
+<span class="kw">func</span> <span class="fn">HandleEmailTask</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+    <span class="cm">// Decode payload</span>
+    <span class="kw">var</span> payload <span class="tp">EmailPayload</span>
+    <span class="kw">if</span> err := <span class="pkg">json</span>.<span class="fn">Unmarshal</span>(t.<span class="fn">Payload</span>(), &amp;payload); err != <span class="kw">nil</span> {
+        <span class="cm">// Lỗi không retry được — dùng fmt.Errorf + SkipRetry</span>
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%w: %v"</span>, <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>, err)
+    }
+
+    <span class="cm">// Check context cancellation</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span> ctx.<span class="fn">Err</span>()
+    <span class="kw">default</span>:
+    }
+
+    <span class="cm">// Ghi kết quả vào ResultWriter (có thể query qua CLI/dashboard)</span>
+    <span class="kw">if</span> _, err := <span class="pkg">fmt</span>.<span class="fn">Fprintf</span>(t.<span class="fn">ResultWriter</span>(), <span class="str">"sent to %s"</span>, payload.To); err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"warn: write result: %v"</span>, err)
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Best practice:</strong> Wrap error với <code>asynq.SkipRetry</code> khi lỗi không thể retry (ví dụ: invalid payload, business logic error). Các lỗi tạm thời (network timeout, DB unavailable) nên return bình thường để Asynq tự retry.</p>
+  </div>
+</section>
+
+<!-- ===================== CƠ BẢN ===================== -->
+<section class="page-section" id="s-co-ban">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div>
+      <div class="section-title">Enqueue &amp; Worker cơ bản</div>
+      <div class="section-subtitle">Ví dụ đầy đủ từ định nghĩa task đến xử lý</div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <h3>Bước 1 — Định nghĩa Task</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">tasks/email.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> tasks
+
+<span class="kw">import</span> (
+    <span class="str">"encoding/json"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"github.com/hibiken/asynq"</span>
+)
+
+<span class="cm">// TypeEmailWelcome — hằng số định nghĩa loại task.
+// Convention: "domain:action"</span>
+<span class="kw">const</span> (
+    <span class="tp">TypeEmailWelcome</span> = <span class="str">"email:welcome"</span>
+    <span class="tp">TypeEmailReport</span>  = <span class="str">"email:report"</span>
+    <span class="tp">TypeImageResize</span>  = <span class="str">"image:resize"</span>
+)
+
+<span class="cm">// EmailWelcomePayload — dữ liệu đi kèm task.
+// Chỉ lưu primitive data, không lưu pointer.</span>
+<span class="kw">type</span> <span class="tp">EmailWelcomePayload</span> <span class="kw">struct</span> {
+    UserID    <span class="tp">int64</span>  <span class="str">`json:"user_id"`</span>
+    Email     <span class="tp">string</span> <span class="str">`json:"email"`</span>
+    Username  <span class="tp">string</span> <span class="str">`json:"username"`</span>
+}
+
+<span class="cm">// NewEmailWelcomeTask tạo asynq.Task sẵn sàng enqueue.</span>
+<span class="kw">func</span> <span class="fn">NewEmailWelcomeTask</span>(userID <span class="tp">int64</span>, email, username <span class="tp">string</span>) (*<span class="tp">asynq.Task</span>, <span class="tp">error</span>) {
+    payload, err := <span class="pkg">json</span>.<span class="fn">Marshal</span>(<span class="tp">EmailWelcomePayload</span>{
+        UserID:   userID,
+        Email:    email,
+        Username: username,
+    })
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"marshal payload: %w"</span>, err)
+    }
+    <span class="cm">// asynq.NewTask(type, payload, ...options)</span>
+    <span class="kw">return</span> <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="tp">TypeEmailWelcome</span>, payload,
+        <span class="pkg">asynq</span>.<span class="fn">MaxRetry</span>(<span class="num">3</span>),
+        <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"default"</span>),
+        <span class="pkg">asynq</span>.<span class="fn">Timeout</span>(<span class="num">30</span>*<span class="pkg">time</span>.Second),
+    ), <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <h3>Bước 2 — Handler xử lý Task</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">tasks/email_handler.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> tasks
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"encoding/json"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log/slog"</span>
+
+    <span class="str">"github.com/hibiken/asynq"</span>
+)
+
+<span class="cm">// EmailHandler chứa dependency cần thiết để xử lý task.</span>
+<span class="kw">type</span> <span class="tp">EmailHandler</span> <span class="kw">struct</span> {
+    mailer <span class="tp">Mailer</span>    <span class="cm">// interface, dễ mock trong test</span>
+    db     <span class="tp">DB</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewEmailHandler</span>(mailer <span class="tp">Mailer</span>, db <span class="tp">DB</span>) *<span class="tp">EmailHandler</span> {
+    <span class="kw">return</span> &amp;<span class="tp">EmailHandler</span>{mailer: mailer, db: db}
+}
+
+<span class="cm">// ProcessTask — implement asynq.Handler interface.</span>
+<span class="kw">func</span> (h *<span class="tp">EmailHandler</span>) <span class="fn">ProcessTask</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+    <span class="kw">var</span> p <span class="tp">EmailWelcomePayload</span>
+    <span class="kw">if</span> err := <span class="pkg">json</span>.<span class="fn">Unmarshal</span>(t.<span class="fn">Payload</span>(), &amp;p); err != <span class="kw">nil</span> {
+        <span class="cm">// Bad payload → skip retry, gửi ngay vào archived</span>
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%w: invalid payload: %v"</span>, <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>, err)
+    }
+
+    <span class="pkg">slog</span>.<span class="fn">InfoContext</span>(ctx, <span class="str">"processing email task"</span>,
+        <span class="str">"task_id"</span>, <span class="pkg">asynq</span>.<span class="fn">GetTaskID</span>(ctx),
+        <span class="str">"user_id"</span>, p.UserID,
+    )
+
+    <span class="cm">// Gửi email</span>
+    <span class="kw">if</span> err := h.mailer.<span class="fn">SendWelcome</span>(ctx, p.Email, p.Username); err != <span class="kw">nil</span> {
+        <span class="cm">// Lỗi tạm thời → return error để Asynq retry</span>
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"send welcome email to %s: %w"</span>, p.Email, err)
+    }
+
+    <span class="cm">// Cập nhật DB</span>
+    <span class="kw">if</span> err := h.db.<span class="fn">MarkWelcomeSent</span>(ctx, p.UserID); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"mark welcome sent: %w"</span>, err)
+    }
+
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <h3>Bước 3 — Client Enqueue</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">api/user_handler.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> api
+
+<span class="kw">import</span> (
+    <span class="str">"net/http"</span>
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"myapp/tasks"</span>
+)
+
+<span class="kw">type</span> <span class="tp">UserHandler</span> <span class="kw">struct</span> {
+    client *<span class="tp">asynq.Client</span>
+    db     <span class="tp">DB</span>
+}
+
+<span class="kw">func</span> (h *<span class="tp">UserHandler</span>) <span class="fn">Register</span>(w <span class="tp">http.ResponseWriter</span>, r *<span class="tp">http.Request</span>) {
+    <span class="cm">// 1. Tạo user trong DB</span>
+    user, err := h.db.<span class="fn">CreateUser</span>(r.<span class="fn">Context</span>(), ...)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="fn">http.Error</span>(w, err.<span class="fn">Error</span>(), <span class="tp">http.StatusInternalServerError</span>)
+        <span class="kw">return</span>
+    }
+
+    <span class="cm">// 2. Tạo background task — không block HTTP response</span>
+    task, err := <span class="pkg">tasks</span>.<span class="fn">NewEmailWelcomeTask</span>(user.ID, user.Email, user.Username)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"warn: create email task: %v"</span>, err)
+        <span class="cm">// Không fail request vì task là background — tuỳ business logic</span>
+    } <span class="kw">else</span> {
+        info, err := h.client.<span class="fn">EnqueueContext</span>(r.<span class="fn">Context</span>(), task)
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"warn: enqueue email task: %v"</span>, err)
+        } <span class="kw">else</span> {
+            <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"enqueued task id=%s queue=%s"</span>, info.ID, info.Queue)
+        }
+    }
+
+    <span class="cm">// 3. Trả về response ngay lập tức — không chờ email gửi xong</span>
+    <span class="fn">respondJSON</span>(w, <span class="tp">http.StatusCreated</span>, user)
+}
+
+<span class="cm">// Đóng client khi shutdown</span>
+<span class="kw">func</span> (h *<span class="tp">UserHandler</span>) <span class="fn">Close</span>() { h.client.<span class="fn">Close</span>() }</pre>
+  </div>
+
+  <h3>Bước 4 — Khởi động Worker Server</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">cmd/worker/main.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"log"</span>
+    <span class="str">"os"</span>
+    <span class="str">"os/signal"</span>
+    <span class="str">"syscall"</span>
+
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"myapp/config"</span>
+    <span class="str">"myapp/tasks"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    redisOpt := <span class="pkg">config</span>.<span class="fn">RedisOption</span>()
+
+    <span class="cm">// Khởi tạo Server</span>
+    srv := <span class="pkg">asynq</span>.<span class="fn">NewServer</span>(redisOpt, <span class="tp">asynq.Config</span>{
+        Concurrency: <span class="num">20</span>,
+        Queues: <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{
+            <span class="str">"critical"</span>: <span class="num">6</span>,
+            <span class="str">"default"</span>:  <span class="num">3</span>,
+            <span class="str">"low"</span>:      <span class="num">1</span>,
+        },
+    })
+
+    <span class="cm">// Khởi tạo dependencies</span>
+    mailer := <span class="fn">newMailer</span>()
+    db     := <span class="fn">newDB</span>()
+
+    <span class="cm">// Đăng ký handlers vào ServeMux</span>
+    mux := <span class="pkg">asynq</span>.<span class="fn">NewServeMux</span>()
+    emailHandler := <span class="pkg">tasks</span>.<span class="fn">NewEmailHandler</span>(mailer, db)
+    mux.<span class="fn">Handle</span>(<span class="tp">tasks</span>.<span class="tp">TypeEmailWelcome</span>, emailHandler)
+    mux.<span class="fn">HandleFunc</span>(<span class="tp">tasks</span>.<span class="tp">TypeImageResize</span>, <span class="pkg">tasks</span>.<span class="fn">HandleImageResize</span>)
+
+    <span class="cm">// Graceful shutdown</span>
+    quit := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">os.Signal</span>, <span class="num">1</span>)
+    <span class="pkg">signal</span>.<span class="fn">Notify</span>(quit, <span class="tp">syscall.SIGTERM</span>, <span class="tp">syscall.SIGINT</span>)
+
+    <span class="kw">go func</span>() {
+        &lt;-quit
+        <span class="pkg">log</span>.<span class="fn">Println</span>(<span class="str">"Shutting down worker..."</span>)
+        srv.<span class="fn">Shutdown</span>()
+    }()
+
+    <span class="pkg">log</span>.<span class="fn">Println</span>(<span class="str">"Worker started. Waiting for tasks..."</span>)
+    <span class="kw">if</span> err := srv.<span class="fn">Run</span>(mux); err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Fatalf</span>(<span class="str">"worker run: %v"</span>, err)
+    }
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== SCHEDULED ===================== -->
+<section class="page-section" id="s-scheduled">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div>
+      <div class="section-title">Scheduled Tasks &amp; Cron Scheduler</div>
+      <div class="section-subtitle">Delay, ProcessAt, và Periodic Task tích hợp</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Khái niệm</div>
+    <div class="title">3 cách lên lịch task</div>
+    <p class="prose">
+      Asynq hỗ trợ 3 phương thức lên lịch: <strong>ProcessIn</strong> (delay từ bây giờ), <strong>ProcessAt</strong> (thời điểm cụ thể), và <strong>Scheduler</strong> (cron-like tự động lặp). Task scheduled được lưu trong Redis Sorted Set với score là Unix timestamp.
+    </p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">tasks/scheduled.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> tasks
+
+<span class="kw">import</span> (
+    <span class="str">"time"</span>
+    <span class="str">"github.com/hibiken/asynq"</span>
+)
+
+<span class="cm">// EnqueueWithDelay — enqueue task sẽ xử lý sau 5 phút</span>
+<span class="kw">func</span> <span class="fn">EnqueueWithDelay</span>(client *<span class="tp">asynq.Client</span>, userID <span class="tp">int64</span>) {
+    task, _ := <span class="fn">NewEmailWelcomeTask</span>(userID, <span class="str">"user@example.com"</span>, <span class="str">"Alice"</span>)
+
+    info, err := client.<span class="fn">Enqueue</span>(task,
+        <span class="pkg">asynq</span>.<span class="fn">ProcessIn</span>(<span class="num">5</span>*<span class="pkg">time</span>.Minute), <span class="cm">// delay 5 phút</span>
+    )
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"enqueue failed: %v"</span>, err)
+        <span class="kw">return</span>
+    }
+    <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"scheduled task id=%s, will process at %v"</span>, info.ID, time.Now().Add(<span class="num">5</span>*<span class="pkg">time</span>.Minute))
+}
+
+<span class="cm">// EnqueueAtSpecificTime — gửi báo cáo cuối ngày lúc 23:59</span>
+<span class="kw">func</span> <span class="fn">EnqueueDailyReport</span>(client *<span class="tp">asynq.Client</span>) {
+    now := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    endOfDay := <span class="pkg">time</span>.<span class="fn">Date</span>(now.Year(), now.Month(), now.Day(), <span class="num">23</span>, <span class="num">59</span>, <span class="num">0</span>, <span class="num">0</span>, now.Location())
+
+    task := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"report:daily"</span>, <span class="kw">nil</span>)
+    client.<span class="fn">Enqueue</span>(task, <span class="pkg">asynq</span>.<span class="fn">ProcessAt</span>(endOfDay))
+}
+
+<span class="cm">// UniqueTask — dedup trong 1 giờ: nếu task cùng loại đã được enqueue
+// và chưa xử lý, task mới sẽ bị reject.</span>
+<span class="kw">func</span> <span class="fn">EnqueueUniqueTask</span>(client *<span class="tp">asynq.Client</span>, orderID <span class="tp">string</span>) <span class="tp">error</span> {
+    task := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"order:notify"</span>, []<span class="kw">byte</span>(orderID))
+    _, err := client.<span class="fn">Enqueue</span>(task,
+        <span class="pkg">asynq</span>.<span class="fn">TaskID</span>(orderID),          <span class="cm">// custom ID cho dedup</span>
+        <span class="pkg">asynq</span>.<span class="fn">Unique</span>(<span class="num">1</span>*<span class="pkg">time</span>.Hour),     <span class="cm">// không enqueue duplicate trong 1h</span>
+    )
+    <span class="kw">if</span> err == <span class="pkg">asynq</span>.<span class="tp">ErrTaskIDConflict</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"task %s already queued, skipping"</span>, orderID)
+        <span class="kw">return</span> <span class="kw">nil</span>
+    }
+    <span class="kw">return</span> err
+}</pre>
+  </div>
+
+  <h3>Periodic Task với Scheduler (Cron)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">cmd/scheduler/main.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"log"</span>
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"myapp/config"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// Scheduler dùng cron expression giống Unix crontab</span>
+    scheduler := <span class="pkg">asynq</span>.<span class="fn">NewScheduler</span>(
+        <span class="pkg">config</span>.<span class="fn">RedisOption</span>(),
+        &amp;<span class="tp">asynq.SchedulerOpts</span>{
+            Location: <span class="pkg">time</span>.<span class="fn">Local</span>(), <span class="cm">// timezone</span>
+            EnqueueErrorHandler: <span class="kw">func</span>(task *<span class="tp">asynq.Task</span>, opts []<span class="tp">asynq.Option</span>, err <span class="tp">error</span>) {
+                <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"scheduler enqueue error task=%s: %v"</span>, task.<span class="fn">Type</span>(), err)
+            },
+        },
+    )
+
+    <span class="cm">// Đăng ký task chạy hàng giờ</span>
+    entryID, err := scheduler.<span class="fn">Register</span>(<span class="str">"@every 1h"</span>,
+        <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"stats:aggregate"</span>, <span class="kw">nil</span>),
+        <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"low"</span>),
+    )
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="pkg">log</span>.<span class="fn">Fatal</span>(err) }
+    <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"registered periodic task id=%s"</span>, entryID)
+
+    <span class="cm">// Mỗi ngày lúc 02:00 sáng</span>
+    scheduler.<span class="fn">Register</span>(<span class="str">"0 2 * * *"</span>,
+        <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"db:cleanup"</span>, <span class="kw">nil</span>),
+        <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"low"</span>),
+        <span class="pkg">asynq</span>.<span class="fn">Timeout</span>(<span class="num">30</span>*<span class="pkg">time</span>.Minute),
+    )
+
+    <span class="cm">// Mỗi phút — dùng @every syntax</span>
+    scheduler.<span class="fn">Register</span>(<span class="str">"@every 1m"</span>,
+        <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"health:check"</span>, <span class="kw">nil</span>),
+    )
+
+    <span class="cm">// Chạy scheduler (blocking)</span>
+    <span class="kw">if</span> err := scheduler.<span class="fn">Run</span>(); err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Fatalf</span>(<span class="str">"scheduler run: %v"</span>, err)
+    }
+}</pre>
+  </div>
+
+  <div class="note note-info">
+    <div class="note-icon">⏰</div>
+    <p><strong>Cron Syntax:</strong> Asynq hỗ trợ standard Unix cron <code>"min hour day month weekday"</code> và các shorthand như <code>@hourly</code>, <code>@daily</code>, <code>@weekly</code>, <code>@monthly</code>, <code>@every Nd</code>. Scheduler cần chạy như một process riêng biệt (hoặc goroutine) — không phải trong worker process.</p>
+  </div>
+</section>
+
+<!-- ===================== PRIORITY QUEUE ===================== -->
+<section class="page-section" id="s-priority">
+  <div class="section-header">
+    <div class="section-number">07</div>
+    <div>
+      <div class="section-title">Priority Queue</div>
+      <div class="section-subtitle">Weighted vs Strict Priority — xử lý task theo độ ưu tiên</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Weighted Priority vs Strict Priority — Cơ chế chọn task</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <!-- Left: Weighted -->
+      <text x="185" y="22" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="Inter" font-weight="600">Weighted Priority (StrictPriority=false)</text>
+      <text x="185" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Worker chọn theo tỉ lệ (6:3:1)</text>
+
+      <rect x="20"  y="55" width="90" height="170" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.4)"/>
+      <text x="65" y="76" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">critical</text>
+      <text x="65" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">weight: 6</text>
+      <rect x="30" y="100" width="70" height="18" rx="3" fill="rgba(245,158,11,0.2)"/><text x="65" y="113" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">task-A</text>
+      <rect x="30" y="122" width="70" height="18" rx="3" fill="rgba(245,158,11,0.2)"/><text x="65" y="135" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">task-B</text>
+      <rect x="30" y="144" width="70" height="18" rx="3" fill="rgba(245,158,11,0.15)"/><text x="65" y="157" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">task-C</text>
+      <rect x="30" y="166" width="70" height="18" rx="3" fill="rgba(245,158,11,0.15)"/><text x="65" y="179" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">task-D</text>
+      <rect x="30" y="188" width="70" height="18" rx="3" fill="rgba(245,158,11,0.1)"/><text x="65" y="201" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">task-E</text>
+      <rect x="30" y="210" width="70" height="8"  rx="3" fill="rgba(245,158,11,0.07)"/>
+
+      <rect x="120" y="55" width="80" height="170" rx="8" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.3)"/>
+      <text x="160" y="76" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">default</text>
+      <text x="160" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">weight: 3</text>
+      <rect x="130" y="100" width="60" height="18" rx="3" fill="rgba(0,212,255,0.15)"/><text x="160" y="113" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">task-F</text>
+      <rect x="130" y="122" width="60" height="18" rx="3" fill="rgba(0,212,255,0.15)"/><text x="160" y="135" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">task-G</text>
+      <rect x="130" y="144" width="60" height="18" rx="3" fill="rgba(0,212,255,0.1)"/><text x="160" y="157" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">task-H</text>
+
+      <rect x="210" y="55" width="70" height="170" rx="8" fill="rgba(168,85,247,0.06)" stroke="rgba(168,85,247,0.3)"/>
+      <text x="245" y="76" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">low</text>
+      <text x="245" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">weight: 1</text>
+      <rect x="220" y="100" width="50" height="18" rx="3" fill="rgba(168,85,247,0.12)"/><text x="245" y="113" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">task-I</text>
+
+      <!-- Arrow Weighted -->
+      <text x="185" y="245" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">60% pick critical · 30% default · 10% low</text>
+
+      <!-- Divider -->
+      <line x1="370" y1="30" x2="370" y2="250" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+      <!-- Right: Strict -->
+      <text x="590" y="22" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="Inter" font-weight="600">Strict Priority (StrictPriority=true)</text>
+      <text x="590" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Xử lý hết critical trước, rồi default, rồi low</text>
+
+      <rect x="400" y="55" width="90" height="170" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.4)" stroke-width="2"/>
+      <text x="445" y="76" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">critical</text>
+      <rect x="410" y="88"  width="70" height="16" rx="3" fill="rgba(245,158,11,0.25)"/><text x="445" y="100" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">1st ← pick</text>
+      <rect x="410" y="108" width="70" height="16" rx="3" fill="rgba(245,158,11,0.2)"/><text x="445" y="120" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">2nd ← pick</text>
+      <rect x="410" y="128" width="70" height="16" rx="3" fill="rgba(245,158,11,0.15)"/><text x="445" y="140" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">3rd ← pick</text>
+
+      <rect x="500" y="55" width="80" height="170" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.15)"/>
+      <text x="540" y="76" text-anchor="middle" font-size="11" fill="#64748b" font-family="JetBrains Mono">default</text>
+      <text x="540" y="140" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">blocked</text>
+      <text x="540" y="158" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">until critical</text>
+      <text x="540" y="174" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">is empty</text>
+
+      <rect x="590" y="55" width="70" height="170" rx="8" fill="rgba(168,85,247,0.04)" stroke="rgba(168,85,247,0.15)"/>
+      <text x="625" y="76" text-anchor="middle" font-size="11" fill="#4b5563" font-family="JetBrains Mono">low</text>
+      <text x="625" y="155" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">blocked</text>
+
+      <text x="590" y="245" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">⚠️ Low queue starvation có thể xảy ra</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">priority_example.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="cm">// Enqueue vào queue critical — xử lý với priority cao nhất</span>
+<span class="kw">func</span> <span class="fn">enqueuePaymentTask</span>(client *<span class="tp">asynq.Client</span>, paymentID <span class="tp">string</span>) {
+    task := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"payment:process"</span>, []<span class="kw">byte</span>(paymentID))
+    client.<span class="fn">Enqueue</span>(task,
+        <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"critical"</span>), <span class="cm">// ← queue priority cao</span>
+        <span class="pkg">asynq</span>.<span class="fn">MaxRetry</span>(<span class="num">0</span>),      <span class="cm">// payment không retry</span>
+        <span class="pkg">asynq</span>.<span class="fn">Timeout</span>(<span class="num">10</span>*<span class="pkg">time</span>.Second),
+    )
+}
+
+<span class="cm">// Enqueue vào queue low — batch processing không quan trọng deadline</span>
+<span class="kw">func</span> <span class="fn">enqueueAnalyticsTask</span>(client *<span class="tp">asynq.Client</span>, eventData []<span class="kw">byte</span>) {
+    task := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"analytics:track"</span>, eventData)
+    client.<span class="fn">Enqueue</span>(task,
+        <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"low"</span>),
+        <span class="pkg">asynq</span>.<span class="fn">MaxRetry</span>(<span class="num">5</span>),
+    )
+}
+
+<span class="cm">// Server với Strict Priority — payment luôn được xử lý trước</span>
+<span class="kw">var</span> strictServer = <span class="pkg">asynq</span>.<span class="fn">NewServer</span>(redisOpt, <span class="tp">asynq.Config</span>{
+    Concurrency: <span class="num">10</span>,
+    Queues: <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{
+        <span class="str">"critical"</span>: <span class="num">3</span>,
+        <span class="str">"default"</span>:  <span class="num">2</span>,
+        <span class="str">"low"</span>:      <span class="num">1</span>,
+    },
+    StrictPriority: <span class="kw">true</span>, <span class="cm">// ← strict mode</span>
+})</pre>
+  </div>
+</section>
+
+<!-- ===================== RETRY ===================== -->
+<section class="page-section" id="s-retry">
+  <div class="section-header">
+    <div class="section-number">08</div>
+    <div>
+      <div class="section-title">Retry &amp; Dead Letter Queue</div>
+      <div class="section-subtitle">Xử lý lỗi, exponential backoff, và Dead Letter Queue</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">retry_handling.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> tasks
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/hibiken/asynq"</span>
+)
+
+<span class="cm">// RetryableError — lỗi nên được retry</span>
+<span class="kw">type</span> <span class="tp">RetryableError</span> <span class="kw">struct</span>{ msg <span class="tp">string</span> }
+<span class="kw">func</span> (e *<span class="tp">RetryableError</span>) <span class="fn">Error</span>() <span class="tp">string</span> { <span class="kw">return</span> e.msg }
+
+<span class="cm">// HandlerWithRetryLogic — xử lý task với retry thông minh</span>
+<span class="kw">func</span> <span class="fn">HandlerWithRetryLogic</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+    retryCount, _ := <span class="pkg">asynq</span>.<span class="fn">GetRetryCount</span>(ctx)   <span class="cm">// số lần retry hiện tại</span>
+    maxRetry,   _ := <span class="pkg">asynq</span>.<span class="fn">GetMaxRetry</span>(ctx)    <span class="cm">// max retry đã set</span>
+
+    <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"attempt %d/%d for task %s"</span>, retryCount+<span class="num">1</span>, maxRetry+<span class="num">1</span>, t.<span class="fn">Type</span>())
+
+    err := <span class="fn">doWork</span>(ctx, t)
+    <span class="kw">if</span> err == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+
+    <span class="cm">// Phân loại lỗi:</span>
+    <span class="kw">var</span> retryable *<span class="tp">RetryableError</span>
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> <span class="pkg">errors</span>.<span class="fn">As</span>(err, &amp;retryable):
+        <span class="cm">// Lỗi tạm thời — Asynq sẽ retry sau delay</span>
+        <span class="kw">return</span> err
+
+    <span class="kw">case</span> retryCount &gt;= maxRetry-<span class="num">1</span>:
+        <span class="cm">// Lần retry cuối — alert &amp; skip</span>
+        <span class="fn">sendAlert</span>(<span class="str">"task exhausted retries"</span>, t, err)
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%w: %v"</span>, <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>, err)
+
+    <span class="kw">default</span>:
+        <span class="cm">// Lỗi không xác định — retry</span>
+        <span class="kw">return</span> err
+    }
+}
+
+<span class="cm">// ExponentialBackoffRetry — custom retry delay function</span>
+<span class="kw">func</span> <span class="fn">ExponentialBackoffRetry</span>(n <span class="tp">int</span>, err <span class="tp">error</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">time.Duration</span> {
+    <span class="cm">// 2^n * 10s: 10s, 20s, 40s, 80s, 160s...</span>
+    delay := <span class="tp">time.Duration</span>(<span class="num">1</span>&lt;&lt;<span class="tp">uint</span>(n)) * <span class="num">10</span> * <span class="pkg">time</span>.Second
+    <span class="kw">if</span> delay &gt; <span class="num">24</span>*<span class="pkg">time</span>.Hour {
+        delay = <span class="num">24</span> * <span class="pkg">time</span>.Hour <span class="cm">// cap at 24h</span>
+    }
+    jitter := <span class="tp">time.Duration</span>(<span class="pkg">rand</span>.<span class="fn">Int63n</span>(<span class="tp">int64</span>(<span class="pkg">time</span>.Second) * <span class="num">30</span>))
+    <span class="kw">return</span> delay + jitter <span class="cm">// thêm jitter tránh thundering herd</span>
+}
+
+<span class="cm">// Inspector — quản lý Dead Letter Queue thủ công</span>
+<span class="kw">func</span> <span class="fn">ProcessArchivedTasks</span>(redisOpt <span class="tp">asynq.RedisClientOpt</span>) {
+    inspector := <span class="pkg">asynq</span>.<span class="fn">NewInspector</span>(redisOpt)
+    <span class="kw">defer</span> inspector.<span class="fn">Close</span>()
+
+    <span class="cm">// Liệt kê archived tasks trong queue "default"</span>
+    tasks, err := inspector.<span class="fn">ListArchivedTasks</span>(<span class="str">"default"</span>, <span class="pkg">asynq</span>.<span class="fn">Page</span>(<span class="num">1</span>), <span class="pkg">asynq</span>.<span class="fn">PageSize</span>(<span class="num">20</span>))
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"list archived: %v"</span>, err)
+        <span class="kw">return</span>
+    }
+
+    <span class="kw">for</span> _, task := <span class="kw">range</span> tasks {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"archived task: id=%s type=%s err=%s"</span>, task.ID, task.Type, task.LastErr)
+
+        <span class="cm">// Enqueue lại task đã archived</span>
+        <span class="kw">if</span> err := inspector.<span class="fn">RunArchivedTask</span>(<span class="str">"default"</span>, task.ID); err != <span class="kw">nil</span> {
+            <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"re-run task %s: %v"</span>, task.ID, err)
+        }
+    }
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== MIDDLEWARE ===================== -->
+<section class="page-section" id="s-middleware">
+  <div class="section-header">
+    <div class="section-number">09</div>
+    <div>
+      <div class="section-title">Middleware &amp; Hooks</div>
+      <div class="section-subtitle">Logging, Tracing, Panic Recovery, Rate Limiting</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">middleware/middleware.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> middleware
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"runtime/debug"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"go.opentelemetry.io/otel"</span>
+    <span class="str">"go.opentelemetry.io/otel/attribute"</span>
+)
+
+<span class="cm">// Logging — ghi log mỗi task với duration</span>
+<span class="kw">func</span> <span class="fn">Logging</span>(next <span class="tp">asynq.Handler</span>) <span class="tp">asynq.Handler</span> {
+    <span class="kw">return</span> <span class="tp">asynq.HandlerFunc</span>(<span class="kw">func</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+        start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+        taskID, _ := <span class="pkg">asynq</span>.<span class="fn">GetTaskID</span>(ctx)
+
+        <span class="pkg">slog</span>.<span class="fn">InfoContext</span>(ctx, <span class="str">"task started"</span>,
+            <span class="str">"task_id"</span>,   taskID,
+            <span class="str">"task_type"</span>, t.<span class="fn">Type</span>(),
+        )
+
+        err := next.<span class="fn">ProcessTask</span>(ctx, t)
+        dur := <span class="pkg">time</span>.<span class="fn">Since</span>(start)
+
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            <span class="pkg">slog</span>.<span class="fn">ErrorContext</span>(ctx, <span class="str">"task failed"</span>,
+                <span class="str">"task_id"</span>,  taskID,
+                <span class="str">"duration"</span>, dur,
+                <span class="str">"error"</span>,    err,
+            )
+        } <span class="kw">else</span> {
+            <span class="pkg">slog</span>.<span class="fn">InfoContext</span>(ctx, <span class="str">"task completed"</span>,
+                <span class="str">"task_id"</span>,  taskID,
+                <span class="str">"duration"</span>, dur,
+            )
+        }
+        <span class="kw">return</span> err
+    })
+}
+
+<span class="cm">// PanicRecovery — recover từ panic trong handler</span>
+<span class="kw">func</span> <span class="fn">PanicRecovery</span>(next <span class="tp">asynq.Handler</span>) <span class="tp">asynq.Handler</span> {
+    <span class="kw">return</span> <span class="tp">asynq.HandlerFunc</span>(<span class="kw">func</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) (err <span class="tp">error</span>) {
+        <span class="kw">defer func</span>() {
+            <span class="kw">if</span> r := <span class="fn">recover</span>(); r != <span class="kw">nil</span> {
+                stack := <span class="pkg">debug</span>.<span class="fn">Stack</span>()
+                err = <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%w: panic: %v\n%s"</span>, <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>, r, stack)
+                <span class="pkg">slog</span>.<span class="fn">Error</span>(<span class="str">"panic in task handler"</span>, <span class="str">"task"</span>, t.<span class="fn">Type</span>(), <span class="str">"panic"</span>, r)
+            }
+        }()
+        <span class="kw">return</span> next.<span class="fn">ProcessTask</span>(ctx, t)
+    })
+}
+
+<span class="cm">// OpenTelemetry Tracing middleware</span>
+<span class="kw">func</span> <span class="fn">Tracing</span>(next <span class="tp">asynq.Handler</span>) <span class="tp">asynq.Handler</span> {
+    tracer := <span class="pkg">otel</span>.<span class="fn">Tracer</span>(<span class="str">"asynq-worker"</span>)
+    <span class="kw">return</span> <span class="tp">asynq.HandlerFunc</span>(<span class="kw">func</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+        ctx, span := tracer.<span class="fn">Start</span>(ctx, <span class="str">"task."</span>+t.<span class="fn">Type</span>())
+        <span class="kw">defer</span> span.<span class="fn">End</span>()
+
+        taskID, _ := <span class="pkg">asynq</span>.<span class="fn">GetTaskID</span>(ctx)
+        span.<span class="fn">SetAttributes</span>(
+            <span class="pkg">attribute</span>.<span class="fn">String</span>(<span class="str">"task.id"</span>, taskID),
+            <span class="pkg">attribute</span>.<span class="fn">String</span>(<span class="str">"task.type"</span>, t.<span class="fn">Type</span>()),
+        )
+
+        err := next.<span class="fn">ProcessTask</span>(ctx, t)
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            span.<span class="fn">RecordError</span>(err)
+        }
+        <span class="kw">return</span> err
+    })
+}
+
+<span class="cm">// Chain — kết hợp nhiều middleware</span>
+<span class="cm">// Sử dụng: mux.Use(Chain(Logging, PanicRecovery, Tracing))</span>
+<span class="kw">func</span> <span class="fn">Chain</span>(middlewares ...<span class="kw">func</span>(<span class="tp">asynq.Handler</span>) <span class="tp">asynq.Handler</span>) <span class="kw">func</span>(<span class="tp">asynq.Handler</span>) <span class="tp">asynq.Handler</span> {
+    <span class="kw">return func</span>(final <span class="tp">asynq.Handler</span>) <span class="tp">asynq.Handler</span> {
+        <span class="kw">for</span> i := <span class="fn">len</span>(middlewares) - <span class="num">1</span>; i &gt;= <span class="num">0</span>; i-- {
+            final = middlewares[i](final)
+        }
+        <span class="kw">return</span> final
+    }
+}
+
+<span class="cm">// Đăng ký middleware vào mux</span>
+<span class="kw">func</span> <span class="fn">SetupMux</span>(handlers ...) *<span class="tp">asynq.ServeMux</span> {
+    mux := <span class="pkg">asynq</span>.<span class="fn">NewServeMux</span>()
+    mux.<span class="fn">Use</span>(<span class="fn">Logging</span>)        <span class="cm">// áp dụng cho tất cả handler</span>
+    mux.<span class="fn">Use</span>(<span class="fn">PanicRecovery</span>)
+    mux.<span class="fn">Use</span>(<span class="fn">Tracing</span>)
+    <span class="kw">return</span> mux
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== BATCH ===================== -->
+<section class="page-section" id="s-batch">
+  <div class="section-header">
+    <div class="section-number">10</div>
+    <div>
+      <div class="section-title">Batch Processing</div>
+      <div class="section-subtitle">Xử lý hàng loạt task với concurrency control</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">batch/batch.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> batch
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"encoding/json"</span>
+    <span class="str">"sync"</span>
+
+    <span class="str">"github.com/hibiken/asynq"</span>
+)
+
+<span class="cm">// BulkEnqueue — enqueue nhiều task cùng lúc hiệu quả</span>
+<span class="kw">func</span> <span class="fn">BulkEnqueue</span>(client *<span class="tp">asynq.Client</span>, items []<span class="tp">OrderItem</span>) <span class="tp">error</span> {
+    <span class="kw">var</span> (
+        mu   <span class="pkg">sync</span>.<span class="tp">Mutex</span>
+        errs []<span class="tp">error</span>
+        wg   <span class="pkg">sync</span>.<span class="tp">WaitGroup</span>
+    )
+
+    <span class="cm">// Concurrency limiter — enqueue tối đa 50 task song song</span>
+    sem := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, <span class="num">50</span>)
+
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+        item := item <span class="cm">// capture loop var</span>
+        sem &lt;- <span class="kw">struct</span>{}{}
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">defer func</span>() { &lt;-sem }()
+
+            payload, err := <span class="pkg">json</span>.<span class="fn">Marshal</span>(item)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                mu.<span class="fn">Lock</span>()
+                errs = <span class="fn">append</span>(errs, err)
+                mu.<span class="fn">Unlock</span>()
+                <span class="kw">return</span>
+            }
+
+            task := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="str">"order:process"</span>, payload,
+                <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"default"</span>),
+                <span class="pkg">asynq</span>.<span class="fn">MaxRetry</span>(<span class="num">3</span>),
+            )
+            <span class="kw">if</span> _, err := client.<span class="fn">Enqueue</span>(task); err != <span class="kw">nil</span> {
+                mu.<span class="fn">Lock</span>()
+                errs = <span class="fn">append</span>(errs, err)
+                mu.<span class="fn">Unlock</span>()
+            }
+        }()
+    }
+
+    wg.<span class="fn">Wait</span>()
+    <span class="kw">if</span> <span class="fn">len</span>(errs) &gt; <span class="num">0</span> {
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%d enqueue errors, first: %w"</span>, <span class="fn">len</span>(errs), errs[<span class="num">0</span>])
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// ChunkedBatch — chia nhỏ slice và enqueue theo chunks
+// Hữu ích khi batch cực lớn (>100k items)</span>
+<span class="kw">func</span> <span class="fn">ChunkedBatch</span>[<span class="tp">T</span> <span class="tp">any</span>](
+    ctx <span class="tp">context.Context</span>,
+    client *<span class="tp">asynq.Client</span>,
+    items []<span class="tp">T</span>,
+    chunkSize <span class="tp">int</span>,
+    taskType <span class="tp">string</span>,
+    opts ...<span class="tp">asynq.Option</span>,
+) <span class="tp">error</span> {
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="fn">len</span>(items); i += chunkSize {
+        end := i + chunkSize
+        <span class="kw">if</span> end &gt; <span class="fn">len</span>(items) { end = <span class="fn">len</span>(items) }
+
+        chunk := items[i:end]
+        payload, err := <span class="pkg">json</span>.<span class="fn">Marshal</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">any</span>{
+            <span class="str">"items"</span>: chunk,
+            <span class="str">"batch_start"</span>: i,
+        })
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+
+        task := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(taskType, payload, opts...)
+        <span class="kw">if</span> _, err := client.<span class="fn">EnqueueContext</span>(ctx, task); err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== ASYNQMON ===================== -->
+<section class="page-section" id="s-asynqmon">
+  <div class="section-header">
+    <div class="section-number">11</div>
+    <div>
+      <div class="section-title">Asynqmon Dashboard</div>
+      <div class="section-subtitle">Monitor, inspect và quản lý task realtime</div>
+    </div>
+    <span class="badge badge-basic">TOOLING</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">📊 Dashboard</div>
+    <div class="title">Asynqmon — Web UI cho Asynq</div>
+    <p class="prose"><strong>Asynqmon</strong> là web dashboard cho phép bạn xem queue metrics, inspect task, retry archived task, và xoá task trực tiếp từ browser. Đây là công cụ không thể thiếu trong production.</p>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">cmd/monitor/main.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"log"</span>
+    <span class="str">"net/http"</span>
+
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"github.com/hibiken/asynqmon"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    redisOpt := <span class="tp">asynq.RedisClientOpt</span>{Addr: <span class="str">"localhost:6379"</span>}
+
+    <span class="cm">// Tạo Asynqmon handler</span>
+    h := <span class="pkg">asynqmon</span>.<span class="fn">New</span>(<span class="tp">asynqmon.Options</span>{
+        RootPath:     <span class="str">"/monitoring"</span>,   <span class="cm">// URL prefix</span>
+        RedisConnOpt: redisOpt,
+        PrometheusAddress: <span class="str">"http://prometheus:9090"</span>, <span class="cm">// optional metrics</span>
+    })
+    <span class="kw">defer</span> h.<span class="fn">Close</span>()
+
+    <span class="cm">// Mount vào HTTP server hiện tại</span>
+    <span class="pkg">http</span>.<span class="fn">Handle</span>(<span class="str">"/monitoring/"</span>, h)
+
+    <span class="pkg">log</span>.<span class="fn">Println</span>(<span class="str">"Asynqmon running at http://localhost:8080/monitoring"</span>)
+    <span class="pkg">log</span>.<span class="fn">Fatal</span>(<span class="pkg">http</span>.<span class="fn">ListenAndServe</span>(<span class="str">":8080"</span>, <span class="kw">nil</span>))
+}
+
+<span class="cm">// Hoặc dùng CLI để inspect</span>
+<span class="cm">// asynq dash                           -- TUI dashboard
+// asynq stats                          -- queue statistics
+// asynq queue inspect --queue=default  -- inspect tasks in queue
+// asynq task run --queue=default --id=&lt;id&gt;  -- manually run archived task</span></pre>
+  </div>
+
+  <h3>Inspector API — Quản lý task bằng code</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">inspector_api.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">func</span> <span class="fn">InspectorExamples</span>(redisOpt <span class="tp">asynq.RedisClientOpt</span>) {
+    inspector := <span class="pkg">asynq</span>.<span class="fn">NewInspector</span>(redisOpt)
+    <span class="kw">defer</span> inspector.<span class="fn">Close</span>()
+
+    <span class="cm">// Lấy thông tin tất cả queues</span>
+    queues, _ := inspector.<span class="fn">Queues</span>()
+    <span class="kw">for</span> _, q := <span class="kw">range</span> queues {
+        <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"queue=%s size=%d latency=%s\n"</span>, q.Queue, q.Size, q.Latency)
+    }
+
+    <span class="cm">// Xoá tất cả pending tasks trong queue "low"</span>
+    n, _ := inspector.<span class="fn">DeleteAllPendingTasks</span>(<span class="str">"low"</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"deleted %d tasks\n"</span>, n)
+
+    <span class="cm">// Pause và resume queue</span>
+    inspector.<span class="fn">PauseQueue</span>(<span class="str">"default"</span>)   <span class="cm">// tạm dừng nhận task mới</span>
+    inspector.<span class="fn">UnpauseQueue</span>(<span class="str">"default"</span>) <span class="cm">// tiếp tục</span>
+
+    <span class="cm">// Lấy task theo ID</span>
+    task, _ := inspector.<span class="fn">GetTaskInfo</span>(<span class="str">"default"</span>, <span class="str">"task-id-123"</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"task state=%s retried=%d/%d\n"</span>, task.State, task.Retried, task.MaxRetry)
+
+    <span class="cm">// Re-run archived (dead letter) task</span>
+    inspector.<span class="fn">RunArchivedTask</span>(<span class="str">"default"</span>, <span class="str">"task-id-123"</span>)
+
+    <span class="cm">// Delete task cụ thể</span>
+    inspector.<span class="fn">DeleteTask</span>(<span class="str">"default"</span>, <span class="str">"task-id-456"</span>)
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== GIN + GORM ===================== -->
+<section class="page-section" id="s-gin-integration">
+  <div class="section-header">
+    <div class="section-number">12</div>
+    <div>
+      <div class="section-title">Tích hợp Gin + GORM (Expert)</div>
+      <div class="section-subtitle">Production-ready setup: API server + background worker + database</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">internal/task/types.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> task
+
+<span class="cm">// Task types — tập trung tất cả constants ở đây</span>
+<span class="kw">const</span> (
+    TypeSendEmail         = <span class="str">"email:send"</span>
+    TypeGenerateReport    = <span class="str">"report:generate"</span>
+    TypeProcessPayment    = <span class="str">"payment:process"</span>
+    TypeSendNotification  = <span class="str">"notification:send"</span>
+    TypeCleanupExpired    = <span class="str">"cleanup:expired"</span>
+)
+
+<span class="kw">type</span> <span class="tp">SendEmailPayload</span> <span class="kw">struct</span> {
+    To      <span class="tp">string</span> <span class="str">`json:"to"`</span>
+    Subject <span class="tp">string</span> <span class="str">`json:"subject"`</span>
+    Body    <span class="tp">string</span> <span class="str">`json:"body"`</span>
+    UserID  <span class="tp">uint</span>   <span class="str">`json:"user_id"`</span>
+}
+
+<span class="kw">type</span> <span class="tp">GenerateReportPayload</span> <span class="kw">struct</span> {
+    ReportID  <span class="tp">uint</span>   <span class="str">`json:"report_id"`</span>
+    Format    <span class="tp">string</span> <span class="str">`json:"format"`</span>   <span class="cm">// "pdf" | "excel"</span>
+    StartDate <span class="tp">string</span> <span class="str">`json:"start_date"`</span>
+    EndDate   <span class="tp">string</span> <span class="str">`json:"end_date"`</span>
+}</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">internal/handler/report_handler.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> handler
+
+<span class="kw">import</span> (
+    <span class="str">"encoding/json"</span>
+    <span class="str">"net/http"</span>
+
+    <span class="str">"github.com/gin-gonic/gin"</span>
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"myapp/internal/task"</span>
+    <span class="str">"myapp/internal/model"</span>
+)
+
+<span class="kw">type</span> <span class="tp">ReportHandler</span> <span class="kw">struct</span> {
+    db          *<span class="tp">gorm.DB</span>
+    taskClient  *<span class="tp">asynq.Client</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewReportHandler</span>(db *<span class="tp">gorm.DB</span>, client *<span class="tp">asynq.Client</span>) *<span class="tp">ReportHandler</span> {
+    <span class="kw">return</span> &amp;<span class="tp">ReportHandler</span>{db: db, taskClient: client}
+}
+
+<span class="cm">// POST /api/v1/reports — tạo report request, enqueue background task</span>
+<span class="kw">func</span> (h *<span class="tp">ReportHandler</span>) <span class="fn">CreateReport</span>(c *<span class="tp">gin.Context</span>) {
+    <span class="kw">var</span> req <span class="kw">struct</span> {
+        Format    <span class="tp">string</span> <span class="str">`json:"format" binding:"required,oneof=pdf excel"`</span>
+        StartDate <span class="tp">string</span> <span class="str">`json:"start_date" binding:"required"`</span>
+        EndDate   <span class="tp">string</span> <span class="str">`json:"end_date" binding:"required"`</span>
+    }
+    <span class="kw">if</span> err := c.<span class="fn">ShouldBindJSON</span>(&amp;req); err != <span class="kw">nil</span> {
+        c.<span class="fn">JSON</span>(<span class="tp">http.StatusBadRequest</span>, <span class="pkg">gin</span>.<span class="tp">H</span>{<span class="str">"error"</span>: err.<span class="fn">Error</span>()})
+        <span class="kw">return</span>
+    }
+
+    <span class="cm">// 1. Tạo report record với status "pending"</span>
+    report := <span class="tp">model.Report</span>{
+        UserID:    c.<span class="fn">MustGet</span>(<span class="str">"userID"</span>).(<span class="tp">uint</span>),
+        Status:    <span class="str">"pending"</span>,
+        Format:    req.Format,
+        StartDate: req.StartDate,
+        EndDate:   req.EndDate,
+    }
+    <span class="kw">if</span> err := h.db.<span class="fn">WithContext</span>(c.<span class="fn">Request</span>.<span class="fn">Context</span>()).<span class="fn">Create</span>(&amp;report).<span class="tp">Error</span>; err != <span class="kw">nil</span> {
+        c.<span class="fn">JSON</span>(<span class="tp">http.StatusInternalServerError</span>, <span class="pkg">gin</span>.<span class="tp">H</span>{<span class="str">"error"</span>: <span class="str">"db error"</span>})
+        <span class="kw">return</span>
+    }
+
+    <span class="cm">// 2. Enqueue background task</span>
+    payload, _ := <span class="pkg">json</span>.<span class="fn">Marshal</span>(<span class="tp">task.GenerateReportPayload</span>{
+        ReportID:  report.ID,
+        Format:    req.Format,
+        StartDate: req.StartDate,
+        EndDate:   req.EndDate,
+    })
+
+    t := <span class="pkg">asynq</span>.<span class="fn">NewTask</span>(<span class="tp">task.TypeGenerateReport</span>, payload,
+        <span class="pkg">asynq</span>.<span class="fn">Queue</span>(<span class="str">"default"</span>),
+        <span class="pkg">asynq</span>.<span class="fn">MaxRetry</span>(<span class="num">2</span>),
+        <span class="pkg">asynq</span>.<span class="fn">TaskID</span>(<span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"report-%d"</span>, report.ID)),
+        <span class="pkg">asynq</span>.<span class="fn">Timeout</span>(<span class="num">5</span>*<span class="pkg">time</span>.Minute),
+    )
+
+    info, err := h.taskClient.<span class="fn">EnqueueContext</span>(c.<span class="fn">Request</span>.<span class="fn">Context</span>(), t)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="cm">// Rollback report status nếu enqueue thất bại</span>
+        h.db.<span class="fn">Model</span>(&amp;report).<span class="fn">Update</span>(<span class="str">"status"</span>, <span class="str">"failed"</span>)
+        c.<span class="fn">JSON</span>(<span class="tp">http.StatusInternalServerError</span>, <span class="pkg">gin</span>.<span class="tp">H</span>{<span class="str">"error"</span>: <span class="str">"enqueue failed"</span>})
+        <span class="kw">return</span>
+    }
+
+    <span class="cm">// 3. Trả về ngay — không chờ report generate xong</span>
+    c.<span class="fn">JSON</span>(<span class="tp">http.StatusAccepted</span>, <span class="pkg">gin</span>.<span class="tp">H</span>{
+        <span class="str">"report_id"</span>: report.ID,
+        <span class="str">"task_id"</span>:  info.ID,
+        <span class="str">"status"</span>:   <span class="str">"processing"</span>,
+        <span class="str">"message"</span>:  <span class="str">"Report is being generated. Poll /api/v1/reports/:id for status."</span>,
+    })
+}
+
+<span class="cm">// GET /api/v1/reports/:id — polling status</span>
+<span class="kw">func</span> (h *<span class="tp">ReportHandler</span>) <span class="fn">GetReport</span>(c *<span class="tp">gin.Context</span>) {
+    id := c.<span class="fn">Param</span>(<span class="str">"id"</span>)
+    <span class="kw">var</span> report <span class="tp">model.Report</span>
+    <span class="kw">if</span> err := h.db.<span class="fn">First</span>(&amp;report, id).<span class="tp">Error</span>; err != <span class="kw">nil</span> {
+        c.<span class="fn">JSON</span>(<span class="tp">http.StatusNotFound</span>, <span class="pkg">gin</span>.<span class="tp">H</span>{<span class="str">"error"</span>: <span class="str">"not found"</span>})
+        <span class="kw">return</span>
+    }
+    c.<span class="fn">JSON</span>(<span class="tp">http.StatusOK</span>, report)
+}</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">internal/task/report_handler.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> task
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"encoding/json"</span>
+    <span class="str">"fmt"</span>
+
+    <span class="str">"gorm.io/gorm"</span>
+    <span class="str">"github.com/hibiken/asynq"</span>
+    <span class="str">"myapp/internal/model"</span>
+)
+
+<span class="kw">type</span> <span class="tp">ReportTaskHandler</span> <span class="kw">struct</span> {
+    db          *<span class="tp">gorm.DB</span>
+    generator   <span class="tp">ReportGenerator</span>
+    storage     <span class="tp">FileStorage</span>
+}
+
+<span class="kw">func</span> (h *<span class="tp">ReportTaskHandler</span>) <span class="fn">ProcessTask</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+    <span class="kw">var</span> p <span class="tp">GenerateReportPayload</span>
+    <span class="kw">if</span> err := <span class="pkg">json</span>.<span class="fn">Unmarshal</span>(t.<span class="fn">Payload</span>(), &amp;p); err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%w: %v"</span>, <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>, err)
+    }
+
+    <span class="cm">// Cập nhật status → "processing"</span>
+    h.db.<span class="fn">WithContext</span>(ctx).<span class="fn">Model</span>(&amp;<span class="tp">model.Report</span>{}).<span class="fn">Where</span>(<span class="str">"id = ?"</span>, p.ReportID).<span class="fn">Update</span>(<span class="str">"status"</span>, <span class="str">"processing"</span>)
+
+    <span class="cm">// Generate report (có thể lâu — context timeout giải quyết)</span>
+    data, err := h.generator.<span class="fn">Generate</span>(ctx, p.Format, p.StartDate, p.EndDate)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        h.db.<span class="fn">Model</span>(&amp;<span class="tp">model.Report</span>{}).<span class="fn">Where</span>(<span class="str">"id = ?"</span>, p.ReportID).<span class="fn">Update</span>(<span class="str">"status"</span>, <span class="str">"failed"</span>)
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"generate report: %w"</span>, err)
+    }
+
+    <span class="cm">// Upload lên S3/GCS</span>
+    url, err := h.storage.<span class="fn">Upload</span>(ctx, <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"reports/%d.%s"</span>, p.ReportID, p.Format), data)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"upload report: %w"</span>, err)
+    }
+
+    <span class="cm">// Cập nhật status → "completed" + URL</span>
+    <span class="kw">return</span> h.db.<span class="fn">WithContext</span>(ctx).<span class="fn">Model</span>(&amp;<span class="tp">model.Report</span>{}).<span class="fn">Where</span>(<span class="str">"id = ?"</span>, p.ReportID).<span class="fn">Updates</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">any</span>{
+        <span class="str">"status"</span>: <span class="str">"completed"</span>,
+        <span class="str">"url"</span>:    url,
+    }).<span class="tp">Error</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== DISTRIBUTED ===================== -->
+<section class="page-section" id="s-distributed">
+  <div class="section-header">
+    <div class="section-number">13</div>
+    <div>
+      <div class="section-title">Distributed Workers</div>
+      <div class="section-subtitle">Scale workers ngang hàng với Kubernetes</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Distributed Asynq Workers — Multi-instance với Redis Shared Queue</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="da" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- API Servers -->
+      <rect x="20" y="30" width="140" height="200" rx="8" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.3)"/>
+      <text x="90" y="52" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="Inter" font-weight="600">API Servers</text>
+      <rect x="30" y="65" width="120" height="30" rx="5" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)"/>
+      <text x="90" y="84" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">gin-server-1</text>
+      <rect x="30" y="103" width="120" height="30" rx="5" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)"/>
+      <text x="90" y="122" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">gin-server-2</text>
+      <rect x="30" y="141" width="120" height="30" rx="5" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)"/>
+      <text x="90" y="160" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">gin-server-N</text>
+      <text x="90" y="215" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">asynq.Client</text>
+      <text x="90" y="228" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">enqueue tasks</text>
+
+      <!-- Arrows to Redis -->
+      <line x1="162" y1="130" x2="255" y2="130" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#da)"/>
+
+      <!-- Redis Cluster -->
+      <rect x="258" y="50" width="170" height="170" rx="8" fill="rgba(245,158,11,0.05)" stroke="rgba(245,158,11,0.4)" stroke-width="2"/>
+      <text x="343" y="72" text-anchor="middle" font-size="12" fill="#f59e0b" font-family="Inter" font-weight="600">Redis</text>
+      <text x="343" y="90" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">(Shared Queue)</text>
+      <rect x="270" y="100" width="146" height="24" rx="4" fill="rgba(245,158,11,0.12)"/>
+      <text x="343" y="117" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">critical queue</text>
+      <rect x="270" y="130" width="146" height="24" rx="4" fill="rgba(245,158,11,0.08)"/>
+      <text x="343" y="147" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">default queue</text>
+      <rect x="270" y="160" width="146" height="24" rx="4" fill="rgba(245,158,11,0.05)"/>
+      <text x="343" y="177" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">low queue</text>
+      <text x="343" y="210" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Atomic BRPOPLPUSH</text>
+
+      <!-- Arrows to Workers -->
+      <line x1="430" y1="100" x2="510" y2="80"  stroke="#00ff88" stroke-width="1.5" marker-end="url(#da)"/>
+      <line x1="430" y1="130" x2="510" y2="130" stroke="#00ff88" stroke-width="1.5" marker-end="url(#da)"/>
+      <line x1="430" y1="160" x2="510" y2="180" stroke="#00ff88" stroke-width="1.5" marker-end="url(#da)"/>
+
+      <!-- Worker Pods -->
+      <rect x="513" y="30" width="280" height="220" rx="8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.25)"/>
+      <text x="653" y="52" text-anchor="middle" font-size="11" fill="#00ff88" font-family="Inter" font-weight="600">Worker Pods (K8s)</text>
+
+      <rect x="525" y="65"  width="115" height="55" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)"/>
+      <text x="582" y="86"  text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">worker-pod-1</text>
+      <text x="582" y="102" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">concurrency=20</text>
+      <text x="582" y="115" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">memory=512MB</text>
+
+      <rect x="650" y="65"  width="115" height="55" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)"/>
+      <text x="707" y="86"  text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">worker-pod-2</text>
+      <text x="707" y="102" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">concurrency=20</text>
+      <text x="707" y="115" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">memory=512MB</text>
+
+      <rect x="525" y="135" width="115" height="55" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)"/>
+      <text x="582" y="156" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">worker-pod-3</text>
+      <text x="582" y="172" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">concurrency=20</text>
+      <text x="582" y="185" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">memory=512MB</text>
+
+      <rect x="650" y="135" width="115" height="55" rx="6" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.2)" stroke-dasharray="4,3"/>
+      <text x="707" y="166" text-anchor="middle" font-size="10" fill="#4b5563" font-family="JetBrains Mono">auto-scale ↕</text>
+
+      <text x="653" y="225" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">HPA scale dựa trên Redis queue length</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">yaml</span><span class="code-filename">k8s/worker-deployment.yaml</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="cm">## Kubernetes deployment cho Asynq Worker</span>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: asynq-worker
+  labels:
+    app: asynq-worker
+spec:
+  replicas: <span class="num">3</span>  <span class="cm"># bắt đầu với 3 replicas</span>
+  selector:
+    matchLabels:
+      app: asynq-worker
+  template:
+    metadata:
+      labels:
+        app: asynq-worker
+    spec:
+      containers:
+      - name: worker
+        image: myapp/worker:latest
+        env:
+        - name: REDIS_ADDR
+          valueFrom:
+            secretKeyRef:
+              name: redis-secret
+              key: addr
+        - name: WORKER_CONCURRENCY
+          value: <span class="str">"20"</span>
+        resources:
+          requests:
+            memory: <span class="str">"256Mi"</span>
+            cpu: <span class="str">"250m"</span>
+          limits:
+            memory: <span class="str">"512Mi"</span>
+            cpu: <span class="str">"500m"</span>
+        <span class="cm"># Graceful shutdown — cho worker hoàn thành task hiện tại</span>
+        lifecycle:
+          preStop:
+            exec:
+              command: [<span class="str">"/bin/sh"</span>, <span class="str">"-c"</span>, <span class="str">"sleep 30"</span>]
+        terminationGracePeriodSeconds: <span class="num">60</span>
+---
+<span class="cm">## HPA scale dựa trên custom metric (Redis queue length)</span>
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: asynq-worker-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: asynq-worker
+  minReplicas: <span class="num">2</span>
+  maxReplicas: <span class="num">20</span>
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: redis_queue_length
+        selector:
+          matchLabels:
+            queue: default
+      target:
+        type: AverageValue
+        averageValue: <span class="str">"100"</span>  <span class="cm"># scale up khi queue > 100 tasks/worker</span></pre>
+  </div>
+</section>
+
+<!-- ===================== PITFALLS ===================== -->
+<section class="page-section" id="s-pitfalls">
+  <div class="section-header">
+    <div class="section-number">14</div>
+    <div>
+      <div class="section-title">Pitfalls &amp; Best Practices</div>
+      <div class="section-subtitle">Các lỗi phổ biến và cách tránh trong production</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head coral">❌ Sai — Anti-patterns</div>
+      <div style="padding:16px">
+        <ul class="step-list">
+          <li><div class="step-num">1</div><span><strong>Lưu object lớn trong payload</strong> — payload chỉ nên chứa ID, không chứa toàn bộ document</span></li>
+          <li><div class="step-num">2</div><span><strong>Non-idempotent handler</strong> — gửi email 2 lần khi retry. Phải check "đã gửi chưa" trước</span></li>
+          <li><div class="step-num">3</div><span><strong>Không đóng asynq.Client</strong> — leak goroutine và Redis connection</span></li>
+          <li><div class="step-num">4</div><span><strong>Panic trong handler</strong> mà không có recovery middleware — crash toàn bộ worker</span></li>
+          <li><div class="step-num">5</div><span><strong>MaxRetry quá cao</strong> cho task irreversible (payment) — enqueue task thật nhiều lần có thể nguy hiểm</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head green">✅ Đúng — Best Practices</div>
+      <div style="padding:16px">
+        <ul class="step-list">
+          <li><div class="step-num">1</div><span>Payload chỉ chứa <strong>ID và tham số nhỏ</strong>. Worker tự fetch data từ DB khi xử lý</span></li>
+          <li><div class="step-num">2</div><span>Handler phải <strong>idempotent</strong> — check trạng thái trong DB trước khi thực hiện action</span></li>
+          <li><div class="step-num">3</div><span>Luôn <code>defer client.Close()</code> và dùng <code>server.Shutdown()</code> khi nhận SIGTERM</span></li>
+          <li><div class="step-num">4</div><span>Thêm <strong>PanicRecovery middleware</strong> và dùng <code>SkipRetry</code> cho lỗi không thể recover</span></li>
+          <li><div class="step-num">5</div><span>Dùng <code>asynq.Unique(ttl)</code> để <strong>dedup task</strong> khi cần, đặt TaskID có nghĩa</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <h3>Checklist Production Readiness</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">production_checklist.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="cm">// ✅ 1. Idempotent handler — check trước khi hành động</span>
+<span class="kw">func</span> <span class="fn">HandleSendEmail</span>(ctx <span class="tp">context.Context</span>, t *<span class="tp">asynq.Task</span>) <span class="tp">error</span> {
+    <span class="kw">var</span> p <span class="tp">EmailPayload</span>
+    <span class="pkg">json</span>.<span class="fn">Unmarshal</span>(t.<span class="fn">Payload</span>(), &amp;p)
+
+    <span class="cm">// Idempotency check: đã gửi chưa?</span>
+    <span class="kw">if</span> <span class="fn">emailAlreadySent</span>(ctx, p.UserID, p.Template) {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"email already sent for user %d, skipping"</span>, p.UserID)
+        <span class="kw">return</span> <span class="kw">nil</span>  <span class="cm">// no-op, không return error</span>
+    }
+    <span class="kw">return</span> <span class="fn">sendEmail</span>(ctx, p)
+}
+
+<span class="cm">// ✅ 2. Graceful shutdown đúng cách</span>
+<span class="kw">func</span> <span class="fn">RunWithGracefulShutdown</span>(srv *<span class="tp">asynq.Server</span>, mux *<span class="tp">asynq.ServeMux</span>) {
+    quit := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">os.Signal</span>, <span class="num">1</span>)
+    <span class="pkg">signal</span>.<span class="fn">Notify</span>(quit, <span class="tp">syscall.SIGINT</span>, <span class="tp">syscall.SIGTERM</span>)
+
+    errCh := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">error</span>, <span class="num">1</span>)
+    <span class="kw">go func</span>() { errCh &lt;- srv.<span class="fn">Run</span>(mux) }()
+
+    <span class="kw">select</span> {
+    <span class="kw">case</span> &lt;-quit:
+        <span class="pkg">log</span>.<span class="fn">Println</span>(<span class="str">"signal received, shutting down..."</span>)
+        srv.<span class="fn">Shutdown</span>() <span class="cm">// chờ task hiện tại hoàn thành</span>
+    <span class="kw">case</span> err := &lt;-errCh:
+        <span class="pkg">log</span>.<span class="fn">Fatalf</span>(<span class="str">"server error: %v"</span>, err)
+    }
+}
+
+<span class="cm">// ✅ 3. Payload nhỏ — chỉ ID</span>
+<span class="kw">type</span> <span class="tp">GoodPayload</span>  <span class="kw">struct</span>{ OrderID <span class="tp">uint</span> }   <span class="cm">// ✅ chỉ ID</span>
+<span class="kw">type</span> <span class="tp">BadPayload</span>   <span class="kw">struct</span>{ Order <span class="tp">model.Order</span> } <span class="cm">// ❌ lưu cả struct lớn</span>
+
+<span class="cm">// ✅ 4. SkipRetry cho lỗi không thể retry</span>
+<span class="kw">var</span> <span class="tp">ErrInvalidInput</span> = <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"%w: invalid input"</span>, <span class="pkg">asynq</span>.<span class="tp">SkipRetry</span>)
+
+<span class="cm">// ✅ 5. Metrics với Prometheus</span>
+<span class="kw">var</span> (
+    taskDuration = <span class="pkg">prometheus</span>.<span class="fn">NewHistogramVec</span>(
+        <span class="tp">prometheus.HistogramOpts</span>{Name: <span class="str">"asynq_task_duration_seconds"</span>},
+        []<span class="tp">string</span>{<span class="str">"task_type"</span>, <span class="str">"status"</span>},
+    )
+)</pre>
+  </div>
+
+  <div class="note note-danger">
+    <div class="note-icon">⛔</div>
+    <p><strong>Memory leak phổ biến:</strong> Tạo <code>asynq.Client</code> mới trong mỗi request thay vì reuse một instance duy nhất. Mỗi Client tạo connection pool riêng → hết Redis connection. Luôn tạo Client một lần và inject vào handler.</p>
+  </div>
+</section>
+
+<!-- ===================== REFS ===================== -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">15</div>
+    <div>
+      <div class="section-title">References &amp; Tài liệu tham khảo</div>
+      <div class="section-subtitle">Nguồn học Asynq và Background Task tốt nhất</div>
+    </div>
+  </div>
+
+  <h3>🐙 GitHub Repositories chính thức</h3>
+
+  <a class="ref-card" href="https://github.com/hibiken/asynq" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">⭐</div>
+    <div class="ref-body">
+      <div class="ref-title">hibiken/asynq — Main Repository</div>
+      <div class="ref-desc">Repository chính thức của Asynq. Chứa source code, README chi tiết, và ví dụ. README là tài liệu tốt nhất để bắt đầu. Wiki đầy đủ tất cả tính năng.</div>
+      <div class="ref-url">github.com/hibiken/asynq</div>
+    </div>
+    <div class="ref-stars">⭐ 10k+ ★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/hibiken/asynqmon" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">📊</div>
+    <div class="ref-body">
+      <div class="ref-title">hibiken/asynqmon — Web Dashboard</div>
+      <div class="ref-desc">Dashboard web cho Asynq. Xem queue stats, inspect task, retry archived task. Có thể deploy standalone hoặc embed vào Go HTTP server. Screenshot rất trực quan.</div>
+      <div class="ref-url">github.com/hibiken/asynqmon</div>
+    </div>
+    <div class="ref-stars">⭐ 2.1k ★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/hibiken/asynq/wiki" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">📖</div>
+    <div class="ref-body">
+      <div class="ref-title">Asynq Wiki — Documentation chính thức</div>
+      <div class="ref-desc">Wiki đầy đủ nhất về Asynq: Getting started, Queue configuration, Task uniqueness, Periodic tasks, Testing, CLI usage. Bắt buộc phải đọc trước khi dùng production.</div>
+      <div class="ref-url">github.com/hibiken/asynq/wiki</div>
+    </div>
+    <div class="ref-stars">⭐ Official</div>
+  </a>
+
+  <h3>📚 Ví dụ thực tế</h3>
+
+  <a class="ref-card" href="https://github.com/hibiken/asynq/tree/master/examples" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,0.1)">🔍</div>
+    <div class="ref-body">
+      <div class="ref-title">Asynq Examples — Official Code Samples</div>
+      <div class="ref-desc">Ví dụ chính thức gồm: basic, intermediate (priority, scheduler, unique), và advanced (context cancellation, custom middleware). Tất cả đều runnable.</div>
+      <div class="ref-url">github.com/hibiken/asynq/tree/master/examples</div>
+    </div>
+    <div class="ref-stars">⭐ Official</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/devfullcycle/imersao18" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🏫</div>
+    <div class="ref-body">
+      <div class="ref-title">Real-world Asynq + Gin Project</div>
+      <div class="ref-desc">Dự án thực tế kết hợp Gin + GORM + Asynq. Cấu trúc project chuẩn, có Dockerfile và docker-compose. Tốt cho reference architecture.</div>
+      <div class="ref-url">github.com search: "asynq gin gorm"</div>
+    </div>
+    <div class="ref-stars">⭐ Community</div>
+  </a>
+
+  <h3>▶️ Video &amp; Blog</h3>
+
+  <a class="ref-card" href="https://medium.com/@hibiken/asynq-simple-efficient-and-reliable-background-task-processing-for-go-e9e1ef6d5a73" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,0,0,0.3)">📝</div>
+    <div class="ref-body">
+      <div class="ref-title">Blog chính thức của tác giả — Ken Hibino</div>
+      <div class="ref-desc">Bài viết giới thiệu Asynq bởi tác giả. Giải thích design decisions, cách Asynq sử dụng Redis, và so sánh với các giải pháp tương tự. Rất đáng đọc.</div>
+      <div class="ref-url">medium.com/@hibiken/asynq-...</div>
+    </div>
+    <div class="ref-stars">⭐ Must Read</div>
+  </a>
+
+  <a class="ref-card" href="https://redis.io/docs/manual/patterns/distributed-locks/" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,0.1)">🗄️</div>
+    <div class="ref-body">
+      <div class="ref-title">Redis Patterns — Distributed Locks</div>
+      <div class="ref-desc">Tài liệu Redis về distributed lock patterns. Giúp hiểu cơ chế bên trong Asynq dùng để đảm bảo task uniqueness và atomic operations.</div>
+      <div class="ref-url">redis.io/docs/manual/patterns/distributed-locks</div>
+    </div>
+    <div class="ref-stars">⭐ Nền tảng</div>
+  </a>
+
+  <h3>🛠️ Package liên quan</h3>
+
+  <a class="ref-card" href="https://github.com/robfig/cron" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">⏰</div>
+    <div class="ref-body">
+      <div class="ref-title">robfig/cron — Cron Parser</div>
+      <div class="ref-desc">Asynq Scheduler dùng robfig/cron để parse cron expression. Tài liệu này giải thích đầy đủ cú pháp cron được hỗ trợ: standard, predefined, và @every syntax.</div>
+      <div class="ref-url">github.com/robfig/cron</div>
+    </div>
+    <div class="ref-stars">⭐ 3.9k ★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/redis/go-redis" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,0.1)">🔌</div>
+    <div class="ref-body">
+      <div class="ref-title">go-redis — Redis client for Go</div>
+      <div class="ref-desc">Asynq được build trên go-redis. Hiểu go-redis giúp debug kết nối Redis, cấu hình pool size, TLS, và cluster mode cho Asynq một cách chính xác.</div>
+      <div class="ref-url">github.com/redis/go-redis</div>
+    </div>
+    <div class="ref-stars">⭐ 19k ★</div>
+  </a>
+
+  <hr class="divider">
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Tóm tắt:</strong> Asynq là lựa chọn tốt nhất cho background task trong Go ecosystem. Đơn giản hơn Kafka/RabbitMQ nhưng đủ mạnh cho phần lớn use cases. Điểm bắt đầu: đọc Wiki → chạy examples → tích hợp vào project theo pattern Gin+GORM → deploy với Asynqmon để monitor. Luôn nhớ: <strong>idempotent handlers + graceful shutdown + monitor với Asynqmon</strong> là 3 điều kiện tiên quyết để chạy production an toàn.</p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.topnav-item').forEach(n => n.classList.remove('active'));
+  const sec = document.getElementById('s-' + name);
+  if (sec) sec.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+  document.querySelectorAll('.topnav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+  window.scrollTo(0, 0);
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

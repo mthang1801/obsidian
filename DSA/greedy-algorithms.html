@@ -1,0 +1,2040 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Greedy Algorithms - Hướng dẫn chuyên sâu DSA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,255,136,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  #sidebar { width: 270px; min-width: 270px; background: var(--bg-secondary); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #000; font-family: var(--font-mono); }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+  .logo-sub { font-size: 11px; color: var(--accent-green); font-family: var(--font-mono); }
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0 8px; margin-bottom: 6px; }
+  .nav-item { display: flex; align-items: center; padding: 7px 8px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active { background: rgba(0,255,136,0.1); color: var(--accent-green); border-left: 2px solid var(--accent-green); padding-left: 6px; }
+
+  /* TOP NAV */
+  #topnav { position: fixed; top: 0; left: 270px; right: 0; height: 52px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 8px; z-index: 50; overflow-x: auto; }
+  .topnav-item { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: all 0.15s; border: none; background: none; }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .topnav-item.active { color: var(--accent-green); background: rgba(0,255,136,0.1); }
+
+  /* MAIN */
+  #main { margin-left: 270px; margin-top: 52px; flex: 1; max-width: calc(100% - 270px); }
+  .content-area { padding: 48px 56px; max-width: 980px; }
+
+  /* SECTION HEADERS */
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .section-number { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--accent-green), var(--accent-cyan)); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: #000; flex-shrink: 0; }
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; font-family: var(--font-mono); }
+  .badge-expert { background: rgba(168,85,247,0.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced { background: rgba(245,158,11,0.12); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-basic { background: rgba(0,255,136,0.1); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.25); }
+
+  /* PAGE SECTIONS */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* PROSE */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code { background: rgba(0,255,136,0.08); color: var(--accent-green); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px; }
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* CARDS */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: border-color 0.2s; }
+  .card:hover { border-color: var(--border-accent); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* CONCEPT BOX */
+  .concept-box { background: linear-gradient(135deg, rgba(0,255,136,0.05), rgba(0,212,255,0.05)); border: 1px solid rgba(0,255,136,0.2); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+  .concept-box .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-green); margin-bottom: 8px; font-family: var(--font-mono); }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+
+  /* CODE BLOCKS */
+  .code-block { background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
+  .code-lang { font-size: 11px; font-weight: 600; color: var(--accent-green); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+  .code-copy { font-size: 11px; cursor: pointer; background: none; border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; color: var(--text-secondary); transition: all 0.15s; font-family: var(--font-sans); }
+  .code-copy:hover { border-color: var(--accent-green); color: var(--accent-green); }
+  pre { margin: 0; padding: 20px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* SYNTAX COLORS */
+  .kw { color: #c084fc; }
+  .fn { color: #60a5fa; }
+  .str { color: #86efac; }
+  .cm { color: #4b5563; font-style: italic; }
+  .num { color: #fb923c; }
+  .tp { color: #67e8f9; }
+  .pkg { color: #a78bfa; }
+  .op { color: #f472b6; }
+
+  /* DIAGRAM */
+  .diagram-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; overflow: hidden; }
+  .diagram-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 20px; font-family: var(--font-mono); text-align: center; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th { padding: 10px 14px; text-align: left; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td code { background: rgba(0,255,136,0.08); color: var(--accent-green); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+
+  /* NOTES */
+  .note { display: flex; gap: 12px; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .note-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+  .note-info { background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); color: var(--accent-green); }
+  .note-danger { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2); color: var(--accent-cyan); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* REFS */
+  .ref-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 14px; text-decoration: none; transition: all 0.15s; cursor: pointer; }
+  .ref-card:hover { border-color: var(--accent-green); transform: translateX(2px); }
+  .ref-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ref-body { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url { font-size: 11px; color: var(--accent-green); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* COMPARE */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .compare-head { padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--font-mono); border-bottom: 1px solid var(--border); }
+  .compare-head.green { background: rgba(0,255,136,0.08); color: var(--accent-green); }
+  .compare-head.purple { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); margin: 3px; }
+  .tag-good { background: rgba(0,255,136,0.08); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-bad { background: rgba(255,107,107,0.08); color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* COMPLEXITY BOX */
+  .complexity-box { display: inline-flex; gap: 24px; padding: 16px 24px; background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 24px; }
+  .complexity-item { text-align: center; }
+  .complexity-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 4px; }
+  .complexity-value { font-size: 18px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-green); }
+  .complexity-value.amber { color: var(--accent-amber); }
+  .complexity-value.purple { color: var(--accent-purple); }
+
+  /* STEP FLOW */
+  .step-flow { margin-bottom: 24px; }
+  .step-item { display: flex; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0; background: rgba(0,255,136,0.1); border: 1px solid rgba(0,255,136,0.3); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; font-family: var(--font-mono); color: var(--accent-green); }
+  .step-content { flex: 1; }
+  .step-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .step-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+</style>
+</head>
+<body>
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">Greedy Algorithms</div>
+      <div class="logo-sub">DSA in Go — Expert Guide</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Tổng quan</div>
+    <button class="nav-item active" onclick="showSection('intro')">Giới thiệu Greedy</button>
+    <button class="nav-item" onclick="showSection('khai-niem')">Khái niệm & Nguyên lý</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">01 — Interval Scheduling</div>
+    <button class="nav-item" onclick="showSection('interval-intro')">Khái niệm</button>
+    <button class="nav-item" onclick="showSection('interval-code')">Code Samples</button>
+    <button class="nav-item" onclick="showSection('interval-adv')">Advanced & Expert</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">02 — Kadane</div>
+    <button class="nav-item" onclick="showSection('kadane-intro')">Khái niệm</button>
+    <button class="nav-item" onclick="showSection('kadane-code')">Code Samples</button>
+    <button class="nav-item" onclick="showSection('kadane-adv')">Advanced & Expert</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">03 — LIS</div>
+    <button class="nav-item" onclick="showSection('lis-intro')">Khái niệm</button>
+    <button class="nav-item" onclick="showSection('lis-code')">Code Samples</button>
+    <button class="nav-item" onclick="showSection('lis-adv')">Advanced & Expert</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">04 — Jump Game</div>
+    <button class="nav-item" onclick="showSection('jump-intro')">Khái niệm</button>
+    <button class="nav-item" onclick="showSection('jump-code')">Code Samples</button>
+    <button class="nav-item" onclick="showSection('jump-adv')">Advanced & Expert</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Tổng hợp</div>
+    <button class="nav-item" onclick="showSection('compare')">So sánh & Pattern</button>
+    <button class="nav-item" onclick="showSection('refs')">References</button>
+  </div>
+</nav>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <button class="topnav-item active" onclick="showSection('intro')">Greedy</button>
+  <button class="topnav-item" onclick="showSection('interval-intro')">Interval Scheduling</button>
+  <button class="topnav-item" onclick="showSection('kadane-intro')">Kadane</button>
+  <button class="topnav-item" onclick="showSection('lis-intro')">LIS</button>
+  <button class="topnav-item" onclick="showSection('jump-intro')">Jump Game</button>
+  <button class="topnav-item" onclick="showSection('compare')">So sánh</button>
+  <button class="topnav-item" onclick="showSection('refs')">References</button>
+</nav>
+
+<main id="main">
+<div class="content-area">
+<!-- ====== INTRO ====== -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">00</div>
+    <div>
+      <div class="section-title">Greedy Algorithms trong Go</div>
+      <div class="section-subtitle">Tư duy tham lam — lựa chọn tối ưu cục bộ dẫn đến tối ưu toàn cục</div>
+    </div>
+    <span class="badge badge-basic">TỔNG QUAN</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Greedy Algorithm là gì?</div>
+    <p class="prose">
+      <strong>Greedy Algorithm</strong> (thuật toán tham lam) là phương pháp giải bài toán tối ưu hóa: ở mỗi bước, luôn chọn <strong>lựa chọn tốt nhất tại thời điểm hiện tại</strong> (locally optimal) với hy vọng dẫn đến <strong>giải pháp tối ưu toàn cục</strong> (globally optimal).
+    </p>
+    <p class="prose">
+      Khác với <strong>Dynamic Programming</strong> (tính tất cả trạng thái), Greedy ra quyết định ngay và không xem xét lại — thường có <strong>độ phức tạp thấp hơn</strong>, nhưng không phải bài toán nào cũng dùng được Greedy.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">So sánh: Greedy vs Dynamic Programming vs Brute Force</div>
+    <svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+      <!-- Brute Force box -->
+      <rect x="20" y="30" width="220" height="230" rx="10" fill="rgba(255,107,107,0.05)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="130" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">BRUTE FORCE</text>
+      <text x="130" y="58" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Thử tất cả: O(2ⁿ)</text>
+      <circle cx="130" cy="90" r="13" fill="rgba(255,107,107,0.2)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="130" y="95" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">S</text>
+      <line x1="120" y1="103" x2="90" y2="130" stroke="#ff6b6b" stroke-width="1" opacity="0.5"/>
+      <line x1="140" y1="103" x2="170" y2="130" stroke="#ff6b6b" stroke-width="1" opacity="0.5"/>
+      <circle cx="90" cy="140" r="10" fill="rgba(255,107,107,0.15)" stroke="#ff6b6b" stroke-width="1"/>
+      <circle cx="170" cy="140" r="10" fill="rgba(255,107,107,0.15)" stroke="#ff6b6b" stroke-width="1"/>
+      <text x="90" y="144" text-anchor="middle" font-size="9" fill="#ff6b6b">A</text>
+      <text x="170" y="144" text-anchor="middle" font-size="9" fill="#ff6b6b">B</text>
+      <line x1="83" y1="150" x2="65" y2="173" stroke="#ff6b6b" stroke-width="1" opacity="0.4"/>
+      <line x1="97" y1="150" x2="115" y2="173" stroke="#ff6b6b" stroke-width="1" opacity="0.4"/>
+      <line x1="163" y1="150" x2="145" y2="173" stroke="#ff6b6b" stroke-width="1" opacity="0.4"/>
+      <line x1="177" y1="150" x2="195" y2="173" stroke="#ff6b6b" stroke-width="1" opacity="0.4"/>
+      <circle cx="65" cy="181" r="8" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1" opacity="0.6"/>
+      <circle cx="115" cy="181" r="8" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1" opacity="0.6"/>
+      <circle cx="145" cy="181" r="8" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1" opacity="0.6"/>
+      <circle cx="195" cy="181" r="8" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1" opacity="0.6"/>
+      <text x="130" y="225" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">❌ Tốn kém với n lớn</text>
+
+      <!-- DP box -->
+      <rect x="300" y="30" width="220" height="230" rx="10" fill="rgba(168,85,247,0.05)" stroke="rgba(168,85,247,0.3)" stroke-width="1.5"/>
+      <text x="410" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">DYNAMIC PROGRAMMING</text>
+      <text x="410" y="58" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Memoize: O(n²)</text>
+      <rect x="318" y="74" width="28" height="20" rx="3" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1"/>
+      <rect x="350" y="74" width="28" height="20" rx="3" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1"/>
+      <rect x="382" y="74" width="28" height="20" rx="3" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1"/>
+      <rect x="414" y="74" width="28" height="20" rx="3" fill="rgba(168,85,247,0.3)" stroke="#a855f7" stroke-width="2"/>
+      <rect x="446" y="74" width="28" height="20" rx="3" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1"/>
+      <text x="332" y="88" text-anchor="middle" font-size="9" fill="#a855f7">dp[0]</text>
+      <text x="364" y="88" text-anchor="middle" font-size="9" fill="#a855f7">dp[1]</text>
+      <text x="396" y="88" text-anchor="middle" font-size="9" fill="#a855f7">dp[2]</text>
+      <text x="428" y="88" text-anchor="middle" font-size="10" fill="#a855f7" font-weight="700">MAX</text>
+      <text x="460" y="88" text-anchor="middle" font-size="9" fill="#a855f7">dp[n]</text>
+      <text x="410" y="160" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Lưu kết quả sub-problem</text>
+      <text x="410" y="178" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">tránh tính lại</text>
+      <text x="410" y="225" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">⚡ Chính xác, tốn bộ nhớ</text>
+
+      <!-- Greedy box -->
+      <rect x="580" y="30" width="220" height="230" rx="10" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.3)" stroke-width="1.5"/>
+      <text x="690" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">GREEDY</text>
+      <text x="690" y="58" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Chọn tốt nhất ngay: O(n log n)</text>
+      <circle cx="690" cy="90" r="13" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="690" y="95" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">S</text>
+      <line x1="690" y1="103" x2="690" y2="128" stroke="#00ff88" stroke-width="2"/>
+      <circle cx="690" cy="140" r="13" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="690" y="145" text-anchor="middle" font-size="9" fill="#00ff88">BEST</text>
+      <line x1="690" y1="153" x2="690" y2="178" stroke="#00ff88" stroke-width="2"/>
+      <circle cx="690" cy="190" r="13" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="690" y="195" text-anchor="middle" font-size="9" fill="#00ff88">BEST</text>
+      <text x="690" y="225" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">✅ Nhanh, đúng nếu dùng đúng</text>
+    </svg>
+  </div>
+
+  <h3>Hai điều kiện để áp dụng Greedy</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">🏆 1. Greedy Choice Property</div>
+      <p class="prose" style="margin:0;font-size:13px">Lựa chọn tham lam cục bộ tại mỗi bước có thể đưa vào giải pháp tối ưu toàn cục. Việc chọn "tốt nhất hiện tại" <strong>không bao giờ</strong> làm mất giải pháp tối ưu.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔗 2. Optimal Substructure</div>
+      <p class="prose" style="margin:0;font-size:13px">Giải pháp tối ưu của bài toán chứa giải pháp tối ưu của các bài toán con. Cấu trúc này cho phép xây dựng giải pháp từng bước.</p>
+    </div>
+  </div>
+
+  <h3>4 Thuật toán trong tài liệu này</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">📅 01 — Interval Scheduling</div>
+      <p class="prose" style="margin:0;font-size:13px;margin-bottom:8px">Chọn số lượng tối đa khoảng thời gian không chồng lắp. Sort theo <code>end time</code>, luôn chọn interval kết thúc sớm nhất.</p>
+      <span class="tag tag-good">O(n log n)</span><span class="tag tag-good">Sort+Scan</span>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 02 — Kadane's Algorithm</div>
+      <p class="prose" style="margin:0;font-size:13px;margin-bottom:8px">Tìm subarray liên tục có tổng lớn nhất. Quyết định tham lam: <em>tiếp tục hay reset?</em></p>
+      <span class="tag tag-good">O(n)</span><span class="tag tag-good">One Pass</span>
+    </div>
+    <div class="card">
+      <div class="card-title">📶 03 — LIS</div>
+      <p class="prose" style="margin:0;font-size:13px;margin-bottom:8px">Dãy con tăng dần dài nhất. Dùng Binary Search + Patience Sorting để đạt <code>O(n log n)</code>.</p>
+      <span class="tag tag-good">O(n log n)</span><span class="tag tag-good">Patience Sort</span>
+    </div>
+    <div class="card">
+      <div class="card-title">🐸 04 — Jump Game</div>
+      <p class="prose" style="margin:0;font-size:13px;margin-bottom:8px">Từ index 0, có thể đến cuối không? Track <em>maxReach</em> tại mỗi vị trí.</p>
+      <span class="tag tag-good">O(n)</span><span class="tag tag-good">Track Reach</span>
+    </div>
+  </div>
+
+  <div class="note note-info">
+    <div class="note-icon">📦</div>
+    <p>Tài liệu này viết code bằng <strong>Go (Golang)</strong>, từ mức độ <strong>Advanced đến Expert</strong>. Mỗi thuật toán có: định nghĩa, sơ đồ SVG, nhiều code samples đầy đủ, và ứng dụng thực tế.</p>
+  </div>
+</section>
+<!-- ====== KHAI NIEM ====== -->
+<section class="page-section" id="s-khai-niem">
+  <div class="section-header">
+    <div class="section-number">00</div>
+    <div>
+      <div class="section-title">Khái niệm & Nguyên lý Greedy</div>
+      <div class="section-subtitle">Khi nào Greedy đúng? Khi nào cần DP?</div>
+    </div>
+  </div>
+
+  <h3>Greedy vs Dynamic Programming</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head green">✅ Dùng Greedy khi...</div>
+      <div style="padding:16px">
+        <div class="step-flow">
+          <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="step-title">Greedy Choice Property có thể chứng minh</div><div class="step-desc">Lựa chọn cục bộ không bao giờ loại bỏ giải pháp tối ưu</div></div></div>
+          <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="step-title">Không cần "look ahead"</div><div class="step-desc">Quyết định tại bước i không cần biết kết quả bước i+k</div></div></div>
+          <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="step-title">Cần hiệu năng cao</div><div class="step-desc">Greedy thường O(n log n) hoặc O(n), tốt hơn DP O(n²)</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head purple">⚠️ Dùng DP khi Greedy thất bại</div>
+      <div style="padding:16px">
+        <div class="step-flow">
+          <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="step-title">Bài toán 0/1 Knapsack</div><div class="step-desc">Greedy theo ratio không cho kết quả tối ưu với items nguyên</div></div></div>
+          <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="step-title">Shortest Path với negative edges</div><div class="step-desc">Dijkstra (Greedy) sai với edge âm, phải dùng Bellman-Ford</div></div></div>
+          <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="step-title">Coin Change (arbitrary denominations)</div><div class="step-desc">Greedy chọn coin lớn nhất không luôn cho số coins ít nhất</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>Template Greedy chuẩn trong Go</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">greedy_template.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cm">// Template Greedy chuẩn:
+// 1. Sắp xếp theo tiêu chí tham lam (greedy key)
+// 2. Duyệt và đưa ra lựa chọn tham lam tại mỗi bước
+// 3. Cập nhật trạng thái
+// 4. Trả kết quả</span>
+
+<span class="kw">type</span> <span class="tp">Item</span> <span class="kw">struct</span> {
+    Start, End, Value <span class="tp">int</span>
+}
+
+<span class="cm">// GreedyTemplate — O(n log n): sort rồi scan một lần</span>
+<span class="kw">func</span> <span class="fn">GreedyTemplate</span>(items []<span class="tp">Item</span>) []<span class="tp">Item</span> {
+    <span class="cm">// Bước 1: định nghĩa tiêu chí tham lam (ví dụ: sort theo End tăng dần)</span>
+    <span class="pkg">sort</span>.<span class="fn">Slice</span>(items, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> items[i].End &lt; items[j].End
+    })
+
+    result := []<span class="tp">Item</span>{}
+    lastEnd := -<span class="num">1</span>
+
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+        <span class="cm">// Bước 2: lựa chọn tham lam — chọn nếu không chồng lắp</span>
+        <span class="kw">if</span> item.Start >= lastEnd {
+            result = <span class="pkg">append</span>(result, item)
+            lastEnd = item.End <span class="cm">// Bước 3: cập nhật trạng thái</span>
+        }
+    }
+    <span class="kw">return</span> result <span class="cm">// Bước 4: kết quả</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    items := []<span class="tp">Item</span>{{<span class="num">0</span>,<span class="num">2</span>,<span class="num">10</span>}, {<span class="num">1</span>,<span class="num">4</span>,<span class="num">5</span>}, {<span class="num">3</span>,<span class="num">5</span>,<span class="num">8</span>}, {<span class="num">6</span>,<span class="num">9</span>,<span class="num">3</span>}}
+    chosen := <span class="fn">GreedyTemplate</span>(items)
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(chosen) <span class="cm">// [{0 2 10} {3 5 8} {6 9 3}]</span>
+}</pre>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p><strong>Lưu ý:</strong> Greedy không yêu cầu chứng minh hình thức trong mọi trường hợp, nhưng cần trực giác tốt. Hãy luôn thử counterexample trước khi implement. Câu hỏi kiểm tra: <em>"Nếu tôi chọn A thay vì B, liệu có giải pháp tốt hơn không?"</em></p>
+  </div>
+</section>
+<!-- ====== INTERVAL INTRO ====== -->
+<section class="page-section" id="s-interval-intro">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Interval Scheduling Maximization</div>
+      <div class="section-subtitle">Chọn số lượng tối đa khoảng thời gian không chồng lắp</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa bài toán</div>
+    <div class="title">Interval Scheduling</div>
+    <p class="prose">Cho <code>n</code> khoảng thời gian, mỗi khoảng có <code>[start, end]</code>. Tìm <strong>số lượng tối đa</strong> các khoảng không chồng lắp nhau (non-overlapping intervals) có thể chọn.</p>
+    <p class="prose"><strong>Greedy insight:</strong> Luôn chọn khoảng <strong>kết thúc sớm nhất</strong> (earliest finish time). Bằng cách này ta "giải phóng" thời gian sớm nhất cho các khoảng tiếp theo — đây là Exchange Argument chứng minh tính đúng đắn.</p>
+  </div>
+
+  <div class="complexity-box">
+    <div class="complexity-item"><div class="complexity-label">Time</div><div class="complexity-value">O(n log n)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Space</div><div class="complexity-value amber">O(1)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Chiến lược</div><div class="complexity-value purple" style="font-size:14px">Sort by End</div></div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Minh họa: Sort theo End Time → Greedy chọn</div>
+    <svg width="100%" viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg">
+      <!-- timeline -->
+      <line x1="60" y1="28" x2="780" y2="28" stroke="#1e293b" stroke-width="2"/>
+      <text x="40" y="32" font-size="10" fill="#64748b" font-family="JetBrains Mono">t=</text>
+      <!-- ticks -->
+      <line x1="60" y1="24" x2="60" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="60" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">0</text>
+      <line x1="130" y1="24" x2="130" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="130" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">1</text>
+      <line x1="200" y1="24" x2="200" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="200" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">2</text>
+      <line x1="270" y1="24" x2="270" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="270" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">3</text>
+      <line x1="340" y1="24" x2="340" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="340" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">4</text>
+      <line x1="410" y1="24" x2="410" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="410" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">5</text>
+      <line x1="480" y1="24" x2="480" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="480" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">6</text>
+      <line x1="550" y1="24" x2="550" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="550" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">7</text>
+      <line x1="620" y1="24" x2="620" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="620" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">8</text>
+      <line x1="690" y1="24" x2="690" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="690" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">9</text>
+      <line x1="760" y1="24" x2="760" y2="32" stroke="#334155" stroke-width="1"/>
+      <text x="760" y="44" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">10</text>
+
+      <!-- labels -->
+      <text x="22" y="82" font-size="10" fill="#64748b" font-family="JetBrains Mono">A</text>
+      <text x="22" y="120" font-size="10" fill="#64748b" font-family="JetBrains Mono">B</text>
+      <text x="22" y="158" font-size="10" fill="#64748b" font-family="JetBrains Mono">C</text>
+      <text x="22" y="196" font-size="10" fill="#64748b" font-family="JetBrains Mono">D</text>
+      <text x="22" y="234" font-size="10" fill="#64748b" font-family="JetBrains Mono">E</text>
+
+      <!-- A [1,4] NOT selected -->
+      <rect x="130" y="66" width="210" height="22" rx="5" fill="rgba(255,107,107,0.12)" stroke="rgba(255,107,107,0.4)" stroke-width="1.5"/>
+      <text x="235" y="81" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">[1,4] ✗ chồng lắp B</text>
+      <!-- B [0,2] SELECTED -->
+      <rect x="60" y="104" width="140" height="22" rx="5" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="130" y="119" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">[0,2] ✓ 1st pick</text>
+      <!-- C [3,5] SELECTED -->
+      <rect x="270" y="142" width="140" height="22" rx="5" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="340" y="157" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">[3,5] ✓ 2nd pick</text>
+      <!-- D [2,7] NOT selected -->
+      <rect x="200" y="180" width="350" height="22" rx="5" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="375" y="195" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">[2,7] ✗ chồng lắp C</text>
+      <!-- E [6,9] SELECTED -->
+      <rect x="480" y="218" width="210" height="22" rx="5" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="585" y="233" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">[6,9] ✓ 3rd pick</text>
+
+      <!-- legend -->
+      <rect x="60" y="266" width="12" height="12" rx="3" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="80" y="276" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Được chọn (sort by end time)</text>
+      <rect x="340" y="266" width="12" height="12" rx="3" fill="rgba(255,107,107,0.12)" stroke="rgba(255,107,107,0.4)" stroke-width="1.5"/>
+      <text x="360" y="276" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">Bị loại (chồng lắp)</text>
+      <text x="420" y="308" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Kết quả: 3 intervals — [0,2], [3,5], [6,9]</text>
+    </svg>
+  </div>
+
+  <h3>Bước thực hiện</h3>
+  <div class="step-flow">
+    <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="step-title">Sort theo End Time tăng dần</div><div class="step-desc">Đây là bước quan trọng nhất — greedy key</div></div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="step-title">Chọn interval đầu tiên (end nhỏ nhất)</div><div class="step-desc">Đặt <code>lastEnd = intervals[0].end</code>, count = 1</div></div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="step-title">Duyệt các intervals còn lại</div><div class="step-desc">Nếu <code>intervals[i].start >= lastEnd</code>: chọn, cập nhật lastEnd</div></div></div>
+    <div class="step-item"><div class="step-num">4</div><div class="step-content"><div class="step-title">Trả về count hoặc danh sách đã chọn</div><div class="step-desc">Số lượng intervals không chồng lắp tối đa</div></div></div>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Tại sao sort theo End Time?</strong> Exchange Argument: giả sử có giải pháp tối ưu chọn X thay vì interval kết thúc sớm nhất Y. Ta có thể hoán đổi X → Y mà không làm mất bất kỳ interval nào khác, vì Y kết thúc không muộn hơn X. Vậy Y luôn an toàn để chọn.</p>
+  </div>
+
+  <table class="data-table">
+    <thead><tr><th>Bài toán biến thể</th><th>Mô tả</th><th>Complexity</th><th>LeetCode</th></tr></thead>
+    <tbody>
+      <tr><td><code>Erase Overlap Intervals</code></td><td>Số intervals tối thiểu cần xóa</td><td>O(n log n)</td><td>#435</td></tr>
+      <tr><td><code>Meeting Rooms I</code></td><td>Có thể tham dự tất cả không?</td><td>O(n log n)</td><td>#252</td></tr>
+      <tr><td><code>Meeting Rooms II</code></td><td>Số phòng tối thiểu</td><td>O(n log n)</td><td>#253</td></tr>
+      <tr><td><code>Task Scheduler</code></td><td>Thời gian tối thiểu với cooling</td><td>O(n)</td><td>#621</td></tr>
+      <tr><td><code>Video Stitching</code></td><td>Số clips tối thiểu để cover [0,T]</td><td>O(n log n)</td><td>#1024</td></tr>
+    </tbody>
+  </table>
+</section>
+<!-- ====== INTERVAL CODE ====== -->
+<section class="page-section" id="s-interval-code">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div><div class="section-title">Interval Scheduling — Code Samples</div><div class="section-subtitle">Từ basic đến advanced với Go</div></div>
+    <span class="badge badge-advanced">CODE</span>
+  </div>
+
+  <h3>Sample 1: EraseOverlapIntervals — LeetCode 435</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">interval_basic.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cm">// EraseOverlapIntervals — LeetCode 435
+// Trả về số lượng intervals cần XÓA để không còn chồng lắp
+// Greedy: giữ tối đa → xóa = n - max_kept</span>
+<span class="kw">func</span> <span class="fn">EraseOverlapIntervals</span>(intervals [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> <span class="pkg">len</span>(intervals) == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    <span class="pkg">sort</span>.<span class="fn">Slice</span>(intervals, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> intervals[i][<span class="num">1</span>] &lt; intervals[j][<span class="num">1</span>]
+    })
+    kept, lastEnd := <span class="num">1</span>, intervals[<span class="num">0</span>][<span class="num">1</span>]
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; <span class="pkg">len</span>(intervals); i++ {
+        <span class="kw">if</span> intervals[i][<span class="num">0</span>] >= lastEnd {
+            kept++
+            lastEnd = intervals[i][<span class="num">1</span>]
+        }
+    }
+    <span class="kw">return</span> <span class="pkg">len</span>(intervals) - kept
+}
+
+<span class="cm">// MaxNonOverlap — trả về số lượng chọn được + danh sách</span>
+<span class="kw">func</span> <span class="fn">MaxNonOverlap</span>(intervals [][]<span class="tp">int</span>) ([][]<span class="tp">int</span>, <span class="tp">int</span>) {
+    <span class="kw">if</span> <span class="pkg">len</span>(intervals) == <span class="num">0</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="num">0</span> }
+    <span class="pkg">sort</span>.<span class="fn">Slice</span>(intervals, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> intervals[i][<span class="num">1</span>] &lt; intervals[j][<span class="num">1</span>]
+    })
+    result := [][]<span class="tp">int</span>{intervals[<span class="num">0</span>]}
+    lastEnd := intervals[<span class="num">0</span>][<span class="num">1</span>]
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; <span class="pkg">len</span>(intervals); i++ {
+        <span class="kw">if</span> intervals[i][<span class="num">0</span>] >= lastEnd {
+            result = <span class="pkg">append</span>(result, intervals[i])
+            lastEnd = intervals[i][<span class="num">1</span>]
+        }
+    }
+    <span class="kw">return</span> result, <span class="pkg">len</span>(result)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.Println(EraseOverlapIntervals([][]int{{1,2},{2,3},{3,4},{1,3}})) <span class="cm">// 1</span>
+    chosen, count := MaxNonOverlap([][]int{{0,2},{1,4},{3,5},{2,7},{6,9}})
+    fmt.Println(count, chosen) <span class="cm">// 3  [[0 2] [3 5] [6 9]]</span>
+}</pre>
+  </div>
+
+  <h3>Sample 2: Meeting Rooms II — Min Rooms với Min-Heap</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">meeting_rooms.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"container/heap"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="kw">type</span> <span class="tp">MinHeap</span> []<span class="tp">int</span>
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Len</span>() <span class="tp">int</span>           { <span class="kw">return</span> <span class="pkg">len</span>(h) }
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Less</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> h[i] &lt; h[j] }
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Swap</span>(i, j <span class="tp">int</span>)      { h[i], h[j] = h[j], h[i] }
+<span class="kw">func</span> (h *<span class="tp">MinHeap</span>) <span class="fn">Push</span>(x <span class="kw">any</span>)        { *h = append(*h, x.(int)) }
+<span class="kw">func</span> (h *<span class="tp">MinHeap</span>) <span class="fn">Pop</span>() <span class="kw">any</span> {
+    old := *h; n := len(old); x := old[n-1]; *h = old[:n-1]; return x
+}
+
+<span class="cm">// MinMeetingRooms — O(n log n), Min-Heap: LeetCode 253</span>
+<span class="kw">func</span> <span class="fn">MinMeetingRooms</span>(intervals [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> len(intervals) == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    sort.Slice(intervals, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> intervals[i][<span class="num">0</span>] &lt; intervals[j][<span class="num">0</span>]
+    })
+    rooms := &amp;MinHeap{intervals[<span class="num">0</span>][<span class="num">1</span>]}
+    heap.Init(rooms)
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; len(intervals); i++ {
+        <span class="kw">if</span> (*rooms)[<span class="num">0</span>] &lt;= intervals[i][<span class="num">0</span>] {
+            heap.Pop(rooms) <span class="cm">// tái sử dụng phòng kết thúc sớm nhất</span>
+        }
+        heap.Push(rooms, intervals[i][<span class="num">1</span>])
+    }
+    <span class="kw">return</span> rooms.Len()
+}
+
+<span class="cm">// MinMeetingRoomsChronological — O(n log n), two separate sorted arrays</span>
+<span class="kw">func</span> <span class="fn">MinMeetingRoomsChronological</span>(intervals [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    n := len(intervals)
+    starts, ends := make([]<span class="tp">int</span>, n), make([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i, iv := <span class="kw">range</span> intervals { starts[i] = iv[<span class="num">0</span>]; ends[i] = iv[<span class="num">1</span>] }
+    sort.Ints(starts); sort.Ints(ends)
+    rooms, endPtr := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        <span class="kw">if</span> starts[i] &lt; ends[endPtr] { rooms++ } <span class="kw">else</span> { endPtr++ }
+    }
+    <span class="kw">return</span> rooms
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ivs := [][]int{{0,30},{5,10},{15,20}}
+    fmt.Println(MinMeetingRooms(ivs))               <span class="cm">// 2</span>
+    fmt.Println(MinMeetingRoomsChronological(ivs))  <span class="cm">// 2</span>
+}</pre>
+  </div>
+
+  <h3>Sample 3: Task Scheduler — LeetCode 621</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">task_scheduler.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cm">// LeastInterval — LeetCode 621: Tasks với cooling n
+// Greedy: luôn thực thi task phổ biến nhất còn lại
+// Formula: max(len(tasks), (maxFreq-1)*(n+1)+maxCount)</span>
+<span class="kw">func</span> <span class="fn">LeastInterval</span>(tasks []<span class="tp">byte</span>, n <span class="tp">int</span>) <span class="tp">int</span> {
+    freq := [<span class="num">26</span>]<span class="tp">int</span>{}
+    <span class="kw">for</span> _, t := <span class="kw">range</span> tasks { freq[t-<span class="str">'A'</span>]++ }
+    sort.Ints(freq[:])
+    maxFreq := freq[<span class="num">25</span>]
+    idleSlots := (maxFreq - <span class="num">1</span>) * n
+    <span class="kw">for</span> i := <span class="num">24</span>; i >= <span class="num">0</span> &amp;&amp; idleSlots &gt; <span class="num">0</span>; i-- {
+        fill := freq[i]
+        <span class="kw">if</span> fill &gt; maxFreq-<span class="num">1</span> { fill = maxFreq - <span class="num">1</span> }
+        idleSlots -= fill
+    }
+    <span class="kw">if</span> idleSlots &lt; <span class="num">0</span> { idleSlots = <span class="num">0</span> }
+    <span class="kw">return</span> len(tasks) + idleSlots
+}
+
+<span class="cm">// LeastIntervalFormula — O(1) sau bước đếm</span>
+<span class="kw">func</span> <span class="fn">LeastIntervalFormula</span>(tasks []<span class="tp">byte</span>, n <span class="tp">int</span>) <span class="tp">int</span> {
+    freq := [<span class="num">26</span>]<span class="tp">int</span>{}
+    <span class="kw">for</span> _, t := <span class="kw">range</span> tasks { freq[t-<span class="str">'A'</span>]++ }
+    maxFreq, maxCount := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, f := <span class="kw">range</span> freq { <span class="kw">if</span> f &gt; maxFreq { maxFreq = f } }
+    <span class="kw">for</span> _, f := <span class="kw">range</span> freq { <span class="kw">if</span> f == maxFreq { maxCount++ } }
+    formula := (maxFreq-<span class="num">1</span>)*(n+<span class="num">1</span>) + maxCount
+    <span class="kw">if</span> len(tasks) &gt; formula { <span class="kw">return</span> len(tasks) }
+    <span class="kw">return</span> formula
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    tasks := []byte("AABABC")
+    fmt.Println(LeastInterval(tasks, 2))       <span class="cm">// 8</span>
+    fmt.Println(LeastIntervalFormula(tasks, 2)) <span class="cm">// 8</span>
+}</pre>
+  </div>
+</section>
+<!-- ====== INTERVAL ADV ====== -->
+<section class="page-section" id="s-interval-adv">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div><div class="section-title">Interval — Advanced & Expert</div><div class="section-subtitle">Merge, Weighted Scheduling, Sweep Line</div></div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <h3>Expert Sample 1: Merge Intervals + Weighted Job Scheduling</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">interval_expert.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cm">// MergeIntervals — LeetCode 56: O(n log n)</span>
+<span class="kw">func</span> <span class="fn">MergeIntervals</span>(intervals [][]<span class="tp">int</span>) [][]<span class="tp">int</span> {
+    <span class="kw">if</span> len(intervals) == <span class="num">0</span> { <span class="kw">return</span> nil }
+    sort.Slice(intervals, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> intervals[i][<span class="num">0</span>] &lt; intervals[j][<span class="num">0</span>]
+    })
+    merged := [][]int{intervals[<span class="num">0</span>]}
+    <span class="kw">for</span> _, curr := <span class="kw">range</span> intervals[<span class="num">1</span>:] {
+        last := merged[len(merged)-<span class="num">1</span>]
+        <span class="kw">if</span> curr[<span class="num">0</span>] &lt;= last[<span class="num">1</span>] {
+            <span class="kw">if</span> curr[<span class="num">1</span>] &gt; last[<span class="num">1</span>] { last[<span class="num">1</span>] = curr[<span class="num">1</span>] }
+        } <span class="kw">else</span> {
+            merged = append(merged, curr)
+        }
+    }
+    <span class="kw">return</span> merged
+}
+
+<span class="kw">type</span> <span class="tp">Job</span> <span class="kw">struct</span> { Start, End, Weight <span class="tp">int</span> }
+
+<span class="cm">// WeightedJobScheduling — DP + Binary Search: O(n log n)
+// Tìm tập intervals không chồng lắp có tổng Weight LỚN NHẤT
+// Pattern: Greedy Sort + DP + BS</span>
+<span class="kw">func</span> <span class="fn">WeightedJobScheduling</span>(jobs []<span class="tp">Job</span>) <span class="tp">int</span> {
+    n := len(jobs)
+    <span class="kw">if</span> n == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    sort.Slice(jobs, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> jobs[i].End &lt; jobs[j].End })
+    dp := make([]<span class="tp">int</span>, n)
+    dp[<span class="num">0</span>] = jobs[<span class="num">0</span>].Weight
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        dp[i] = dp[i-<span class="num">1</span>] <span class="cm">// không chọn jobs[i]</span>
+        lo, hi, lastNO := <span class="num">0</span>, i-<span class="num">1</span>, -<span class="num">1</span>
+        <span class="kw">for</span> lo &lt;= hi {
+            mid := (lo + hi) / <span class="num">2</span>
+            <span class="kw">if</span> jobs[mid].End &lt;= jobs[i].Start { lastNO = mid; lo = mid + <span class="num">1</span> } <span class="kw">else</span> { hi = mid - <span class="num">1</span> }
+        }
+        withCurr := jobs[i].Weight
+        <span class="kw">if</span> lastNO >= <span class="num">0</span> { withCurr += dp[lastNO] }
+        <span class="kw">if</span> withCurr &gt; dp[i] { dp[i] = withCurr }
+    }
+    <span class="kw">return</span> dp[n-<span class="num">1</span>]
+}
+
+<span class="cm">// SweepLine — đếm số overlap tối đa tại bất kỳ thời điểm: O(n log n)</span>
+<span class="kw">func</span> <span class="fn">MaxOverlapAtAnyPoint</span>(intervals [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    events := [][]int{}
+    <span class="kw">for</span> _, iv := <span class="kw">range</span> intervals {
+        events = append(events, []int{iv[<span class="num">0</span>], <span class="num">1</span>})   <span class="cm">// start: +1</span>
+        events = append(events, []int{iv[<span class="num">1</span>], -<span class="num">1</span>}) <span class="cm">// end: -1</span>
+    }
+    <span class="cm">// Cùng thời điểm: end event (-1) trước start event (+1)</span>
+    sort.Slice(events, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">if</span> events[i][<span class="num">0</span>] == events[j][<span class="num">0</span>] { <span class="kw">return</span> events[i][<span class="num">1</span>] &lt; events[j][<span class="num">1</span>] }
+        <span class="kw">return</span> events[i][<span class="num">0</span>] &lt; events[j][<span class="num">0</span>]
+    })
+    maxOvlp, curr := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, e := <span class="kw">range</span> events {
+        curr += e[<span class="num">1</span>]
+        <span class="kw">if</span> curr &gt; maxOvlp { maxOvlp = curr }
+    }
+    <span class="kw">return</span> maxOvlp
+}
+
+<span class="cm">// VideoStitching — LeetCode 1024: cover [0,T] với ít clips nhất</span>
+<span class="kw">func</span> <span class="fn">VideoStitching</span>(clips [][]<span class="tp">int</span>, T <span class="tp">int</span>) <span class="tp">int</span> {
+    sort.Slice(clips, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">if</span> clips[i][<span class="num">0</span>] == clips[j][<span class="num">0</span>] { <span class="kw">return</span> clips[i][<span class="num">1</span>] &gt; clips[j][<span class="num">1</span>] }
+        <span class="kw">return</span> clips[i][<span class="num">0</span>] &lt; clips[j][<span class="num">0</span>]
+    })
+    count, curEnd, maxEnd, i := <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> curEnd &lt; T {
+        <span class="kw">for</span> i &lt; len(clips) &amp;&amp; clips[i][<span class="num">0</span>] &lt;= curEnd {
+            <span class="kw">if</span> clips[i][<span class="num">1</span>] &gt; maxEnd { maxEnd = clips[i][<span class="num">1</span>] }
+            i++
+        }
+        <span class="kw">if</span> maxEnd == curEnd { <span class="kw">return</span> -<span class="num">1</span> }
+        count++; curEnd = maxEnd
+    }
+    <span class="kw">return</span> count
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.Println(MergeIntervals([][]int{{1,3},{2,6},{8,10},{15,18}}))
+    <span class="cm">// [[1 6] [8 10] [15 18]]</span>
+
+    jobs := []Job{{1,3,50},{2,5,20},{4,6,100},{6,19,200}}
+    fmt.Println(WeightedJobScheduling(jobs)) <span class="cm">// 350</span>
+
+    fmt.Println(MaxOverlapAtAnyPoint([][]int{{0,2},{1,3},{2,5},{4,7}})) <span class="cm">// 2</span>
+
+    clips := [][]int{{0,2},{4,6},{8,10},{1,9},{1,5},{5,9}}
+    fmt.Println(VideoStitching(clips, 10)) <span class="cm">// 3</span>
+}</pre>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚡</div>
+    <p><strong>Weighted Job Scheduling</strong> kết hợp Greedy (sort by end time) + DP (optimal substructure) + Binary Search (tìm job trước không overlap). Pattern này xuất hiện thường xuyên trong interview cấp Senior/Staff.</p>
+  </div>
+</section>
+<!-- ====== KADANE INTRO ====== -->
+<section class="page-section" id="s-kadane-intro">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div><div class="section-title">Kadane's Algorithm</div><div class="section-subtitle">Maximum Subarray Sum trong O(n) — Greedy one-pass</div></div>
+    <span class="badge badge-advanced">ADVANCED</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa bài toán</div>
+    <div class="title">Maximum Subarray Sum</div>
+    <p class="prose">Cho mảng số nguyên <code>nums</code>, tìm <strong>subarray liên tục</strong> có <strong>tổng lớn nhất</strong>. Kadane (1984) giải quyết trong <code>O(n)</code> với quyết định Greedy đơn giản tại mỗi bước.</p>
+    <p class="prose"><strong>Greedy insight:</strong> Tại mỗi vị trí <code>i</code>: <em>"Nên extend subarray hiện tại hay bắt đầu mới từ nums[i]?"</em> → Nếu <code>currentSum &lt; 0</code>, bắt đầu mới tốt hơn.</p>
+  </div>
+
+  <div class="complexity-box">
+    <div class="complexity-item"><div class="complexity-label">Time</div><div class="complexity-value">O(n)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Space</div><div class="complexity-value amber">O(1)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Chiến lược</div><div class="complexity-value purple" style="font-size:14px">One Pass Reset</div></div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Kadane: nums = [-2, 1, -3, 4, -1, 2, 1, -5, 4]</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <!-- index labels -->
+      <text x="50"  y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=0</text>
+      <text x="140" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=1</text>
+      <text x="230" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=2</text>
+      <text x="320" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=3</text>
+      <text x="410" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=4</text>
+      <text x="500" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=5</text>
+      <text x="590" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=6</text>
+      <text x="680" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=7</text>
+      <text x="770" y="18" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=8</text>
+
+      <!-- cells -->
+      <rect x="10"  y="24" width="80" height="36" rx="6" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="50"  y="47" text-anchor="middle" font-size="16" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">-2</text>
+      <rect x="100" y="24" width="80" height="36" rx="6" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="2"/>
+      <text x="140" y="47" text-anchor="middle" font-size="16" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">1</text>
+      <rect x="190" y="24" width="80" height="36" rx="6" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="230" y="47" text-anchor="middle" font-size="16" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">-3</text>
+      <rect x="280" y="24" width="80" height="36" rx="6" fill="rgba(0,255,136,0.25)" stroke="#00ff88" stroke-width="2.5"/>
+      <text x="320" y="47" text-anchor="middle" font-size="16" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">4</text>
+      <rect x="370" y="24" width="80" height="36" rx="6" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="2"/>
+      <text x="410" y="47" text-anchor="middle" font-size="16" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">-1</text>
+      <rect x="460" y="24" width="80" height="36" rx="6" fill="rgba(0,255,136,0.25)" stroke="#00ff88" stroke-width="2.5"/>
+      <text x="500" y="47" text-anchor="middle" font-size="16" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">2</text>
+      <rect x="550" y="24" width="80" height="36" rx="6" fill="rgba(0,255,136,0.25)" stroke="#00ff88" stroke-width="2.5"/>
+      <text x="590" y="47" text-anchor="middle" font-size="16" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">1</text>
+      <rect x="640" y="24" width="80" height="36" rx="6" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="680" y="47" text-anchor="middle" font-size="16" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">-5</text>
+      <rect x="730" y="24" width="80" height="36" rx="6" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5"/>
+      <text x="770" y="47" text-anchor="middle" font-size="16" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">4</text>
+
+      <!-- current sum row -->
+      <text x="0" y="88" font-size="9" fill="#64748b" font-family="JetBrains Mono">cur:</text>
+      <text x="50"  y="88" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">-2→1</text>
+      <text x="140" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">1</text>
+      <text x="230" y="88" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">-2→4</text>
+      <text x="320" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">4</text>
+      <text x="410" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">3</text>
+      <text x="500" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">5</text>
+      <text x="590" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">6</text>
+      <text x="680" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">1</text>
+      <text x="770" y="88" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">5</text>
+
+      <!-- max row -->
+      <text x="0" y="108" font-size="9" fill="#64748b" font-family="JetBrains Mono">max:</text>
+      <text x="50"  y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">-2</text>
+      <text x="140" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">1</text>
+      <text x="230" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">1</text>
+      <text x="320" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">4</text>
+      <text x="410" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">4</text>
+      <text x="500" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">5</text>
+      <text x="590" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="700" font-family="JetBrains Mono">6★</text>
+      <text x="680" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">6</text>
+      <text x="770" y="108" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">6</text>
+
+      <!-- winning subarray bar -->
+      <rect x="280" y="120" width="350" height="7" rx="4" fill="rgba(0,255,136,0.4)"/>
+      <text x="455" y="148" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Max subarray: [4,-1,2,1] = 6</text>
+
+      <!-- reset markers -->
+      <text x="50"  y="175" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">Reset!</text>
+      <text x="230" y="175" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">Reset!</text>
+
+      <!-- legend -->
+      <rect x="60" y="200" width="12" height="12" rx="3" fill="rgba(0,255,136,0.25)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="80" y="210" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Thuộc max subarray</text>
+      <rect x="260" y="200" width="12" height="12" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="280" y="210" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">currentSum âm → Reset</text>
+    </svg>
+  </div>
+
+  <h3>Quy tắc Greedy của Kadane</h3>
+  <div class="step-flow">
+    <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="step-title">Tại mỗi index i: quyết định tham lam</div><div class="step-desc"><code>currentSum = max(nums[i], currentSum + nums[i])</code> — reset nếu currentSum âm</div></div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="step-title">Cập nhật maxSum</div><div class="step-desc"><code>maxSum = max(maxSum, currentSum)</code> — theo dõi subarray tốt nhất</div></div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="step-title">Tại sao Greedy đúng?</div><div class="step-desc">Nếu currentSum âm, thêm bất kỳ phần tử nào chỉ làm tổng xấu hơn → bắt đầu mới luôn tốt hơn. Đây là Greedy Choice Property.</div></div></div>
+  </div>
+</section>
+<!-- ====== KADANE CODE ====== -->
+<section class="page-section" id="s-kadane-code">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div><div class="section-title">Kadane — Code Samples</div><div class="section-subtitle">Classic, Circular, 2D, và Streaming</div></div>
+    <span class="badge badge-advanced">CODE</span>
+  </div>
+
+  <h3>Sample 1: Classic Kadane với Bounds — LeetCode 53</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">kadane_classic.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// MaxSubArray — LeetCode 53: O(n) time, O(1) space</span>
+<span class="kw">func</span> <span class="fn">MaxSubArray</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    maxSum, curSum := nums[<span class="num">0</span>], nums[<span class="num">0</span>]
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; len(nums); i++ {
+        <span class="kw">if</span> curSum &lt; <span class="num">0</span> { curSum = nums[i] } <span class="kw">else</span> { curSum += nums[i] }
+        <span class="kw">if</span> curSum &gt; maxSum { maxSum = curSum }
+    }
+    <span class="kw">return</span> maxSum
+}
+
+<span class="cm">// MaxSubArrayWithBounds — trả về [sum, startIdx, endIdx]</span>
+<span class="kw">func</span> <span class="fn">MaxSubArrayWithBounds</span>(nums []<span class="tp">int</span>) (<span class="tp">int</span>, <span class="tp">int</span>, <span class="tp">int</span>) {
+    maxSum, curSum := nums[<span class="num">0</span>], nums[<span class="num">0</span>]
+    start, end, tempStart := <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; len(nums); i++ {
+        <span class="kw">if</span> curSum &lt; <span class="num">0</span> { curSum = nums[i]; tempStart = i } <span class="kw">else</span> { curSum += nums[i] }
+        <span class="kw">if</span> curSum &gt; maxSum { maxSum = curSum; start = tempStart; end = i }
+    }
+    <span class="kw">return</span> maxSum, start, end
+}
+
+<span class="cm">// MaxSumCircularSubarray — LeetCode 918
+// max circular = max(max_normal, totalSum - min_normal)</span>
+<span class="kw">func</span> <span class="fn">MaxSumCircularSubarray</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    totalSum := <span class="num">0</span>
+    maxSum, curMax := nums[<span class="num">0</span>], nums[<span class="num">0</span>]
+    minSum, curMin := nums[<span class="num">0</span>], nums[<span class="num">0</span>]
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; len(nums); i++ {
+        totalSum += nums[i-<span class="num">1</span>]
+        <span class="kw">if</span> curMax &lt; <span class="num">0</span> { curMax = nums[i] } <span class="kw">else</span> { curMax += nums[i] }
+        <span class="kw">if</span> curMax &gt; maxSum { maxSum = curMax }
+        <span class="kw">if</span> curMin &gt; <span class="num">0</span> { curMin = nums[i] } <span class="kw">else</span> { curMin += nums[i] }
+        <span class="kw">if</span> curMin &lt; minSum { minSum = curMin }
+    }
+    totalSum += nums[len(nums)-<span class="num">1</span>]
+    <span class="kw">if</span> maxSum &lt; <span class="num">0</span> { <span class="kw">return</span> maxSum } <span class="cm">// tất cả âm</span>
+    circular := totalSum - minSum
+    <span class="kw">if</span> maxSum &gt; circular { <span class="kw">return</span> maxSum }
+    <span class="kw">return</span> circular
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    nums := []int{-2,1,-3,4,-1,2,1,-5,4}
+    fmt.Println(MaxSubArray(nums)) <span class="cm">// 6</span>
+
+    sum, s, e := MaxSubArrayWithBounds(nums)
+    fmt.Printf("sum=%d [%d,%d]\n", sum, s, e) <span class="cm">// sum=6 [3,6]</span>
+
+    fmt.Println(MaxSumCircularSubarray([]int{5,-3,5})) <span class="cm">// 10</span>
+}</pre>
+  </div>
+
+  <h3>Sample 2: Best Time to Buy Stock (Kadane variant)</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">stock_profit.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// MaxProfit — LeetCode 121: single transaction
+// Equivalent: max subarray sum of price differences</span>
+<span class="kw">func</span> <span class="fn">MaxProfit</span>(prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    minPrice, maxProfit := prices[<span class="num">0</span>], <span class="num">0</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices[<span class="num">1</span>:] {
+        profit := p - minPrice
+        <span class="kw">if</span> profit &gt; maxProfit { maxProfit = profit }
+        <span class="kw">if</span> p &lt; minPrice { minPrice = p }
+    }
+    <span class="kw">return</span> maxProfit
+}
+
+<span class="cm">// MaxProfitMultiple — LeetCode 122: unlimited transactions
+// Greedy: take every upward move</span>
+<span class="kw">func</span> <span class="fn">MaxProfitMultiple</span>(prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    profit := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; len(prices); i++ {
+        <span class="kw">if</span> prices[i] &gt; prices[i-<span class="num">1</span>] { profit += prices[i] - prices[i-<span class="num">1</span>] }
+    }
+    <span class="kw">return</span> profit
+}
+
+<span class="cm">// MaxSumSubarrayExactlyK — sliding window: O(n)</span>
+<span class="kw">func</span> <span class="fn">MaxSumSubarrayExactlyK</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> len(nums) &lt; k { <span class="kw">return</span> 0 }
+    window := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; k; i++ { window += nums[i] }
+    maxVal := window
+    <span class="kw">for</span> i := k; i &lt; len(nums); i++ {
+        window += nums[i] - nums[i-k]
+        <span class="kw">if</span> window &gt; maxVal { maxVal = window }
+    }
+    <span class="kw">return</span> maxVal
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.Println(MaxProfit([]int{7,1,5,3,6,4}))         <span class="cm">// 5</span>
+    fmt.Println(MaxProfitMultiple([]int{7,1,5,3,6,4})) <span class="cm">// 7</span>
+    fmt.Println(MaxSumSubarrayExactlyK([]int{1,4,2,10,23,3}, 3)) <span class="cm">// 35</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ====== KADANE ADV ====== -->
+<section class="page-section" id="s-kadane-adv">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div><div class="section-title">Kadane — Advanced & Expert</div><div class="section-subtitle">2D Kadane, Streaming, MinLen constraint</div></div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <h3>Expert Sample: 2D Maximum Sum Rectangle + Streaming Kadane</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">kadane_expert.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"math"</span>
+)
+
+<span class="cm">// MaxSumRectangle — 2D Kadane: O(n²m)
+// Fix 2 rows (top, bot) → nén thành 1D → chạy Kadane</span>
+<span class="kw">func</span> <span class="fn">MaxSumRectangle</span>(matrix [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    rows := len(matrix)
+    <span class="kw">if</span> rows == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    cols := len(matrix[<span class="num">0</span>])
+    maxSum := matrix[<span class="num">0</span>][<span class="num">0</span>]
+    <span class="kw">for</span> top := <span class="num">0</span>; top &lt; rows; top++ {
+        temp := make([]int, cols)
+        <span class="kw">for</span> bot := top; bot &lt; rows; bot++ {
+            <span class="kw">for</span> c := <span class="num">0</span>; c &lt; cols; c++ { temp[c] += matrix[bot][c] }
+            <span class="cm">// Kadane on 1D temp</span>
+            curSum, localMax := temp[<span class="num">0</span>], temp[<span class="num">0</span>]
+            <span class="kw">for</span> c := <span class="num">1</span>; c &lt; cols; c++ {
+                <span class="kw">if</span> curSum &lt; <span class="num">0</span> { curSum = temp[c] } <span class="kw">else</span> { curSum += temp[c] }
+                <span class="kw">if</span> curSum &gt; localMax { localMax = curSum }
+            }
+            <span class="kw">if</span> localMax &gt; maxSum { maxSum = localMax }
+        }
+    }
+    <span class="kw">return</span> maxSum
+}
+
+<span class="cm">// MaxSubArrayMinLen — max subarray sum với chiều dài tối thiểu k: O(n)
+// Dùng prefix sum: tại j, tìm min prefix[i] với i &lt;= j-k</span>
+<span class="kw">func</span> <span class="fn">MaxSubArrayMinLen</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) <span class="tp">int</span> {
+    n := len(nums)
+    <span class="kw">if</span> n &lt; k { <span class="kw">return</span> math.MinInt32 }
+    prefix := make([]int, n+<span class="num">1</span>)
+    <span class="kw">for</span> i, v := <span class="kw">range</span> nums { prefix[i+<span class="num">1</span>] = prefix[i] + v }
+    minPrefix := prefix[<span class="num">0</span>]
+    result := math.MinInt32
+    <span class="kw">for</span> j := k; j &lt;= n; j++ {
+        val := prefix[j] - minPrefix
+        <span class="kw">if</span> val &gt; result { result = val }
+        <span class="kw">if</span> prefix[j-k+<span class="num">1</span>] &lt; minPrefix { minPrefix = prefix[j-k+<span class="num">1</span>] }
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// StreamingKadane — Kadane trên data stream (online algorithm)
+// Không cần toàn bộ mảng trong bộ nhớ — O(1) per element</span>
+<span class="kw">type</span> <span class="tp">KadaneStream</span> <span class="kw">struct</span> {
+    CurrentSum  <span class="tp">int</span>
+    MaxSum      <span class="tp">int</span>
+    initialized <span class="tp">bool</span>
+}
+
+<span class="kw">func</span> (ks *<span class="tp">KadaneStream</span>) <span class="fn">Feed</span>(val <span class="tp">int</span>) {
+    <span class="kw">if</span> !ks.initialized { ks.CurrentSum = val; ks.MaxSum = val; ks.initialized = true; <span class="kw">return</span> }
+    <span class="kw">if</span> ks.CurrentSum &lt; <span class="num">0</span> { ks.CurrentSum = val } <span class="kw">else</span> { ks.CurrentSum += val }
+    <span class="kw">if</span> ks.CurrentSum &gt; ks.MaxSum { ks.MaxSum = ks.CurrentSum }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    matrix := [][]int{{1,-2,-1,4},{1,-1,1,1},{0,-1,1,1},{0,0,-1,0}}
+    fmt.Println(MaxSumRectangle(matrix)) <span class="cm">// 7</span>
+
+    fmt.Println(MaxSubArrayMinLen([]int{-1,2,3,-4,5}, 2)) <span class="cm">// 6</span>
+
+    ks := &amp;KadaneStream{}
+    <span class="kw">for</span> _, v := <span class="kw">range</span> []int{-2,1,-3,4,-1,2,1} { ks.Feed(v) }
+    fmt.Println(ks.MaxSum) <span class="cm">// 6</span>
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">💡</div>
+    <p><strong>Streaming Kadane</strong> đặc biệt hữu ích trong các hệ thống xử lý realtime như monitoring dashboards, log analysis, và financial tick data — khi dữ liệu đến theo stream và không thể lưu toàn bộ vào RAM.</p>
+  </div>
+</section>
+<!-- ====== LIS INTRO ====== -->
+<section class="page-section" id="s-lis-intro">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div><div class="section-title">Longest Increasing Subsequence (LIS)</div><div class="section-subtitle">Patience Sorting — O(n log n) với Greedy + Binary Search</div></div>
+    <span class="badge badge-advanced">ADVANCED</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa bài toán</div>
+    <div class="title">Longest Increasing Subsequence</div>
+    <p class="prose">Cho mảng <code>nums</code>, tìm <strong>dãy con (subsequence) tăng nghiêm ngặt</strong> có độ dài lớn nhất. Subsequence không cần liên tục, chỉ giữ nguyên thứ tự tương đối.</p>
+    <p class="prose"><strong>Ví dụ:</strong> <code>[10,9,2,5,3,7,101,18]</code> → LIS = <code>[2,3,7,101]</code>, độ dài = <strong>4</strong>.</p>
+    <p class="prose"><strong>Greedy insight (Patience Sorting):</strong> Duy trì mảng <code>tails</code> với <code>tails[i]</code> là phần tử kết thúc nhỏ nhất của mọi IS có độ dài <code>i+1</code>. Với mỗi phần tử mới, dùng Binary Search tìm vị trí thay thế hoặc mở rộng.</p>
+  </div>
+
+  <div class="complexity-box">
+    <div class="complexity-item"><div class="complexity-label">DP naive</div><div class="complexity-value amber">O(n²)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Patience Sort</div><div class="complexity-value">O(n log n)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Space</div><div class="complexity-value purple">O(n)</div></div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Patience Sorting: [3, 1, 4, 1, 5, 9, 2, 6] — Xây dựng mảng tails</div>
+    <svg width="100%" viewBox="0 0 820 310" xmlns="http://www.w3.org/2000/svg">
+      <!-- Input array -->
+      <text x="30" y="20" font-size="11" fill="#64748b" font-family="JetBrains Mono">Input:</text>
+      <rect x="88" y="6"  width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="103" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">3</text>
+      <rect x="122" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="137" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">1</text>
+      <rect x="156" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="171" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">4</text>
+      <rect x="190" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="205" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">1</text>
+      <rect x="224" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="239" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">5</text>
+      <rect x="258" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="273" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">9</text>
+      <rect x="292" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="307" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">2</text>
+      <rect x="326" y="6" width="30" height="22" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="341" y="21" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">6</text>
+
+      <!-- tails evolution -->
+      <text x="30" y="58" font-size="10" fill="#64748b" font-family="JetBrains Mono">Step → tails[]</text>
+
+      <!-- add 3 -->
+      <text x="30" y="83" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">add 3:</text>
+      <rect x="98" y="70" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="112" y="85" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">3</text>
+      <text x="135" y="83" font-size="10" fill="#4b5563" font-family="JetBrains Mono">→ [3]</text>
+
+      <!-- add 1 (replace) -->
+      <text x="30" y="113" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">add 1:</text>
+      <rect x="98" y="100" width="28" height="22" rx="4" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="112" y="115" text-anchor="middle" font-size="12" fill="#a855f7" font-family="JetBrains Mono">1</text>
+      <text x="135" y="113" font-size="10" fill="#4b5563" font-family="JetBrains Mono">→ [1]  replace 3</text>
+
+      <!-- add 4 (append) -->
+      <text x="30" y="143" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">add 4:</text>
+      <rect x="98" y="130" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="112" y="145" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">1</text>
+      <rect x="130" y="130" width="28" height="22" rx="4" fill="rgba(0,255,136,0.25)" stroke="#00ff88" stroke-width="2"/>
+      <text x="144" y="145" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">4</text>
+      <text x="168" y="143" font-size="10" fill="#4b5563" font-family="JetBrains Mono">→ [1,4]  append</text>
+
+      <!-- add 5 -->
+      <text x="30" y="173" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">add 5:</text>
+      <rect x="98"  y="160" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="112" y="175" text-anchor="middle" font-size="12" fill="#00ff88">1</text>
+      <rect x="130" y="160" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="144" y="175" text-anchor="middle" font-size="12" fill="#00ff88">4</text>
+      <rect x="162" y="160" width="28" height="22" rx="4" fill="rgba(0,255,136,0.25)" stroke="#00ff88" stroke-width="2"/>
+      <text x="176" y="175" text-anchor="middle" font-size="12" fill="#00ff88">5</text>
+      <text x="200" y="173" font-size="10" fill="#4b5563" font-family="JetBrains Mono">→ [1,4,5]</text>
+
+      <!-- add 2 (replace 4) -->
+      <text x="30" y="213" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">add 2:</text>
+      <rect x="98"  y="200" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="112" y="215" text-anchor="middle" font-size="12" fill="#00ff88">1</text>
+      <rect x="130" y="200" width="28" height="22" rx="4" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="144" y="215" text-anchor="middle" font-size="12" fill="#a855f7">2</text>
+      <rect x="162" y="200" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="176" y="215" text-anchor="middle" font-size="12" fill="#00ff88">5</text>
+      <rect x="194" y="200" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="208" y="215" text-anchor="middle" font-size="12" fill="#00ff88">9</text>
+      <text x="232" y="213" font-size="10" fill="#4b5563" font-family="JetBrains Mono">→ [1,2,5,9]  replace 4</text>
+
+      <!-- add 6 (replace 9) — final -->
+      <text x="30" y="243" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">add 6:</text>
+      <rect x="98"  y="230" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="112" y="245" text-anchor="middle" font-size="12" fill="#00ff88">1</text>
+      <rect x="130" y="230" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="144" y="245" text-anchor="middle" font-size="12" fill="#00ff88">2</text>
+      <rect x="162" y="230" width="28" height="22" rx="4" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="176" y="245" text-anchor="middle" font-size="12" fill="#00ff88">5</text>
+      <rect x="194" y="230" width="28" height="22" rx="4" fill="rgba(168,85,247,0.2)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="208" y="245" text-anchor="middle" font-size="12" fill="#a855f7">6</text>
+      <text x="232" y="243" font-size="10" fill="#4b5563" font-family="JetBrains Mono">→ [1,2,5,6]  replace 9</text>
+
+      <text x="30" y="285" font-size="12" fill="#00ff88" font-weight="700" font-family="JetBrains Mono">LIS Length = len(tails) = 4</text>
+      <text x="260" y="285" font-size="10" fill="#64748b" font-family="JetBrains Mono">(tails không phải là actual LIS, chỉ dùng để đếm)</text>
+    </svg>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p><strong>Quan trọng:</strong> Mảng <code>tails</code> trong Patience Sorting <strong>KHÔNG phải</strong> là actual LIS. Nó chỉ cho ta độ dài chính xác. Để reconstruct actual LIS, cần lưu thêm parent pointer array riêng.</p>
+  </div>
+</section>
+<!-- ====== LIS CODE ====== -->
+<section class="page-section" id="s-lis-code">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div><div class="section-title">LIS — Code Samples</div><div class="section-subtitle">DP O(n²), Patience Sort O(n log n), Reconstruct</div></div>
+    <span class="badge badge-advanced">CODE</span>
+  </div>
+
+  <h3>Sample 1: DP O(n²) — Dễ hiểu, dễ extend</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">lis_dp.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// LengthOfLIS_DP — O(n²) time, O(n) space — LeetCode 300</span>
+<span class="kw">func</span> <span class="fn">LengthOfLIS_DP</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    n := len(nums)
+    <span class="kw">if</span> n == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    dp := make([]int, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = <span class="num">1</span> }
+    result := <span class="num">1</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j := <span class="num">0</span>; j &lt; i; j++ {
+            <span class="kw">if</span> nums[j] &lt; nums[i] &amp;&amp; dp[j]+<span class="num">1</span> &gt; dp[i] { dp[i] = dp[j] + <span class="num">1</span> }
+        }
+        <span class="kw">if</span> dp[i] &gt; result { result = dp[i] }
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// ReconstructLIS_DP — trả về actual LIS sequence: O(n²)</span>
+<span class="kw">func</span> <span class="fn">ReconstructLIS_DP</span>(nums []<span class="tp">int</span>) []<span class="tp">int</span> {
+    n := len(nums)
+    <span class="kw">if</span> n == <span class="num">0</span> { <span class="kw">return</span> nil }
+    dp := make([]int, n)
+    parent := make([]int, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = <span class="num">1</span>; parent[i] = -<span class="num">1</span> }
+    maxLen, maxIdx := <span class="num">1</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j := <span class="num">0</span>; j &lt; i; j++ {
+            <span class="kw">if</span> nums[j] &lt; nums[i] &amp;&amp; dp[j]+<span class="num">1</span> &gt; dp[i] {
+                dp[i] = dp[j] + <span class="num">1</span>
+                parent[i] = j
+            }
+        }
+        <span class="kw">if</span> dp[i] &gt; maxLen { maxLen = dp[i]; maxIdx = i }
+    }
+    seq := make([]int, <span class="num">0</span>, maxLen)
+    <span class="kw">for</span> maxIdx != -<span class="num">1</span> { seq = append(seq, nums[maxIdx]); maxIdx = parent[maxIdx] }
+    <span class="cm">// Đảo ngược</span>
+    <span class="kw">for</span> l, r := <span class="num">0</span>, len(seq)-<span class="num">1</span>; l &lt; r; l, r = l+<span class="num">1</span>, r-<span class="num">1</span> { seq[l], seq[r] = seq[r], seq[l] }
+    <span class="kw">return</span> seq
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    nums := []int{10, 9, 2, 5, 3, 7, 101, 18}
+    fmt.Println(LengthOfLIS_DP(nums))    <span class="cm">// 4</span>
+    fmt.Println(ReconstructLIS_DP(nums)) <span class="cm">// [2 3 7 101]</span>
+}</pre>
+  </div>
+
+  <h3>Sample 2: Patience Sorting O(n log n) + Reconstruct</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">lis_patience.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cm">// LengthOfLIS — O(n log n): Patience Sorting — LeetCode 300</span>
+<span class="kw">func</span> <span class="fn">LengthOfLIS</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    tails := []int{}
+    <span class="kw">for</span> _, num := <span class="kw">range</span> nums {
+        <span class="cm">// Binary search: tìm vị trí đầu tiên trong tails >= num</span>
+        pos := sort.SearchInts(tails, num)
+        <span class="kw">if</span> pos == len(tails) {
+            tails = append(tails, num) <span class="cm">// mở rộng LIS</span>
+        } <span class="kw">else</span> {
+            tails[pos] = num <span class="cm">// greedy replace: giữ tail nhỏ nhất có thể</span>
+        }
+    }
+    <span class="kw">return</span> len(tails)
+}
+
+<span class="cm">// LengthOfLIS_NonDecreasing — cho phép bằng nhau</span>
+<span class="kw">func</span> <span class="fn">LengthOfLIS_NonDecreasing</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    tails := []int{}
+    <span class="kw">for</span> _, num := <span class="kw">range</span> nums {
+        pos := sort.Search(len(tails), <span class="kw">func</span>(i <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> tails[i] &gt; num })
+        <span class="kw">if</span> pos == len(tails) { tails = append(tails, num) } <span class="kw">else</span> { tails[pos] = num }
+    }
+    <span class="kw">return</span> len(tails)
+}
+
+<span class="cm">// LISWithReconstruct — O(n log n) + actual sequence</span>
+<span class="kw">func</span> <span class="fn">LISWithReconstruct</span>(nums []<span class="tp">int</span>) ([]<span class="tp">int</span>, <span class="tp">int</span>) {
+    n := len(nums)
+    tails := []int{}
+    tailsIdx := []int{}    <span class="cm">// index trong nums của mỗi tail</span>
+    parent := make([]int, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> parent { parent[i] = -<span class="num">1</span> }
+
+    <span class="kw">for</span> i, num := <span class="kw">range</span> nums {
+        pos := sort.SearchInts(tails, num)
+        <span class="kw">if</span> pos == len(tails) {
+            tails = append(tails, num)
+            tailsIdx = append(tailsIdx, i)
+        } <span class="kw">else</span> {
+            tails[pos] = num
+            tailsIdx[pos] = i
+        }
+        <span class="kw">if</span> pos &gt; <span class="num">0</span> { parent[i] = tailsIdx[pos-<span class="num">1</span>] }
+    }
+
+    seq := make([]int, <span class="num">0</span>, len(tails))
+    cur := tailsIdx[len(tailsIdx)-<span class="num">1</span>]
+    <span class="kw">for</span> cur != -<span class="num">1</span> { seq = append(seq, nums[cur]); cur = parent[cur] }
+    <span class="kw">for</span> l, r := <span class="num">0</span>, len(seq)-<span class="num">1</span>; l &lt; r; l, r = l+<span class="num">1</span>, r-<span class="num">1</span> { seq[l], seq[r] = seq[r], seq[l] }
+    <span class="kw">return</span> seq, len(tails)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    nums := []int{10, 9, 2, 5, 3, 7, 101, 18}
+    fmt.Println(LengthOfLIS(nums)) <span class="cm">// 4</span>
+
+    seq, length := LISWithReconstruct(nums)
+    fmt.Printf("LIS: %v, length=%d\n", seq, length) <span class="cm">// [2 3 7 101] / 4</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ====== LIS ADV ====== -->
+<section class="page-section" id="s-lis-adv">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div><div class="section-title">LIS — Advanced & Expert</div><div class="section-subtitle">Number of LIS, Russian Doll Envelopes, LIS 2D</div></div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <h3>Expert Sample: Count LIS + Russian Doll Envelopes</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">lis_expert.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cm">// FindNumberOfLIS — LeetCode 673: đếm số lượng LIS — O(n²)</span>
+<span class="kw">func</span> <span class="fn">FindNumberOfLIS</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    n := len(nums)
+    <span class="kw">if</span> n == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    dp := make([]int, n)  <span class="cm">// dp[i] = length ending at i</span>
+    cnt := make([]int, n) <span class="cm">// cnt[i] = số LIS có độ dài dp[i] ending at i</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = <span class="num">1</span>; cnt[i] = <span class="num">1</span> }
+    maxLen := <span class="num">1</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j := <span class="num">0</span>; j &lt; i; j++ {
+            <span class="kw">if</span> nums[j] &lt; nums[i] {
+                <span class="kw">if</span> dp[j]+<span class="num">1</span> &gt; dp[i] { dp[i] = dp[j] + <span class="num">1</span>; cnt[i] = cnt[j] } <span class="kw">else</span> <span class="kw">if</span> dp[j]+<span class="num">1</span> == dp[i] { cnt[i] += cnt[j] }
+            }
+        }
+        <span class="kw">if</span> dp[i] &gt; maxLen { maxLen = dp[i] }
+    }
+    total := <span class="num">0</span>
+    <span class="kw">for</span> i, l := <span class="kw">range</span> dp { <span class="kw">if</span> l == maxLen { total += cnt[i] } }
+    <span class="kw">return</span> total
+}
+
+<span class="cm">// MaxEnvelopes — LeetCode 354: Russian Doll Envelopes — O(n log n)
+// Sort: width ASC, height DESC khi width bằng nhau
+// → LIS strictly increasing trên heights
+// Lý do sort height DESC: tránh pick 2 envelopes cùng width</span>
+<span class="kw">func</span> <span class="fn">MaxEnvelopes</span>(envelopes [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    sort.Slice(envelopes, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">if</span> envelopes[i][<span class="num">0</span>] == envelopes[j][<span class="num">0</span>] { <span class="kw">return</span> envelopes[i][<span class="num">1</span>] &gt; envelopes[j][<span class="num">1</span>] }
+        <span class="kw">return</span> envelopes[i][<span class="num">0</span>] &lt; envelopes[j][<span class="num">0</span>]
+    })
+    tails := []int{}
+    <span class="kw">for</span> _, e := <span class="kw">range</span> envelopes {
+        h := e[<span class="num">1</span>]
+        pos := sort.SearchInts(tails, h)
+        <span class="kw">if</span> pos == len(tails) { tails = append(tails, h) } <span class="kw">else</span> { tails[pos] = h }
+    }
+    <span class="kw">return</span> len(tails)
+}
+
+<span class="cm">// LongestChain — LeetCode 646: Maximum Length of Pair Chain
+// Sort by end, Greedy pick if pair[0] > lastEnd</span>
+<span class="kw">func</span> <span class="fn">FindLongestChain</span>(pairs [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    sort.Slice(pairs, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> pairs[i][<span class="num">1</span>] &lt; pairs[j][<span class="num">1</span>] })
+    count, lastEnd := <span class="num">0</span>, -<span class="num">1</span>&lt;&lt;<span class="num">31</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> pairs {
+        <span class="kw">if</span> p[<span class="num">0</span>] &gt; lastEnd { count++; lastEnd = p[<span class="num">1</span>] }
+    }
+    <span class="kw">return</span> count
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.Println(FindNumberOfLIS([]int{1, 3, 5, 4, 7})) <span class="cm">// 2</span>
+
+    envs := [][]int{{5,4},{6,4},{6,7},{2,3}}
+    fmt.Println(MaxEnvelopes(envs)) <span class="cm">// 3: [2,3] -> [5,4] -> [6,7]</span>
+
+    pairs := [][]int{{1,2},{2,3},{3,4}}
+    fmt.Println(FindLongestChain(pairs)) <span class="cm">// 2</span>
+}</pre>
+  </div>
+</section>
+<!-- ====== JUMP INTRO ====== -->
+<section class="page-section" id="s-jump-intro">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div><div class="section-title">Jump Game</div><div class="section-subtitle">Track maxReach — Greedy one-pass cho bài toán nhảy</div></div>
+    <span class="badge badge-advanced">ADVANCED</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa bài toán</div>
+    <div class="title">Jump Game I &amp; II</div>
+    <p class="prose">Cho mảng <code>nums</code>, với <code>nums[i]</code> là số bước tối đa có thể nhảy từ vị trí <code>i</code>. Xuất phát từ index 0:</p>
+    <p class="prose"><strong>Jump Game I (LC 55):</strong> Có thể đến index cuối không?<br>
+    <strong>Jump Game II (LC 45):</strong> Số bước nhảy <em>tối thiểu</em> để đến cuối.</p>
+    <p class="prose"><strong>Greedy insight:</strong> Không cần biết đường đi cụ thể. Chỉ cần track <code>maxReach</code> — vị trí xa nhất có thể đến. Đây là BFS level-order: khi vượt boundary của level hiện tại → buộc phải nhảy thêm một lần.</p>
+  </div>
+
+  <div class="complexity-box">
+    <div class="complexity-item"><div class="complexity-label">Jump Game I</div><div class="complexity-value">O(n)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Jump Game II</div><div class="complexity-value">O(n)</div></div>
+    <div class="complexity-item"><div class="complexity-label">Space</div><div class="complexity-value amber">O(1)</div></div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Jump Game II: nums=[2,3,1,1,4] — BFS Level Greedy</div>
+    <svg width="100%" viewBox="0 0 820 290" xmlns="http://www.w3.org/2000/svg">
+      <!-- array cells -->
+      <rect x="80"  y="10" width="60" height="40" rx="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="110" y="26" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">2</text>
+      <text x="110" y="42" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">i=0</text>
+
+      <rect x="160" y="10" width="60" height="40" rx="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="190" y="26" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">3</text>
+      <text x="190" y="42" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">i=1</text>
+
+      <rect x="240" y="10" width="60" height="40" rx="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="270" y="26" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">1</text>
+      <text x="270" y="42" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">i=2</text>
+
+      <rect x="320" y="10" width="60" height="40" rx="8" fill="rgba(0,255,136,0.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="350" y="26" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">1</text>
+      <text x="350" y="42" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">i=3</text>
+
+      <rect x="400" y="10" width="60" height="40" rx="8" fill="rgba(245,158,11,0.3)" stroke="#f59e0b" stroke-width="2.5"/>
+      <text x="430" y="26" text-anchor="middle" font-size="13" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">4</text>
+      <text x="430" y="42" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">i=4 END</text>
+
+      <!-- Jump arcs -->
+      <path d="M110 10 Q150 -8 190 10" stroke="#00d4ff" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+      <text x="150" y="2" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Jump 1</text>
+      <path d="M190 10 Q310 -18 430 10" stroke="#a855f7" stroke-width="2" fill="none" stroke-dasharray="5,3"/>
+      <text x="310" y="-6" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Jump 2</text>
+
+      <!-- BFS level visualization -->
+      <!-- Level 0: just i=0 -->
+      <rect x="80" y="68" width="60" height="22" rx="5" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="110" y="83" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Level 0</text>
+
+      <!-- Level 1: i=1,2 (reachable from 0 with nums[0]=2) -->
+      <rect x="160" y="68" width="140" height="22" rx="5" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="230" y="83" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Level 1 (jump=1)</text>
+
+      <!-- Level 2: i=3,4 (reachable from best in level 1) -->
+      <rect x="320" y="68" width="140" height="22" rx="5" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+      <text x="390" y="83" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Level 2 (jump=2) ✓</text>
+
+      <!-- State table -->
+      <text x="30" y="118" font-size="10" fill="#64748b" font-family="JetBrains Mono">State:</text>
+      <text x="0"   y="138" font-size="9"  fill="#64748b" font-family="JetBrains Mono">i=</text>
+      <text x="110" y="138" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">0</text>
+      <text x="190" y="138" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">1</text>
+      <text x="270" y="138" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">2</text>
+      <text x="350" y="138" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">3</text>
+      <text x="430" y="138" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">4 ✓</text>
+
+      <text x="0"   y="158" font-size="9"  fill="#64748b" font-family="JetBrains Mono">maxReach=</text>
+      <text x="110" y="158" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">2</text>
+      <text x="190" y="158" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">4</text>
+      <text x="270" y="158" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">4</text>
+      <text x="350" y="158" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">4</text>
+      <text x="430" y="158" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">8</text>
+
+      <text x="0"   y="178" font-size="9"  fill="#64748b" font-family="JetBrains Mono">jumps=</text>
+      <text x="110" y="178" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">0</text>
+      <text x="190" y="178" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">1→2</text>
+      <text x="270" y="178" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">2</text>
+      <text x="350" y="178" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">2</text>
+      <text x="430" y="178" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">2</text>
+
+      <text x="30" y="216" font-size="12" fill="#00ff88" font-weight="700" font-family="JetBrains Mono">Minimum jumps = 2: [0] → [1] → [4]</text>
+
+      <!-- Greedy rule box -->
+      <rect x="30" y="232" width="660" height="42" rx="8" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="45" y="250" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Greedy: khi i == curEnd → jumps++, curEnd = maxReach</text>
+      <text x="45" y="266" font-size="10" fill="#64748b" font-family="JetBrains Mono">"Đã dùng hết bước của level hiện tại" → bắt buộc nhảy thêm 1 lần</text>
+    </svg>
+  </div>
+
+  <h3>Bước thực hiện Jump Game II</h3>
+  <div class="step-flow">
+    <div class="step-item"><div class="step-num">1</div><div class="step-content"><div class="step-title">Duyệt từ 0 đến n-2 (không cần index cuối)</div><div class="step-desc">Cập nhật <code>maxReach = max(maxReach, i + nums[i])</code></div></div></div>
+    <div class="step-item"><div class="step-num">2</div><div class="step-content"><div class="step-title">Khi i đạt curEnd → hết bước của level hiện tại</div><div class="step-desc"><code>jumps++; curEnd = maxReach</code> — bắt đầu "level" nhảy tiếp theo</div></div></div>
+    <div class="step-item"><div class="step-num">3</div><div class="step-content"><div class="step-title">Tại sao Greedy đúng?</div><div class="step-desc">Ta luôn chọn điểm cuối của mỗi "level BFS" để nhảy đến. Tại level k, ta có thể đến mọi điểm trong [curEnd+1, maxReach]. Để minimize jumps, ta chọn maxReach làm boundary của level k+1.</div></div></div>
+  </div>
+</section>
+<!-- ====== JUMP CODE ====== -->
+<section class="page-section" id="s-jump-code">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div><div class="section-title">Jump Game — Code Samples</div><div class="section-subtitle">I, II, III, Video Stitching, Frog Jump</div></div>
+    <span class="badge badge-advanced">CODE</span>
+  </div>
+
+  <h3>Sample 1: Jump Game I + II + Path Reconstruction</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">jump_game.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// CanJump — LeetCode 55: Jump Game I — O(n) O(1)</span>
+<span class="kw">func</span> <span class="fn">CanJump</span>(nums []<span class="tp">int</span>) <span class="tp">bool</span> {
+    maxReach := <span class="num">0</span>
+    <span class="kw">for</span> i, v := <span class="kw">range</span> nums {
+        <span class="kw">if</span> i &gt; maxReach { <span class="kw">return</span> false } <span class="cm">// không thể đến i</span>
+        <span class="kw">if</span> i+v &gt; maxReach { maxReach = i + v }
+    }
+    <span class="kw">return</span> true
+}
+
+<span class="cm">// Jump — LeetCode 45: Jump Game II — minimum jumps: O(n) O(1)
+// Tương đương BFS level-order traversal</span>
+<span class="kw">func</span> <span class="fn">Jump</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    jumps, curEnd, maxReach := <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; len(nums)-<span class="num">1</span>; i++ {
+        <span class="kw">if</span> i+nums[i] &gt; maxReach { maxReach = i + nums[i] }
+        <span class="kw">if</span> i == curEnd { <span class="cm">// hết level hiện tại</span>
+            jumps++
+            curEnd = maxReach
+        }
+    }
+    <span class="kw">return</span> jumps
+}
+
+<span class="cm">// JumpWithPath — trả về đường đi tối ưu: O(n) O(n)</span>
+<span class="kw">func</span> <span class="fn">JumpWithPath</span>(nums []<span class="tp">int</span>) ([]<span class="tp">int</span>, <span class="tp">int</span>) {
+    n := len(nums)
+    <span class="kw">if</span> n == <span class="num">1</span> { <span class="kw">return</span> []int{<span class="num">0</span>}, <span class="num">0</span> }
+    <span class="cm">// DP để reconstruct: best[i] = index tốt nhất để đến i</span>
+    dist := make([]int, n)
+    best := make([]int, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dist { dist[i] = n + <span class="num">1</span>; best[i] = -<span class="num">1</span> }
+    dist[<span class="num">0</span>] = <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j := i+<span class="num">1</span>; j &lt;= i+nums[i] &amp;&amp; j &lt; n; j++ {
+            <span class="kw">if</span> dist[i]+<span class="num">1</span> &lt; dist[j] { dist[j] = dist[i] + <span class="num">1</span>; best[j] = i }
+        }
+    }
+    path := []int{}
+    cur := n - <span class="num">1</span>
+    <span class="kw">for</span> cur != -<span class="num">1</span> { path = append(path, cur); cur = best[cur] }
+    <span class="kw">for</span> l, r := <span class="num">0</span>, len(path)-<span class="num">1</span>; l &lt; r; l, r = l+<span class="num">1</span>, r-<span class="num">1</span> { path[l], path[r] = path[r], path[l] }
+    <span class="kw">return</span> path, dist[n-<span class="num">1</span>]
+}
+
+<span class="cm">// JumpGameV — LeetCode 1340: Jump Game V (DP)
+// Từ i nhảy đến j nếu |i-j| &lt;= d và nums[j] &lt; nums[i] (và không block)
+// Đếm số vị trí tối đa có thể thăm</span>
+<span class="kw">func</span> <span class="fn">MaxJumps</span>(arr []<span class="tp">int</span>, d <span class="tp">int</span>) <span class="tp">int</span> {
+    n := len(arr)
+    memo := make([]int, n)
+    <span class="kw">var</span> dfs <span class="kw">func</span>(i <span class="tp">int</span>) <span class="tp">int</span>
+    dfs = <span class="kw">func</span>(i <span class="tp">int</span>) <span class="tp">int</span> {
+        <span class="kw">if</span> memo[i] != <span class="num">0</span> { <span class="kw">return</span> memo[i] }
+        best := <span class="num">1</span>
+        <span class="cm">// nhảy sang phải</span>
+        <span class="kw">for</span> j := i+<span class="num">1</span>; j &lt;= i+d &amp;&amp; j &lt; n &amp;&amp; arr[j] &lt; arr[i]; j++ {
+            <span class="kw">if</span> v := dfs(j) + <span class="num">1</span>; v &gt; best { best = v }
+        }
+        <span class="cm">// nhảy sang trái</span>
+        <span class="kw">for</span> j := i-<span class="num">1</span>; j >= i-d &amp;&amp; j >= <span class="num">0</span> &amp;&amp; arr[j] &lt; arr[i]; j-- {
+            <span class="kw">if</span> v := dfs(j) + <span class="num">1</span>; v &gt; best { best = v }
+        }
+        memo[i] = best
+        <span class="kw">return</span> best
+    }
+    result := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ { <span class="kw">if</span> v := dfs(i); v &gt; result { result = v } }
+    <span class="kw">return</span> result
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.Println(CanJump([]int{2,3,1,1,4})) <span class="cm">// true</span>
+    fmt.Println(CanJump([]int{3,2,1,0,4})) <span class="cm">// false</span>
+    fmt.Println(Jump([]int{2,3,1,1,4}))    <span class="cm">// 2</span>
+
+    path, jumps := JumpWithPath([]int{2,3,1,1,4})
+    fmt.Printf("path=%v jumps=%d\n", path, jumps) <span class="cm">// [0 1 4] 2</span>
+
+    fmt.Println(MaxJumps([]int{6,4,14,6,8,13,9,7,10,6,12}, 2)) <span class="cm">// 4</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ====== JUMP ADV ====== -->
+<section class="page-section" id="s-jump-adv">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div><div class="section-title">Jump Game — Advanced &amp; Expert</div><div class="section-subtitle">Jump IV (HashMap BFS), Frog Jump, Minimum Taps</div></div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <h3>Expert Sample: Jump Game IV + Minimum Taps to Water Garden</h3>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">jump_expert.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// MinJumps — LeetCode 1345: Jump Game IV — O(n)
+// Từ i có thể nhảy i±1 hoặc bất kỳ j: arr[j]==arr[i]
+// BFS + HashMap precompute</span>
+<span class="kw">func</span> <span class="fn">MinJumps</span>(arr []<span class="tp">int</span>) <span class="tp">int</span> {
+    n := len(arr)
+    <span class="kw">if</span> n == <span class="num">1</span> { <span class="kw">return</span> <span class="num">0</span> }
+    graph := make(map[int][]int)
+    <span class="kw">for</span> i, v := <span class="kw">range</span> arr { graph[v] = append(graph[v], i) }
+
+    visited := make([]bool, n)
+    visited[<span class="num">0</span>] = true
+    queue := []int{<span class="num">0</span>}
+    steps := <span class="num">0</span>
+
+    <span class="kw">for</span> len(queue) &gt; <span class="num">0</span> {
+        steps++
+        next := []int{}
+        <span class="kw">for</span> _, i := <span class="kw">range</span> queue {
+            <span class="kw">for</span> _, j := <span class="kw">range</span> []int{i-<span class="num">1</span>, i+<span class="num">1</span>} {
+                <span class="kw">if</span> j >= <span class="num">0</span> &amp;&amp; j &lt; n &amp;&amp; !visited[j] {
+                    <span class="kw">if</span> j == n-<span class="num">1</span> { <span class="kw">return</span> steps }
+                    visited[j] = true; next = append(next, j)
+                }
+            }
+            <span class="kw">if</span> same, ok := graph[arr[i]]; ok {
+                <span class="kw">for</span> _, j := <span class="kw">range</span> same {
+                    <span class="kw">if</span> !visited[j] {
+                        <span class="kw">if</span> j == n-<span class="num">1</span> { <span class="kw">return</span> steps }
+                        visited[j] = true; next = append(next, j)
+                    }
+                }
+                delete(graph, arr[i]) <span class="cm">// KEY: xóa để tránh revisit O(n²) → O(n)</span>
+            }
+        }
+        queue = next
+    }
+    <span class="kw">return</span> -<span class="num">1</span>
+}
+
+<span class="cm">// MinTaps — LeetCode 1326: Minimum Number of Taps to Open to Water a Garden
+// Tương đương Jump Game II / Video Stitching
+// Taps[i] có thể tưới [i-taps[i], i+taps[i]]
+// Greedy: convert thành intervals, dùng Jump II approach</span>
+<span class="kw">func</span> <span class="fn">MinTaps</span>(n <span class="tp">int</span>, ranges []<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="cm">// Chuyển đổi mỗi tap thành interval, lưu max reach tại start</span>
+    maxReachAt := make([]int, n+<span class="num">1</span>)
+    <span class="kw">for</span> i, r := <span class="kw">range</span> ranges {
+        left := i - r
+        <span class="kw">if</span> left &lt; <span class="num">0</span> { left = <span class="num">0</span> }
+        right := i + r
+        <span class="kw">if</span> right &gt; n { right = n }
+        <span class="kw">if</span> right &gt; maxReachAt[left] { maxReachAt[left] = right }
+    }
+    <span class="cm">// Bây giờ dùng Jump II Greedy</span>
+    taps, curEnd, maxEnd := <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        <span class="kw">if</span> maxReachAt[i] &gt; maxEnd { maxEnd = maxReachAt[i] }
+        <span class="kw">if</span> i == curEnd {
+            <span class="kw">if</span> maxEnd == curEnd { <span class="kw">return</span> -<span class="num">1</span> } <span class="cm">// không thể cover</span>
+            taps++; curEnd = maxEnd
+        }
+    }
+    <span class="kw">return</span> taps
+}
+
+<span class="cm">// FrogJump — LeetCode 403: k-1/k/k+1 jumps on stones — O(n²) DP</span>
+<span class="kw">func</span> <span class="fn">FrogJump</span>(stones []<span class="tp">int</span>) <span class="tp">bool</span> {
+    stoneSet := make(map[int]map[int]bool)
+    <span class="kw">for</span> _, s := <span class="kw">range</span> stones { stoneSet[s] = make(map[int]bool) }
+    stoneSet[stones[<span class="num">0</span>]][<span class="num">0</span>] = true
+    last := stones[len(stones)-<span class="num">1</span>]
+    <span class="kw">for</span> _, s := <span class="kw">range</span> stones {
+        <span class="kw">for</span> k := <span class="kw">range</span> stoneSet[s] {
+            <span class="kw">for</span> _, next := <span class="kw">range</span> []int{k-<span class="num">1</span>, k, k+<span class="num">1</span>} {
+                <span class="kw">if</span> next &lt;= <span class="num">0</span> { <span class="kw">continue</span> }
+                target := s + next
+                <span class="kw">if</span> _, ok := stoneSet[target]; ok {
+                    stoneSet[target][next] = true
+                    <span class="kw">if</span> target == last { <span class="kw">return</span> true }
+                }
+            }
+        }
+    }
+    <span class="kw">return</span> false
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.Println(MinJumps([]int{100,-23,-23,404,100,23,23,23,3,404})) <span class="cm">// 3</span>
+    fmt.Println(MinTaps(5, []int{3,4,1,1,0,0})) <span class="cm">// 1</span>
+    fmt.Println(FrogJump([]int{0,1,3,5,6,8,12,17})) <span class="cm">// true</span>
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">💡</div>
+    <p><strong>MinTaps</strong> là bài toán đẹp nhất minh họa pattern Jump Game II: chuyển bất kỳ bài "cover range" nào thành bài "minimum jumps" bằng cách map sang mảng <code>maxReachAt[start]</code>. Pattern này cũng áp dụng cho: Minimum arrows to burst balloons, Partition Labels, và nhiều bài tương tự.</p>
+  </div>
+</section>
+<!-- ====== COMPARE ====== -->
+<section class="page-section" id="s-compare">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div><div class="section-title">So sánh & Pattern Nhận diện</div><div class="section-subtitle">Khi nào dùng thuật toán nào?</div></div>
+  </div>
+
+  <h3>Bảng so sánh tổng hợp</h3>
+  <table class="data-table">
+    <thead><tr><th>Thuật toán</th><th>Greedy Choice</th><th>Time</th><th>Space</th><th>Ứng dụng thực tế</th></tr></thead>
+    <tbody>
+      <tr><td><code>Interval Scheduling</code></td><td>Chọn interval kết thúc sớm nhất</td><td><code>O(n log n)</code></td><td><code>O(1)</code></td><td>Calendar, meeting rooms, CPU scheduling</td></tr>
+      <tr><td><code>Kadane's</code></td><td>Reset subarray khi tổng âm</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>Stock profit, signal analysis, finance</td></tr>
+      <tr><td><code>LIS (Patience)</code></td><td>Replace smallest tail ≥ num</td><td><code>O(n log n)</code></td><td><code>O(n)</code></td><td>Version ordering, packet sequencing, chain pairs</td></tr>
+      <tr><td><code>Jump Game</code></td><td>Track maxReach, jump at boundary</td><td><code>O(n)</code></td><td><code>O(1)</code></td><td>Game AI, network routing, video stitching</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Nhận diện Pattern nhanh trong Interview</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">📅 "Chọn tối đa không chồng lắp"</div>
+      <p class="prose" style="font-size:13px;margin:0">→ <strong>Interval Scheduling</strong>. Keywords: intervals, overlap, non-overlapping, meeting rooms, task scheduler, clips.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📊 "Subarray liên tục lớn/nhỏ nhất"</div>
+      <p class="prose" style="font-size:13px;margin:0">→ <strong>Kadane's</strong>. Keywords: subarray, contiguous, maximum sum, profit, circular.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 "Dãy con tăng (không liên tục)"</div>
+      <p class="prose" style="font-size:13px;margin:0">→ <strong>LIS</strong>. Keywords: subsequence, increasing, chain, envelopes, stacking.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🐸 "Nhảy/reach đến đích"</div>
+      <p class="prose" style="font-size:13px;margin:0">→ <strong>Jump Game</strong>. Keywords: reach, jump, can reach, minimum steps, cover range.</p>
+    </div>
+  </div>
+
+  <h3>Flowchart nhận diện pattern</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Quy trình chọn thuật toán Greedy phù hợp</div>
+    <svg width="100%" viewBox="0 0 820 380" xmlns="http://www.w3.org/2000/svg">
+      <!-- Start -->
+      <rect x="330" y="10" width="160" height="34" rx="17" fill="rgba(0,255,136,0.15)" stroke="#00ff88" stroke-width="2"/>
+      <text x="410" y="31" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Bài toán Greedy?</text>
+      <line x1="410" y1="44" x2="410" y2="72" stroke="#64748b" stroke-width="1.5"/>
+
+      <!-- Q1: Intervals? -->
+      <rect x="275" y="73" width="270" height="36" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5"/>
+      <text x="410" y="88" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Dữ liệu có [start,end] ?</text>
+      <text x="410" y="102" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">intervals, schedules, meetings</text>
+      <line x1="545" y1="91" x2="608" y2="91" stroke="#64748b" stroke-width="1.5"/>
+      <text x="572" y="87" text-anchor="middle" font-size="10" fill="#64748b">YES</text>
+      <rect x="608" y="73" width="160" height="36" rx="8" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="688" y="88" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Interval Scheduling</text>
+      <text x="688" y="102" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">sort by end time</text>
+      <line x1="410" y1="109" x2="410" y2="143" stroke="#64748b" stroke-width="1.5"/>
+      <text x="418" y="130" font-size="10" fill="#64748b">NO</text>
+
+      <!-- Q2: Contiguous subarray? -->
+      <rect x="260" y="144" width="300" height="36" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5"/>
+      <text x="410" y="159" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Tìm subarray LIÊN TỤC</text>
+      <text x="410" y="173" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">sum, value lớn/nhỏ nhất?</text>
+      <line x1="560" y1="162" x2="608" y2="162" stroke="#64748b" stroke-width="1.5"/>
+      <text x="580" y="158" text-anchor="middle" font-size="10" fill="#64748b">YES</text>
+      <rect x="608" y="144" width="160" height="36" rx="8" fill="rgba(245,158,11,0.12)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+      <text x="688" y="159" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Kadane's Algorithm</text>
+      <text x="688" y="173" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">reset if negative</text>
+      <line x1="410" y1="180" x2="410" y2="214" stroke="#64748b" stroke-width="1.5"/>
+      <text x="418" y="201" font-size="10" fill="#64748b">NO</text>
+
+      <!-- Q3: Subsequence increasing? -->
+      <rect x="255" y="215" width="310" height="36" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5"/>
+      <text x="410" y="230" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Tìm subsequence tăng dần</text>
+      <text x="410" y="244" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">dài nhất? (không liên tục)</text>
+      <line x1="565" y1="233" x2="608" y2="233" stroke="#64748b" stroke-width="1.5"/>
+      <text x="582" y="229" text-anchor="middle" font-size="10" fill="#64748b">YES</text>
+      <rect x="608" y="215" width="160" height="36" rx="8" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+      <text x="688" y="230" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">LIS Patience Sort</text>
+      <text x="688" y="244" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">binary search tails</text>
+      <line x1="410" y1="251" x2="410" y2="285" stroke="#64748b" stroke-width="1.5"/>
+      <text x="418" y="272" font-size="10" fill="#64748b">NO</text>
+
+      <!-- Q4: Jump/reach? -->
+      <rect x="255" y="286" width="310" height="36" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5"/>
+      <text x="410" y="301" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Nhảy/reach từ đầu đến đích</text>
+      <text x="410" y="315" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">ít bước nhất? cover range?</text>
+      <line x1="565" y1="304" x2="608" y2="304" stroke="#64748b" stroke-width="1.5"/>
+      <text x="582" y="300" text-anchor="middle" font-size="10" fill="#64748b">YES</text>
+      <rect x="608" y="286" width="160" height="36" rx="8" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="688" y="301" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Jump Game Greedy</text>
+      <text x="688" y="315" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">track maxReach</text>
+      <line x1="410" y1="322" x2="410" y2="352" stroke="#64748b" stroke-width="1.5"/>
+      <text x="418" y="343" font-size="10" fill="#64748b">NO</text>
+
+      <!-- fallback -->
+      <rect x="305" y="353" width="210" height="26" rx="6" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="410" y="370" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">Cân nhắc DP hoặc BFS/DFS</text>
+    </svg>
+  </div>
+
+  <h3>Tổng kết: Greedy không phải silver bullet</h3>
+  <div class="note note-danger">
+    <div class="note-icon">🚫</div>
+    <p><strong>Các bài Greedy thất bại phổ biến:</strong> 0/1 Knapsack (cần DP), Coin Change với denominations tùy ý (cần DP), Shortest Path với negative edges (cần Bellman-Ford), Edit Distance (cần DP). Trước khi implement Greedy, hãy luôn thử tìm counterexample.</p>
+  </div>
+</section>
+<!-- ====== REFS ====== -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div><div class="section-title">References &amp; Tài liệu tham khảo</div><div class="section-subtitle">Nguồn chất lượng cao để học sâu DSA trong Go</div></div>
+  </div>
+
+  <h3>📋 LeetCode Problems — Thực hành bắt buộc</h3>
+  <a class="ref-card" href="https://leetcode.com/problems/non-overlapping-intervals/" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">📅</div>
+    <div class="ref-body">
+      <div class="ref-title">LeetCode 435 — Non-overlapping Intervals</div>
+      <div class="ref-desc">Bài chuẩn Interval Scheduling Greedy. Số intervals tối thiểu cần xóa để không còn overlap. Lần đầu làm nên dùng sort by end time.</div>
+      <div class="ref-url">leetcode.com/problems/non-overlapping-intervals</div>
+    </div><div class="ref-stars">⭐ Medium</div>
+  </a>
+  <a class="ref-card" href="https://leetcode.com/problems/maximum-subarray/" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">📈</div>
+    <div class="ref-body">
+      <div class="ref-title">LeetCode 53 — Maximum Subarray (Kadane's)</div>
+      <div class="ref-desc">Bài classic Kadane. Một trong những bài DSA quan trọng nhất mọi thời đại. Cần hiểu cả DP và Greedy interpretation.</div>
+      <div class="ref-url">leetcode.com/problems/maximum-subarray</div>
+    </div><div class="ref-stars">⭐ Medium</div>
+  </a>
+  <a class="ref-card" href="https://leetcode.com/problems/longest-increasing-subsequence/" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,0.1)">📶</div>
+    <div class="ref-body">
+      <div class="ref-title">LeetCode 300 — Longest Increasing Subsequence</div>
+      <div class="ref-desc">LIS classic. Cần implement cả O(n²) DP và O(n log n) Patience Sort. Hay bị hỏi ở FAANG interviews mức Senior+.</div>
+      <div class="ref-url">leetcode.com/problems/longest-increasing-subsequence</div>
+    </div><div class="ref-stars">⭐ Medium</div>
+  </a>
+  <a class="ref-card" href="https://leetcode.com/problems/jump-game-ii/" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🐸</div>
+    <div class="ref-body">
+      <div class="ref-title">LeetCode 45 — Jump Game II (Minimum Jumps)</div>
+      <div class="ref-desc">BFS-level Greedy. Hiểu tại sao curEnd boundary tương đương BFS level là key insight để giải các bài dạng "minimum steps to reach".</div>
+      <div class="ref-url">leetcode.com/problems/jump-game-ii</div>
+    </div><div class="ref-stars">⭐ Medium</div>
+  </a>
+
+  <h3>📚 Sách kinh điển</h3>
+  <a class="ref-card" href="https://www.amazon.com/Introduction-Algorithms-fourth-Thomas-Cormen/dp/026204630X" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">📖</div>
+    <div class="ref-body">
+      <div class="ref-title">CLRS — Introduction to Algorithms, 4th Ed.</div>
+      <div class="ref-desc">Kinh thánh DSA. Chapter 15 (Greedy Algorithms) giải thích Exchange Argument và Matroid Theory — nền tảng lý thuyết của mọi Greedy proof.</div>
+      <div class="ref-url">ISBN 978-0262046305 — Cormen, Leiserson, Rivest, Stein</div>
+    </div><div class="ref-stars">⭐ Must Read</div>
+  </a>
+  <a class="ref-card" href="https://www.amazon.com/Algorithm-Design-Jon-Kleinberg/dp/0321295358" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">📗</div>
+    <div class="ref-body">
+      <div class="ref-title">Algorithm Design — Kleinberg &amp; Tardos</div>
+      <div class="ref-desc">Chương 4 hoàn toàn dành cho Greedy Algorithms. Giải thích Interval Scheduling rõ nhất trong mọi sách giáo khoa. Cách viết rất accessible.</div>
+      <div class="ref-url">ISBN 978-0321295354 — Kleinberg &amp; Tardos</div>
+    </div><div class="ref-stars">⭐ Excellent</div>
+  </a>
+
+  <h3>🐙 GitHub Repositories</h3>
+  <a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">TheAlgorithms/Go</div>
+      <div class="ref-desc">Repository lớn nhất về algorithms bằng Go. Có Kadane, LIS, nhiều Greedy variants. Code sạch, có test cases, theo Go conventions.</div>
+      <div class="ref-url">github.com/TheAlgorithms/Go</div>
+    </div><div class="ref-stars">⭐ 16k★</div>
+  </a>
+  <a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,0.1)">⚡</div>
+    <div class="ref-body">
+      <div class="ref-title">labuladong/fucking-algorithm</div>
+      <div class="ref-desc">Giải thích pattern thuật toán rõ ràng nhất. Chương Greedy cover Interval Scheduling, Kadane, Jump Game rất chi tiết. Có Go code examples.</div>
+      <div class="ref-url">github.com/labuladong/fucking-algorithm</div>
+    </div><div class="ref-stars">⭐ 127k★</div>
+  </a>
+  <a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🏆</div>
+    <div class="ref-body">
+      <div class="ref-title">halfrost/LeetCode-Go</div>
+      <div class="ref-desc">Tất cả LeetCode solutions bằng Go được viết rất cẩn thận. Mỗi bài có explanation, test cases, và time/space analysis. Cực kỳ hữu ích.</div>
+      <div class="ref-url">github.com/halfrost/LeetCode-Go</div>
+    </div><div class="ref-stars">⭐ 14.4k★</div>
+  </a>
+  <a class="ref-card" href="https://github.com/neetcode-gh/leetcode" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">🎯</div>
+    <div class="ref-body">
+      <div class="ref-title">neetcode-gh/leetcode</div>
+      <div class="ref-desc">NeetCode's official solutions repository. Có solutions cho tất cả Neetcode 150 và Neetcode 250. Go solutions rất idiomatic và dễ đọc.</div>
+      <div class="ref-url">github.com/neetcode-gh/leetcode</div>
+    </div><div class="ref-stars">⭐ 6.5k★</div>
+  </a>
+
+  <h3>🎓 Video &amp; Khóa học</h3>
+  <a class="ref-card" href="https://www.youtube.com/@NeetCode" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,0.1)">▶️</div>
+    <div class="ref-body">
+      <div class="ref-title">NeetCode — YouTube Channel</div>
+      <div class="ref-desc">Kênh DSA hàng đầu cho FAANG prep. Giải thích trực quan mọi Greedy problem với animation. Video về Kadane, LIS, Jump Game đặc biệt xuất sắc.</div>
+      <div class="ref-url">youtube.com/@NeetCode</div>
+    </div><div class="ref-stars">⭐ 1.2M subs</div>
+  </a>
+  <a class="ref-card" href="https://ocw.mit.edu/courses/6-046j-design-and-analysis-of-algorithms-spring-2015/" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🎓</div>
+    <div class="ref-body">
+      <div class="ref-title">MIT 6.046J — Design and Analysis of Algorithms</div>
+      <div class="ref-desc">Bài giảng MIT về Greedy Algorithms với chứng minh toán học chặt chẽ. Lecture 12 và 13 về Greedy là tài liệu học thuật tốt nhất hiện có.</div>
+      <div class="ref-url">ocw.mit.edu/courses/6-046j</div>
+    </div><div class="ref-stars">⭐ MIT OCW</div>
+  </a>
+
+  <hr class="divider">
+
+  <div class="note note-info">
+    <div class="note-icon">✅</div>
+    <p><strong>Tóm tắt học tập:</strong> (1) Hiểu lý thuyết → đọc CLRS/Kleinberg; (2) Thực hành patterns → LeetCode theo thứ tự trong tài liệu này; (3) Review code mẫu → TheAlgorithms/Go + halfrost/LeetCode-Go; (4) Video giải thích trực quan → NeetCode; (5) Deep dive interviews → labuladong. Mỗi tuần tập trung một thuật toán, làm tất cả biến thể của nó trước khi chuyển sang cái tiếp theo.</p>
+  </div>
+</section>
+
+</div><!-- content-area -->
+</main><!-- main -->
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.topnav-item').forEach(n => n.classList.remove('active'));
+  const section = document.getElementById('s-' + name);
+  if (section) section.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+  document.querySelectorAll('.topnav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+  window.scrollTo(0, 0);
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  }).catch(() => {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    btn.textContent = 'Copied!'; btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

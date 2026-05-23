@@ -40,6 +40,7 @@ Performance tuning:
 18. [**Rate Limiting**](./rate-limiting-go.html) - Token bucket, leaky bucket patterns
 19. [**Semaphore**](./semaphore-guide.html) - Limit concurrent operations (`golang.org/x/sync/semaphore`)
 20. [**Bounded Parallelism**](./bounded-parallelism-errgroup.html) - Control parallelism level với errgroup
+21. [**Asyncq**](./asynq.html) - Background job 
 
 #### **BONUS: Production Patterns (21-22)**
 
@@ -76,5 +77,5 @@ Performance tuning:
 1. **Tuần 1-2**: Foundation (1-5) - Chạy code với `-race` flag
 2. **Tuần 3**: Intermediate (6-10) - Build mini pipeline processor
 3. **Tuần 4**: Advanced (11-15) - Implement worker pool cho CPU-intensive tasks
-4. **Tuần 5**: Optimization (16-20) - Profile với `pprof`, optimize allocations
+4. **Tuần 5**: Optimization (16-21) - Profile với `pprof`, optimize allocations
 5. **Bonus**: Áp dụng vào refactor NestJS service → Go service
