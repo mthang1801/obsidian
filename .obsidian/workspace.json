@@ -13,10 +13,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/bounded-parallelism-errgroup.html"
+                "file": "Go/LeetCode/section-1.html"
               },
               "icon": "lucide-file",
-              "title": "bounded-parallelism-errgroup"
+              "title": "section-1"
             }
           }
         ]
@@ -192,30 +192,30 @@
       "bases:Create new base": false
     }
   },
-  "active": "2d4a11c20cfa0381",
+  "active": "116d5a455b4d0585",
   "lastOpenFiles": [
+    "public/images/graph_bfs.png",
+    "public/images/tree_traversal.png",
+    "public/images/linked_list.png",
+    "public/images/stack_queue.png",
+    "public/images/binary_search.png",
+    "public/images/two_pointers.png",
+    "Go/DSA/important-algorithms.html",
+    "Go/LeetCode/section-1.html",
+    "Go/LeetCode/go-leetcode-patterns.html",
+    "Go/LeetCode",
     "Go/DSA/dsa-patterns-go.html",
-    "Go/DSA/dynamic-programing.html",
+    "Go/DSA/searching.html",
+    "Go/DSA/tree.html",
+    "Go/DSA/graph-algorithms.html",
     "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
+    "Go/Concurrency/mutex-and-confinement.html",
+    "Go/Concurrency/errgroup-guide.html",
     "Go/DSA/images/palindrome.png",
     "public/images/twopointers.png",
     "public/images/trie.png",
     "public/images/stackqueue.png",
     "public/images/sliding_window.png",
-    "public/images/prefixsum.png",
-    "public/images/palindrome.png",
-    "public/images/hashmap.png",
-    "Go/Concurrency/pipeline-pattern.html",
-    "Go/Concurrency/buffered-unbuffered-channels.html",
-    "Go/DSA/images/stackqueue.png",
-    "Go/Concurrency/sync-pool.html",
-    "Go/DSA/images/twopointers.png",
-    "Go/Concurrency/semaphore-guide.html",
-    "Go/Concurrency/worker-pool.html",
-    "Go/Concurrency/wait-group.html",
-    "Go/Concurrency/goroutines-guide.html",
-    "Go/Concurrency/race-conditions.html",
-    "Go/Concurrency/context.html",
     "Glosarry/AI glossary.md",
     "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",
     "Diagram/Flowchart/Pattern 1 — Business Logic Flow (Pro).md",

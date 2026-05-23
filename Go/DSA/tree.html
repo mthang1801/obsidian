@@ -512,6 +512,10 @@
 				scroll-margin-top: 70px;
 			}
 
+			[id] {
+				scroll-margin-top: 72px;
+			}
+
 			/* ── BADGE ── */
 			.badge {
 				display: inline-block;
@@ -708,8 +712,8 @@
 						"
 					>
 						<img
-							src="../../public/images/tree.png"
-							alt="Binary Search Tree Illustration"
+							src="../../public/images/go-tree-traversal.png"
+							alt="Tree Traversal Illustration"
 							style="
 								display: block;
 								width: 100%;
@@ -734,7 +738,7 @@
 								font-style: normal;
 							"
 						>
-							Hình 1.1: Trực quan hóa cấu trúc bộ nhớ và phân cấp khóa trong Binary Search Tree (BST)
+							Hình 1.1: Trực quan hóa các phương pháp duyệt cây nhị phân (Inorder, Preorder, Postorder, Level-Order)
 						</div>
 					</div>
 
@@ -823,66 +827,58 @@
 						h = chiều cao cây, w = chiều rộng tầng lớn nhất
 					</p>
 
-					<!-- CODE: Node struct -->
-					<div class="subsec-title" id="inorder">Định nghĩa Node & toàn bộ Traversal</div>
+					<!-- CODE: Inorder struct & Traversal -->
+					<div class="subsec-title" id="inorder">Inorder Traversal (Left → Node → Right)</div>
+					<p class="desc-text" style="border-bottom: none; margin-bottom: 12px;">
+						Duyệt cây con bên trái trước, thăm nút hiện tại, sau đó duyệt cây con bên phải.
+						Nếu duyệt <strong>Inorder</strong> trên một <strong>Cây tìm kiếm nhị phân (BST)</strong>, kết quả trả về luôn là một dãy số tăng dần.
+					</p>
 					<div class="code-wrapper">
 						<div class="code-header">
 							<span class="code-lang">GO</span>
-							<span class="code-filename">tree_traversal.go — Tất cả phương pháp traversal</span>
+							<span class="code-filename">inorder.go</span>
 						</div>
-						<pre><span class="kw">package</span> tree
+						<pre><span class="kw">package</span> traversal
 
-<span class="kw">import</span> <span class="st">"fmt"</span>
-
-<span class="cm">// TreeNode định nghĩa nút của cây nhị phân tổng quát.</span>
+<span class="cm">// TreeNode định nghĩa cấu trúc của một nút cây nhị phân tổng quát</span>
 <span class="kw">type</span> <span class="ty">TreeNode</span>[<span class="ty">T</span> <span class="kw">any</span>] <span class="kw">struct</span> {
     Val   <span class="ty">T</span>
     Left  *<span class="ty">TreeNode</span>[<span class="ty">T</span>]
     Right *<span class="ty">TreeNode</span>[<span class="ty">T</span>]
 }
 
-<span class="cm">// ──────────────────────────────────────────────────────────────
-//  INORDER TRAVERSAL — Đệ quy (Left → Node → Right)
-//  Kết quả với BST: danh sách đã sắp xếp tăng dần
-// ──────────────────────────────────────────────────────────────</span>
-
-<span class="kw">func</span> <span class="fn">InorderRecursive</span>[<span class="ty">T</span> <span class="kw">any</span>](node *<span class="ty">TreeNode</span>[<span class="ty">T</span>], result *[]<span class="ty">T</span>) {
-    <span class="kw">if</span> node == <span class="kw">nil</span> {
-        <span class="kw">return</span>
-    }
-    <span class="fn">InorderRecursive</span>(node.Left, result)   <span class="cm">// thăm cây con trái</span>
-    *result = <span class="fn">append</span>(*result, node.Val)   <span class="cm">// thăm nút hiện tại</span>
-    <span class="fn">InorderRecursive</span>(node.Right, result)  <span class="cm">// thăm cây con phải</span>
-}
-
-<span class="cm">// InorderIterative — Inorder không dùng đệ quy, dùng explicit stack.
-// Ưu điểm: tránh stack overflow với cây rất sâu.</span>
+<span class="cm">// InorderIterative duyệt cây không đệ quy sử dụng Stack để tối ưu bộ nhớ</span>
 <span class="kw">func</span> <span class="fn">InorderIterative</span>[<span class="ty">T</span> <span class="kw">any</span>](root *<span class="ty">TreeNode</span>[<span class="ty">T</span>]) []<span class="ty">T</span> {
-    <span class="kw">var</span> (
-        result []<span class="ty">T</span>
-        stack  []*<span class="ty">TreeNode</span>[<span class="ty">T</span>]
-        curr   = root
-    )
+    <span class="kw">var</span> result []<span class="ty">T</span>
+    stack := []*<span class="ty">TreeNode</span>[<span class="ty">T</span>]{}
+    curr := root
+
     <span class="kw">for</span> curr != <span class="kw">nil</span> || <span class="fn">len</span>(stack) > <span class="nu">0</span> {
-        <span class="cm">// Đi hết sang trái</span>
         <span class="kw">for</span> curr != <span class="kw">nil</span> {
             stack = <span class="fn">append</span>(stack, curr)
             curr = curr.Left
         }
-        <span class="cm">// Pop và thăm</span>
         curr = stack[<span class="fn">len</span>(stack)-<span class="nu">1</span>]
         stack = stack[:<span class="fn">len</span>(stack)-<span class="nu">1</span>]
         result = <span class="fn">append</span>(result, curr.Val)
-        <span class="cm">// Chuyển sang nhánh phải</span>
         curr = curr.Right
     }
     <span class="kw">return</span> result
-}
+}</pre>
+					</div>
 
-<span class="cm">// ──────────────────────────────────────────────────────────────
-//  PREORDER TRAVERSAL (Node → Left → Right)
-//  Ứng dụng: serialize cây, copy cây, in đường dẫn file
-// ──────────────────────────────────────────────────────────────</span>
+					<!-- CODE: Preorder Traversal -->
+					<div class="subsec-title" id="preorder">Preorder Traversal (Node → Left → Right)</div>
+					<p class="desc-text" style="border-bottom: none; margin-bottom: 12px;">
+						Thăm nút hiện tại trước, sau đó duyệt cây con bên trái, và cuối cùng duyệt cây con bên phải.
+						Kỹ thuật này được ứng dụng rộng rãi để <strong>sao chép cây nhị phân (clone)</strong> hoặc <strong>tuần tự hóa cây (serialization)</strong>.
+					</p>
+					<div class="code-wrapper">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">preorder.go</span>
+						</div>
+						<pre><span class="kw">package</span> traversal
 
 <span class="kw">func</span> <span class="fn">PreorderIterative</span>[<span class="ty">T</span> <span class="kw">any</span>](root *<span class="ty">TreeNode</span>[<span class="ty">T</span>]) []<span class="ty">T</span> {
     <span class="kw">if</span> root == <span class="kw">nil</span> {
@@ -895,7 +891,8 @@
         node := stack[<span class="fn">len</span>(stack)-<span class="nu">1</span>]
         stack = stack[:<span class="fn">len</span>(stack)-<span class="nu">1</span>]
         result = <span class="fn">append</span>(result, node.Val)
-        <span class="cm">// Push right trước để left được xử lý trước (LIFO)</span>
+        
+        <span class="cm">// Push con trỏ phải trước để con trỏ trái được pop ra trước (LIFO)</span>
         <span class="kw">if</span> node.Right != <span class="kw">nil</span> {
             stack = <span class="fn">append</span>(stack, node.Right)
         }
@@ -904,12 +901,21 @@
         }
     }
     <span class="kw">return</span> result
-}
+}</pre>
+					</div>
 
-<span class="cm">// ──────────────────────────────────────────────────────────────
-//  POSTORDER TRAVERSAL (Left → Right → Node)
-//  Ứng dụng: xóa toàn bộ cây, tính giá trị biểu thức
-// ──────────────────────────────────────────────────────────────</span>
+					<!-- CODE: Postorder Traversal -->
+					<div class="subsec-title" id="postorder">Postorder Traversal (Left → Right → Node)</div>
+					<p class="desc-text" style="border-bottom: none; margin-bottom: 12px;">
+						Duyệt cây con bên trái trước, duyệt cây con bên phải, sau đó thăm nút hiện tại cuối cùng.
+						Ứng dụng phổ biến trong việc <strong>xóa toàn bộ cây (garbage collection)</strong> hoặc <strong>tính toán cây biểu thức (expression tree)</strong>.
+					</p>
+					<div class="code-wrapper">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">postorder.go</span>
+						</div>
+						<pre><span class="kw">package</span> traversal
 
 <span class="kw">func</span> <span class="fn">PostorderIterative</span>[<span class="ty">T</span> <span class="kw">any</span>](root *<span class="ty">TreeNode</span>[<span class="ty">T</span>]) []<span class="ty">T</span> {
     <span class="kw">if</span> root == <span class="kw">nil</span> {
@@ -921,8 +927,9 @@
     <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="nu">0</span> {
         node := stack[<span class="fn">len</span>(stack)-<span class="nu">1</span>]
         stack = stack[:<span class="fn">len</span>(stack)-<span class="nu">1</span>]
-        <span class="cm">// Prepend thay vì append (đảo kết quả)</span>
+        // Prepend nút hiện tại vào kết quả để đảo ngược thứ tự duyệt
         result = <span class="fn">append</span>([]<span class="ty">T</span>{node.Val}, result...)
+        
         <span class="kw">if</span> node.Left != <span class="kw">nil</span> {
             stack = <span class="fn">append</span>(stack, node.Left)
         }
@@ -931,12 +938,21 @@
         }
     }
     <span class="kw">return</span> result
-}
+}</pre>
+					</div>
 
-<span class="cm">// ──────────────────────────────────────────────────────────────
-//  LEVEL ORDER TRAVERSAL — BFS (Breadth-First Search)
-//  Dùng queue; trả về [][]T (từng tầng riêng biệt)
-// ──────────────────────────────────────────────────────────────</span>
+					<!-- CODE: Level Order Traversal -->
+					<div class="subsec-title" id="levelorder">Level Order Traversal (BFS)</div>
+					<p class="desc-text" style="border-bottom: none; margin-bottom: 12px;">
+						Duyệt cây theo từng tầng từ trên xuống dưới, từ trái sang phải bằng việc sử dụng cấu trúc hàng đợi (Queue).
+						Thường được áp dụng trong <strong>tìm kiếm theo chiều rộng (BFS)</strong> trên đồ thị/cây.
+					</p>
+					<div class="code-wrapper">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">levelorder.go</span>
+						</div>
+						<pre><span class="kw">package</span> traversal
 
 <span class="kw">func</span> <span class="fn">LevelOrder</span>[<span class="ty">T</span> <span class="kw">any</span>](root *<span class="ty">TreeNode</span>[<span class="ty">T</span>]) [][]<span class="ty">T</span> {
     <span class="kw">if</span> root == <span class="kw">nil</span> {
@@ -951,29 +967,17 @@
 
         <span class="kw">for</span> i := <span class="nu">0</span>; i &lt; size; i++ {
             node := queue[<span class="nu">0</span>]
-            queue = queue[<span class="nu">1</span>:]  <span class="cm">// dequeue</span>
+            queue = queue[<span class="nu">1</span>:]
             level = <span class="fn">append</span>(level, node.Val)
+            
             <span class="kw">if</span> node.Left != <span class="kw">nil</span>  { queue = <span class="fn">append</span>(queue, node.Left)  }
             <span class="kw">if</span> node.Right != <span class="kw">nil</span> { queue = <span class="fn">append</span>(queue, node.Right) }
         }
         result = <span class="fn">append</span>(result, level)
     }
     <span class="kw">return</span> result
-}
-
-<span class="cm">// ── DEMO ──────────────────────────────────────────────────────</span>
-<span class="kw">func</span> <span class="fn">main</span>() {
-    <span class="cm">// Xây cây: 1 → (2 → (4, 5), 3 → (6, 7))</span>
-    root := &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">1</span>,
-        Left:  &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">2</span>, Left: &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">4</span>}, Right: &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">5</span>}},
-        Right: &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">3</span>, Left: &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">6</span>}, Right: &<span class="ty">TreeNode</span>[<span class="kw">int</span>]{Val: <span class="nu">7</span>}},
-    }
-
-    fmt.<span class="fn">Println</span>(<span class="st">"Inorder:   "</span>, <span class="fn">InorderIterative</span>(root))   <span class="cm">// [4 2 5 1 6 3 7]</span>
-    fmt.<span class="fn">Println</span>(<span class="st">"Preorder:  "</span>, <span class="fn">PreorderIterative</span>(root))  <span class="cm">// [1 2 4 5 3 6 7]</span>
-    fmt.<span class="fn">Println</span>(<span class="st">"Postorder: "</span>, <span class="fn">PostorderIterative</span>(root)) <span class="cm">// [4 5 2 6 7 3 1]</span>
-    fmt.<span class="fn">Println</span>(<span class="st">"LevelOrder:"</span>, <span class="fn">LevelOrder</span>(root))          <span class="cm">// [[1] [2 3] [4 5 6 7]]</span>
 }</pre>
+					</div></pre>
 					</div>
 
 					<!-- Level Order diagram -->
@@ -1041,7 +1045,7 @@
 						"
 					>
 						<img
-							src="../../public/images/tree.png"
+							src="../../public/images/go-bst-operations.png"
 							alt="Binary Search Tree Operations"
 							style="
 								display: block;
@@ -1216,6 +1220,15 @@
            <span class="fn">isValidBST</span>(n.right, &n.val, maxVal)
 }</pre>
 					</div>
+
+					<!-- ── CÂN BẰNG BST ── -->
+					<div class="subsec-title" id="bst-balance">Cân bằng BST & Vấn đề suy biến</div>
+					<p class="desc-text" style="border-bottom: none; margin-bottom: 12px;">
+						Khi chèn các phần tử đã sắp xếp tăng dần hoặc giảm dần vào BST thông thường (ví dụ: 1, 2, 3, 4, 5), cây sẽ bị <strong>suy biến (degenerate)</strong> thành danh sách liên kết tuyến tính (Linked List). Khi đó, chiều cao cây h trở thành n, dẫn đến độ phức tạp của tất cả các thao tác bị đẩy từ <strong>O(log n)</strong> lên <strong>O(n)</strong>.
+					</p>
+					<div class="warn-box" style="margin-bottom: 24px;">
+						<strong>⚠️ Vấn đề mất cân bằng:</strong> Để duy trì độ phức tạp O(log n), ta cần áp dụng các giải thuật <strong>Cây tự cân bằng (Self-Balancing Binary Search Tree)</strong> như AVL Tree hoặc Red-Black Tree bằng các thao tác xoay (rotation) hoặc tô màu nút.
+					</div>
 				</section>
 
 				<!-- ══════════════════════════════════════════════ SECTION 03: HEAP -->
@@ -1325,7 +1338,7 @@
 
 <span class="kw">func</span> <span class="fn">NewMinHeap</span>[<span class="ty">T</span> cmp.<span class="ty">Ordered</span>](data []<span class="ty">T</span>) *<span class="ty">MinHeap</span>[<span class="ty">T</span>] {
     h := &<span class="ty">MinHeap</span>[<span class="ty">T</span>]{data: <span class="fn">append</span>([]<span class="ty">T</span>(nil), data...)}
-    <span class="cm">// Heapify: O(n) — gọi siftDown từ nút giữa trở lên</span>
+    <span class="cm" id="heapify">// Heapify: O(n) — gọi siftDown từ nút giữa trở lên</span>
     <span class="kw">for</span> i := <span class="fn">len</span>(h.data)/<span class="nu">2</span> - <span class="nu">1</span>; i >= <span class="nu">0</span>; i-- {
         h.<span class="fn">siftDown</span>(i)
     }
@@ -1391,7 +1404,7 @@
     }
 }
 
-<span class="cm">// ── HEAP SORT O(n log n) ──────────────────────────────────────
+<span class="cm" id="heap-sort">// ── HEAP SORT O(n log n) ──────────────────────────────────────
 // In-place: xây max-heap rồi extract từng phần tử</span>
 <span class="kw">func</span> <span class="fn">HeapSort</span>[<span class="ty">T</span> cmp.<span class="ty">Ordered</span>](arr []<span class="ty">T</span>) {
     n := <span class="fn">len</span>(arr)
@@ -1518,7 +1531,7 @@
 						</div>
 						<pre><span class="kw">package</span> segtree
 
-<span class="cm">// SegmentTree hỗ trợ range sum query và range update với lazy propagation.</span>
+<span class="cm" id="seg-lazy">// SegmentTree hỗ trợ range sum query và range update với lazy propagation.</span>
 <span class="kw">type</span> <span class="ty">SegmentTree</span> <span class="kw">struct</span> {
     n    <span class="kw">int</span>
     tree []<span class="kw">int</span> <span class="cm">// tree[i] = sum của đoạn tương ứng</span>
@@ -1756,6 +1769,71 @@
     }
     <span class="kw">return</span> <span class="fn">balance</span>(n) <span class="cm">// kiểm tra và cân bằng sau mỗi insert</span>
 }</pre>
+					</div>
+
+					<!-- RED-BLACK TREE -->
+					<div class="subsec-title" id="redblack">Red-Black Tree — Cây đỏ đen</div>
+					<p class="desc-text" style="border-bottom: none; margin-bottom: 12px;">
+						<strong>Cây Đỏ-Đen (Red-Black Tree)</strong> là một cấu trúc dữ liệu cây tự cân bằng phức tạp và có tính ứng dụng cực kỳ thực tế (ví dụ: `map` trong C++ STL, hoặc scheduler CFS trong Linux). Cây sử dụng thuộc tính "màu sắc" (Đỏ hoặc Đen) trên mỗi nút cùng 5 quy tắc nghiêm ngặt để đảm bảo đường đi dài nhất từ gốc đến lá không bao giờ vượt quá 2 lần đường đi ngắn nhất, cam kết thời gian tìm kiếm tối đa luôn là <strong>O(log n)</strong>.
+					</p>
+					<div class="warn-box" style="margin-bottom: 24px;">
+						<strong>📌 5 thuộc tính bắt buộc của Red-Black Tree:</strong>
+						<ul style="margin-left: 20px; margin-top: 8px; color: var(--text-secondary); line-height: 1.6;">
+							<li>1. Mỗi nút chỉ có thể là <strong>Đỏ</strong> hoặc <strong>Đen</strong>.</li>
+							<li>2. Nút gốc (Root) luôn luôn là <strong>Đen</strong>.</li>
+							<li>3. Tất cả các nút lá (NIL) đều là <strong>Đen</strong>.</li>
+							<li>4. Nếu một nút là <strong>Đỏ</strong>, cả hai con của nó phải là <strong>Đen</strong> (không có hai nút Đỏ cạnh nhau).</li>
+							<li>5. Mọi đường đi từ một nút đến các nút lá con của nó đều có cùng số lượng nút <strong>Đen</strong> (Black Height bằng nhau).</li>
+						</ul>
+					</div>
+
+					<div class="diagram-box">
+						<div class="diagram-title">RED-BLACK TREE PROPERTIES VISUALIZATION</div>
+						<svg width="100%" height="240" viewBox="0 0 700 240">
+							<!-- Black Root 13 -->
+							<circle cx="350" cy="40" r="22" fill="#090d13" stroke="#e2e8f0" stroke-width="3" />
+							<text x="350" y="45" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">13</text>
+							<text x="350" y="14" text-anchor="middle" fill="#94a3b8" font-size="9">BLACK (Root)</text>
+							
+							<!-- Red Child Left 8 -->
+							<circle cx="210" cy="100" r="22" fill="#ff6b35" stroke="#ff6b35" stroke-width="1.5" />
+							<text x="210" y="105" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">8</text>
+							<text x="170" y="102" text-anchor="end" fill="#ff6b35" font-size="9">RED</text>
+
+							<!-- Black Child Right 17 -->
+							<circle cx="490" cy="100" r="22" fill="#090d13" stroke="#00d4ff" stroke-width="2.5" />
+							<text x="490" y="105" text-anchor="middle" fill="#00d4ff" font-size="12" font-weight="700">17</text>
+							<text x="530" y="102" text-anchor="start" fill="#00d4ff" font-size="9">BLACK</text>
+
+							<!-- Black Left Grandchildren: 1 and 11 -->
+							<circle cx="130" cy="160" r="22" fill="#090d13" stroke="#e2e8f0" stroke-width="2" />
+							<text x="130" y="165" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">1</text>
+							<text x="130" y="195" text-anchor="middle" fill="#94a3b8" font-size="8">BLACK</text>
+
+							<circle cx="290" cy="160" r="22" fill="#090d13" stroke="#e2e8f0" stroke-width="2" />
+							<text x="290" y="165" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">11</text>
+							<text x="290" y="195" text-anchor="middle" fill="#94a3b8" font-size="8">BLACK</text>
+
+							<!-- Red Right Grandchild: 15 (child of 17) -->
+							<circle cx="430" cy="160" r="22" fill="#ff6b35" stroke="#ff6b35" stroke-width="1.5" />
+							<text x="430" y="165" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">15</text>
+							<text x="430" y="195" text-anchor="middle" fill="#ff6b35" font-size="8">RED</text>
+
+							<!-- Black Right Grandchild: 25 (child of 17) -->
+							<circle cx="550" cy="160" r="22" fill="#090d13" stroke="#e2e8f0" stroke-width="2" />
+							<text x="550" y="165" text-anchor="middle" fill="#e2e8f0" font-size="12" font-weight="700">25</text>
+							<text x="550" y="195" text-anchor="middle" fill="#94a3b8" font-size="8">BLACK</text>
+
+							<!-- Edges -->
+							<line x1="332" y1="55" x2="228" y2="85" stroke="#1e2d4a" stroke-width="2" />
+							<line x1="368" y1="55" x2="472" y2="85" stroke="#1e2d4a" stroke-width="2" />
+							
+							<line x1="195" y1="115" x2="145" y2="145" stroke="#1e2d4a" stroke-width="2" />
+							<line x1="225" y1="115" x2="275" y2="145" stroke="#1e2d4a" stroke-width="2" />
+
+							<line x1="475" y1="115" x2="445" y2="145" stroke="#1e2d4a" stroke-width="2" />
+							<line x1="505" y1="115" x2="535" y2="145" stroke="#1e2d4a" stroke-width="2" />
+						</svg>
 					</div>
 
 					<!-- TRIE -->
@@ -2112,37 +2190,89 @@
 		</div>
 
 		<script>
-			// Active sidebar link on scroll
-			const sections = document.querySelectorAll(".section-anchor");
-			const sidebarLinks = document.querySelectorAll(".sidebar-item");
 			const topNavLinks = document.querySelectorAll(".topnav-link");
+			const sidebarLinks = document.querySelectorAll(".sidebar-item");
+
+			// Dynamically collect all target elements from both sidebar and topnav
+			const targetSelectors = new Set();
+			document.querySelectorAll(".sidebar-item, .topnav-link").forEach((link) => {
+				const href = link.getAttribute("href");
+				if (href && href.startsWith("#")) {
+					targetSelectors.add(href);
+				}
+			});
+
+			const targetElements = [];
+			targetSelectors.forEach((selector) => {
+				try {
+					const el = document.querySelector(selector);
+					if (el) targetElements.push(el);
+				} catch (err) {
+					console.warn("Invalid selector target:", selector, err);
+				}
+			});
+
+			// Map sub-section IDs to their parent major section IDs
+			const parentSectionMap = {
+				"intro": "traversal",
+				"tree-concepts": "traversal",
+				"traversal": "traversal",
+				"inorder": "traversal",
+				"preorder": "traversal",
+				"postorder": "traversal",
+				"levelorder": "traversal",
+				
+				"bst": "bst",
+				"bst-ops": "bst",
+				"bst-balance": "bst",
+				
+				"heap": "heap",
+				"heapify": "heap",
+				"heap-sort": "heap",
+				
+				"segment": "segment",
+				"seg-query": "segment",
+				"seg-lazy": "segment",
+				
+				"advanced": "advanced",
+				"redblack": "advanced",
+				"trie": "advanced",
+				"fenwick": "advanced",
+				
+				"references": "references"
+			};
 
 			const observer = new IntersectionObserver(
 				(entries) => {
+					// We only track the most prominent intersecting element to avoid multiple active items
+					let activeEntry = null;
 					entries.forEach((entry) => {
 						if (entry.isIntersecting) {
-							const id = entry.target.id;
-							sidebarLinks.forEach((l) => {
-								l.classList.toggle("active", l.getAttribute("href") === "#" + id);
-							});
-							topNavLinks.forEach((l) => {
-								const href = l.getAttribute("href");
-								const matches =
-									href === "#" + id ||
-									(href === "#traversal" && ["inorder", "preorder", "postorder", "levelorder"].includes(id)) ||
-									(href === "#bst" && ["bst-ops", "bst-balance"].includes(id)) ||
-									(href === "#heap" && ["heapify", "heap-sort"].includes(id)) ||
-									(href === "#segment" && ["seg-query", "seg-lazy"].includes(id)) ||
-									(href === "#advanced" && ["redblack", "trie", "fenwick"].includes(id));
-								l.classList.toggle("active", matches);
-							});
+							if (!activeEntry || entry.intersectionRatio > activeEntry.intersectionRatio) {
+								activeEntry = entry;
+							}
 						}
 					});
+
+					if (activeEntry) {
+						const id = activeEntry.target.id;
+
+						// Update sidebar active state
+						sidebarLinks.forEach((l) => {
+							l.classList.toggle("active", l.getAttribute("href") === "#" + id);
+						});
+
+						// Update top nav active state
+						const parentId = parentSectionMap[id] || id;
+						topNavLinks.forEach((l) => {
+							l.classList.toggle("active", l.getAttribute("href") === "#" + parentId);
+						});
+					}
 				},
 				{ rootMargin: "-52px 0px -60% 0px", threshold: 0.1 }
 			);
 
-			sections.forEach((s) => observer.observe(s));
+			targetElements.forEach((el) => observer.observe(el));
 
 			// Robust smooth scroll for all anchor links
 			document.querySelectorAll('a[href^="#"]').forEach((a) => {
