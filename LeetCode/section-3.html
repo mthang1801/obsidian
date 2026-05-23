@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go LeetCode Patterns II — Heap, Trie, Hashmap, Matrix, String, Design, DP Stock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,212,255,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  #sidebar { width: 272px; min-width: 272px; background: var(--bg-secondary); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 34px; height: 34px; background: linear-gradient(135deg, var(--accent-amber), var(--accent-coral)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; color: white; font-family: var(--font-mono); }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+  .logo-sub { font-size: 11px; color: var(--accent-amber); font-family: var(--font-mono); }
+  .nav-section { padding: 14px 12px 6px; }
+  .nav-section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); padding: 0 8px; margin-bottom: 5px; }
+  .nav-item { display: flex; align-items: center; padding: 7px 8px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all .15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: rgba(255,255,255,.05); color: var(--text-primary); }
+  .nav-item.active { background: rgba(245,158,11,.1); color: var(--accent-amber); border-left: 2px solid var(--accent-amber); padding-left: 6px; }
+
+  /* TOP NAV */
+  #topnav { position: fixed; top: 0; left: 272px; right: 0; height: 52px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 28px; gap: 6px; z-index: 50; overflow-x: auto; }
+  .topnav-item { padding: 5px 12px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: all .15s; border: none; background: none; }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,.05); }
+  .topnav-item.active { color: var(--accent-amber); background: rgba(245,158,11,.1); }
+
+  /* MAIN */
+  #main { margin-left: 272px; margin-top: 52px; flex: 1; max-width: calc(100% - 272px); }
+  .content-area { padding: 48px 56px; max-width: 980px; }
+
+  /* SECTION HEADER */
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .section-number { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--accent-amber), var(--accent-coral)); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  /* PAGE SECTIONS */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* BADGES */
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: .05em; font-family: var(--font-mono); }
+  .badge-expert  { background: rgba(168,85,247,.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,.3); }
+  .badge-advanced{ background: rgba(245,158,11,.12); color: var(--accent-amber);  border: 1px solid rgba(245,158,11,.3); }
+  .badge-basic   { background: rgba(0,212,255,.10);  color: var(--accent-cyan);   border: 1px solid rgba(0,212,255,.25); }
+
+  /* PROSE */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code { background: rgba(245,158,11,.08); color: var(--accent-amber); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px; }
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* CARDS */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 22px; margin-bottom: 18px; transition: border-color .2s; }
+  .card:hover { border-color: rgba(245,158,11,.3); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 9px; }
+  .card-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card-grid-3{ display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* CONCEPT BOX */
+  .concept-box { background: linear-gradient(135deg, rgba(245,158,11,.05), rgba(255,107,107,.05)); border: 1px solid rgba(245,158,11,.2); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+  .concept-box .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--accent-amber); margin-bottom: 8px; font-family: var(--font-mono); }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+
+  /* CODE BLOCKS */
+  .code-block { background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,.02); }
+  .code-lang { font-size: 11px; font-weight: 600; color: var(--accent-amber); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: .08em; }
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+  .code-copy { font-size: 11px; cursor: pointer; background: none; border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; color: var(--text-secondary); transition: all .15s; font-family: var(--font-sans); }
+  .code-copy:hover { border-color: var(--accent-amber); color: var(--accent-amber); }
+  pre { margin: 0; padding: 20px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* SYNTAX */
+  .kw  { color: #c084fc; }
+  .fn  { color: #60a5fa; }
+  .str { color: #86efac; }
+  .cm  { color: #4b5563; font-style: italic; }
+  .num { color: #fb923c; }
+  .tp  { color: #67e8f9; }
+  .pkg { color: #a78bfa; }
+  .op  { color: #f472b6; }
+
+  /* DIAGRAM */
+  .diagram-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; overflow: hidden; }
+  .diagram-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--text-muted); margin-bottom: 20px; font-family: var(--font-mono); text-align: center; }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th { padding: 10px 14px; text-align: left; background: rgba(255,255,255,.03); border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; font-weight: 600; }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,.02); }
+  .data-table td code { background: rgba(245,158,11,.08); color: var(--accent-amber); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+
+  /* NOTES */
+  .note { display: flex; gap: 12px; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .note-warn    { background: rgba(245,158,11,.08);  border: 1px solid rgba(245,158,11,.2);  color: #fcd34d; }
+  .note-info    { background: rgba(0,212,255,.06);   border: 1px solid rgba(0,212,255,.2);   color: var(--accent-cyan); }
+  .note-danger  { background: rgba(255,107,107,.08); border: 1px solid rgba(255,107,107,.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,255,136,.06);   border: 1px solid rgba(0,255,136,.2);   color: var(--accent-green); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* REFS */
+  .ref-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 14px; text-decoration: none; transition: all .15s; cursor: pointer; }
+  .ref-card:hover { border-color: var(--accent-amber); transform: translateX(2px); }
+  .ref-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ref-body { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url   { font-size: 11px; color: var(--accent-amber); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* PROBLEM CARD */
+  .problem-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 28px; transition: border-color .2s; }
+  .problem-card:hover { border-color: rgba(245,158,11,.2); }
+  .problem-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.02); }
+  .problem-num { width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(135deg, var(--accent-amber), var(--accent-coral)); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: white; font-family: var(--font-mono); flex-shrink: 0; }
+  .problem-title { font-size: 15px; font-weight: 600; color: var(--text-primary); flex: 1; }
+  .problem-body { padding: 20px; }
+
+  /* COMPLEXITY */
+  .complexity-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+  .complexity-tag { padding: 4px 12px; border-radius: 6px; font-size: 12px; font-family: var(--font-mono); font-weight: 600; }
+  .time-tag  { background: rgba(245,158,11,.1);  color: var(--accent-amber);  border: 1px solid rgba(245,158,11,.25); }
+  .space-tag { background: rgba(168,85,247,.1);  color: var(--accent-purple); border: 1px solid rgba(168,85,247,.25); }
+  .diff-easy { background: rgba(0,255,136,.1);   color: var(--accent-green);  border: 1px solid rgba(0,255,136,.25); }
+  .diff-med  { background: rgba(245,158,11,.1);  color: var(--accent-amber);  border: 1px solid rgba(245,158,11,.25); }
+  .diff-hard { background: rgba(255,107,107,.1); color: var(--accent-coral);  border: 1px solid rgba(255,107,107,.25); }
+
+  /* COMPARE GRID */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .compare-head { padding: 10px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
+  .compare-head.cyan   { background: rgba(0,212,255,.1);   color: var(--accent-cyan); }
+  .compare-head.purple { background: rgba(168,85,247,.1);  color: var(--accent-purple); }
+  .compare-head.green  { background: rgba(0,255,136,.1);   color: var(--accent-green); }
+  .compare-head.amber  { background: rgba(245,158,11,.1);  color: var(--accent-amber); }
+  .compare-head.coral  { background: rgba(255,107,107,.1); color: var(--accent-coral); }
+
+  /* STEP LIST */
+  .step-list { list-style: none; padding: 0; margin-bottom: 24px; }
+  .step-list li { display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-secondary); }
+  .step-list li:last-child { border-bottom: none; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent-amber); flex-shrink: 0; font-family: var(--font-mono); }
+
+  hr.divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  @media(max-width:900px){
+    #sidebar{width:220px;min-width:220px}
+    #main{margin-left:220px}
+    #topnav{left:220px}
+    .content-area{padding:28px 20px}
+    .card-grid,.compare-grid{grid-template-columns:1fr}
+    .card-grid-3{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">LeetCode Patterns II</div>
+      <div class="logo-sub">// topics 11–17</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tổng quan</div>
+    <button class="nav-item active" onclick="showSection('intro')">🏠 Giới thiệu</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">11 — Heap / Priority Queue</div>
+    <button class="nav-item" onclick="showSection('heap-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('heap-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">12 — Trie</div>
+    <button class="nav-item" onclick="showSection('trie-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('trie-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">13 — Hashmap / Prefix Sum</div>
+    <button class="nav-item" onclick="showSection('hash-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('hash-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">14 — Matrix</div>
+    <button class="nav-item" onclick="showSection('matrix-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('matrix-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">15 — String</div>
+    <button class="nav-item" onclick="showSection('string-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('string-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">16 — Design</div>
+    <button class="nav-item" onclick="showSection('design-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('design-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">17 — Buy &amp; Sell Stock</div>
+    <button class="nav-item" onclick="showSection('stock-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('stock-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tham khảo</div>
+    <button class="nav-item" onclick="showSection('refs')">📚 References</button>
+  </div>
+</nav>
+
+<!-- ===== TOP NAV ===== -->
+<nav id="topnav">
+  <button class="topnav-item active" onclick="showSection('intro')">Intro</button>
+  <button class="topnav-item" onclick="showSection('heap-concept')">Heap</button>
+  <button class="topnav-item" onclick="showSection('trie-concept')">Trie</button>
+  <button class="topnav-item" onclick="showSection('hash-concept')">Hashmap</button>
+  <button class="topnav-item" onclick="showSection('matrix-concept')">Matrix</button>
+  <button class="topnav-item" onclick="showSection('string-concept')">String</button>
+  <button class="topnav-item" onclick="showSection('design-concept')">Design</button>
+  <button class="topnav-item" onclick="showSection('stock-concept')">Stock DP</button>
+  <button class="topnav-item" onclick="showSection('refs')">Refs</button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main id="main">
+<div class="content-area">
+
+<!-- ========================================================= INTRO -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">II</div>
+    <div>
+      <div class="section-title">Go LeetCode Patterns — Phần 2</div>
+      <div class="section-subtitle">Heap · Trie · Hashmap · Matrix · String · Design · Buy &amp; Sell Stock</div>
+    </div>
+    <span class="badge badge-expert">MASTER</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Mục tiêu</div>
+    <div class="title">7 Pattern nâng cao — từ Interview đến System Design</div>
+    <p class="prose">Phần 2 bao phủ 7 pattern còn lại trong bộ "LeetCode Blind 75 + NeetCode 150", mỗi pattern đều có mặt thường xuyên trong vòng phỏng vấn kỹ thuật tại các công ty FAANG. Đặc biệt <strong>Design</strong> và <strong>Buy &amp; Sell Stock (DP)</strong> là hai mảng phân loại ứng viên Senior rõ rệt nhất.</p>
+  </div>
+
+  <h3>Bảng tổng hợp 7 Pattern</h3>
+  <table class="data-table">
+    <thead>
+      <tr><th>#</th><th>Pattern</th><th>Cấu trúc dữ liệu cốt lõi</th><th>Time</th><th>Dấu hiệu nhận biết</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>11</td><td><strong>Heap / Priority Queue</strong></td><td><code>container/heap</code></td><td>O(n log k)</td><td>Kth largest, top-K, merge sorted, median stream</td></tr>
+      <tr><td>12</td><td><strong>Trie</strong></td><td>Node struct + children[26]</td><td>O(L)</td><td>Prefix search, word dictionary, autocomplete</td></tr>
+      <tr><td>13</td><td><strong>Hashmap + Prefix Sum</strong></td><td><code>map[T]int</code> + cumSum array</td><td>O(n)</td><td>Subarray sum = k, count pairs, frequency map</td></tr>
+      <tr><td>14</td><td><strong>Matrix</strong></td><td>2D slice, spiral/rotation</td><td>O(m×n)</td><td>Rotate 90°, spiral order, DP trên grid</td></tr>
+      <tr><td>15</td><td><strong>String</strong></td><td>KMP, Rabin-Karp, rolling hash</td><td>O(n+m)</td><td>Pattern matching, anagram, palindrome</td></tr>
+      <tr><td>16</td><td><strong>Design</strong></td><td>Struct + map + list</td><td>O(1) amortized</td><td>LRU, LFU, MedianFinder, TimestampMap</td></tr>
+      <tr><td>17</td><td><strong>Buy &amp; Sell Stock (DP)</strong></td><td>State machine DP</td><td>O(n)</td><td>Maximise profit, k transactions, cooldown, fee</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note note-info">
+    <div class="note-icon">📦</div>
+    <p>Tài liệu viết theo <strong>Go 1.21+</strong>. Mọi code sử dụng idiomatic Go: <code>container/heap</code>, generics (nơi phù hợp), proper error handling. Không dùng thư viện ngoài — chỉ standard library.</p>
+  </div>
+</section>
+
+<!-- ========================================================= HEAP CONCEPT -->
+<section class="page-section" id="s-heap-concept">
+  <div class="section-header">
+    <div class="section-number">11</div>
+    <div>
+      <div class="section-title">Heap / Priority Queue</div>
+      <div class="section-subtitle">Min-Heap, Max-Heap và các bài toán Top-K</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 11</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Heap là gì?</div>
+    <p class="prose"><strong>Heap</strong> là cây nhị phân hoàn chỉnh (complete binary tree) thoả tính chất: mọi node cha đều nhỏ hơn (Min-Heap) hoặc lớn hơn (Max-Heap) tất cả con cháu. Nhờ vậy phần tử nhỏ/lớn nhất luôn ở root — truy xuất O(1), insert/delete O(log n).</p>
+    <p class="prose"><strong>Priority Queue</strong> là abstract data type được implement bằng Heap. Trong Go, package <code>container/heap</code> cung cấp interface <code>heap.Interface</code> — cần implement 5 method: <code>Len, Less, Swap, Push, Pop</code>.</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/heap_priority_queue.png" alt="Heap & Priority Queue Concept Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 11.1: Trực quan hóa Cấu trúc Binary Heap & Priority Queue
+    </div>
+  </div>
+
+  <h3>Diagram: Cấu trúc Min-Heap và lưu trữ trên mảng</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Min-Heap — Biểu diễn cây &amp; mảng tương đương</div>
+    <svg width="100%" viewBox="0 0 760 290" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Edges -->
+      <line x1="200" y1="58" x2="120" y2="115" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="200" y1="58" x2="280" y2="115" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="120" y1="138" x2="70"  y2="195" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="120" y1="138" x2="170" y2="195" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="280" y1="138" x2="230" y2="195" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="280" y1="138" x2="330" y2="195" stroke="#1e293b" stroke-width="1.5"/>
+      <!-- Nodes -->
+      <circle cx="200" cy="45"  r="22" fill="rgba(245,158,11,.25)" stroke="#f59e0b" stroke-width="2"/>
+      <text x="200" y="51" text-anchor="middle" font-size="15" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">1</text>
+      <text x="200" y="25" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=0 (root)</text>
+
+      <circle cx="120" cy="126" r="20" fill="rgba(245,158,11,.15)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="120" y="132" text-anchor="middle" font-size="15" fill="#f59e0b" font-family="JetBrains Mono">3</text>
+      <text x="120" y="110" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=1</text>
+
+      <circle cx="280" cy="126" r="20" fill="rgba(245,158,11,.15)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="280" y="132" text-anchor="middle" font-size="15" fill="#f59e0b" font-family="JetBrains Mono">5</text>
+      <text x="280" y="110" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=2</text>
+
+      <circle cx="70"  cy="208" r="18" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-opacity=".6" stroke-width="1.5"/>
+      <text x="70"  y="214" text-anchor="middle" font-size="14" fill="#f59e0b" font-family="JetBrains Mono">7</text>
+      <text x="70"  y="193" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=3</text>
+
+      <circle cx="170" cy="208" r="18" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-opacity=".6" stroke-width="1.5"/>
+      <text x="170" y="214" text-anchor="middle" font-size="14" fill="#f59e0b" font-family="JetBrains Mono">9</text>
+      <text x="170" y="193" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=4</text>
+
+      <circle cx="230" cy="208" r="18" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-opacity=".6" stroke-width="1.5"/>
+      <text x="230" y="214" text-anchor="middle" font-size="14" fill="#f59e0b" font-family="JetBrains Mono">8</text>
+      <text x="230" y="193" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=5</text>
+
+      <circle cx="330" cy="208" r="18" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-opacity=".6" stroke-width="1.5"/>
+      <text x="330" y="214" text-anchor="middle" font-size="14" fill="#f59e0b" font-family="JetBrains Mono">6</text>
+      <text x="330" y="193" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">i=6</text>
+
+      <!-- Array representation -->
+      <text x="430" y="30" font-size="11" fill="#94a3b8" font-family="Inter">Mảng tương đương:</text>
+      <text x="430" y="50" font-size="10" fill="#64748b" font-family="JetBrains Mono">index: [0] [1] [2] [3] [4] [5] [6]</text>
+      <text x="430" y="70" font-size="10" fill="#f59e0b"  font-family="JetBrains Mono">value: [ 1] [ 3] [ 5] [ 7] [ 9] [ 8] [ 6]</text>
+
+      <text x="430" y="105" font-size="11" fill="#94a3b8" font-family="Inter">Công thức quan hệ cha-con:</text>
+      <rect x="430" y="115" width="290" height="120" rx="8" fill="rgba(245,158,11,.05)" stroke="rgba(245,158,11,.2)"/>
+      <text x="445" y="137" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">parent(i)    = (i-1) / 2</text>
+      <text x="445" y="157" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">leftChild(i) = 2*i + 1</text>
+      <text x="445" y="177" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">rightChild(i)= 2*i + 2</text>
+      <text x="445" y="205" font-size="10" fill="#64748b" font-family="JetBrains Mono">Heap condition (Min):</text>
+      <text x="445" y="223" font-size="10" fill="#f59e0b"  font-family="JetBrains Mono">arr[parent(i)] &lt;= arr[i]  ∀i</text>
+
+      <!-- Operations complexity -->
+      <text x="430" y="258" font-size="11" fill="#94a3b8" font-family="Inter">Độ phức tạp:</text>
+      <text x="430" y="275" font-size="10" fill="#64748b" font-family="JetBrains Mono">Peek O(1) · Push O(log n) · Pop O(log n) · Heapify O(n)</text>
+    </svg>
+  </div>
+
+  <h3>Min-Heap vs Max-Heap — Khi nào dùng cái nào?</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head amber">Min-Heap (mặc định Go)</div>
+      <div style="padding:16px">
+        <ul class="step-list">
+          <li><div class="step-num">✓</div><span>Tìm <strong>K phần tử lớn nhất</strong> — giữ min-heap size K, loại bỏ min khi vượt K</span></li>
+          <li><div class="step-num">✓</div><span>Dijkstra shortest path — luôn expand node nhỏ nhất</span></li>
+          <li><div class="step-num">✓</div><span>Merge K sorted lists — lấy phần tử nhỏ nhất tiếp theo</span></li>
+          <li><div class="step-num">✓</div><span>Task scheduling — ưu tiên task nhỏ nhất</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head coral">Max-Heap (đảo Less)</div>
+      <div style="padding:16px">
+        <ul class="step-list">
+          <li><div class="step-num">✓</div><span>Tìm <strong>K phần tử nhỏ nhất</strong> — giữ max-heap size K, loại bỏ max</span></li>
+          <li><div class="step-num">✓</div><span>Median of stream — nửa lớn dùng max-heap</span></li>
+          <li><div class="step-num">✓</div><span>Find median — two heap approach</span></li>
+          <li><div class="step-num">✓</div><span>Greedy problems — luôn xử lý phần tử lớn nhất trước</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p><strong>Go heap interface:</strong> Go không có built-in max-heap. Để tạo Max-Heap, chỉ cần đảo dấu trong hàm <code>Less(i,j int) bool</code>: thay <code>h[i] &lt; h[j]</code> thành <code>h[i] &gt; h[j]</code>. Đây là lỗi hay quên nhất khi dùng <code>container/heap</code>.</p>
+  </div>
+</section>
+
+<!-- ========================================================= HEAP CODE -->
+<section class="page-section" id="s-heap-code">
+  <div class="section-header">
+    <div class="section-number">11</div>
+    <div>
+      <div class="section-title">Heap / Priority Queue — Code Samples</div>
+      <div class="section-subtitle">Min-Heap, Max-Heap, Two-Heap Median</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">Kth Largest Element in a Stream (LeetCode #703) — Min-Heap Template</div>
+      <span class="badge badge-basic">EASY</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Time: O(n log k)</span>
+        <span class="complexity-tag space-tag">Space: O(k)</span>
+        <span class="diff-easy">Easy</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">kth_largest_stream.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// MinHeap của size k luôn giữ k phần tử lớn nhất.
+// Root (min của heap) chính là Kth largest.</span>
+<span class="kw">import</span> <span class="str">"container/heap"</span>
+
+<span class="kw">type</span> <span class="tp">MinHeap</span> []<span class="tp">int</span>
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Len</span>() <span class="tp">int</span>            { <span class="kw">return</span> <span class="fn">len</span>(h) }
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Less</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> h[i] &lt; h[j] }  <span class="cm">// Min-Heap</span>
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Swap</span>(i, j <span class="tp">int</span>)      { h[i], h[j] = h[j], h[i] }
+<span class="kw">func</span> (h *<span class="tp">MinHeap</span>) <span class="fn">Push</span>(x <span class="kw">any</span>)        { *h = <span class="fn">append</span>(*h, x.(<span class="tp">int</span>)) }
+<span class="kw">func</span> (h *<span class="tp">MinHeap</span>) <span class="fn">Pop</span>() <span class="kw">any</span>          { old := *h; n := <span class="fn">len</span>(old); x := old[n-<span class="num">1</span>]; *h = old[:n-<span class="num">1</span>]; <span class="kw">return</span> x }
+
+<span class="kw">type</span> <span class="tp">KthLargest</span> <span class="kw">struct</span> {
+    k    <span class="tp">int</span>
+    heap *<span class="tp">MinHeap</span>
+}
+
+<span class="kw">func</span> <span class="fn">Constructor</span>(k <span class="tp">int</span>, nums []<span class="tp">int</span>) <span class="tp">KthLargest</span> {
+    h := &amp;<span class="tp">MinHeap</span>{}
+    <span class="pkg">heap</span>.<span class="fn">Init</span>(h)
+    obj := <span class="tp">KthLargest</span>{k: k, heap: h}
+    <span class="kw">for</span> _, v := <span class="kw">range</span> nums { obj.<span class="fn">Add</span>(v) }
+    <span class="kw">return</span> obj
+}
+
+<span class="kw">func</span> (kl *<span class="tp">KthLargest</span>) <span class="fn">Add</span>(val <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="pkg">heap</span>.<span class="fn">Push</span>(kl.heap, val)
+    <span class="cm">// Luôn giữ heap có đúng k phần tử (k lớn nhất)</span>
+    <span class="kw">for</span> kl.heap.<span class="fn">Len</span>() &gt; kl.k {
+        <span class="pkg">heap</span>.<span class="fn">Pop</span>(kl.heap)
+    }
+    <span class="kw">return</span> (*kl.heap)[<span class="num">0</span>] <span class="cm">// root = Kth largest</span>
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Find Median from Data Stream (LeetCode #295) — Two Heaps</div>
+      <span class="badge badge-expert">HARD</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">addNum: O(log n)</span>
+        <span class="complexity-tag space-tag">findMedian: O(1)</span>
+        <span class="diff-hard">Hard</span>
+      </div>
+      <p class="prose">Ý tưởng: dùng <strong>Max-Heap</strong> lưu nửa nhỏ (lo) và <strong>Min-Heap</strong> lưu nửa lớn (hi). Cân bằng sao cho <code>len(lo) == len(hi)</code> hoặc <code>len(lo) == len(hi)+1</code>.</p>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">median_finder.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="kw">type</span> <span class="tp">MaxHeap</span> []<span class="tp">int</span>
+<span class="kw">func</span> (h <span class="tp">MaxHeap</span>) <span class="fn">Len</span>() <span class="tp">int</span>            { <span class="kw">return</span> <span class="fn">len</span>(h) }
+<span class="kw">func</span> (h <span class="tp">MaxHeap</span>) <span class="fn">Less</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> h[i] &gt; h[j] }  <span class="cm">// ← đảo dấu = Max-Heap</span>
+<span class="kw">func</span> (h <span class="tp">MaxHeap</span>) <span class="fn">Swap</span>(i, j <span class="tp">int</span>)      { h[i], h[j] = h[j], h[i] }
+<span class="kw">func</span> (h *<span class="tp">MaxHeap</span>) <span class="fn">Push</span>(x <span class="kw">any</span>)        { *h = <span class="fn">append</span>(*h, x.(<span class="tp">int</span>)) }
+<span class="kw">func</span> (h *<span class="tp">MaxHeap</span>) <span class="fn">Pop</span>() <span class="kw">any</span>          { old := *h; n := <span class="fn">len</span>(old); x := old[n-<span class="num">1</span>]; *h = old[:n-<span class="num">1</span>]; <span class="kw">return</span> x }
+
+<span class="kw">type</span> <span class="tp">MedianFinder</span> <span class="kw">struct</span> {
+    lo *<span class="tp">MaxHeap</span> <span class="cm">// nửa nhỏ, root = max của nửa nhỏ</span>
+    hi *<span class="tp">MinHeap</span> <span class="cm">// nửa lớn, root = min của nửa lớn</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewMedianFinder</span>() <span class="tp">MedianFinder</span> {
+    lo, hi := &amp;<span class="tp">MaxHeap</span>{}, &amp;<span class="tp">MinHeap</span>{}
+    <span class="pkg">heap</span>.<span class="fn">Init</span>(lo); <span class="pkg">heap</span>.<span class="fn">Init</span>(hi)
+    <span class="kw">return</span> <span class="tp">MedianFinder</span>{lo, hi}
+}
+
+<span class="kw">func</span> (mf *<span class="tp">MedianFinder</span>) <span class="fn">AddNum</span>(num <span class="tp">int</span>) {
+    <span class="cm">// Luôn push vào lo trước, rồi cân bằng</span>
+    <span class="pkg">heap</span>.<span class="fn">Push</span>(mf.lo, num)
+    <span class="cm">// Đảm bảo max(lo) &lt;= min(hi)</span>
+    <span class="kw">if</span> mf.hi.<span class="fn">Len</span>() &gt; <span class="num">0</span> &amp;&amp; (*mf.lo)[<span class="num">0</span>] &gt; (*mf.hi)[<span class="num">0</span>] {
+        <span class="pkg">heap</span>.<span class="fn">Push</span>(mf.hi, <span class="pkg">heap</span>.<span class="fn">Pop</span>(mf.lo))
+    }
+    <span class="cm">// Cân bằng kích thước: lo có thể hơn hi 1 phần tử</span>
+    <span class="kw">if</span> mf.lo.<span class="fn">Len</span>() &gt; mf.hi.<span class="fn">Len</span>()+<span class="num">1</span> {
+        <span class="pkg">heap</span>.<span class="fn">Push</span>(mf.hi, <span class="pkg">heap</span>.<span class="fn">Pop</span>(mf.lo))
+    } <span class="kw">else if</span> mf.hi.<span class="fn">Len</span>() &gt; mf.lo.<span class="fn">Len</span>() {
+        <span class="pkg">heap</span>.<span class="fn">Push</span>(mf.lo, <span class="pkg">heap</span>.<span class="fn">Pop</span>(mf.hi))
+    }
+}
+
+<span class="kw">func</span> (mf *<span class="tp">MedianFinder</span>) <span class="fn">FindMedian</span>() <span class="tp">float64</span> {
+    <span class="kw">if</span> mf.lo.<span class="fn">Len</span>() &gt; mf.hi.<span class="fn">Len</span>() {
+        <span class="kw">return</span> <span class="tp">float64</span>((*mf.lo)[<span class="num">0</span>])
+    }
+    <span class="kw">return</span> <span class="tp">float64</span>((*mf.lo)[<span class="num">0</span>]+(*mf.hi)[<span class="num">0</span>]) / <span class="num">2.0</span>
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P3</div>
+      <div class="problem-title">Task Scheduler (LeetCode #621) — Greedy + Max-Heap</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Time: O(n log 26) = O(n)</span>
+        <span class="complexity-tag space-tag">Space: O(1)</span>
+        <span class="diff-med">Medium</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">task_scheduler.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// leastInterval — Greedy: luôn chọn task có frequency cao nhất.
+// Dùng Max-Heap + cooldown queue.</span>
+<span class="kw">func</span> <span class="fn">leastInterval</span>(tasks []<span class="tp">byte</span>, n <span class="tp">int</span>) <span class="tp">int</span> {
+    freq := [<span class="num">26</span>]<span class="tp">int</span>{}
+    <span class="kw">for</span> _, t := <span class="kw">range</span> tasks { freq[t-<span class="str">'A'</span>]++ }
+
+    mh := &amp;<span class="tp">MaxHeap</span>{}
+    <span class="pkg">heap</span>.<span class="fn">Init</span>(mh)
+    <span class="kw">for</span> _, f := <span class="kw">range</span> freq {
+        <span class="kw">if</span> f &gt; <span class="num">0</span> { <span class="pkg">heap</span>.<span class="fn">Push</span>(mh, f) }
+    }
+
+    <span class="cm">// queue lưu [remaining_count, available_at_time]</span>
+    <span class="kw">type</span> <span class="tp">entry</span> <span class="kw">struct</span>{ cnt, availAt <span class="tp">int</span> }
+    queue := []<span class="tp">entry</span>{}
+    time := <span class="num">0</span>
+
+    <span class="kw">for</span> mh.<span class="fn">Len</span>() &gt; <span class="num">0</span> || <span class="fn">len</span>(queue) &gt; <span class="num">0</span> {
+        time++
+        <span class="kw">if</span> mh.<span class="fn">Len</span>() &gt; <span class="num">0</span> {
+            cnt := <span class="pkg">heap</span>.<span class="fn">Pop</span>(mh).(<span class="tp">int</span>) - <span class="num">1</span>
+            <span class="kw">if</span> cnt &gt; <span class="num">0</span> { queue = <span class="fn">append</span>(queue, <span class="tp">entry</span>{cnt, time + n}) }
+        }
+        <span class="cm">// Phục hồi các task đã hết cooldown</span>
+        <span class="kw">if</span> <span class="fn">len</span>(queue) &gt; <span class="num">0</span> &amp;&amp; queue[<span class="num">0</span>].availAt == time {
+            <span class="pkg">heap</span>.<span class="fn">Push</span>(mh, queue[<span class="num">0</span>].cnt)
+            queue = queue[<span class="num">1</span>:]
+        }
+    }
+    <span class="kw">return</span> time
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= TRIE CONCEPT -->
+<section class="page-section" id="s-trie-concept">
+  <div class="section-header">
+    <div class="section-number">12</div>
+    <div>
+      <div class="section-title">Trie (Prefix Tree)</div>
+      <div class="section-subtitle">Cây tiền tố cho tìm kiếm chuỗi hiệu quả</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 12</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Trie là gì?</div>
+    <p class="prose"><strong>Trie</strong> (Prefix Tree / Retrieval Tree) là cây nhiều nhánh lưu trữ chuỗi theo từng ký tự. Mỗi đường từ root đến node lá biểu diễn một chuỗi. Các chuỗi có cùng prefix chia sẻ các node đầu tiên.</p>
+    <p class="prose">Độ phức tạp: <strong>Insert / Search / StartsWith đều O(L)</strong> với L là độ dài chuỗi — nhanh hơn Hash Set khi cần prefix queries. Trie cực kỳ mạnh cho autocomplete, spell checker, IP routing.</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/trie.png" alt="Trie Concept Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 12.1: Trực quan hóa Cấu trúc cây tiền tố Trie
+    </div>
+  </div>
+
+  <h3>Diagram: Trie chứa ["apple","app","api","apply","apt"]</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Trie Structure — Prefix sharing visualization</div>
+    <svg width="100%" viewBox="0 0 760 310" xmlns="http://www.w3.org/2000/svg">
+      <!-- ROOT -->
+      <circle cx="380" cy="30" r="20" fill="rgba(168,85,247,.2)" stroke="#a855f7" stroke-width="2"/>
+      <text x="380" y="36" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">root</text>
+
+      <!-- Level 1: a -->
+      <line x1="380" y1="50" x2="200" y2="90" stroke="#1e293b" stroke-width="1.5"/>
+      <circle cx="200" cy="105" r="18" fill="rgba(0,212,255,.15)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="200" y="111" text-anchor="middle" font-size="14" fill="#00d4ff" font-family="JetBrains Mono">a</text>
+
+      <!-- Level 2: p (shared) -->
+      <line x1="200" y1="123" x2="200" y2="162" stroke="#1e293b" stroke-width="1.5"/>
+      <circle cx="200" cy="175" r="18" fill="rgba(0,212,255,.15)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="200" y="181" text-anchor="middle" font-size="14" fill="#00d4ff" font-family="JetBrains Mono">p</text>
+
+      <!-- Level 3 branches from 'p': p, i, t -->
+      <line x1="200" y1="193" x2="100" y2="233" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="200" y1="193" x2="200" y2="233" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="200" y1="193" x2="300" y2="233" stroke="#1e293b" stroke-width="1.5"/>
+
+      <circle cx="100" cy="248" r="18" fill="rgba(0,255,136,.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="100" y="254" text-anchor="middle" font-size="14" fill="#00ff88" font-family="JetBrains Mono">p</text>
+      <text x="100" y="280" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">"app"★</text>
+
+      <circle cx="200" cy="248" r="18" fill="rgba(0,255,136,.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="200" y="254" text-anchor="middle" font-size="14" fill="#00ff88" font-family="JetBrains Mono">i</text>
+
+      <circle cx="300" cy="248" r="18" fill="rgba(0,255,136,.15)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="300" y="254" text-anchor="middle" font-size="14" fill="#00ff88" font-family="JetBrains Mono">t</text>
+      <text x="300" y="280" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">"apt"★</text>
+
+      <!-- Level 4 from app: l,e  from api: (end) -->
+      <line x1="100" y1="266" x2="60"  y2="295" stroke="#1e293b" stroke-width="1"/>
+      <line x1="100" y1="266" x2="130" y2="295" stroke="#1e293b" stroke-width="1"/>
+
+      <circle cx="55"  cy="302" r="14" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+      <text x="55"  y="307" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">l</text>
+      <circle cx="130" cy="302" r="14" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+      <text x="130" y="307" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">e</text>
+
+      <line x1="200" y1="266" x2="200" y2="295" stroke="#1e293b" stroke-width="1"/>
+      <circle cx="200" cy="302" r="14" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+      <text x="200" y="307" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">★</text>
+
+      <!-- Legend -->
+      <circle cx="460" cy="180" r="10" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+      <text x="478" y="185" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Node (isEnd=false)</text>
+      <text x="460" y="200" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">★</text>
+      <text x="478" y="205" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">isEnd=true (word ends here)</text>
+
+      <text x="460" y="230" font-size="10" fill="#64748b" font-family="JetBrains Mono">Prefix "app" → shared path a→p→p</text>
+      <text x="460" y="248" font-size="10" fill="#64748b" font-family="JetBrains Mono">"apple","apply","app" dùng chung</text>
+      <text x="460" y="265" font-size="10" fill="#64748b" font-family="JetBrains Mono">nodes a,p,p tiết kiệm bộ nhớ</text>
+    </svg>
+  </div>
+
+  <h3>So sánh Trie vs HashMap</h3>
+  <table class="data-table">
+    <thead><tr><th>Tiêu chí</th><th>Trie</th><th>HashMap (map[string]bool)</th></tr></thead>
+    <tbody>
+      <tr><td>Tìm prefix</td><td>O(L) — rất hiệu quả</td><td>O(n×L) — phải duyệt hết</td></tr>
+      <tr><td>Exact search</td><td>O(L)</td><td>O(L) average</td></tr>
+      <tr><td>Insert</td><td>O(L)</td><td>O(L) average</td></tr>
+      <tr><td>Bộ nhớ</td><td>O(ALPHABET × total_chars)</td><td>O(total_string_length)</td></tr>
+      <tr><td>Autocomplete</td><td>✅ Native support</td><td>❌ Không hiệu quả</td></tr>
+      <tr><td>Wildcard search</td><td>✅ DFS trên Trie</td><td>❌ Rất khó</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================================================= TRIE CODE -->
+<section class="page-section" id="s-trie-code">
+  <div class="section-header">
+    <div class="section-number">12</div>
+    <div>
+      <div class="section-title">Trie — Code Samples</div>
+      <div class="section-subtitle">Implementation đầy đủ và các bài toán nâng cao</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">Implement Trie (LeetCode #208) — Đầy đủ Insert/Search/StartsWith</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">trie.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// TrieNode lưu 26 con trỏ con cho 26 chữ cái thường.</span>
+<span class="kw">type</span> <span class="tp">TrieNode</span> <span class="kw">struct</span> {
+    children [<span class="num">26</span>]*<span class="tp">TrieNode</span>
+    isEnd    <span class="tp">bool</span>
+}
+
+<span class="kw">type</span> <span class="tp">Trie</span> <span class="kw">struct</span> { root *<span class="tp">TrieNode</span> }
+<span class="kw">func</span> <span class="fn">NewTrie</span>() <span class="tp">Trie</span> { <span class="kw">return</span> <span class="tp">Trie</span>{root: &amp;<span class="tp">TrieNode</span>{}} }
+
+<span class="cm">// Insert — O(L)</span>
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">Insert</span>(word <span class="tp">string</span>) {
+    node := t.root
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> word {
+        idx := ch - <span class="str">'a'</span>
+        <span class="kw">if</span> node.children[idx] == <span class="kw">nil</span> {
+            node.children[idx] = &amp;<span class="tp">TrieNode</span>{}
+        }
+        node = node.children[idx]
+    }
+    node.isEnd = <span class="kw">true</span>
+}
+
+<span class="cm">// Search — kiểm tra từ tồn tại chính xác</span>
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">Search</span>(word <span class="tp">string</span>) <span class="tp">bool</span> {
+    node := t.<span class="fn">traverse</span>(word)
+    <span class="kw">return</span> node != <span class="kw">nil</span> &amp;&amp; node.isEnd
+}
+
+<span class="cm">// StartsWith — kiểm tra prefix</span>
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">StartsWith</span>(prefix <span class="tp">string</span>) <span class="tp">bool</span> {
+    <span class="kw">return</span> t.<span class="fn">traverse</span>(prefix) != <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">traverse</span>(s <span class="tp">string</span>) *<span class="tp">TrieNode</span> {
+    node := t.root
+    <span class="kw">for</span> _, ch := <span class="kw">range</span> s {
+        idx := ch - <span class="str">'a'</span>
+        <span class="kw">if</span> node.children[idx] == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+        node = node.children[idx]
+    }
+    <span class="kw">return</span> node
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Word Search II (LeetCode #212) — Trie + DFS Backtracking Expert</div>
+      <span class="badge badge-expert">HARD</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Time: O(M×N×4^L)</span>
+        <span class="complexity-tag space-tag">Space: O(W×L)</span>
+        <span class="diff-hard">Hard</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">word_search_ii.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// findWords — Trie + DFS. Tối ưu: lưu từ vào Trie node thay vì
+// search riêng từng từ. Pruning: xoá node đã tìm thấy khỏi Trie.</span>
+<span class="kw">type</span> <span class="tp">WordNode</span> <span class="kw">struct</span> {
+    children [<span class="num">26</span>]*<span class="tp">WordNode</span>
+    word     <span class="tp">string</span> <span class="cm">// non-empty khi là end of word</span>
+}
+
+<span class="kw">func</span> <span class="fn">findWords</span>(board [][]<span class="tp">byte</span>, words []<span class="tp">string</span>) []<span class="tp">string</span> {
+    root := &amp;<span class="tp">WordNode</span>{}
+    <span class="kw">for</span> _, w := <span class="kw">range</span> words {
+        node := root
+        <span class="kw">for</span> _, c := <span class="kw">range</span> w {
+            i := c - <span class="str">'a'</span>
+            <span class="kw">if</span> node.children[i] == <span class="kw">nil</span> { node.children[i] = &amp;<span class="tp">WordNode</span>{} }
+            node = node.children[i]
+        }
+        node.word = w
+    }
+
+    rows, cols := <span class="fn">len</span>(board), <span class="fn">len</span>(board[<span class="num">0</span>])
+    <span class="kw">var</span> result []<span class="tp">string</span>
+    dirs := [][<span class="num">2</span>]<span class="tp">int</span>{{<span class="num">0</span>,<span class="num">1</span>},{<span class="num">0</span>,-<span class="num">1</span>},{<span class="num">1</span>,<span class="num">0</span>},{-<span class="num">1</span>,<span class="num">0</span>}}
+
+    <span class="kw">var</span> <span class="fn">dfs</span> <span class="kw">func</span>(r, c <span class="tp">int</span>, node *<span class="tp">WordNode</span>)
+    <span class="fn">dfs</span> = <span class="kw">func</span>(r, c <span class="tp">int</span>, node *<span class="tp">WordNode</span>) {
+        <span class="kw">if</span> r &lt; <span class="num">0</span> || r &gt;= rows || c &lt; <span class="num">0</span> || c &gt;= cols || board[r][c] == <span class="str">'#'</span> { <span class="kw">return</span> }
+        ch := board[r][c]
+        next := node.children[ch-<span class="str">'a'</span>]
+        <span class="kw">if</span> next == <span class="kw">nil</span> { <span class="kw">return</span> }
+
+        <span class="kw">if</span> next.word != <span class="str">""</span> {
+            result = <span class="fn">append</span>(result, next.word)
+            next.word = <span class="str">""</span> <span class="cm">// pruning: tránh duplicate</span>
+        }
+
+        board[r][c] = <span class="str">'#'</span> <span class="cm">// mark visited</span>
+        <span class="kw">for</span> _, d := <span class="kw">range</span> dirs { <span class="fn">dfs</span>(r+d[<span class="num">0</span>], c+d[<span class="num">1</span>], next) }
+        board[r][c] = ch  <span class="cm">// restore</span>
+    }
+
+    <span class="kw">for</span> r := <span class="kw">range</span> board {
+        <span class="kw">for</span> c := <span class="kw">range</span> board[r] { <span class="fn">dfs</span>(r, c, root) }
+    }
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= HASHMAP CONCEPT -->
+<section class="page-section" id="s-hash-concept">
+  <div class="section-header">
+    <div class="section-number">13</div>
+    <div>
+      <div class="section-title">Hashmap &amp; Prefix Sum</div>
+      <div class="section-subtitle">HashMap cho frequency/lookup O(1) và Prefix Sum cho subarray queries</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 13</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Hashmap + Prefix Sum — Hai công cụ không thể thiếu</div>
+    <p class="prose"><strong>Hashmap</strong> (<code>map[K]V</code> trong Go) cho phép insert/lookup/delete O(1) average. Là nền tảng cho hầu hết các bài "count", "find pair", "group anagram", "two sum".</p>
+    <p class="prose"><strong>Prefix Sum</strong>: xây dựng mảng <code>prefix[i] = sum(arr[0..i-1])</code> để trả lời mọi range sum query O(1). <code>sum(l,r) = prefix[r+1] - prefix[l]</code>. Kết hợp với HashMap để đếm subarray có tổng = k trong O(n).</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/hashmap.png" alt="Hashmap & Prefix Sum Concept Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 13.1: Trực quan hóa Hashmap & Prefix Sum
+    </div>
+  </div>
+
+  <h3>Diagram: Prefix Sum và HashMap kết hợp</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Subarray Sum = K — Prefix Sum + HashMap O(n)</div>
+    <svg width="100%" viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg">
+      <!-- Array -->
+      <text x="30" y="25" font-size="11" fill="#94a3b8" font-family="Inter">arr = [1, 2, 3, -1, 4],  k = 5</text>
+
+      <!-- Cells -->
+      <g font-family="JetBrains Mono" font-size="13">
+        <rect x="30"  y="35" width="50" height="36" rx="4" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+        <text x="55"  y="59" text-anchor="middle" fill="#00d4ff">1</text>
+        <rect x="84"  y="35" width="50" height="36" rx="4" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+        <text x="109" y="59" text-anchor="middle" fill="#00d4ff">2</text>
+        <rect x="138" y="35" width="50" height="36" rx="4" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+        <text x="163" y="59" text-anchor="middle" fill="#00d4ff">3</text>
+        <rect x="192" y="35" width="50" height="36" rx="4" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+        <text x="217" y="59" text-anchor="middle" fill="#00d4ff">-1</text>
+        <rect x="246" y="35" width="50" height="36" rx="4" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+        <text x="271" y="59" text-anchor="middle" fill="#00d4ff">4</text>
+      </g>
+
+      <!-- Prefix sums -->
+      <text x="30" y="95" font-size="10" fill="#64748b" font-family="JetBrains Mono">Prefix sum:</text>
+      <g font-family="JetBrains Mono" font-size="12">
+        <rect x="30"  y="102" width="50" height="30" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="55"  y="122" text-anchor="middle" fill="#a855f7">0</text>
+        <rect x="84"  y="102" width="50" height="30" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="109" y="122" text-anchor="middle" fill="#a855f7">1</text>
+        <rect x="138" y="102" width="50" height="30" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="163" y="122" text-anchor="middle" fill="#a855f7">3</text>
+        <rect x="192" y="102" width="50" height="30" rx="3" fill="rgba(245,158,11,.2)" stroke="#f59e0b"/>
+        <text x="217" y="122" text-anchor="middle" fill="#f59e0b">6</text>
+        <rect x="246" y="102" width="50" height="30" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="271" y="122" text-anchor="middle" fill="#a855f7">5</text>
+        <rect x="300" y="102" width="50" height="30" rx="3" fill="rgba(245,158,11,.2)" stroke="#f59e0b"/>
+        <text x="325" y="122" text-anchor="middle" fill="#f59e0b">9</text>
+      </g>
+      <text x="30"  y="147" font-size="9" fill="#64748b" font-family="JetBrains Mono">p[0]</text>
+      <text x="84"  y="147" font-size="9" fill="#64748b" font-family="JetBrains Mono">p[1]</text>
+      <text x="138" y="147" font-size="9" fill="#64748b" font-family="JetBrains Mono">p[2]</text>
+      <text x="192" y="147" font-size="9" fill="#f59e0b"  font-family="JetBrains Mono">p[3]</text>
+      <text x="246" y="147" font-size="9" fill="#64748b" font-family="JetBrains Mono">p[4]</text>
+      <text x="300" y="147" font-size="9" fill="#f59e0b"  font-family="JetBrains Mono">p[5]</text>
+
+      <!-- Explanation -->
+      <text x="30" y="175" font-size="11" fill="#94a3b8" font-family="Inter">Tại i=3: p[3]=6, cần p[j] = p[3]-k = 6-5 = 1 → tìm trong map → map[1]=1 → count++</text>
+      <text x="30" y="195" font-size="11" fill="#94a3b8" font-family="Inter">Tại i=4: p[4]=5, cần p[j] = 5-5 = 0  → map[0]=1 → count++  (subarray [1..4])</text>
+      <text x="30" y="215" font-size="11" fill="#94a3b8" font-family="Inter">Tại i=5: p[5]=9, cần p[j] = 9-5 = 4  → không có → count+0</text>
+
+      <!-- HashMap state -->
+      <rect x="430" y="30" width="300" height="160" rx="8" fill="rgba(0,212,255,.04)" stroke="rgba(0,212,255,.2)"/>
+      <text x="580" y="52" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">HashMap (prefix → count)</text>
+      <text x="445" y="75"  font-size="11" fill="#64748b" font-family="JetBrains Mono">{ 0:1 }                  ← init</text>
+      <text x="445" y="95"  font-size="11" fill="#64748b" font-family="JetBrains Mono">{ 0:1, 1:1 }             ← i=0</text>
+      <text x="445" y="115" font-size="11" fill="#64748b" font-family="JetBrains Mono">{ 0:1, 1:1, 3:1 }        ← i=1</text>
+      <text x="445" y="135" font-size="11" fill="#f59e0b"  font-family="JetBrains Mono">{ 0:1, 1:1, 3:1, 6:1 }  ← i=2 hit!</text>
+      <text x="445" y="155" font-size="11" fill="#64748b" font-family="JetBrains Mono">{ 0:1, 1:1, 3:1, 5:1, 6:1 }</text>
+      <text x="445" y="175" font-size="11" fill="#f59e0b"  font-family="JetBrains Mono">{ ..., 9:1 }             ← i=4 hit!</text>
+
+      <text x="430" y="215" font-size="10" fill="#00ff88" font-family="JetBrains Mono">✅ Kết quả: count = 2 subarrays có sum=5</text>
+      <text x="430" y="232" font-size="9" fill="#64748b" font-family="JetBrains Mono">   [2,3] (index 1-2) và [1,2,3,-1] (index 0-3)</text>
+    </svg>
+  </div>
+
+  <div class="note note-info">
+    <div class="note-icon">💡</div>
+    <p><strong>Key pattern:</strong> Khi cần đếm subarray sum = k, luôn khởi tạo <code>prefixCount[0] = 1</code> (trước khi bắt đầu). Điều này xử lý trường hợp subarray bắt đầu từ index 0.</p>
+  </div>
+</section>
+
+<!-- ========================================================= HASHMAP CODE -->
+<section class="page-section" id="s-hash-code">
+  <div class="section-header">
+    <div class="section-number">13</div>
+    <div>
+      <div class="section-title">Hashmap &amp; Prefix Sum — Code Samples</div>
+      <div class="section-subtitle">Từ Two Sum đến Subarray Sum, Longest Consecutive</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">Subarray Sum Equals K (LeetCode #560)</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Time: O(n)</span>
+        <span class="complexity-tag space-tag">Space: O(n)</span>
+        <span class="diff-med">Medium</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">subarray_sum_k.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="kw">func</span> <span class="fn">subarraySum</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) <span class="tp">int</span> {
+    prefixCount := <span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>{<span class="num">0</span>: <span class="num">1</span>} <span class="cm">// prefix 0 xuất hiện 1 lần (trước phần tử đầu)</span>
+    sum, count := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, v := <span class="kw">range</span> nums {
+        sum += v
+        <span class="cm">// Nếu sum-k đã xuất hiện trước đó, tức có subarray kết thúc tại đây có sum=k</span>
+        count += prefixCount[sum-k]
+        prefixCount[sum]++
+    }
+    <span class="kw">return</span> count
+}
+
+<span class="cm">// Longest Consecutive Sequence (LeetCode #128) — HashSet O(n)</span>
+<span class="kw">func</span> <span class="fn">longestConsecutive</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    set := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">bool</span>)
+    <span class="kw">for</span> _, n := <span class="kw">range</span> nums { set[n] = <span class="kw">true</span> }
+
+    best := <span class="num">0</span>
+    <span class="kw">for</span> n := <span class="kw">range</span> set {
+        <span class="cm">// Chỉ bắt đầu đếm từ "đầu" của sequence (n-1 không tồn tại)</span>
+        <span class="kw">if</span> !set[n-<span class="num">1</span>] {
+            length := <span class="num">1</span>
+            <span class="kw">for</span> set[n+length] { length++ }
+            <span class="kw">if</span> length &gt; best { best = length }
+        }
+    }
+    <span class="kw">return</span> best
+}
+
+<span class="cm">// Group Anagrams (LeetCode #49)</span>
+<span class="kw">func</span> <span class="fn">groupAnagrams</span>(strs []<span class="tp">string</span>) [][]<span class="tp">string</span> {
+    groups := <span class="fn">make</span>(<span class="kw">map</span>[[<span class="num">26</span>]<span class="tp">int</span>][]<span class="tp">string</span>)
+    <span class="kw">for</span> _, s := <span class="kw">range</span> strs {
+        <span class="kw">var</span> key [<span class="num">26</span>]<span class="tp">int</span>
+        <span class="kw">for</span> _, c := <span class="kw">range</span> s { key[c-<span class="str">'a'</span>]++ }
+        groups[key] = <span class="fn">append</span>(groups[key], s)
+    }
+    result := <span class="fn">make</span>([][]<span class="tp">string</span>, <span class="num">0</span>, <span class="fn">len</span>(groups))
+    <span class="kw">for</span> _, g := <span class="kw">range</span> groups { result = <span class="fn">append</span>(result, g) }
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Random Pick with Weight + Product of Array Except Self — Prefix/Suffix</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">prefix_product.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// productExceptSelf — O(n) time, O(1) extra space.
+// Dùng prefix product (trái sang phải) rồi suffix product (phải sang trái).
+// Không cần mảng extra cho suffix — nhân trực tiếp vào result.</span>
+<span class="kw">func</span> <span class="fn">productExceptSelf</span>(nums []<span class="tp">int</span>) []<span class="tp">int</span> {
+    n := <span class="fn">len</span>(nums)
+    result := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+
+    <span class="cm">// Pass 1: result[i] = product of all elements to the LEFT of i</span>
+    result[<span class="num">0</span>] = <span class="num">1</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        result[i] = result[i-<span class="num">1</span>] * nums[i-<span class="num">1</span>]
+    }
+
+    <span class="cm">// Pass 2: nhân thêm suffix product (từ phải)
+    // suffix theo dõi bằng 1 biến duy nhất</span>
+    suffix := <span class="num">1</span>
+    <span class="kw">for</span> i := n - <span class="num">1</span>; i &gt;= <span class="num">0</span>; i-- {
+        result[i] *= suffix
+        suffix *= nums[i]
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// 2D Prefix Sum — Range Sum Query 2D (LeetCode #304)</span>
+<span class="kw">type</span> <span class="tp">NumMatrix</span> <span class="kw">struct</span> { prefix [][]<span class="tp">int</span> }
+
+<span class="kw">func</span> <span class="fn">NewNumMatrix</span>(matrix [][]<span class="tp">int</span>) <span class="tp">NumMatrix</span> {
+    m, n := <span class="fn">len</span>(matrix), <span class="fn">len</span>(matrix[<span class="num">0</span>])
+    prefix := <span class="fn">make</span>([][]<span class="tp">int</span>, m+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> prefix { prefix[i] = <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>) }
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            prefix[i][j] = matrix[i-<span class="num">1</span>][j-<span class="num">1</span>] +
+                prefix[i-<span class="num">1</span>][j] + prefix[i][j-<span class="num">1</span>] - prefix[i-<span class="num">1</span>][j-<span class="num">1</span>]
+        }
+    }
+    <span class="kw">return</span> <span class="tp">NumMatrix</span>{prefix}
+}
+
+<span class="cm">// SumRegion: O(1) query sau O(mn) build</span>
+<span class="kw">func</span> (nm *<span class="tp">NumMatrix</span>) <span class="fn">SumRegion</span>(r1, c1, r2, c2 <span class="tp">int</span>) <span class="tp">int</span> {
+    p := nm.prefix
+    <span class="kw">return</span> p[r2+<span class="num">1</span>][c2+<span class="num">1</span>] - p[r1][c2+<span class="num">1</span>] - p[r2+<span class="num">1</span>][c1] + p[r1][c1]
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= MATRIX CONCEPT -->
+<section class="page-section" id="s-matrix-concept">
+  <div class="section-header">
+    <div class="section-number">14</div>
+    <div>
+      <div class="section-title">Matrix</div>
+      <div class="section-subtitle">Xoay ma trận, Spiral Order, DP trên Grid</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 14</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Matrix Problems trong LeetCode</div>
+    <p class="prose"><strong>Matrix</strong> (ma trận) là 2D array <code>[][]int</code>. Các bài toán matrix phổ biến gồm: (1) <strong>In-place transformation</strong> (rotate 90°, transpose), (2) <strong>Traversal patterns</strong> (spiral, diagonal, zigzag), (3) <strong>DP trên grid</strong> (unique paths, minimum path sum, maximal square), (4) <strong>BFS/DFS trên grid</strong> (walls and gates, surrounded regions).</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/matrix.png" alt="Matrix Operations Concept Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 14.1: Trực quan hóa Matrix Operations & 90-degree Grid Rotation
+    </div>
+  </div>
+
+  <h3>Diagram: Rotate Matrix 90° Clockwise — In-place</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Rotate 90° = Transpose + Reverse Each Row</div>
+    <svg width="100%" viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+      <!-- Original -->
+      <text x="30" y="22" font-size="11" fill="#94a3b8" font-family="Inter">Original:</text>
+      <g font-family="JetBrains Mono" font-size="13">
+        <rect x="30" y="30" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="49" y="55" text-anchor="middle" fill="#00d4ff">1</text>
+        <rect x="70" y="30" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="89" y="55" text-anchor="middle" fill="#00d4ff">2</text>
+        <rect x="110" y="30" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="129" y="55" text-anchor="middle" fill="#00d4ff">3</text>
+
+        <rect x="30" y="70" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="49" y="95" text-anchor="middle" fill="#00d4ff">4</text>
+        <rect x="70" y="70" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="89" y="95" text-anchor="middle" fill="#00d4ff">5</text>
+        <rect x="110" y="70" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="129" y="95" text-anchor="middle" fill="#00d4ff">6</text>
+
+        <rect x="30"  y="110" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="49"  y="135" text-anchor="middle" fill="#00d4ff">7</text>
+        <rect x="70"  y="110" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="89"  y="135" text-anchor="middle" fill="#00d4ff">8</text>
+        <rect x="110" y="110" width="38" height="38" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="129" y="135" text-anchor="middle" fill="#00d4ff">9</text>
+      </g>
+
+      <!-- Step 1: Transpose -->
+      <text x="180" y="75" font-size="20" fill="#f59e0b" font-family="JetBrains Mono">→</text>
+      <text x="175" y="95" font-size="9" fill="#64748b" font-family="Inter">Transpose</text>
+      <text x="175" y="108" font-size="9" fill="#64748b" font-family="Inter">M[i][j]↔M[j][i]</text>
+
+      <g font-family="JetBrains Mono" font-size="13">
+        <rect x="220" y="30" width="38" height="38" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="239" y="55" text-anchor="middle" fill="#a855f7">1</text>
+        <rect x="260" y="30" width="38" height="38" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+        <text x="279" y="55" text-anchor="middle" fill="#a855f7">4</text>
+        <rect x="300" y="30" width="38" height="38" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+        <text x="319" y="55" text-anchor="middle" fill="#a855f7">7</text>
+
+        <rect x="220" y="70" width="38" height="38" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+        <text x="239" y="95" text-anchor="middle" fill="#a855f7">2</text>
+        <rect x="260" y="70" width="38" height="38" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="279" y="95" text-anchor="middle" fill="#a855f7">5</text>
+        <rect x="300" y="70" width="38" height="38" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+        <text x="319" y="95" text-anchor="middle" fill="#a855f7">8</text>
+
+        <rect x="220" y="110" width="38" height="38" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+        <text x="239" y="135" text-anchor="middle" fill="#a855f7">3</text>
+        <rect x="260" y="110" width="38" height="38" rx="3" fill="rgba(168,85,247,.2)" stroke="#a855f7"/>
+        <text x="279" y="135" text-anchor="middle" fill="#a855f7">6</text>
+        <rect x="300" y="110" width="38" height="38" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-opacity=".5"/>
+        <text x="319" y="135" text-anchor="middle" fill="#a855f7">9</text>
+      </g>
+
+      <!-- Step 2: Reverse rows -->
+      <text x="360" y="75" font-size="20" fill="#f59e0b" font-family="JetBrains Mono">→</text>
+      <text x="355" y="95" font-size="9" fill="#64748b" font-family="Inter">Reverse</text>
+      <text x="355" y="108" font-size="9" fill="#64748b" font-family="Inter">each row</text>
+
+      <g font-family="JetBrains Mono" font-size="13">
+        <rect x="400" y="30" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="419" y="55" text-anchor="middle" fill="#00ff88">7</text>
+        <rect x="440" y="30" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="459" y="55" text-anchor="middle" fill="#00ff88">4</text>
+        <rect x="480" y="30" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="499" y="55" text-anchor="middle" fill="#00ff88">1</text>
+
+        <rect x="400" y="70" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="419" y="95" text-anchor="middle" fill="#00ff88">8</text>
+        <rect x="440" y="70" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="459" y="95" text-anchor="middle" fill="#00ff88">5</text>
+        <rect x="480" y="70" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="499" y="95" text-anchor="middle" fill="#00ff88">2</text>
+
+        <rect x="400" y="110" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="419" y="135" text-anchor="middle" fill="#00ff88">9</text>
+        <rect x="440" y="110" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="459" y="135" text-anchor="middle" fill="#00ff88">6</text>
+        <rect x="480" y="110" width="38" height="38" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+        <text x="499" y="135" text-anchor="middle" fill="#00ff88">3</text>
+      </g>
+      <text x="540" y="80" font-size="11" fill="#00ff88" font-family="JetBrains Mono">✅ Rotated 90°</text>
+      <text x="540" y="100" font-size="9" fill="#64748b" font-family="JetBrains Mono">In-place O(1) space</text>
+
+      <text x="30" y="200" font-size="10" fill="#64748b" font-family="JetBrains Mono">Note: Transpose = swap M[i][j] ↔ M[j][i] for j > i (upper triangle only)</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ========================================================= MATRIX CODE -->
+<section class="page-section" id="s-matrix-code">
+  <div class="section-header">
+    <div class="section-number">14</div>
+    <div>
+      <div class="section-title">Matrix — Code Samples</div>
+      <div class="section-subtitle">Rotate, Spiral, Maximal Square, Game of Life</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">Rotate Image 90° + Spiral Order (LeetCode #48, #54)</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">matrix_ops.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// rotate90 — In-place: transpose rồi reverse từng hàng.</span>
+<span class="kw">func</span> <span class="fn">rotate90</span>(matrix [][]<span class="tp">int</span>) {
+    n := <span class="fn">len</span>(matrix)
+    <span class="cm">// Step 1: Transpose (swap upper triangle)</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j := i + <span class="num">1</span>; j &lt; n; j++ {
+            matrix[i][j], matrix[j][i] = matrix[j][i], matrix[i][j]
+        }
+    }
+    <span class="cm">// Step 2: Reverse each row</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        <span class="kw">for</span> l, r := <span class="num">0</span>, n-<span class="num">1</span>; l &lt; r; l, r = l+<span class="num">1</span>, r-<span class="num">1</span> {
+            matrix[i][l], matrix[i][r] = matrix[i][r], matrix[i][l]
+        }
+    }
+}
+
+<span class="cm">// spiralOrder — Boundary shrinking approach.</span>
+<span class="kw">func</span> <span class="fn">spiralOrder</span>(matrix [][]<span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(matrix) == <span class="num">0</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+    top, bottom := <span class="num">0</span>, <span class="fn">len</span>(matrix)-<span class="num">1</span>
+    left, right := <span class="num">0</span>, <span class="fn">len</span>(matrix[<span class="num">0</span>])-<span class="num">1</span>
+    <span class="kw">var</span> result []<span class="tp">int</span>
+
+    <span class="kw">for</span> top &lt;= bottom &amp;&amp; left &lt;= right {
+        <span class="kw">for</span> i := left; i &lt;= right; i++  { result = <span class="fn">append</span>(result, matrix[top][i]) }
+        top++
+        <span class="kw">for</span> i := top; i &lt;= bottom; i++ { result = <span class="fn">append</span>(result, matrix[i][right]) }
+        right--
+        <span class="kw">if</span> top &lt;= bottom {
+            <span class="kw">for</span> i := right; i &gt;= left; i--  { result = <span class="fn">append</span>(result, matrix[bottom][i]) }
+            bottom--
+        }
+        <span class="kw">if</span> left &lt;= right {
+            <span class="kw">for</span> i := bottom; i &gt;= top; i-- { result = <span class="fn">append</span>(result, matrix[i][left]) }
+            left++
+        }
+    }
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Maximal Square (LeetCode #221) — DP on Matrix Expert</div>
+      <span class="badge badge-expert">HARD-MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Time: O(m×n)</span>
+        <span class="complexity-tag space-tag">Space: O(n) rolling</span>
+        <span class="diff-med">Medium</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">maximal_square.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// maximalSquare — DP: dp[i][j] = side length của square tối đa kết thúc tại (i,j).
+// Recurrence: dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1
+// nếu matrix[i][j] == '1'.</span>
+<span class="kw">func</span> <span class="fn">maximalSquare</span>(matrix [][]<span class="tp">byte</span>) <span class="tp">int</span> {
+    m, n := <span class="fn">len</span>(matrix), <span class="fn">len</span>(matrix[<span class="num">0</span>])
+    dp := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    prev, maxSide := <span class="num">0</span>, <span class="num">0</span>
+
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            temp := dp[j]
+            <span class="kw">if</span> matrix[i-<span class="num">1</span>][j-<span class="num">1</span>] == <span class="str">'1'</span> {
+                dp[j] = <span class="fn">min3</span>(dp[j], dp[j-<span class="num">1</span>], prev) + <span class="num">1</span>
+                <span class="kw">if</span> dp[j] &gt; maxSide { maxSide = dp[j] }
+            } <span class="kw">else</span> {
+                dp[j] = <span class="num">0</span>
+            }
+            prev = temp
+        }
+        prev = <span class="num">0</span>
+    }
+    <span class="kw">return</span> maxSide * maxSide
+}
+
+<span class="kw">func</span> <span class="fn">min3</span>(a, b, c <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> b &lt; a { a = b }
+    <span class="kw">if</span> c &lt; a { a = c }
+    <span class="kw">return</span> a
+}
+
+<span class="cm">// Game of Life (LeetCode #289) — In-place state machine</span>
+<span class="kw">func</span> <span class="fn">gameOfLife</span>(board [][]<span class="tp">int</span>) {
+    <span class="cm">// Encode: 1→0 dùng giá trị 2; 0→1 dùng giá trị 3</span>
+    dirs := [][<span class="num">2</span>]<span class="tp">int</span>{{-<span class="num">1</span>,-<span class="num">1</span>},{-<span class="num">1</span>,<span class="num">0</span>},{-<span class="num">1</span>,<span class="num">1</span>},{<span class="num">0</span>,-<span class="num">1</span>},{<span class="num">0</span>,<span class="num">1</span>},{<span class="num">1</span>,-<span class="num">1</span>},{<span class="num">1</span>,<span class="num">0</span>},{<span class="num">1</span>,<span class="num">1</span>}}
+    m, n := <span class="fn">len</span>(board), <span class="fn">len</span>(board[<span class="num">0</span>])
+
+    <span class="fn">countLive</span> := <span class="kw">func</span>(r, c <span class="tp">int</span>) <span class="tp">int</span> {
+        cnt := <span class="num">0</span>
+        <span class="kw">for</span> _, d := <span class="kw">range</span> dirs {
+            nr, nc := r+d[<span class="num">0</span>], c+d[<span class="num">1</span>]
+            <span class="kw">if</span> nr &gt;= <span class="num">0</span> &amp;&amp; nr &lt; m &amp;&amp; nc &gt;= <span class="num">0</span> &amp;&amp; nc &lt; n &amp;&amp; board[nr][nc]%<span class="num">2</span> == <span class="num">1</span> {
+                cnt++
+            }
+        }
+        <span class="kw">return</span> cnt
+    }
+
+    <span class="kw">for</span> r := <span class="kw">range</span> board {
+        <span class="kw">for</span> c := <span class="kw">range</span> board[r] {
+            live := <span class="fn">countLive</span>(r, c)
+            <span class="kw">if</span> board[r][c] == <span class="num">1</span> &amp;&amp; (live &lt; <span class="num">2</span> || live &gt; <span class="num">3</span>) { board[r][c] = <span class="num">2</span> }
+            <span class="kw">if</span> board[r][c] == <span class="num">0</span> &amp;&amp; live == <span class="num">3</span>                    { board[r][c] = <span class="num">3</span> }
+        }
+    }
+    <span class="kw">for</span> r := <span class="kw">range</span> board {
+        <span class="kw">for</span> c := <span class="kw">range</span> board[r] {
+            board[r][c] %= <span class="num">2</span>
+        }
+    }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= STRING CONCEPT -->
+<section class="page-section" id="s-string-concept">
+  <div class="section-header">
+    <div class="section-number">15</div>
+    <div>
+      <div class="section-title">String</div>
+      <div class="section-subtitle">KMP, Rabin-Karp, Palindrome, Anagram, Pattern Matching</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 15</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">String Algorithms trong Go</div>
+    <p class="prose">String problems bao gồm: <strong>Pattern Matching</strong> (KMP O(n+m)), <strong>Palindrome</strong> (expand around center, Manacher), <strong>Anagram</strong> (character frequency), <strong>String DP</strong> (LCS, Edit Distance). Trong Go, <code>string</code> là immutable byte slice — dùng <code>[]byte</code> khi cần mutation, <code>strings.Builder</code> khi cần concatenation hiệu quả.</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/string.png" alt="String Algorithms Concept Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 15.1: Trực quan hóa String Matching & Palindrome Algorithms
+    </div>
+  </div>
+
+  <h3>Diagram: KMP Failure Function</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">KMP — Failure Function (LPS array) cho pattern "AAACAAAA"</div>
+    <svg width="100%" viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg">
+      <text x="30" y="22" font-size="11" fill="#94a3b8" font-family="Inter">Pattern: A A A C A A A A</text>
+      <text x="30" y="40" font-size="10" fill="#64748b" font-family="JetBrains Mono">Index:   0 1 2 3 4 5 6 7</text>
+
+      <!-- Pattern cells -->
+      <g font-family="JetBrains Mono" font-size="13">
+        <rect x="30"  y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="50"  y="72" text-anchor="middle" fill="#00d4ff">A</text>
+        <rect x="72"  y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="92"  y="72" text-anchor="middle" fill="#00d4ff">A</text>
+        <rect x="114" y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="134" y="72" text-anchor="middle" fill="#00d4ff">A</text>
+        <rect x="156" y="48" width="40" height="36" rx="3" fill="rgba(255,107,107,.15)" stroke="#ff6b6b" stroke-opacity=".6"/>
+        <text x="176" y="72" text-anchor="middle" fill="#ff6b6b">C</text>
+        <rect x="198" y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="218" y="72" text-anchor="middle" fill="#00d4ff">A</text>
+        <rect x="240" y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="260" y="72" text-anchor="middle" fill="#00d4ff">A</text>
+        <rect x="282" y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="302" y="72" text-anchor="middle" fill="#00d4ff">A</text>
+        <rect x="324" y="48" width="40" height="36" rx="3" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-opacity=".4"/>
+        <text x="344" y="72" text-anchor="middle" fill="#00d4ff">A</text>
+      </g>
+
+      <!-- LPS values -->
+      <text x="30" y="105" font-size="10" fill="#64748b" font-family="JetBrains Mono">LPS[i]:</text>
+      <g font-family="JetBrains Mono" font-size="13">
+        <rect x="30"  y="110" width="40" height="30" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-opacity=".5"/>
+        <text x="50"  y="131" text-anchor="middle" fill="#00ff88">0</text>
+        <rect x="72"  y="110" width="40" height="30" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-opacity=".5"/>
+        <text x="92"  y="131" text-anchor="middle" fill="#00ff88">1</text>
+        <rect x="114" y="110" width="40" height="30" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-opacity=".5"/>
+        <text x="134" y="131" text-anchor="middle" fill="#00ff88">2</text>
+        <rect x="156" y="110" width="40" height="30" rx="3" fill="rgba(255,107,107,.1)" stroke="#ff6b6b" stroke-opacity=".5"/>
+        <text x="176" y="131" text-anchor="middle" fill="#ff6b6b">0</text>
+        <rect x="198" y="110" width="40" height="30" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-opacity=".5"/>
+        <text x="218" y="131" text-anchor="middle" fill="#00ff88">1</text>
+        <rect x="240" y="110" width="40" height="30" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-opacity=".5"/>
+        <text x="260" y="131" text-anchor="middle" fill="#00ff88">2</text>
+        <rect x="282" y="110" width="40" height="30" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-opacity=".5"/>
+        <text x="302" y="131" text-anchor="middle" fill="#00ff88">3</text>
+        <rect x="324" y="110" width="40" height="30" rx="3" fill="rgba(245,158,11,.15)" stroke="#f59e0b"/>
+        <text x="344" y="131" text-anchor="middle" fill="#f59e0b">3</text>
+      </g>
+
+      <text x="30" y="165" font-size="10" fill="#64748b" font-family="JetBrains Mono">LPS[i] = length of longest proper prefix of pattern[0..i] that is also suffix</text>
+      <text x="30" y="182" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Khi mismatch tại i=j, không reset j=0 mà j = LPS[j-1] → tránh re-scan</text>
+      <text x="30" y="200" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">Ví dụ: LPS[7]=3 → "AAA" vừa là prefix vừa là suffix của "AAACAAAA"</text>
+    </svg>
+  </div>
+
+  <h3>Các kỹ thuật String cần nắm</h3>
+  <table class="data-table">
+    <thead><tr><th>Kỹ thuật</th><th>Time</th><th>Bài áp dụng</th></tr></thead>
+    <tbody>
+      <tr><td>KMP Pattern Matching</td><td>O(n+m)</td><td>Find Needle in Haystack, Repeated Substring</td></tr>
+      <tr><td>Expand Around Center</td><td>O(n²)</td><td>Longest Palindromic Substring</td></tr>
+      <tr><td>Char Frequency Array [26]int</td><td>O(n)</td><td>Anagram, Valid Anagram, Permutation in String</td></tr>
+      <tr><td>Z-Algorithm</td><td>O(n)</td><td>Pattern matching (alternative to KMP)</td></tr>
+      <tr><td>Rabin-Karp (Rolling Hash)</td><td>O(n) avg</td><td>Find All Anagrams, Repeated DNA Sequences</td></tr>
+      <tr><td>Palindrome DP</td><td>O(n²)</td><td>Palindrome Partitioning, Min Cuts</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================================================= STRING CODE -->
+<section class="page-section" id="s-string-code">
+  <div class="section-header">
+    <div class="section-number">15</div>
+    <div>
+      <div class="section-title">String — Code Samples</div>
+      <div class="section-subtitle">KMP, Palindrome, Anagram, Valid Parentheses</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">KMP String Search + Longest Palindromic Substring (LeetCode #5, #28)</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">string_algorithms.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// KMP Search — O(n+m). Tìm vị trí đầu tiên của needle trong haystack.</span>
+<span class="kw">func</span> <span class="fn">strStr</span>(haystack, needle <span class="tp">string</span>) <span class="tp">int</span> {
+    n, m := <span class="fn">len</span>(haystack), <span class="fn">len</span>(needle)
+    <span class="kw">if</span> m == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+
+    <span class="cm">// Xây dựng failure function (LPS array)</span>
+    lps := <span class="fn">buildLPS</span>(needle)
+
+    j := <span class="num">0</span> <span class="cm">// index in needle</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j &gt; <span class="num">0</span> &amp;&amp; haystack[i] != needle[j] { j = lps[j-<span class="num">1</span>] }
+        <span class="kw">if</span> haystack[i] == needle[j] { j++ }
+        <span class="kw">if</span> j == m { <span class="kw">return</span> i - m + <span class="num">1</span> }
+    }
+    <span class="kw">return</span> -<span class="num">1</span>
+}
+
+<span class="kw">func</span> <span class="fn">buildLPS</span>(pattern <span class="tp">string</span>) []<span class="tp">int</span> {
+    m := <span class="fn">len</span>(pattern)
+    lps := <span class="fn">make</span>([]<span class="tp">int</span>, m)
+    prev, i := <span class="num">0</span>, <span class="num">1</span>
+    <span class="kw">for</span> i &lt; m {
+        <span class="kw">if</span> pattern[i] == pattern[prev] {
+            lps[i] = prev + <span class="num">1</span>; prev++; i++
+        } <span class="kw">else if</span> prev != <span class="num">0</span> {
+            prev = lps[prev-<span class="num">1</span>]
+        } <span class="kw">else</span> {
+            lps[i] = <span class="num">0</span>; i++
+        }
+    }
+    <span class="kw">return</span> lps
+}
+
+<span class="cm">// longestPalindrome — Expand Around Center. O(n²) time, O(1) space.</span>
+<span class="kw">func</span> <span class="fn">longestPalindrome</span>(s <span class="tp">string</span>) <span class="tp">string</span> {
+    start, maxLen := <span class="num">0</span>, <span class="num">1</span>
+
+    <span class="fn">expand</span> := <span class="kw">func</span>(l, r <span class="tp">int</span>) {
+        <span class="kw">for</span> l &gt;= <span class="num">0</span> &amp;&amp; r &lt; <span class="fn">len</span>(s) &amp;&amp; s[l] == s[r] { l--; r++ }
+        <span class="kw">if</span> r-l-<span class="num">1</span> &gt; maxLen { maxLen = r-l-<span class="num">1</span>; start = l+<span class="num">1</span> }
+    }
+
+    <span class="kw">for</span> i := <span class="kw">range</span> s {
+        <span class="fn">expand</span>(i, i)    <span class="cm">// odd length</span>
+        <span class="fn">expand</span>(i, i+<span class="num">1</span>) <span class="cm">// even length</span>
+    }
+    <span class="kw">return</span> s[start : start+maxLen]
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Minimum Window Substring + Encode/Decode Strings (Expert)</div>
+      <span class="badge badge-expert">HARD</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">encode_decode.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// Encode/Decode Strings (LintCode #659 / NeetCode Design).
+// Vấn đề: delimiter có thể xuất hiện trong string.
+// Giải pháp: length-prefix encoding "5#hello3#abc".</span>
+<span class="kw">import</span> (
+    <span class="str">"strconv"</span>
+    <span class="str">"strings"</span>
+)
+
+<span class="kw">func</span> <span class="fn">encode</span>(strs []<span class="tp">string</span>) <span class="tp">string</span> {
+    <span class="kw">var</span> sb <span class="pkg">strings</span>.<span class="tp">Builder</span>
+    <span class="kw">for</span> _, s := <span class="kw">range</span> strs {
+        sb.<span class="fn">WriteString</span>(<span class="pkg">strconv</span>.<span class="fn">Itoa</span>(<span class="fn">len</span>(s)))
+        sb.<span class="fn">WriteByte</span>(<span class="str">'#'</span>)
+        sb.<span class="fn">WriteString</span>(s)
+    }
+    <span class="kw">return</span> sb.<span class="fn">String</span>()
+}
+
+<span class="kw">func</span> <span class="fn">decode</span>(s <span class="tp">string</span>) []<span class="tp">string</span> {
+    <span class="kw">var</span> result []<span class="tp">string</span>
+    i := <span class="num">0</span>
+    <span class="kw">for</span> i &lt; <span class="fn">len</span>(s) {
+        j := i
+        <span class="kw">for</span> s[j] != <span class="str">'#'</span> { j++ }
+        length, _ := <span class="pkg">strconv</span>.<span class="fn">Atoi</span>(s[i:j])
+        result = <span class="fn">append</span>(result, s[j+<span class="num">1</span>:j+<span class="num">1</span>+length])
+        i = j + <span class="num">1</span> + length
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// Edit Distance (LeetCode #72) — String DP Expert</span>
+<span class="kw">func</span> <span class="fn">minDistance</span>(word1, word2 <span class="tp">string</span>) <span class="tp">int</span> {
+    m, n := <span class="fn">len</span>(word1), <span class="fn">len</span>(word2)
+    <span class="cm">// dp[j] = edit distance giữa word1[0..i-1] và word2[0..j-1]</span>
+    dp := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> j := <span class="kw">range</span> dp { dp[j] = j }
+
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        prev := dp[<span class="num">0</span>]
+        dp[<span class="num">0</span>] = i
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            temp := dp[j]
+            <span class="kw">if</span> word1[i-<span class="num">1</span>] == word2[j-<span class="num">1</span>] {
+                dp[j] = prev
+            } <span class="kw">else</span> {
+                dp[j] = <span class="fn">min3</span>(prev, dp[j], dp[j-<span class="num">1</span>]) + <span class="num">1</span>
+            }
+            prev = temp
+        }
+    }
+    <span class="kw">return</span> dp[n]
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= DESIGN CONCEPT -->
+<section class="page-section" id="s-design-concept">
+  <div class="section-header">
+    <div class="section-number">16</div>
+    <div>
+      <div class="section-title">Design</div>
+      <div class="section-subtitle">LRU Cache, LFU Cache, MedianFinder, TimeMap — Data Structure Design</div>
+    </div>
+    <span class="badge badge-expert">PATTERN 16</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Design Problems — Thiết kế cấu trúc dữ liệu</div>
+    <p class="prose"><strong>Design problems</strong> yêu cầu implement một cấu trúc dữ liệu phức tạp với nhiều operations, mỗi operation phải đạt complexity cụ thể (thường O(1) hoặc O(log n)). Đây là dạng bài phân loại ứng viên Senior/Staff rõ ràng nhất — không chỉ cần biết dùng cấu trúc mà phải biết thiết kế từ đầu.</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/design.png" alt="LRU Cache Design Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 16.1: Trực quan hóa Cấu trúc LRU Cache (HashMap + Doubly Linked List)
+    </div>
+  </div>
+
+  <h3>Diagram: LRU Cache — HashMap + Doubly Linked List</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">LRU Cache (cap=3) — get("b") → move "b" to head</div>
+    <svg width="100%" viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="adl" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="adlr" viewBox="0 0 10 10" refX="2" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+          <path d="M8 1L2 5L8 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Before State -->
+      <text x="30" y="22" font-size="11" fill="#94a3b8" font-family="Inter">BEFORE: cache=[a,b,c], get("b") — "b" được access → move to head (MRU)</text>
+
+      <!-- DLL nodes BEFORE -->
+      <rect x="30"  y="35" width="70" height="40" rx="6" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+      <text x="65"  y="61" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono">HEAD</text>
+
+      <line x1="102" y1="55" x2="130" y2="55" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="130" y1="48" x2="102" y2="48" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="132" y="35" width="60" height="40" rx="6" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+      <text x="162" y="61" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono">a</text>
+
+      <line x1="194" y1="55" x2="222" y2="55" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="222" y1="48" x2="194" y2="48" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="224" y="35" width="60" height="40" rx="6" fill="rgba(245,158,11,.2)" stroke="#f59e0b" stroke-width="2"/>
+      <text x="254" y="61" text-anchor="middle" font-size="13" fill="#f59e0b" font-family="JetBrains Mono">b</text>
+
+      <line x1="286" y1="55" x2="314" y2="55" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="314" y1="48" x2="286" y2="48" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="316" y="35" width="60" height="40" rx="6" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+      <text x="346" y="61" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono">c</text>
+
+      <line x1="378" y1="55" x2="406" y2="55" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="406" y1="48" x2="378" y2="48" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="408" y="35" width="70" height="40" rx="6" fill="rgba(255,107,107,.1)" stroke="#ff6b6b"/>
+      <text x="443" y="61" text-anchor="middle" font-size="13" fill="#ff6b6b" font-family="JetBrains Mono">TAIL</text>
+
+      <text x="30" y="95" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">MRU end ←——— doubly linked list ———→ LRU end</text>
+
+      <!-- After State -->
+      <text x="30" y="130" font-size="11" fill="#94a3b8" font-family="Inter">AFTER: "b" detached and re-inserted at head → order=[b,a,c]</text>
+
+      <rect x="30"  y="143" width="70" height="40" rx="6" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+      <text x="65"  y="169" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono">HEAD</text>
+
+      <line x1="102" y1="163" x2="130" y2="163" stroke="#00ff88" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="130" y1="156" x2="102" y2="156" stroke="#00ff88" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="132" y="143" width="60" height="40" rx="6" fill="rgba(0,255,136,.2)" stroke="#00ff88" stroke-width="2"/>
+      <text x="162" y="169" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono">b</text>
+
+      <line x1="194" y1="163" x2="222" y2="163" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="222" y1="156" x2="194" y2="156" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="224" y="143" width="60" height="40" rx="6" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+      <text x="254" y="169" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono">a</text>
+
+      <line x1="286" y1="163" x2="314" y2="163" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="314" y1="156" x2="286" y2="156" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="316" y="143" width="60" height="40" rx="6" fill="rgba(168,85,247,.15)" stroke="#a855f7"/>
+      <text x="346" y="169" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono">c</text>
+
+      <line x1="378" y1="163" x2="406" y2="163" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+      <line x1="406" y1="156" x2="378" y2="156" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#adl)"/>
+
+      <rect x="408" y="143" width="70" height="40" rx="6" fill="rgba(255,107,107,.1)" stroke="#ff6b6b"/>
+      <text x="443" y="169" text-anchor="middle" font-size="13" fill="#ff6b6b" font-family="JetBrains Mono">TAIL</text>
+
+      <!-- HashMap side -->
+      <rect x="540" y="35" width="200" height="170" rx="8" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.2)"/>
+      <text x="640" y="57" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">HashMap</text>
+      <text x="555" y="80"  font-size="11" fill="#64748b" font-family="JetBrains Mono">"a" → *Node(a)</text>
+      <text x="555" y="100" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">"b" → *Node(b) ←O(1)</text>
+      <text x="555" y="120" font-size="11" fill="#64748b" font-family="JetBrains Mono">"c" → *Node(c)</text>
+      <text x="555" y="155" font-size="10" fill="#64748b" font-family="Inter">Map lưu con trỏ trực tiếp tới</text>
+      <text x="555" y="172" font-size="10" fill="#64748b" font-family="Inter">node trong DLL → O(1) access</text>
+      <text x="555" y="189" font-size="10" fill="#00ff88" font-family="Inter">Get + Put đều O(1) ✅</text>
+
+      <text x="30" y="222" font-size="10" fill="#64748b" font-family="JetBrains Mono">Evict khi full: xoá node trước TAIL (LRU node). O(1) nhờ sentinel head/tail nodes.</text>
+    </svg>
+  </div>
+
+  <h3>Các Design Problem quan trọng</h3>
+  <table class="data-table">
+    <thead><tr><th>Problem</th><th>Cấu trúc dữ liệu</th><th>Key Operations</th><th>Difficulty</th></tr></thead>
+    <tbody>
+      <tr><td>LRU Cache (#146)</td><td>HashMap + DLL</td><td>get O(1), put O(1)</td><td>Medium</td></tr>
+      <tr><td>LFU Cache (#460)</td><td>2 HashMap + DLL per freq</td><td>get O(1), put O(1)</td><td>Hard</td></tr>
+      <tr><td>MedianFinder (#295)</td><td>Min+Max Heap</td><td>addNum O(log n), findMedian O(1)</td><td>Hard</td></tr>
+      <tr><td>TimeBasedKeyValueStore (#981)</td><td>HashMap + sorted slice</td><td>set O(1), get O(log n)</td><td>Medium</td></tr>
+      <tr><td>Twitter (#355)</td><td>HashMap + Heap</td><td>postTweet O(1), getNewsFeed O(k log n)</td><td>Medium</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================================================= DESIGN CODE -->
+<section class="page-section" id="s-design-code">
+  <div class="section-header">
+    <div class="section-number">16</div>
+    <div>
+      <div class="section-title">Design — Code Samples</div>
+      <div class="section-subtitle">LRU, LFU, TimeMap, Twitter Feed</div>
+    </div>
+    <span class="badge badge-expert">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">LRU Cache (LeetCode #146) — HashMap + Doubly Linked List</div>
+      <span class="badge badge-advanced">MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Get: O(1)</span>
+        <span class="complexity-tag space-tag">Put: O(1)</span>
+        <span class="diff-med">Medium</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">lru_cache.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="kw">type</span> <span class="tp">Node</span> <span class="kw">struct</span> {
+    key, val   <span class="tp">int</span>
+    prev, next *<span class="tp">Node</span>
+}
+
+<span class="kw">type</span> <span class="tp">LRUCache</span> <span class="kw">struct</span> {
+    cap        <span class="tp">int</span>
+    cache      <span class="kw">map</span>[<span class="tp">int</span>]*<span class="tp">Node</span>
+    head, tail *<span class="tp">Node</span> <span class="cm">// sentinel nodes</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewLRUCache</span>(cap <span class="tp">int</span>) <span class="tp">LRUCache</span> {
+    head, tail := &amp;<span class="tp">Node</span>{}, &amp;<span class="tp">Node</span>{}
+    head.next, tail.prev = tail, head
+    <span class="kw">return</span> <span class="tp">LRUCache</span>{cap: cap, cache: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]*<span class="tp">Node</span>), head: head, tail: tail}
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">Get</span>(key <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> node, ok := c.cache[key]; ok {
+        c.<span class="fn">moveToFront</span>(node)
+        <span class="kw">return</span> node.val
+    }
+    <span class="kw">return</span> -<span class="num">1</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">Put</span>(key, val <span class="tp">int</span>) {
+    <span class="kw">if</span> node, ok := c.cache[key]; ok {
+        node.val = val
+        c.<span class="fn">moveToFront</span>(node)
+        <span class="kw">return</span>
+    }
+    node := &amp;<span class="tp">Node</span>{key: key, val: val}
+    c.cache[key] = node
+    c.<span class="fn">insertFront</span>(node)
+    <span class="kw">if</span> <span class="fn">len</span>(c.cache) &gt; c.cap {
+        lru := c.tail.prev
+        c.<span class="fn">remove</span>(lru)
+        <span class="fn">delete</span>(c.cache, lru.key)
+    }
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">remove</span>(node *<span class="tp">Node</span>) {
+    node.prev.next, node.next.prev = node.next, node.prev
+}
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">insertFront</span>(node *<span class="tp">Node</span>) {
+    node.next, node.prev = c.head.next, c.head
+    c.head.next.prev, c.head.next = node, node
+}
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">moveToFront</span>(node *<span class="tp">Node</span>) { c.<span class="fn">remove</span>(node); c.<span class="fn">insertFront</span>(node) }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Time Based Key-Value Store (LeetCode #981) + Design Twitter (#355)</div>
+      <span class="badge badge-expert">HARD</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">design_problems.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// TimeMap: set O(1), get O(log n) bằng binary search trên timestamp.</span>
+<span class="kw">type</span> <span class="tp">TimeMap</span> <span class="kw">struct</span> {
+    data <span class="kw">map</span>[<span class="tp">string</span>][]<span class="kw">struct</span>{ ts <span class="tp">int</span>; val <span class="tp">string</span> }
+}
+<span class="kw">func</span> <span class="fn">NewTimeMap</span>() <span class="tp">TimeMap</span> { <span class="kw">return</span> <span class="tp">TimeMap</span>{<span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>][]<span class="kw">struct</span>{ ts <span class="tp">int</span>; val <span class="tp">string</span> })} }
+
+<span class="kw">func</span> (m *<span class="tp">TimeMap</span>) <span class="fn">Set</span>(key, value <span class="tp">string</span>, timestamp <span class="tp">int</span>) {
+    m.data[key] = <span class="fn">append</span>(m.data[key], <span class="kw">struct</span>{ ts <span class="tp">int</span>; val <span class="tp">string</span> }{timestamp, value})
+}
+
+<span class="kw">func</span> (m *<span class="tp">TimeMap</span>) <span class="fn">Get</span>(key <span class="tp">string</span>, timestamp <span class="tp">int</span>) <span class="tp">string</span> {
+    entries := m.data[key]
+    <span class="cm">// Binary search: tìm entry lớn nhất có ts &lt;= timestamp</span>
+    lo, hi := <span class="num">0</span>, <span class="fn">len</span>(entries)-<span class="num">1</span>
+    result := <span class="str">""</span>
+    <span class="kw">for</span> lo &lt;= hi {
+        mid := lo + (hi-lo)/<span class="num">2</span>
+        <span class="kw">if</span> entries[mid].ts &lt;= timestamp {
+            result = entries[mid].val
+            lo = mid + <span class="num">1</span>
+        } <span class="kw">else</span> {
+            hi = mid - <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// Design Twitter — postTweet O(1), getNewsFeed O(10 log n) với min-heap</span>
+<span class="kw">type</span> <span class="tp">Twitter</span> <span class="kw">struct</span> {
+    tweets  <span class="kw">map</span>[<span class="tp">int</span>][]<span class="kw">struct</span>{ tweetId, time <span class="tp">int</span> }
+    follows <span class="kw">map</span>[<span class="tp">int</span>]<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">bool</span>
+    timer   <span class="tp">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewTwitter</span>() <span class="tp">Twitter</span> {
+    <span class="kw">return</span> <span class="tp">Twitter</span>{
+        tweets:  <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>][]<span class="kw">struct</span>{ tweetId, time <span class="tp">int</span> }),
+        follows: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">bool</span>),
+    }
+}
+
+<span class="kw">func</span> (t *<span class="tp">Twitter</span>) <span class="fn">PostTweet</span>(userId, tweetId <span class="tp">int</span>) {
+    t.timer++
+    t.tweets[userId] = <span class="fn">append</span>(t.tweets[userId], <span class="kw">struct</span>{ tweetId, time <span class="tp">int</span> }{tweetId, t.timer})
+}
+
+<span class="kw">func</span> (t *<span class="tp">Twitter</span>) <span class="fn">GetNewsFeed</span>(userId <span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="cm">// Gộp tweets của userId và followees, lấy 10 mới nhất</span>
+    userSet := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">bool</span>)
+    userSet[userId] = <span class="kw">true</span>
+    <span class="kw">for</span> fId := <span class="kw">range</span> t.follows[userId] { userSet[fId] = <span class="kw">true</span> }
+
+    <span class="kw">type</span> <span class="tp">tw</span> <span class="kw">struct</span>{ id, time <span class="tp">int</span> }
+    <span class="kw">var</span> all []<span class="tp">tw</span>
+    <span class="kw">for</span> uid := <span class="kw">range</span> userSet {
+        <span class="kw">for</span> _, tweet := <span class="kw">range</span> t.tweets[uid] {
+            all = <span class="fn">append</span>(all, <span class="tp">tw</span>{tweet.tweetId, tweet.time})
+        }
+    }
+    <span class="cm">// Sort by time descending, take top 10</span>
+    <span class="pkg">sort</span>.<span class="fn">Slice</span>(all, <span class="kw">func</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> all[i].time &gt; all[j].time })
+    result := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="num">0</span>, <span class="num">10</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="fn">len</span>(all) &amp;&amp; i &lt; <span class="num">10</span>; i++ { result = <span class="fn">append</span>(result, all[i].id) }
+    <span class="kw">return</span> result
+}
+<span class="kw">func</span> (t *<span class="tp">Twitter</span>) <span class="fn">Follow</span>(followerId, followeeId <span class="tp">int</span>) {
+    <span class="kw">if</span> t.follows[followerId] == <span class="kw">nil</span> { t.follows[followerId] = <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">bool</span>) }
+    t.follows[followerId][followeeId] = <span class="kw">true</span>
+}
+<span class="kw">func</span> (t *<span class="tp">Twitter</span>) <span class="fn">Unfollow</span>(followerId, followeeId <span class="tp">int</span>) {
+    <span class="fn">delete</span>(t.follows[followerId], followeeId)
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================================================= STOCK CONCEPT -->
+<section class="page-section" id="s-stock-concept">
+  <div class="section-header">
+    <div class="section-number">17</div>
+    <div>
+      <div class="section-title">Buy &amp; Sell Stock — State Machine DP</div>
+      <div class="section-subtitle">6 biến thể từ đơn giản đến phức tạp, tất cả O(n)</div>
+    </div>
+    <span class="badge badge-expert">PATTERN 17</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Buy &amp; Sell Stock — State Machine DP</div>
+    <p class="prose"><strong>Buy &amp; Sell Stock</strong> là series 6 bài LeetCode (121, 122, 123, 188, 309, 714) cùng một dạng nhưng ràng buộc khác nhau. Tư duy thống nhất: <strong>State Machine DP</strong> — định nghĩa trạng thái (holding/not holding), transition (buy/sell/cooldown/fee), tìm công thức tối ưu.</p>
+    <p class="prose">Bộ 6 bài này là bài kiểm tra DP kinh điển nhất. Nắm vững State Machine DP cho Stock giúp giải nhanh mọi variant chỉ bằng thay đổi transition rules.</p>
+  </div>
+
+  <div class="concept-img-wrapper" style="margin: 24px 0; text-align: center; border: 1px solid var(--border); border-radius: 12px; padding: 6px; background: var(--bg-card); box-shadow: 0 12px 24px rgba(0,0,0,0.3); overflow: hidden;">
+    <img src="../../public/images/buy_sell_stock.png" alt="Stock State Machine Concept Diagram" style="display: block; width: 100%; max-width: 800px; height: auto; border-radius: 8px; margin: 0 auto; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    <div style="margin-top: 8px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-mono); letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 17.1: Trực quan hóa Buy & Sell Stock State Machine DP
+    </div>
+  </div>
+
+  <h3>Diagram: State Machine cho Stock Problems</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Stock State Machine — General Framework</div>
+    <svg width="100%" viewBox="0 0 760 300" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ast" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- States -->
+      <ellipse cx="180" cy="100" rx="90" ry="40" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-width="2"/>
+      <text x="180" y="96" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">NOT HOLDING</text>
+      <text x="180" y="115" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">cash = max profit</text>
+
+      <ellipse cx="560" cy="100" rx="90" ry="40" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-width="2"/>
+      <text x="560" y="96" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">HOLDING</text>
+      <text x="560" y="115" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">hold = max profit</text>
+
+      <!-- Transitions -->
+      <!-- BUY: NOT HOLDING → HOLDING -->
+      <path d="M 268 80 Q 370 30 470 80" fill="none" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#ast)"/>
+      <text x="370" y="30" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">BUY: hold = max(hold, cash - price)</text>
+
+      <!-- SELL: HOLDING → NOT HOLDING -->
+      <path d="M 470 120 Q 370 170 268 120" fill="none" stroke="#a855f7" stroke-width="1.5" marker-end="url(#ast)"/>
+      <text x="370" y="175" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">SELL: cash = max(cash, hold + price)</text>
+
+      <!-- Self loops -->
+      <path d="M 140 60 Q 90 10 140 62" fill="none" stroke="#00d4ff" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="70" y="30" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">WAIT</text>
+
+      <path d="M 600 60 Q 650 10 600 62" fill="none" stroke="#00ff88" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="675" y="30" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">WAIT</text>
+
+      <!-- Variants table -->
+      <text x="30" y="215" font-size="11" fill="#94a3b8" font-family="Inter">6 Biến thể và ràng buộc:</text>
+      <g font-size="10" font-family="JetBrains Mono">
+        <text x="30"  y="235" fill="#64748b">#121: 1 transaction. BUY: hold=max(hold,-price)</text>
+        <text x="30"  y="252" fill="#64748b">#122: Unlimited. BUY: hold=max(hold,cash-price) → tích luỹ mọi lợi nhuận</text>
+        <text x="30"  y="269" fill="#f59e0b">#123: 2 transactions. dp[k][0/1] với k≤2</text>
+        <text x="400" y="235" fill="#64748b">#188: k transactions. Generalise #123</text>
+        <text x="400" y="252" fill="#a855f7">#309: +Cooldown. Sau sell không buy ngay được</text>
+        <text x="400" y="269" fill="#a855f7">#714: +Fee. cash = max(cash, hold+price-fee)</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3>Tổng hợp công thức State Transition</h3>
+  <table class="data-table">
+    <thead><tr><th>Bài</th><th>hold (HOLDING)</th><th>cash (NOT HOLDING)</th><th>Ràng buộc</th></tr></thead>
+    <tbody>
+      <tr><td>#121 (1 tx)</td><td><code>max(hold, -price)</code></td><td><code>max(cash, hold+price)</code></td><td>Mua 1 lần tối đa</td></tr>
+      <tr><td>#122 (∞ tx)</td><td><code>max(hold, cash-price)</code></td><td><code>max(cash, hold+price)</code></td><td>Không giới hạn số giao dịch</td></tr>
+      <tr><td>#309 (+cooldown)</td><td><code>max(hold, prev_cash-price)</code></td><td><code>max(cash, hold+price)</code></td><td>prev_cash = cash 2 ngày trước</td></tr>
+      <tr><td>#714 (+fee)</td><td><code>max(hold, cash-price)</code></td><td><code>max(cash, hold+price-fee)</code></td><td>Trừ fee khi sell</td></tr>
+      <tr><td>#123 (2 tx)</td><td colspan="2"><code>dp[k][0], dp[k][1]</code> với k=0,1,2</td><td>DP 2 chiều</td></tr>
+      <tr><td>#188 (k tx)</td><td colspan="2"><code>dp[i][k][0/1]</code> rolling optimization</td><td>K giao dịch</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ========================================================= STOCK CODE -->
+<section class="page-section" id="s-stock-code">
+  <div class="section-header">
+    <div class="section-number">17</div>
+    <div>
+      <div class="section-title">Buy &amp; Sell Stock — Code Samples</div>
+      <div class="section-subtitle">Toàn bộ 6 biến thể, tất cả O(n)</div>
+    </div>
+    <span class="badge badge-expert">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P1</div>
+      <div class="problem-title">Stock I, II, Cooldown, Fee — State Machine O(n) O(1)</div>
+      <span class="badge badge-advanced">EASY/MEDIUM</span>
+    </div>
+    <div class="problem-body">
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">buy_sell_stock_1_2_cooldown_fee.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// ====== #121: Best Time to Buy and Sell Stock (1 transaction) ======</span>
+<span class="kw">func</span> <span class="fn">maxProfit1</span>(prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="cm">// hold = lợi nhuận nếu đang nắm cổ phiếu (mua tại giá thấp nhất thấy tới nay)</span>
+    hold, cash := <span class="pkg">math</span>.MinInt32, <span class="num">0</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        hold = <span class="fn">max</span>(hold, -p)       <span class="cm">// có thể mua tại p (không cần cash trước vì 1 tx)</span>
+        cash = <span class="fn">max</span>(cash, hold+p)   <span class="cm">// có thể bán</span>
+    }
+    <span class="kw">return</span> cash
+}
+
+<span class="cm">// ====== #122: Unlimited Transactions ======</span>
+<span class="kw">func</span> <span class="fn">maxProfit2</span>(prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    hold, cash := <span class="pkg">math</span>.MinInt32, <span class="num">0</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        hold = <span class="fn">max</span>(hold, cash-p)    <span class="cm">// mua = dùng lợi nhuận trước</span>
+        cash = <span class="fn">max</span>(cash, hold+p)
+    }
+    <span class="kw">return</span> cash
+}
+
+<span class="cm">// ====== #309: With Cooldown (1 day) ======</span>
+<span class="kw">func</span> <span class="fn">maxProfitCooldown</span>(prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="cm">// prevCash = cash 2 ngày trước; sau sell phải chờ 1 ngày rồi mới buy</span>
+    hold, cash, prevCash := <span class="pkg">math</span>.MinInt32, <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        prevCash, hold, cash = cash, <span class="fn">max</span>(hold, prevCash-p), <span class="fn">max</span>(cash, hold+p)
+    }
+    <span class="kw">return</span> cash
+}
+
+<span class="cm">// ====== #714: With Transaction Fee ======</span>
+<span class="kw">func</span> <span class="fn">maxProfitFee</span>(prices []<span class="tp">int</span>, fee <span class="tp">int</span>) <span class="tp">int</span> {
+    hold, cash := <span class="pkg">math</span>.MinInt32, <span class="num">0</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        hold = <span class="fn">max</span>(hold, cash-p)
+        cash = <span class="fn">max</span>(cash, hold+p-fee) <span class="cm">// trừ fee mỗi lần bán</span>
+    }
+    <span class="kw">return</span> cash
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="problem-card">
+    <div class="problem-header">
+      <div class="problem-num">P2</div>
+      <div class="problem-title">Stock III (2 Transactions) + Stock IV (K Transactions) — Expert DP</div>
+      <span class="badge badge-expert">HARD</span>
+    </div>
+    <div class="problem-body">
+      <div class="complexity-row">
+        <span class="complexity-tag time-tag">Time: O(n×k)</span>
+        <span class="complexity-tag space-tag">Space: O(k)</span>
+        <span class="diff-hard">Hard</span>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">go</span><span class="code-filename">stock_iii_iv.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+        <pre><span class="cm">// ====== #123: At Most 2 Transactions ======
+// State: buy1, sell1, buy2, sell2
+// buy1  = max profit sau lần mua đầu tiên = -price tốt nhất
+// sell1 = max profit sau lần bán đầu tiên
+// buy2  = max profit sau lần mua thứ hai  = sell1 - price tốt nhất  
+// sell2 = max profit sau lần bán thứ hai  (đáp án)</span>
+<span class="kw">func</span> <span class="fn">maxProfit3</span>(prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    buy1, sell1 := <span class="pkg">math</span>.MinInt32, <span class="num">0</span>
+    buy2, sell2 := <span class="pkg">math</span>.MinInt32, <span class="num">0</span>
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        buy1  = <span class="fn">max</span>(buy1,  -p)
+        sell1 = <span class="fn">max</span>(sell1, buy1+p)
+        buy2  = <span class="fn">max</span>(buy2,  sell1-p) <span class="cm">// dùng profit từ tx1 để mua tx2</span>
+        sell2 = <span class="fn">max</span>(sell2, buy2+p)
+    }
+    <span class="kw">return</span> sell2
+}
+
+<span class="cm">// ====== #188: At Most K Transactions ======
+// Generalise: dp[j][0] = max profit với j transactions, not holding
+//             dp[j][1] = max profit với j transactions, holding
+// Optimisation: nếu k >= n/2 thì equivalent với unlimited transactions.</span>
+<span class="kw">func</span> <span class="fn">maxProfit4</span>(k <span class="tp">int</span>, prices []<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(prices)
+    <span class="kw">if</span> n == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    <span class="kw">if</span> k &gt;= n/<span class="num">2</span> { <span class="kw">return</span> <span class="fn">maxProfit2</span>(prices) } <span class="cm">// unlimited case</span>
+
+    <span class="cm">// dp[j] = [notHolding, holding] profit với đúng j complete transactions đã làm</span>
+    dp := <span class="fn">make</span>([][<span class="num">2</span>]<span class="tp">int</span>, k+<span class="num">1</span>)
+    <span class="kw">for</span> j := <span class="kw">range</span> dp { dp[j][<span class="num">1</span>] = <span class="pkg">math</span>.MinInt32 } <span class="cm">// holding init to -inf</span>
+
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        <span class="cm">// Duyệt từ cao xuống để tránh dùng giá trị đã cập nhật trong vòng lặp này</span>
+        <span class="kw">for</span> j := k; j &gt;= <span class="num">1</span>; j-- {
+            <span class="cm">// Sell: hoàn thành transaction j</span>
+            dp[j][<span class="num">0</span>] = <span class="fn">max</span>(dp[j][<span class="num">0</span>], dp[j][<span class="num">1</span>]+p)
+            <span class="cm">// Buy: bắt đầu transaction j (dùng profit từ j-1 transactions)</span>
+            dp[j][<span class="num">1</span>] = <span class="fn">max</span>(dp[j][<span class="num">1</span>], dp[j-<span class="num">1</span>][<span class="num">0</span>]-p)
+        }
+    }
+    <span class="kw">return</span> dp[k][<span class="num">0</span>]
+}
+
+<span class="cm">// Bonus: Generic State Machine template (Go generics)</span>
+<span class="kw">type</span> <span class="tp">StockState</span> <span class="kw">struct</span> { Hold, Cash <span class="tp">int</span> }
+
+<span class="kw">func</span> <span class="fn">solveStock</span>(prices []<span class="tp">int</span>, buyFn, sellFn <span class="kw">func</span>(<span class="tp">StockState</span>, <span class="tp">int</span>) <span class="tp">StockState</span>) <span class="tp">int</span> {
+    s := <span class="tp">StockState</span>{Hold: <span class="pkg">math</span>.MinInt32, Cash: <span class="num">0</span>}
+    <span class="kw">for</span> _, p := <span class="kw">range</span> prices {
+        s = <span class="tp">StockState</span>{
+            Hold: buyFn(s, p).Hold,
+            Cash: sellFn(s, p).Cash,
+        }
+    }
+    <span class="kw">return</span> s.Cash
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Tổng kết Stock DP:</strong> Toàn bộ 6 biến thể đều có chung skeleton: <code>hold = max(hold, ...-price)</code> và <code>cash = max(cash, hold+price...)</code>. Chỉ thay đổi <em>từ đâu lấy tiền khi mua</em> và <em>trừ gì khi bán</em>. Nắm vững 4 trường hợp cơ bản (#121, #122, #309, #714), sau đó extend sang #123 và #188.</p>
+  </div>
+</section>
+
+<!-- ========================================================= REFS -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">18</div>
+    <div>
+      <div class="section-title">References &amp; Tài liệu tham khảo</div>
+      <div class="section-subtitle">Nguồn học tốt nhất cho 7 pattern nâng cao</div>
+    </div>
+  </div>
+
+  <h3>🐙 GitHub — Go Solutions</h3>
+
+  <a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">halfrost/LeetCode-Go — 700+ Go Solutions</div>
+      <div class="ref-desc">Giải pháp chuẩn Go cho tất cả các bài: Heap, Trie, Design, DP. Code clean, benchmark đính kèm. Repository Go LeetCode nổi tiếng nhất.</div>
+      <div class="ref-url">github.com/halfrost/LeetCode-Go</div>
+    </div>
+    <div class="ref-stars">⭐ 31k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,.1)">🧠</div>
+    <div class="ref-body">
+      <div class="ref-title">labuladong/fucking-algorithm — Tư duy thuật toán</div>
+      <div class="ref-desc">Chương "Dynamic Programming" giải thích Stock DP cực kỳ rõ ràng. Chương về Design (LRU/LFU) và Trie cũng rất tốt. Bản tiếng Anh: labuladong.gitbook.io</div>
+      <div class="ref-url">github.com/labuladong/fucking-algorithm</div>
+    </div>
+    <div class="ref-stars">⭐ 126k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/youngyangyang04/leetcode-master" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,.1)">📖</div>
+    <div class="ref-body">
+      <div class="ref-title">youngyangyang04/leetcode-master — Hình ảnh minh hoạ</div>
+      <div class="ref-desc">Bao phủ tất cả 17 pattern với hình ảnh SVG minh họa từng bước. Đặc biệt tốt cho Heap (phần "Priority Queue"), String (KMP section), DP (Stock series).</div>
+      <div class="ref-url">github.com/youngyangyang04/leetcode-master</div>
+    </div>
+    <div class="ref-stars">⭐ 22k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/greyireland/algorithm-pattern" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,.1)">🔖</div>
+    <div class="ref-body">
+      <div class="ref-title">greyireland/algorithm-pattern — Go Templates</div>
+      <div class="ref-desc">Template Go cho từng pattern: Trie, Heap, HashMap đều có code khung chuẩn. Phần "Dynamic Programming" bao phủ Stock problems đầy đủ.</div>
+      <div class="ref-url">github.com/greyireland/algorithm-pattern</div>
+    </div>
+    <div class="ref-stars">⭐ 14k★</div>
+  </a>
+
+  <h3>📘 Go Standard Library Docs</h3>
+
+  <a class="ref-card" href="https://pkg.go.dev/container/heap" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,.1)">📘</div>
+    <div class="ref-body">
+      <div class="ref-title">pkg.go.dev/container/heap — Official Heap Docs</div>
+      <div class="ref-desc">Tài liệu chính thức container/heap. Có ví dụ Min-Heap, Priority Queue với cả struct. Cần đọc kỹ interface và ví dụ IntHeap, PriorityQueue.</div>
+      <div class="ref-url">pkg.go.dev/container/heap</div>
+    </div>
+    <div class="ref-stars">⭐ Official</div>
+  </a>
+
+  <a class="ref-card" href="https://pkg.go.dev/strings" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,.1)">📘</div>
+    <div class="ref-body">
+      <div class="ref-title">pkg.go.dev/strings — strings package</div>
+      <div class="ref-desc">strings.Builder (efficient concat), strings.Index (naive search), strings.Contains, strings.Split. Quan trọng cho String problems trong Go.</div>
+      <div class="ref-url">pkg.go.dev/strings</div>
+    </div>
+    <div class="ref-stars">⭐ Official</div>
+  </a>
+
+  <h3>🎓 Nền tảng học &amp; Khoá học</h3>
+
+  <a class="ref-card" href="https://neetcode.io/roadmap" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,.1)">🎯</div>
+    <div class="ref-body">
+      <div class="ref-title">NeetCode Roadmap — 150 bài theo Pattern</div>
+      <div class="ref-desc">Roadmap chuẩn nhất. Heap section (8 bài), Trie (3 bài), 1D DP (12 bài bao gồm stock), Advanced Graphs (6 bài). Video giải thích + Go code.</div>
+      <div class="ref-url">neetcode.io/roadmap</div>
+    </div>
+    <div class="ref-stars">⭐ Must-Use</div>
+  </a>
+
+  <a class="ref-card" href="https://www.educative.io/courses/grokking-the-coding-interview" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,.1)">🎓</div>
+    <div class="ref-body">
+      <div class="ref-title">Grokking the Coding Interview — Pattern-Based</div>
+      <div class="ref-desc">Khoá học theo pattern tốt nhất. Bao phủ Heap (Top K Elements), Trie, Two Heaps (Median), Modified Binary Search. Trực quan, có animation.</div>
+      <div class="ref-url">educative.io/courses/grokking-the-coding-interview</div>
+    </div>
+    <div class="ref-stars">⭐ Top Course</div>
+  </a>
+
+  <h3>▶️ Video — Chuyên sâu từng Pattern</h3>
+
+  <a class="ref-card" href="https://www.youtube.com/watch?v=YbQbhq8fxX8" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,.1)">▶️</div>
+    <div class="ref-body">
+      <div class="ref-title">NeetCode — LRU Cache Explained</div>
+      <div class="ref-desc">Video giải thích LRU Cache với HashMap + DLL cực kỳ rõ ràng. Vẽ diagram từng bước, sau đó code trực tiếp. 15 phút là hiểu hoàn toàn.</div>
+      <div class="ref-url">youtube.com/@NeetCode</div>
+    </div>
+    <div class="ref-stars">⭐ 500k+ views</div>
+  </a>
+
+  <a class="ref-card" href="https://www.youtube.com/watch?v=oBt53YbR9Kk" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,.1)">▶️</div>
+    <div class="ref-body">
+      <div class="ref-title">Dynamic Programming — Stock Problems Series</div>
+      <div class="ref-desc">Free Code Camp — DP series cực kỳ chi tiết. Stock problems (I đến IV) được giải thích theo state machine. 5 tiếng video chất lượng cao.</div>
+      <div class="ref-url">youtube.com/watch?v=oBt53YbR9Kk</div>
+    </div>
+    <div class="ref-stars">⭐ 1M+ views</div>
+  </a>
+
+  <a class="ref-card" href="https://www.youtube.com/@BackToBackSWE" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,.1)">▶️</div>
+    <div class="ref-body">
+      <div class="ref-title">Back To Back SWE — Trie &amp; String Deep Dives</div>
+      <div class="ref-desc">Video giải thích Trie, KMP, string matching với animation chuyên nghiệp. Đặc biệt video về "Implement Trie" và "KMP Algorithm" cực kỳ chi tiết.</div>
+      <div class="ref-url">youtube.com/@BackToBackSWE</div>
+    </div>
+    <div class="ref-stars">⭐ 250k subs</div>
+  </a>
+
+  <hr class="divider">
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Roadmap hoàn chỉnh (Phần 1 + Phần 2):</strong><br>
+    <strong>Phần 1:</strong> Two Pointers · Sliding Window · Binary Search · Stack/Queue · Linked List · Tree · Graph BFS/DFS<br>
+    <strong>Phần 2:</strong> Heap · Trie · Hashmap+PrefixSum · Matrix · String · Design · Buy&amp;Sell Stock DP<br><br>
+    Sau khi nắm 17 pattern, luyện thêm: <strong>Dynamic Programming</strong> (Knapsack, LCS, LIS), <strong>Backtracking</strong> (Permutations, Subsets, N-Queens), và <strong>Math &amp; Bit Manipulation</strong>. Đây là bộ 3 pattern ít bài nhưng quan trọng ở Senior level interview.</p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.topnav-item').forEach(n => n.classList.remove('active'));
+  const section = document.getElementById('s-' + name);
+  if (section) section.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+  document.querySelectorAll('.topnav-item').forEach(n => {
+    if (n.getAttribute('onclick')?.includes("'" + name + "'")) n.classList.add('active');
+  });
+  window.scrollTo(0, 0);
+}
+
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
