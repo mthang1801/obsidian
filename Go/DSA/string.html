@@ -1,718 +1,981 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Go String Algorithms — Sliding Window · Trie · Palindrome</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg-primary: #0d1117;
-    --bg-secondary: #161b22;
-    --bg-tertiary: #21262d;
-    --bg-code: #0d1117;
-    --border: #30363d;
-    --border-accent: #3d444d;
-    --text-primary: #e6edf3;
-    --text-secondary: #8b949e;
-    --text-muted: #6e7681;
-    --accent-green: #3fb950;
-    --accent-green-dim: #238636;
-    --accent-blue: #58a6ff;
-    --accent-purple: #bc8cff;
-    --accent-orange: #ffa657;
-    --accent-red: #f85149;
-    --accent-cyan: #39d353;
-    --accent-yellow: #e3b341;
-    --accent-teal: #56d364;
-    --tag-expert: #bc8cff;
-    --tag-advanced: #58a6ff;
-    --tag-beginner: #3fb950;
-    --sidebar-width: 260px;
-    --header-height: 52px;
-  }
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Go String Algorithms — Sliding Window · Trie · Palindrome</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--bg-primary: #0d1117;
+				--bg-secondary: #161b22;
+				--bg-tertiary: #21262d;
+				--bg-code: #0d1117;
+				--border: #30363d;
+				--border-accent: #3d444d;
+				--text-primary: #e6edf3;
+				--text-secondary: #8b949e;
+				--text-muted: #6e7681;
+				--accent-green: #3fb950;
+				--accent-green-dim: #238636;
+				--accent-blue: #58a6ff;
+				--accent-purple: #bc8cff;
+				--accent-orange: #ffa657;
+				--accent-red: #f85149;
+				--accent-cyan: #39d353;
+				--accent-yellow: #e3b341;
+				--accent-teal: #56d364;
+				--tag-expert: #bc8cff;
+				--tag-advanced: #58a6ff;
+				--tag-beginner: #3fb950;
+				--sidebar-width: 260px;
+				--header-height: 52px;
+			}
 
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+			* {
+				box-sizing: border-box;
+				margin: 0;
+				padding: 0;
+			}
 
-  body {
-    font-family: 'Space Grotesk', sans-serif;
-    background: var(--bg-primary);
-    color: var(--text-primary);
-    overflow-x: hidden;
-  }
+			body {
+				font-family: "Space Grotesk", sans-serif;
+				background: var(--bg-primary);
+				color: var(--text-primary);
+				overflow-x: hidden;
+			}
 
-  /* ── HEADER ── */
-  header {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    height: var(--header-height);
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border);
-    display: flex; align-items: center;
-    padding: 0 20px; gap: 24px;
-  }
-  .logo {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 15px; font-weight: 700;
-    white-space: nowrap;
-  }
-  .logo .go { color: var(--accent-cyan); }
-  .logo .title { color: var(--text-secondary); margin-left: 4px; }
-  .logo .highlight { color: var(--accent-green); }
+			/* ── HEADER ── */
+			header {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				z-index: 100;
+				height: var(--header-height);
+				background: var(--bg-secondary);
+				border-bottom: 1px solid var(--border);
+				display: flex;
+				align-items: center;
+				padding: 0 20px;
+				gap: 24px;
+			}
+			.logo {
+				font-family: "JetBrains Mono", monospace;
+				font-size: 15px;
+				font-weight: 700;
+				white-space: nowrap;
+			}
+			.logo .go {
+				color: var(--accent-cyan);
+			}
+			.logo .title {
+				color: var(--text-secondary);
+				margin-left: 4px;
+			}
+			.logo .highlight {
+				color: var(--accent-green);
+			}
 
-  nav {
-    display: flex; gap: 2px; overflow-x: auto;
-    scrollbar-width: none;
-  }
-  nav::-webkit-scrollbar { display: none; }
-  nav a {
-    color: var(--text-secondary); text-decoration: none;
-    font-size: 13px; font-weight: 500;
-    padding: 6px 12px; border-radius: 6px;
-    white-space: nowrap; transition: all .2s;
-  }
-  nav a:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-  nav a.active { color: var(--accent-green); background: rgba(63,185,80,.1); }
+			nav {
+				display: flex;
+				gap: 2px;
+				overflow-x: auto;
+				scrollbar-width: none;
+			}
+			nav::-webkit-scrollbar {
+				display: none;
+			}
+			nav a {
+				color: var(--text-secondary);
+				text-decoration: none;
+				font-size: 13px;
+				font-weight: 500;
+				padding: 6px 12px;
+				border-radius: 6px;
+				white-space: nowrap;
+				transition: all 0.2s;
+			}
+			nav a:hover {
+				background: var(--bg-tertiary);
+				color: var(--text-primary);
+			}
+			nav a.active {
+				color: var(--accent-green);
+				background: rgba(63, 185, 80, 0.1);
+			}
 
-  /* ── LAYOUT ── */
-  .layout {
-    display: flex;
-    margin-top: var(--header-height);
-    min-height: calc(100vh - var(--header-height));
-  }
+			/* ── LAYOUT ── */
+			.layout {
+				display: flex;
+				margin-top: var(--header-height);
+				min-height: calc(100vh - var(--header-height));
+			}
 
-  /* ── SIDEBAR ── */
-  aside {
-    width: var(--sidebar-width);
-    background: var(--bg-secondary);
-    border-right: 1px solid var(--border);
-    position: fixed; top: var(--header-height);
-    bottom: 0; overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-    padding: 16px 0;
-  }
-  .sidebar-section {
-    padding: 0 12px 8px;
-    margin-bottom: 4px;
-  }
-  .sidebar-section-title {
-    font-size: 10px; font-weight: 700;
-    letter-spacing: 1.2px; text-transform: uppercase;
-    color: var(--text-muted);
-    padding: 8px 8px 4px;
-  }
-  .sidebar-link {
-    display: block; padding: 5px 8px;
-    font-size: 13px; color: var(--text-secondary);
-    text-decoration: none; border-radius: 5px;
-    transition: all .15s; cursor: pointer;
-    border: 1px solid transparent;
-  }
-  .sidebar-link:hover { background: var(--bg-tertiary); color: var(--text-primary); }
-  .sidebar-link.active {
-    background: rgba(88,166,255,.1);
-    color: var(--accent-blue);
-    border-color: rgba(88,166,255,.2);
-  }
+			/* ── SIDEBAR ── */
+			aside {
+				width: var(--sidebar-width);
+				background: var(--bg-secondary);
+				border-right: 1px solid var(--border);
+				position: fixed;
+				top: var(--header-height);
+				bottom: 0;
+				overflow-y: auto;
+				scrollbar-width: thin;
+				scrollbar-color: var(--border) transparent;
+				padding: 16px 0;
+			}
+			.sidebar-section {
+				padding: 0 12px 8px;
+				margin-bottom: 4px;
+			}
+			.sidebar-section-title {
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 1.2px;
+				text-transform: uppercase;
+				color: var(--text-muted);
+				padding: 8px 8px 4px;
+			}
+			.sidebar-link {
+				display: block;
+				padding: 5px 8px;
+				font-size: 13px;
+				color: var(--text-secondary);
+				text-decoration: none;
+				border-radius: 5px;
+				transition: all 0.15s;
+				cursor: pointer;
+				border: 1px solid transparent;
+			}
+			.sidebar-link:hover {
+				background: var(--bg-tertiary);
+				color: var(--text-primary);
+			}
+			.sidebar-link.active {
+				background: rgba(88, 166, 255, 0.1);
+				color: var(--accent-blue);
+				border-color: rgba(88, 166, 255, 0.2);
+			}
 
-  /* ── MAIN CONTENT ── */
-  main {
-    margin-left: var(--sidebar-width);
-    flex: 1; padding: 40px 48px;
-    max-width: calc(100vw - var(--sidebar-width));
-  }
+			/* ── MAIN CONTENT ── */
+			main {
+				margin-left: var(--sidebar-width);
+				flex: 1;
+				padding: 40px 48px;
+				max-width: calc(100vw - var(--sidebar-width));
+			}
 
-  /* ── SECTION ── */
-  .section { margin-bottom: 80px; scroll-margin-top: 72px; }
+			/* ── SECTION ── */
+			.section {
+				margin-bottom: 80px;
+				scroll-margin-top: 72px;
+			}
 
-  .section-header {
-    display: flex; align-items: center; gap: 12px;
-    margin-bottom: 20px; padding-bottom: 16px;
-    border-bottom: 1px solid var(--border);
-  }
-  .section-number {
-    width: 32px; height: 32px;
-    background: var(--bg-tertiary);
-    border: 1px solid var(--border-accent);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; font-weight: 700;
-    color: var(--text-secondary); flex-shrink: 0;
-  }
-  .section-title { font-size: 20px; font-weight: 700; color: var(--text-primary); }
+			.section-header {
+				display: flex;
+				align-items: center;
+				gap: 12px;
+				margin-bottom: 20px;
+				padding-bottom: 16px;
+				border-bottom: 1px solid var(--border);
+			}
+			.section-number {
+				width: 32px;
+				height: 32px;
+				background: var(--bg-tertiary);
+				border: 1px solid var(--border-accent);
+				border-radius: 8px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-family: "JetBrains Mono", monospace;
+				font-size: 13px;
+				font-weight: 700;
+				color: var(--text-secondary);
+				flex-shrink: 0;
+			}
+			.section-title {
+				font-size: 20px;
+				font-weight: 700;
+				color: var(--text-primary);
+			}
 
-  .tag {
-    padding: 2px 10px; border-radius: 20px;
-    font-size: 11px; font-weight: 600; letter-spacing: .4px;
-  }
-  .tag-expert { background: rgba(188,140,255,.15); color: var(--tag-expert); border: 1px solid rgba(188,140,255,.3); }
-  .tag-advanced { background: rgba(88,166,255,.15); color: var(--tag-advanced); border: 1px solid rgba(88,166,255,.3); }
-  .tag-intermediate { background: rgba(63,185,80,.15); color: var(--tag-beginner); border: 1px solid rgba(63,185,80,.3); }
+			.tag {
+				padding: 2px 10px;
+				border-radius: 20px;
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 0.4px;
+			}
+			.tag-expert {
+				background: rgba(188, 140, 255, 0.15);
+				color: var(--tag-expert);
+				border: 1px solid rgba(188, 140, 255, 0.3);
+			}
+			.tag-advanced {
+				background: rgba(88, 166, 255, 0.15);
+				color: var(--tag-advanced);
+				border: 1px solid rgba(88, 166, 255, 0.3);
+			}
+			.tag-intermediate {
+				background: rgba(63, 185, 80, 0.15);
+				color: var(--tag-beginner);
+				border: 1px solid rgba(63, 185, 80, 0.3);
+			}
 
-  .desc {
-    font-size: 14px; line-height: 1.7;
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-  }
+			.desc {
+				font-size: 14px;
+				line-height: 1.7;
+				color: var(--text-secondary);
+				margin-bottom: 24px;
+			}
 
-  /* ── DIAGRAM BOX ── */
-  .diagram-box {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 20px 0;
-  }
-  .diagram-header {
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 16px;
-    display: flex; align-items: center; gap: 8px;
-  }
-  .diagram-title {
-    font-size: 11px; font-weight: 600;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: var(--text-muted);
-  }
-  .diagram-body {
-    padding: 24px;
-    display: flex; justify-content: center; align-items: center;
-  }
+			/* ── DIAGRAM BOX ── */
+			.diagram-box {
+				background: var(--bg-secondary);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				overflow: hidden;
+				margin: 20px 0;
+			}
+			.diagram-header {
+				background: var(--bg-tertiary);
+				border-bottom: 1px solid var(--border);
+				padding: 8px 16px;
+				display: flex;
+				align-items: center;
+				gap: 8px;
+			}
+			.diagram-title {
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				color: var(--text-muted);
+			}
+			.diagram-body {
+				padding: 24px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
 
-  /* ── CODE BLOCK ── */
-  .code-block {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-    margin: 20px 0;
-  }
-  .code-header {
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border);
-    padding: 8px 16px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  .code-lang {
-    font-size: 11px; font-weight: 700;
-    letter-spacing: 1px; text-transform: uppercase;
-    padding: 2px 8px; border-radius: 4px;
-    background: rgba(63,185,80,.15);
-    color: var(--accent-green);
-  }
-  .code-filename {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 12px; color: var(--text-secondary);
-  }
-  pre {
-    padding: 20px 24px;
-    overflow-x: auto;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px;
-    line-height: 1.65;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
-  }
-  pre::-webkit-scrollbar { height: 6px; }
-  pre::-webkit-scrollbar-track { background: transparent; }
-  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+			/* ── CODE BLOCK ── */
+			.code-block {
+				background: var(--bg-secondary);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				overflow: hidden;
+				margin: 20px 0;
+			}
+			.code-header {
+				background: var(--bg-tertiary);
+				border-bottom: 1px solid var(--border);
+				padding: 8px 16px;
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+			}
+			.code-lang {
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				padding: 2px 8px;
+				border-radius: 4px;
+				background: rgba(63, 185, 80, 0.15);
+				color: var(--accent-green);
+			}
+			.code-filename {
+				font-family: "JetBrains Mono", monospace;
+				font-size: 12px;
+				color: var(--text-secondary);
+			}
+			pre {
+				padding: 20px 24px;
+				overflow-x: auto;
+				font-family: "JetBrains Mono", monospace;
+				font-size: 13px;
+				line-height: 1.65;
+				scrollbar-width: thin;
+				scrollbar-color: var(--border) transparent;
+			}
+			pre::-webkit-scrollbar {
+				height: 6px;
+			}
+			pre::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			pre::-webkit-scrollbar-thumb {
+				background: var(--border);
+				border-radius: 3px;
+			}
 
-  /* Syntax highlight */
-  .kw { color: #ff7b72; }      /* keywords */
-  .fn { color: #d2a8ff; }      /* functions */
-  .ty { color: #79c0ff; }      /* types */
-  .st { color: #a5d6ff; }      /* strings */
-  .cm { color: #8b949e; font-style: italic; } /* comments */
-  .nm { color: #ffa657; }      /* numbers */
-  .op { color: #ff7b72; }      /* operators */
-  .id { color: #e6edf3; }      /* identifiers */
-  .pu { color: #79c0ff; }      /* punctuation special */
+			/* Syntax highlight */
+			.kw {
+				color: #ff7b72;
+			} /* keywords */
+			.fn {
+				color: #d2a8ff;
+			} /* functions */
+			.ty {
+				color: #79c0ff;
+			} /* types */
+			.st {
+				color: #a5d6ff;
+			} /* strings */
+			.cm {
+				color: #8b949e;
+				font-style: italic;
+			} /* comments */
+			.nm {
+				color: #ffa657;
+			} /* numbers */
+			.op {
+				color: #ff7b72;
+			} /* operators */
+			.id {
+				color: #e6edf3;
+			} /* identifiers */
+			.pu {
+				color: #79c0ff;
+			} /* punctuation special */
 
-  /* ── INFO CARDS ── */
-  .info-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 12px; margin: 20px 0;
-  }
-  .info-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px; padding: 16px;
-  }
-  .info-card-label {
-    font-size: 10px; font-weight: 600;
-    letter-spacing: 1px; text-transform: uppercase;
-    color: var(--text-muted); margin-bottom: 6px;
-  }
-  .info-card-value {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 13px; color: var(--accent-blue);
-    font-weight: 600;
-  }
-  .info-card-desc { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+			/* ── INFO CARDS ── */
+			.info-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 12px;
+				margin: 20px 0;
+			}
+			.info-card {
+				background: var(--bg-secondary);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 16px;
+			}
+			.info-card-label {
+				font-size: 10px;
+				font-weight: 600;
+				letter-spacing: 1px;
+				text-transform: uppercase;
+				color: var(--text-muted);
+				margin-bottom: 6px;
+			}
+			.info-card-value {
+				font-family: "JetBrains Mono", monospace;
+				font-size: 13px;
+				color: var(--accent-blue);
+				font-weight: 600;
+			}
+			.info-card-desc {
+				font-size: 12px;
+				color: var(--text-secondary);
+				margin-top: 4px;
+			}
 
-  /* ── PITFALL TABLE ── */
-  .pitfall-table {
-    width: 100%; border-collapse: collapse;
-    margin: 20px 0; font-size: 13px;
-  }
-  .pitfall-table th {
-    background: var(--bg-tertiary);
-    padding: 10px 14px; text-align: left;
-    font-size: 11px; font-weight: 600;
-    letter-spacing: .5px; text-transform: uppercase;
-    color: var(--text-muted);
-    border-bottom: 1px solid var(--border);
-  }
-  .pitfall-table td {
-    padding: 10px 14px; vertical-align: top;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-secondary); line-height: 1.5;
-  }
-  .pitfall-table tr:last-child td { border-bottom: none; }
-  .pitfall-table tr:hover td { background: var(--bg-tertiary); }
-  .err-badge {
-    display: inline-block;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; padding: 1px 6px;
-    border-radius: 4px; font-weight: 600;
-  }
-  .err-fatal { background: rgba(248,81,73,.15); color: var(--accent-red); }
-  .err-warn  { background: rgba(255,166,87,.15); color: var(--accent-orange); }
-  .fix-badge {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 11px; color: var(--accent-green);
-  }
+			/* ── PITFALL TABLE ── */
+			.pitfall-table {
+				width: 100%;
+				border-collapse: collapse;
+				margin: 20px 0;
+				font-size: 13px;
+			}
+			.pitfall-table th {
+				background: var(--bg-tertiary);
+				padding: 10px 14px;
+				text-align: left;
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 0.5px;
+				text-transform: uppercase;
+				color: var(--text-muted);
+				border-bottom: 1px solid var(--border);
+			}
+			.pitfall-table td {
+				padding: 10px 14px;
+				vertical-align: top;
+				border-bottom: 1px solid var(--border);
+				color: var(--text-secondary);
+				line-height: 1.5;
+			}
+			.pitfall-table tr:last-child td {
+				border-bottom: none;
+			}
+			.pitfall-table tr:hover td {
+				background: var(--bg-tertiary);
+			}
+			.err-badge {
+				display: inline-block;
+				font-family: "JetBrains Mono", monospace;
+				font-size: 11px;
+				padding: 1px 6px;
+				border-radius: 4px;
+				font-weight: 600;
+			}
+			.err-fatal {
+				background: rgba(248, 81, 73, 0.15);
+				color: var(--accent-red);
+			}
+			.err-warn {
+				background: rgba(255, 166, 87, 0.15);
+				color: var(--accent-orange);
+			}
+			.fix-badge {
+				font-family: "JetBrains Mono", monospace;
+				font-size: 11px;
+				color: var(--accent-green);
+			}
 
-  /* ── REF LINKS ── */
-  .ref-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 12px; margin: 20px 0;
-  }
-  .ref-card {
-    background: var(--bg-secondary);
-    border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px 16px;
-    text-decoration: none; display: block;
-    transition: all .2s;
-  }
-  .ref-card:hover {
-    border-color: var(--accent-blue);
-    background: rgba(88,166,255,.05);
-  }
-  .ref-card-title { font-size: 13px; font-weight: 600; color: var(--accent-blue); margin-bottom: 4px; }
-  .ref-card-desc { font-size: 12px; color: var(--text-muted); }
-  .ref-card-url { font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; margin-top: 6px; }
+			/* ── REF LINKS ── */
+			.ref-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+				gap: 12px;
+				margin: 20px 0;
+			}
+			.ref-card {
+				background: var(--bg-secondary);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 14px 16px;
+				text-decoration: none;
+				display: block;
+				transition: all 0.2s;
+			}
+			.ref-card:hover {
+				border-color: var(--accent-blue);
+				background: rgba(88, 166, 255, 0.05);
+			}
+			.ref-card-title {
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--accent-blue);
+				margin-bottom: 4px;
+			}
+			.ref-card-desc {
+				font-size: 12px;
+				color: var(--text-muted);
+			}
+			.ref-card-url {
+				font-size: 11px;
+				color: var(--text-muted);
+				font-family: "JetBrains Mono", monospace;
+				margin-top: 6px;
+			}
 
-  /* ── CALLOUT ── */
-  .callout {
-    border-radius: 8px; padding: 14px 16px;
-    margin: 16px 0; font-size: 13px; line-height: 1.6;
-    display: flex; gap: 10px;
-  }
-  .callout-info { background: rgba(88,166,255,.1); border-left: 3px solid var(--accent-blue); }
-  .callout-warn { background: rgba(255,166,87,.1); border-left: 3px solid var(--accent-orange); }
-  .callout-tip  { background: rgba(63,185,80,.1); border-left: 3px solid var(--accent-green); }
-  .callout-icon { font-size: 16px; flex-shrink: 0; }
-  .callout p { color: var(--text-secondary); }
-  .callout strong { color: var(--text-primary); }
+			/* ── CALLOUT ── */
+			.callout {
+				border-radius: 8px;
+				padding: 14px 16px;
+				margin: 16px 0;
+				font-size: 13px;
+				line-height: 1.6;
+				display: flex;
+				gap: 10px;
+			}
+			.callout-info {
+				background: rgba(88, 166, 255, 0.1);
+				border-left: 3px solid var(--accent-blue);
+			}
+			.callout-warn {
+				background: rgba(255, 166, 87, 0.1);
+				border-left: 3px solid var(--accent-orange);
+			}
+			.callout-tip {
+				background: rgba(63, 185, 80, 0.1);
+				border-left: 3px solid var(--accent-green);
+			}
+			.callout-icon {
+				font-size: 16px;
+				flex-shrink: 0;
+			}
+			.callout p {
+				color: var(--text-secondary);
+			}
+			.callout strong {
+				color: var(--text-primary);
+			}
 
-  /* ── SVG DIAGRAM ── */
-  svg text { font-family: 'JetBrains Mono', monospace; }
+			/* ── SVG DIAGRAM ── */
+			svg text {
+				font-family: "JetBrains Mono", monospace;
+			}
 
-  /* ── COMPARISON TABLE ── */
-  .cmp-table {
-    width: 100%; border-collapse: collapse;
-    margin: 20px 0; font-size: 13px;
-    border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
-  }
-  .cmp-table th {
-    background: var(--bg-tertiary);
-    padding: 10px 16px; text-align: left;
-    color: var(--text-secondary); font-weight: 600;
-    border-bottom: 1px solid var(--border);
-  }
-  .cmp-table td {
-    padding: 10px 16px;
-    border-bottom: 1px solid var(--border);
-    color: var(--text-secondary);
-  }
-  .cmp-table tr:last-child td { border-bottom: none; }
-  .cmp-table tr:hover td { background: rgba(255,255,255,.02); }
-  .good { color: var(--accent-green); }
-  .bad  { color: var(--accent-red); }
-  .med  { color: var(--accent-orange); }
+			/* ── COMPARISON TABLE ── */
+			.cmp-table {
+				width: 100%;
+				border-collapse: collapse;
+				margin: 20px 0;
+				font-size: 13px;
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				overflow: hidden;
+			}
+			.cmp-table th {
+				background: var(--bg-tertiary);
+				padding: 10px 16px;
+				text-align: left;
+				color: var(--text-secondary);
+				font-weight: 600;
+				border-bottom: 1px solid var(--border);
+			}
+			.cmp-table td {
+				padding: 10px 16px;
+				border-bottom: 1px solid var(--border);
+				color: var(--text-secondary);
+			}
+			.cmp-table tr:last-child td {
+				border-bottom: none;
+			}
+			.cmp-table tr:hover td {
+				background: rgba(255, 255, 255, 0.02);
+			}
+			.good {
+				color: var(--accent-green);
+			}
+			.bad {
+				color: var(--accent-red);
+			}
+			.med {
+				color: var(--accent-orange);
+			}
 
-  h2.sub { font-size: 16px; font-weight: 600; margin: 28px 0 12px; color: var(--text-primary); }
-  h3.sub { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--accent-blue); }
+			h2.sub {
+				font-size: 16px;
+				font-weight: 600;
+				margin: 28px 0 12px;
+				color: var(--text-primary);
+			}
+			h3.sub {
+				font-size: 14px;
+				font-weight: 600;
+				margin: 20px 0 8px;
+				color: var(--accent-blue);
+			}
 
-  .badge-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+			.badge-row {
+				display: flex;
+				gap: 8px;
+				flex-wrap: wrap;
+				margin-bottom: 16px;
+			}
 
-  /* ── SCROLLBAR SIDEBAR ── */
-  aside::-webkit-scrollbar { width: 4px; }
-  aside::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+			/* ── SCROLLBAR SIDEBAR ── */
+			aside::-webkit-scrollbar {
+				width: 4px;
+			}
+			aside::-webkit-scrollbar-thumb {
+				background: var(--border);
+				border-radius: 2px;
+			}
 
-  /* ── STEP LIST ── */
-  .step-list { margin: 16px 0; }
-  .step-item {
-    display: flex; gap: 12px; padding: 10px 0;
-    border-bottom: 1px solid var(--border);
-    align-items: flex-start;
-  }
-  .step-item:last-child { border-bottom: none; }
-  .step-num {
-    width: 24px; height: 24px; border-radius: 50%;
-    background: var(--bg-tertiary); border: 1px solid var(--border-accent);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 700; color: var(--accent-green);
-    flex-shrink: 0;
-  }
-  .step-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
-  .step-text strong { color: var(--text-primary); }
-</style>
-</head>
-<body>
+			/* ── STEP LIST ── */
+			.step-list {
+				margin: 16px 0;
+			}
+			.step-item {
+				display: flex;
+				gap: 12px;
+				padding: 10px 0;
+				border-bottom: 1px solid var(--border);
+				align-items: flex-start;
+			}
+			.step-item:last-child {
+				border-bottom: none;
+			}
+			.step-num {
+				width: 24px;
+				height: 24px;
+				border-radius: 50%;
+				background: var(--bg-tertiary);
+				border: 1px solid var(--border-accent);
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 11px;
+				font-weight: 700;
+				color: var(--accent-green);
+				flex-shrink: 0;
+			}
+			.step-text {
+				font-size: 13px;
+				color: var(--text-secondary);
+				line-height: 1.6;
+			}
+			.step-text strong {
+				color: var(--text-primary);
+			}
+		</style>
+	</head>
+	<body>
+		<!-- HEADER -->
+		<header>
+			<div class="logo">
+				<span class="go">Go</span><span class="title"> <span class="highlight">String</span> Algorithms</span>
+			</div>
+			<nav>
+				<a href="#intro" class="active" onclick="setNav(this)">Giới thiệu</a>
+				<a href="#sliding-window" onclick="setNav(this)">Sliding Window</a>
+				<a href="#trie" onclick="setNav(this)">Trie / Prefix Tree</a>
+				<a href="#palindrome" onclick="setNav(this)">Palindrome</a>
+				<a href="#pitfalls" onclick="setNav(this)">Pitfalls</a>
+				<a href="#references" onclick="setNav(this)">References</a>
+			</nav>
+		</header>
 
-<!-- HEADER -->
-<header>
-  <div class="logo">
-    <span class="go">Go</span><span class="title"> <span class="highlight">String</span> Algorithms</span>
-  </div>
-  <nav>
-    <a href="#intro" class="active" onclick="setNav(this)">Giới thiệu</a>
-    <a href="#sliding-window" onclick="setNav(this)">Sliding Window</a>
-    <a href="#trie" onclick="setNav(this)">Trie / Prefix Tree</a>
-    <a href="#palindrome" onclick="setNav(this)">Palindrome</a>
-    <a href="#pitfalls" onclick="setNav(this)">Pitfalls</a>
-    <a href="#references" onclick="setNav(this)">References</a>
-  </nav>
-</header>
+		<!-- LAYOUT -->
+		<div class="layout">
+			<!-- SIDEBAR -->
+			<aside>
+				<div class="sidebar-section">
+					<div class="sidebar-section-title">Tổng quan</div>
+					<a class="sidebar-link active" href="#intro" onclick="setSidebar(this)">Giới thiệu</a>
+					<a class="sidebar-link" href="#complexity" onclick="setSidebar(this)">So sánh độ phức tạp</a>
+				</div>
 
-<!-- LAYOUT -->
-<div class="layout">
+				<div class="sidebar-section">
+					<div class="sidebar-section-title">01 · Sliding Window</div>
+					<a class="sidebar-link" href="#sw-concept" onclick="setSidebar(this)">Khái niệm</a>
+					<a class="sidebar-link" href="#sw-fixed" onclick="setSidebar(this)">Fixed Window</a>
+					<a class="sidebar-link" href="#sw-dynamic" onclick="setSidebar(this)">Dynamic Window</a>
+					<a class="sidebar-link" href="#sw-advanced" onclick="setSidebar(this)">Advanced — Min Window</a>
+					<a class="sidebar-link" href="#sw-expert" onclick="setSidebar(this)">Expert — Rabin-Karp Hash</a>
+				</div>
 
-  <!-- SIDEBAR -->
-  <aside>
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Tổng quan</div>
-      <a class="sidebar-link active" href="#intro" onclick="setSidebar(this)">Giới thiệu</a>
-      <a class="sidebar-link" href="#complexity" onclick="setSidebar(this)">So sánh độ phức tạp</a>
-    </div>
+				<div class="sidebar-section">
+					<div class="sidebar-section-title">02 · Trie / Prefix Tree</div>
+					<a class="sidebar-link" href="#trie-concept" onclick="setSidebar(this)">Khái niệm</a>
+					<a class="sidebar-link" href="#trie-basic" onclick="setSidebar(this)">Trie cơ bản</a>
+					<a class="sidebar-link" href="#trie-generic" onclick="setSidebar(this)">Generic Trie (Go 1.18+)</a>
+					<a class="sidebar-link" href="#trie-autocomplete" onclick="setSidebar(this)">Autocomplete Engine</a>
+					<a class="sidebar-link" href="#trie-expert" onclick="setSidebar(this)">Expert — Concurrent Trie</a>
+				</div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">01 · Sliding Window</div>
-      <a class="sidebar-link" href="#sw-concept" onclick="setSidebar(this)">Khái niệm</a>
-      <a class="sidebar-link" href="#sw-fixed" onclick="setSidebar(this)">Fixed Window</a>
-      <a class="sidebar-link" href="#sw-dynamic" onclick="setSidebar(this)">Dynamic Window</a>
-      <a class="sidebar-link" href="#sw-advanced" onclick="setSidebar(this)">Advanced — Min Window</a>
-      <a class="sidebar-link" href="#sw-expert" onclick="setSidebar(this)">Expert — Rabin-Karp Hash</a>
-    </div>
+				<div class="sidebar-section">
+					<div class="sidebar-section-title">03 · Palindrome</div>
+					<a class="sidebar-link" href="#pal-concept" onclick="setSidebar(this)">Khái niệm</a>
+					<a class="sidebar-link" href="#pal-expand" onclick="setSidebar(this)">Expand Around Center</a>
+					<a class="sidebar-link" href="#pal-dp" onclick="setSidebar(this)">DP — Longest Palindrome</a>
+					<a class="sidebar-link" href="#pal-manacher" onclick="setSidebar(this)">Expert — Manacher O(n)</a>
+				</div>
 
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">02 · Trie / Prefix Tree</div>
-      <a class="sidebar-link" href="#trie-concept" onclick="setSidebar(this)">Khái niệm</a>
-      <a class="sidebar-link" href="#trie-basic" onclick="setSidebar(this)">Trie cơ bản</a>
-      <a class="sidebar-link" href="#trie-generic" onclick="setSidebar(this)">Generic Trie (Go 1.18+)</a>
-      <a class="sidebar-link" href="#trie-autocomplete" onclick="setSidebar(this)">Autocomplete Engine</a>
-      <a class="sidebar-link" href="#trie-expert" onclick="setSidebar(this)">Expert — Concurrent Trie</a>
-    </div>
+				<div class="sidebar-section">
+					<div class="sidebar-section-title">Tham khảo</div>
+					<a class="sidebar-link" href="#pitfalls" onclick="setSidebar(this)">Pitfalls & Fix</a>
+					<a class="sidebar-link" href="#references" onclick="setSidebar(this)">References</a>
+				</div>
+			</aside>
 
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">03 · Palindrome</div>
-      <a class="sidebar-link" href="#pal-concept" onclick="setSidebar(this)">Khái niệm</a>
-      <a class="sidebar-link" href="#pal-expand" onclick="setSidebar(this)">Expand Around Center</a>
-      <a class="sidebar-link" href="#pal-dp" onclick="setSidebar(this)">DP — Longest Palindrome</a>
-      <a class="sidebar-link" href="#pal-manacher" onclick="setSidebar(this)">Expert — Manacher O(n)</a>
-    </div>
-
-    <div class="sidebar-section">
-      <div class="sidebar-section-title">Tham khảo</div>
-      <a class="sidebar-link" href="#pitfalls" onclick="setSidebar(this)">Pitfalls & Fix</a>
-      <a class="sidebar-link" href="#references" onclick="setSidebar(this)">References</a>
-    </div>
-  </aside>
-
-  <!-- MAIN -->
-  <main>
-
-    <!-- ══════════════════════════════════════
+			<!-- MAIN -->
+			<main>
+				<!-- ══════════════════════════════════════
          INTRO
     ══════════════════════════════════════ -->
-    <div class="section" id="intro">
-      <div class="section-header">
-        <div class="section-number">00</div>
-        <span class="section-title">Go String Algorithms — Tổng quan</span>
-        <span class="tag tag-intermediate">Tất cả cấp độ</span>
-      </div>
-      <p class="desc">
-        Tài liệu này trình bày ba nhóm giải thuật xử lý chuỗi quan trọng nhất trong thực chiến:
-        <strong>Sliding Window</strong>, <strong>Trie/Prefix Tree</strong>, và <strong>Palindrome</strong>.
-        Mỗi nhóm được giải thích từ định nghĩa, sơ đồ kiến trúc, đến code mức Advanced và Expert bằng Go idiomatic,
-        bao gồm benchmark, generics (Go 1.18+), và concurrency-safe patterns.
-      </p>
+				<div class="section" id="intro">
+					<div class="section-header">
+						<div class="section-number">00</div>
+						<span class="section-title">Go String Algorithms — Tổng quan</span>
+						<span class="tag tag-intermediate">Tất cả cấp độ</span>
+					</div>
+					<p class="desc">
+						Tài liệu này trình bày ba nhóm giải thuật xử lý chuỗi quan trọng nhất trong thực chiến:
+						<strong>Sliding Window</strong>, <strong>Trie/Prefix Tree</strong>, và <strong>Palindrome</strong>. Mỗi nhóm được giải thích từ định
+						nghĩa, sơ đồ kiến trúc, đến code mức Advanced và Expert bằng Go idiomatic, bao gồm benchmark, generics (Go 1.18+), và concurrency-safe
+						patterns.
+					</p>
 
-      <div class="info-grid">
-        <div class="info-card">
-          <div class="info-card-label">Ngôn ngữ</div>
-          <div class="info-card-value">Go 1.21+</div>
-          <div class="info-card-desc">Generics, iterators, slog</div>
-        </div>
-        <div class="info-card">
-          <div class="info-card-label">Sliding Window</div>
-          <div class="info-card-value">O(n)</div>
-          <div class="info-card-desc">Tối ưu thay vì O(n·k)</div>
-        </div>
-        <div class="info-card">
-          <div class="info-card-label">Trie</div>
-          <div class="info-card-value">O(m)</div>
-          <div class="info-card-desc">m = độ dài từ khóa</div>
-        </div>
-        <div class="info-card">
-          <div class="info-card-label">Manacher</div>
-          <div class="info-card-value">O(n)</div>
-          <div class="info-card-desc">Palindrome tối ưu nhất</div>
-        </div>
-      </div>
-    </div>
+					<div class="info-grid">
+						<div class="info-card">
+							<div class="info-card-label">Ngôn ngữ</div>
+							<div class="info-card-value">Go 1.21+</div>
+							<div class="info-card-desc">Generics, iterators, slog</div>
+						</div>
+						<div class="info-card">
+							<div class="info-card-label">Sliding Window</div>
+							<div class="info-card-value">O(n)</div>
+							<div class="info-card-desc">Tối ưu thay vì O(n·k)</div>
+						</div>
+						<div class="info-card">
+							<div class="info-card-label">Trie</div>
+							<div class="info-card-value">O(m)</div>
+							<div class="info-card-desc">m = độ dài từ khóa</div>
+						</div>
+						<div class="info-card">
+							<div class="info-card-label">Manacher</div>
+							<div class="info-card-value">O(n)</div>
+							<div class="info-card-desc">Palindrome tối ưu nhất</div>
+						</div>
+					</div>
+				</div>
 
-    <!-- ── COMPLEXITY COMPARISON ── -->
-    <div class="section" id="complexity">
-      <div class="section-header">
-        <div class="section-number">C</div>
-        <span class="section-title">So sánh độ phức tạp</span>
-      </div>
-      <table class="cmp-table">
-        <thead>
-          <tr>
-            <th>Thuật toán</th>
-            <th>Time (best)</th>
-            <th>Time (worst)</th>
-            <th>Space</th>
-            <th>Use case điển hình</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Sliding Window Fixed</strong></td>
-            <td class="good">O(n)</td>
-            <td class="good">O(n)</td>
-            <td class="good">O(1)</td>
-            <td>Max sum substring k phần tử</td>
-          </tr>
-          <tr>
-            <td><strong>Sliding Window Dynamic</strong></td>
-            <td class="good">O(n)</td>
-            <td class="good">O(n)</td>
-            <td class="med">O(∑)</td>
-            <td>Minimum window substring</td>
-          </tr>
-          <tr>
-            <td><strong>Rabin-Karp Rolling Hash</strong></td>
-            <td class="good">O(n+m)</td>
-            <td class="bad">O(nm)</td>
-            <td class="good">O(1)</td>
-            <td>Pattern matching, anagram search</td>
-          </tr>
-          <tr>
-            <td><strong>Trie Insert/Search</strong></td>
-            <td class="good">O(m)</td>
-            <td class="good">O(m)</td>
-            <td class="bad">O(∑·m·n)</td>
-            <td>Autocomplete, prefix search</td>
-          </tr>
-          <tr>
-            <td><strong>Palindrome Brute Force</strong></td>
-            <td class="med">O(n²)</td>
-            <td class="bad">O(n³)</td>
-            <td class="good">O(1)</td>
-            <td>Không nên dùng production</td>
-          </tr>
-          <tr>
-            <td><strong>Palindrome Expand Center</strong></td>
-            <td class="med">O(n)</td>
-            <td class="med">O(n²)</td>
-            <td class="good">O(1)</td>
-            <td>Longest palindrome substring</td>
-          </tr>
-          <tr>
-            <td><strong>Manacher Algorithm</strong></td>
-            <td class="good">O(n)</td>
-            <td class="good">O(n)</td>
-            <td class="med">O(n)</td>
-            <td>Optimal palindrome, interview top</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+				<!-- ── COMPLEXITY COMPARISON ── -->
+				<div class="section" id="complexity">
+					<div class="section-header">
+						<div class="section-number">C</div>
+						<span class="section-title">So sánh độ phức tạp</span>
+					</div>
+					<table class="cmp-table">
+						<thead>
+							<tr>
+								<th>Thuật toán</th>
+								<th>Time (best)</th>
+								<th>Time (worst)</th>
+								<th>Space</th>
+								<th>Use case điển hình</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td><strong>Sliding Window Fixed</strong></td>
+								<td class="good">O(n)</td>
+								<td class="good">O(n)</td>
+								<td class="good">O(1)</td>
+								<td>Max sum substring k phần tử</td>
+							</tr>
+							<tr>
+								<td><strong>Sliding Window Dynamic</strong></td>
+								<td class="good">O(n)</td>
+								<td class="good">O(n)</td>
+								<td class="med">O(∑)</td>
+								<td>Minimum window substring</td>
+							</tr>
+							<tr>
+								<td><strong>Rabin-Karp Rolling Hash</strong></td>
+								<td class="good">O(n+m)</td>
+								<td class="bad">O(nm)</td>
+								<td class="good">O(1)</td>
+								<td>Pattern matching, anagram search</td>
+							</tr>
+							<tr>
+								<td><strong>Trie Insert/Search</strong></td>
+								<td class="good">O(m)</td>
+								<td class="good">O(m)</td>
+								<td class="bad">O(∑·m·n)</td>
+								<td>Autocomplete, prefix search</td>
+							</tr>
+							<tr>
+								<td><strong>Palindrome Brute Force</strong></td>
+								<td class="med">O(n²)</td>
+								<td class="bad">O(n³)</td>
+								<td class="good">O(1)</td>
+								<td>Không nên dùng production</td>
+							</tr>
+							<tr>
+								<td><strong>Palindrome Expand Center</strong></td>
+								<td class="med">O(n)</td>
+								<td class="med">O(n²)</td>
+								<td class="good">O(1)</td>
+								<td>Longest palindrome substring</td>
+							</tr>
+							<tr>
+								<td><strong>Manacher Algorithm</strong></td>
+								<td class="good">O(n)</td>
+								<td class="good">O(n)</td>
+								<td class="med">O(n)</td>
+								<td>Optimal palindrome, interview top</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 
-    <!-- ══════════════════════════════════════
+				<!-- ══════════════════════════════════════
          01 — SLIDING WINDOW
     ══════════════════════════════════════ -->
-    <div class="section" id="sliding-window">
-      <div class="section-header">
-        <div class="section-number">01</div>
-        <span class="section-title">Sliding Window</span>
-        <span class="tag tag-advanced">Advanced → Expert</span>
-      </div>
-      <p class="desc">
-        Kỹ thuật "cửa sổ trượt" duy trì một <strong>vùng con liên tiếp</strong> (window) trong array/string,
-        thay vì tính lại từ đầu mỗi lần — từ đó giảm độ phức tạp từ O(n·k) xuống <strong>O(n)</strong>.
-        Hai biến thể chính: <strong>Fixed Window</strong> (kích thước cố định) và <strong>Dynamic Window</strong> (mở rộng/thu hẹp).
-      </p>
-    </div>
+				<div class="section" id="sliding-window">
+					<div class="section-header">
+						<div class="section-number">01</div>
+						<span class="section-title">Sliding Window</span>
+						<span class="tag tag-advanced">Advanced → Expert</span>
+					</div>
+					<p class="desc">
+						Kỹ thuật "cửa sổ trượt" duy trì một <strong>vùng con liên tiếp</strong> (window) trong array/string, thay vì tính lại từ đầu mỗi lần — từ
+						đó giảm độ phức tạp từ O(n·k) xuống <strong>O(n)</strong>. Hai biến thể chính: <strong>Fixed Window</strong> (kích thước cố định) và
+						<strong>Dynamic Window</strong> (mở rộng/thu hẹp).
+					</p>
+				</div>
 
-    <div class="section" id="sw-concept">
-      <h2 class="sub">① DEFINE — Cơ chế hoạt động</h2>
+				<div class="section" id="sw-concept">
+					<h2 class="sub">① DEFINE — Cơ chế hoạt động</h2>
 
-      <div class="diagram-box">
-        <div class="diagram-header">
-          <div class="diagram-title">Sliding Window — Fixed Size (k=3)</div>
-        </div>
-        <div class="diagram-body">
-          <svg width="720" height="220" viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="#58a6ff"/>
-              </marker>
-            </defs>
+					<div
+						class="premium-illustration-container"
+						style="
+							text-align: center;
+							margin: 20px 0;
+							border: 1px solid var(--border);
+							border-radius: 12px;
+							padding: 16px;
+							background: rgba(255, 255, 255, 0.02);
+						"
+					>
+						<img
+							src="../../public/images/sliding_window.png"
+							alt="Sliding Window Illustration"
+							style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5)"
+						/>
+						<div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; font-family: &quot;JetBrains Mono&quot;, monospace">
+							Visual 3D Infographic — Sliding Window Concept
+						</div>
+					</div>
 
-            <!-- Array boxes -->
-            <g transform="translate(30,40)">
-              <!-- Labels -->
-              <text x="0" y="-10" fill="#8b949e" font-size="11">Index:</text>
-              <text x="55" y="-10" fill="#8b949e" font-size="11">0</text>
-              <text x="115" y="-10" fill="#8b949e" font-size="11">1</text>
-              <text x="175" y="-10" fill="#8b949e" font-size="11">2</text>
-              <text x="235" y="-10" fill="#8b949e" font-size="11">3</text>
-              <text x="295" y="-10" fill="#8b949e" font-size="11">4</text>
-              <text x="355" y="-10" fill="#8b949e" font-size="11">5</text>
-              <text x="415" y="-10" fill="#8b949e" font-size="11">6</text>
-              <text x="475" y="-10" fill="#8b949e" font-size="11">7</text>
+					<div class="diagram-box">
+						<div class="diagram-header">
+							<div class="diagram-title">Sliding Window — Fixed Size (k=3)</div>
+						</div>
+						<div class="diagram-body">
+							<svg width="720" height="220" viewBox="0 0 720 220" xmlns="http://www.w3.org/2000/svg">
+								<defs>
+									<marker id="arr" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+										<polygon points="0 0, 8 3, 0 6" fill="#58a6ff" />
+									</marker>
+								</defs>
 
-              <!-- Boxes -->
-              <g id="arr-boxes">
-                <rect x="30" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="55" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">2</text>
-                <rect x="90" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="115" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">1</text>
-                <rect x="150" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="175" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">5</text>
-                <rect x="210" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="235" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">3</text>
-                <rect x="270" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="295" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">7</text>
-                <rect x="330" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="355" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">4</text>
-                <rect x="390" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="415" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">6</text>
-                <rect x="450" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4"/>
-                <text x="475" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">8</text>
-              </g>
+								<!-- Array boxes -->
+								<g transform="translate(30,40)">
+									<!-- Labels -->
+									<text x="0" y="-10" fill="#8b949e" font-size="11">Index:</text>
+									<text x="55" y="-10" fill="#8b949e" font-size="11">0</text>
+									<text x="115" y="-10" fill="#8b949e" font-size="11">1</text>
+									<text x="175" y="-10" fill="#8b949e" font-size="11">2</text>
+									<text x="235" y="-10" fill="#8b949e" font-size="11">3</text>
+									<text x="295" y="-10" fill="#8b949e" font-size="11">4</text>
+									<text x="355" y="-10" fill="#8b949e" font-size="11">5</text>
+									<text x="415" y="-10" fill="#8b949e" font-size="11">6</text>
+									<text x="475" y="-10" fill="#8b949e" font-size="11">7</text>
 
-              <!-- Window Step 1 -->
-              <rect x="28" y="-2" width="174" height="44" fill="none" stroke="#3fb950" stroke-width="2" rx="5" opacity=".8"/>
-              <text x="115" y="60" text-anchor="middle" fill="#3fb950" font-size="11">Window 1: sum=8</text>
+									<!-- Boxes -->
+									<g id="arr-boxes">
+										<rect x="30" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="55" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">2</text>
+										<rect x="90" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="115" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">1</text>
+										<rect x="150" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="175" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">5</text>
+										<rect x="210" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="235" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">3</text>
+										<rect x="270" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="295" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">7</text>
+										<rect x="330" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="355" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">4</text>
+										<rect x="390" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="415" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">6</text>
+										<rect x="450" y="0" width="50" height="40" fill="#161b22" stroke="#30363d" rx="4" />
+										<text x="475" y="26" text-anchor="middle" fill="#e6edf3" font-size="16" font-weight="700">8</text>
+									</g>
 
-              <!-- Arrow step 2 -->
-              <text x="230" y="60" fill="#58a6ff" font-size="13" font-weight="700">→</text>
+									<!-- Window Step 1 -->
+									<rect x="28" y="-2" width="174" height="44" fill="none" stroke="#3fb950" stroke-width="2" rx="5" opacity=".8" />
+									<text x="115" y="60" text-anchor="middle" fill="#3fb950" font-size="11">Window 1: sum=8</text>
 
-              <!-- Window Step 2 (highlight) -->
-              <rect x="88" y="-2" width="174" height="44" fill="rgba(88,166,255,.12)" stroke="#58a6ff" stroke-width="2" rx="5"/>
-              <text x="175" y="60" text-anchor="middle" fill="#58a6ff" font-size="11">Window 2: sum=9</text>
+									<!-- Arrow step 2 -->
+									<text x="230" y="60" fill="#58a6ff" font-size="13" font-weight="700">→</text>
 
-              <!-- Arrow step 3 -->
-              <text x="350" y="60" fill="#bc8cff" font-size="13" font-weight="700">→</text>
+									<!-- Window Step 2 (highlight) -->
+									<rect x="88" y="-2" width="174" height="44" fill="rgba(88,166,255,.12)" stroke="#58a6ff" stroke-width="2" rx="5" />
+									<text x="175" y="60" text-anchor="middle" fill="#58a6ff" font-size="11">Window 2: sum=9</text>
 
-              <!-- Window Step 3 -->
-              <rect x="208" y="-2" width="174" height="44" fill="none" stroke="#bc8cff" stroke-width="2" rx="5" opacity=".6"/>
-              <text x="295" y="60" text-anchor="middle" fill="#bc8cff" font-size="11">Window 3: sum=15</text>
-            </g>
+									<!-- Arrow step 3 -->
+									<text x="350" y="60" fill="#bc8cff" font-size="13" font-weight="700">→</text>
 
-            <!-- Formula -->
-            <g transform="translate(30,130)">
-              <rect x="0" y="0" width="680" height="60" fill="#161b22" stroke="#30363d" rx="8"/>
-              <text x="20" y="22" fill="#8b949e" font-size="12">Công thức rolling:</text>
-              <text x="20" y="42" fill="#3fb950" font-size="13" font-family="JetBrains Mono, monospace">new_sum = old_sum − s[left] + s[right]   →  Chỉ cần 2 phép tính thay vì loop lại toàn bộ window</text>
-            </g>
-          </svg>
-        </div>
-      </div>
+									<!-- Window Step 3 -->
+									<rect x="208" y="-2" width="174" height="44" fill="none" stroke="#bc8cff" stroke-width="2" rx="5" opacity=".6" />
+									<text x="295" y="60" text-anchor="middle" fill="#bc8cff" font-size="11">Window 3: sum=15</text>
+								</g>
 
-      <!-- Dynamic Window diagram -->
-      <div class="diagram-box">
-        <div class="diagram-header">
-          <div class="diagram-title">Dynamic Window — Two Pointer: left/right mở rộng &amp; thu hẹp</div>
-        </div>
-        <div class="diagram-body">
-          <svg width="720" height="200" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
-            <g transform="translate(20,20)">
-              <!-- Steps -->
-              <text x="0" y="15" fill="#8b949e" font-size="12">Bài toán: Minimum Window Substring — tìm substring ngắn nhất chứa tất cả ký tự target</text>
+								<!-- Formula -->
+								<g transform="translate(30,130)">
+									<rect x="0" y="0" width="680" height="60" fill="#161b22" stroke="#30363d" rx="8" />
+									<text x="20" y="22" fill="#8b949e" font-size="12">Công thức rolling:</text>
+									<text x="20" y="42" fill="#3fb950" font-size="13" font-family="JetBrains Mono, monospace">
+										new_sum = old_sum − s[left] + s[right] → Chỉ cần 2 phép tính thay vì loop lại toàn bộ window
+									</text>
+								</g>
+							</svg>
+						</div>
+					</div>
 
-              <g transform="translate(0,35)">
-                <!-- String s -->
-                <text x="0" y="15" fill="#8b949e" font-size="11">s =</text>
-                <g transform="translate(30,0)">
-                  <rect x="0" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3"/>
-                  <text x="18" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">A</text>
-                  <rect x="40" y="0" width="36" height="30" fill="rgba(63,185,80,.2)" stroke="#3fb950" rx="3"/>
-                  <text x="58" y="21" text-anchor="middle" fill="#3fb950" font-size="14">D</text>
-                  <rect x="80" y="0" width="36" height="30" fill="rgba(63,185,80,.2)" stroke="#3fb950" rx="3"/>
-                  <text x="98" y="21" text-anchor="middle" fill="#3fb950" font-size="14">O</text>
-                  <rect x="120" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3"/>
-                  <text x="138" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">B</text>
-                  <rect x="160" y="0" width="36" height="30" fill="rgba(63,185,80,.2)" stroke="#3fb950" rx="3"/>
-                  <text x="178" y="21" text-anchor="middle" fill="#3fb950" font-size="14">C</text>
-                  <rect x="200" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3"/>
-                  <text x="218" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">O</text>
-                  <rect x="240" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3"/>
-                  <text x="258" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">D</text>
-                  <rect x="280" y="0" width="36" height="30" fill="rgba(88,166,255,.2)" stroke="#58a6ff" rx="3"/>
-                  <text x="298" y="21" text-anchor="middle" fill="#58a6ff" font-size="14">E</text>
-                  <rect x="320" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3"/>
-                  <text x="338" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">B</text>
+					<!-- Dynamic Window diagram -->
+					<div class="diagram-box">
+						<div class="diagram-header">
+							<div class="diagram-title">Dynamic Window — Two Pointer: left/right mở rộng &amp; thu hẹp</div>
+						</div>
+						<div class="diagram-body">
+							<svg width="720" height="200" viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+								<g transform="translate(20,20)">
+									<!-- Steps -->
+									<text x="0" y="15" fill="#8b949e" font-size="12">
+										Bài toán: Minimum Window Substring — tìm substring ngắn nhất chứa tất cả ký tự target
+									</text>
 
-                  <!-- Pointers -->
-                  <text x="40" y="48" text-anchor="middle" fill="#3fb950" font-size="11">L</text>
-                  <text x="318" y="48" text-anchor="middle" fill="#58a6ff" font-size="11">R</text>
-                  <text x="40" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">0</text>
-                  <text x="80" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">1</text>
-                  <text x="120" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">2</text>
-                  <text x="160" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">3</text>
-                  <text x="200" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">4</text>
-                  <text x="240" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">5</text>
-                  <text x="280" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">6</text>
-                  <text x="318" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">7</text>
-                  <text x="358" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">8</text>
+									<g transform="translate(0,35)">
+										<!-- String s -->
+										<text x="0" y="15" fill="#8b949e" font-size="11">s =</text>
+										<g transform="translate(30,0)">
+											<rect x="0" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3" />
+											<text x="18" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">A</text>
+											<rect x="40" y="0" width="36" height="30" fill="rgba(63,185,80,.2)" stroke="#3fb950" rx="3" />
+											<text x="58" y="21" text-anchor="middle" fill="#3fb950" font-size="14">D</text>
+											<rect x="80" y="0" width="36" height="30" fill="rgba(63,185,80,.2)" stroke="#3fb950" rx="3" />
+											<text x="98" y="21" text-anchor="middle" fill="#3fb950" font-size="14">O</text>
+											<rect x="120" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3" />
+											<text x="138" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">B</text>
+											<rect x="160" y="0" width="36" height="30" fill="rgba(63,185,80,.2)" stroke="#3fb950" rx="3" />
+											<text x="178" y="21" text-anchor="middle" fill="#3fb950" font-size="14">C</text>
+											<rect x="200" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3" />
+											<text x="218" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">O</text>
+											<rect x="240" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3" />
+											<text x="258" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">D</text>
+											<rect x="280" y="0" width="36" height="30" fill="rgba(88,166,255,.2)" stroke="#58a6ff" rx="3" />
+											<text x="298" y="21" text-anchor="middle" fill="#58a6ff" font-size="14">E</text>
+											<rect x="320" y="0" width="36" height="30" fill="#161b22" stroke="#30363d" rx="3" />
+											<text x="338" y="21" text-anchor="middle" fill="#e6edf3" font-size="14">B</text>
 
-                  <!-- Bracket -->
-                  <line x1="40" y1="33" x2="320" y2="33" stroke="#ffa657" stroke-width="2"/>
-                  <line x1="40" y1="33" x2="40" y2="38" stroke="#ffa657" stroke-width="2"/>
-                  <line x1="320" y1="33" x2="320" y2="38" stroke="#ffa657" stroke-width="2"/>
-                </g>
+											<!-- Pointers -->
+											<text x="40" y="48" text-anchor="middle" fill="#3fb950" font-size="11">L</text>
+											<text x="318" y="48" text-anchor="middle" fill="#58a6ff" font-size="11">R</text>
+											<text x="40" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">0</text>
+											<text x="80" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">1</text>
+											<text x="120" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">2</text>
+											<text x="160" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">3</text>
+											<text x="200" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">4</text>
+											<text x="240" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">5</text>
+											<text x="280" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">6</text>
+											<text x="318" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">7</text>
+											<text x="358" y="-8" text-anchor="middle" fill="#8b949e" font-size="10">8</text>
 
-                <text x="450" y="15" fill="#8b949e" font-size="12">target = "DOC"</text>
-                <text x="450" y="35" fill="#ffa657" font-size="12">→ Kết quả: "DOC" (index 1-3)</text>
-                <text x="450" y="52" fill="#3fb950" font-size="11">right mở rộng khi chưa đủ ký tự</text>
-                <text x="450" y="68" fill="#58a6ff" font-size="11">left thu hẹp khi đã thỏa điều kiện</text>
-              </g>
-            </g>
-          </svg>
-        </div>
-      </div>
-    </div>
+											<!-- Bracket -->
+											<line x1="40" y1="33" x2="320" y2="33" stroke="#ffa657" stroke-width="2" />
+											<line x1="40" y1="33" x2="40" y2="38" stroke="#ffa657" stroke-width="2" />
+											<line x1="320" y1="33" x2="320" y2="38" stroke="#ffa657" stroke-width="2" />
+										</g>
 
-    <!-- ── SW FIXED ── -->
-    <div class="section" id="sw-fixed">
-      <h2 class="sub">② CODE — Fixed Window: Max Sum Substring</h2>
-      <div class="badge-row"><span class="tag tag-intermediate">Intermediate</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">sliding_window_fixed.go</span>
-        </div>
-        <pre><span class="cm">// Package stringalgo — Fixed-size Sliding Window
+										<text x="450" y="15" fill="#8b949e" font-size="12">target = "DOC"</text>
+										<text x="450" y="35" fill="#ffa657" font-size="12">→ Kết quả: "DOC" (index 1-3)</text>
+										<text x="450" y="52" fill="#3fb950" font-size="11">right mở rộng khi chưa đủ ký tự</text>
+										<text x="450" y="68" fill="#58a6ff" font-size="11">left thu hẹp khi đã thỏa điều kiện</text>
+									</g>
+								</g>
+							</svg>
+						</div>
+					</div>
+				</div>
+
+				<!-- ── SW FIXED ── -->
+				<div class="section" id="sw-fixed">
+					<h2 class="sub">② CODE — Fixed Window: Max Sum Substring</h2>
+					<div class="badge-row"><span class="tag tag-intermediate">Intermediate</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">sliding_window_fixed.go</span>
+						</div>
+						<pre><span class="cm">// Package stringalgo — Fixed-size Sliding Window
 // Tìm tổng lớn nhất của k phần tử liên tiếp trong mảng số nguyên</span>
 <span class="kw">package</span> <span class="id">stringalgo</span>
 
@@ -760,19 +1023,19 @@
 }
 
 <span class="cm">// Benchmark reference: BenchmarkMaxSum-8  5000000  240 ns/op  0 allocs/op</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── SW DYNAMIC ── -->
-    <div class="section" id="sw-dynamic">
-      <h2 class="sub">③ CODE — Dynamic Window: Longest Substring Without Repeat</h2>
-      <div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">sliding_window_dynamic.go</span>
-        </div>
-        <pre><span class="cm">// LongestUniqueSubstring — Dynamic Sliding Window
+				<!-- ── SW DYNAMIC ── -->
+				<div class="section" id="sw-dynamic">
+					<h2 class="sub">③ CODE — Dynamic Window: Longest Substring Without Repeat</h2>
+					<div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">sliding_window_dynamic.go</span>
+						</div>
+						<pre><span class="cm">// LongestUniqueSubstring — Dynamic Sliding Window
 // Tìm độ dài substring dài nhất không có ký tự lặp
 // Strategy: dùng map[byte]int lưu vị trí CUỐI CÙNG của mỗi ký tự</span>
 
@@ -826,19 +1089,19 @@
 // LongestUniqueSubstring("abcabcbb") → 3, "abc"
 // LongestUniqueSubstring("pwwkew")   → 3, "wke"
 // LongestUniqueSubstring("bbbbb")    → 1, "b"</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── SW ADVANCED ── -->
-    <div class="section" id="sw-advanced">
-      <h2 class="sub">④ CODE — Advanced: Minimum Window Substring</h2>
-      <div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">min_window_substring.go</span>
-        </div>
-        <pre><span class="cm">// MinWindowSubstring — LeetCode #76 variant
+				<!-- ── SW ADVANCED ── -->
+				<div class="section" id="sw-advanced">
+					<h2 class="sub">④ CODE — Advanced: Minimum Window Substring</h2>
+					<div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">min_window_substring.go</span>
+						</div>
+						<pre><span class="cm">// MinWindowSubstring — LeetCode #76 variant
 // Tìm substring ngắn nhất của s chứa TẤT CẢ ký tự trong t
 // Kỹ thuật: dùng "formed" counter — track khi nào đủ điều kiện</span>
 
@@ -886,23 +1149,26 @@
 
 <span class="cm">// MinWindowSubstring("ADOBECODEBANC", "ABC") → "BANC"
 // Time: O(|s| + |t|)  Space: O(|s| + |t|)</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── SW EXPERT ── -->
-    <div class="section" id="sw-expert">
-      <h2 class="sub">⑤ CODE — Expert: Rabin-Karp Rolling Hash</h2>
-      <div class="badge-row"><span class="tag tag-expert">★ Expert</span></div>
-      <div class="callout callout-info">
-        <span class="callout-icon">💡</span>
-        <p><strong>Rabin-Karp</strong> dùng <strong>rolling hash</strong> để so sánh substring trong O(1) thay vì O(m) — tìm tất cả anagram/pattern trong văn bản lớn, search plagiarism detection, DNA sequence matching.</p>
-      </div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">rabin_karp.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+				<!-- ── SW EXPERT ── -->
+				<div class="section" id="sw-expert">
+					<h2 class="sub">⑤ CODE — Expert: Rabin-Karp Rolling Hash</h2>
+					<div class="badge-row"><span class="tag tag-expert">★ Expert</span></div>
+					<div class="callout callout-info">
+						<span class="callout-icon">💡</span>
+						<p>
+							<strong>Rabin-Karp</strong> dùng <strong>rolling hash</strong> để so sánh substring trong O(1) thay vì O(m) — tìm tất cả anagram/pattern
+							trong văn bản lớn, search plagiarism detection, DNA sequence matching.
+						</p>
+					</div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">rabin_karp.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="kw">import</span> (
     <span class="st">"math/big"</span>
@@ -980,129 +1246,172 @@
 
 <span class="cm">// VerifyPrimality dùng big.Int để kiểm tra modp là prime (dùng cho production)</span>
 <span class="kw">var</span> _ = <span class="id">big</span>.<span class="fn">NewInt</span>(<span class="id">modp</span>).<span class="fn">ProbablyPrime</span>(<span class="nm">20</span>) <span class="cm">// true</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ══════════════════════════════════════
+				<!-- ══════════════════════════════════════
          02 — TRIE
     ══════════════════════════════════════ -->
-    <div class="section" id="trie">
-      <div class="section-header">
-        <div class="section-number">02</div>
-        <span class="section-title">Trie / Prefix Tree</span>
-        <span class="tag tag-advanced">Advanced → Expert</span>
-      </div>
-      <p class="desc">
-        <strong>Trie</strong> (hay <em>Prefix Tree</em>) là cây n-ary trong đó mỗi node đại diện cho một ký tự.
-        Dùng cho autocomplete, spell-check, IP routing (prefix match), và word dictionary.
-        Ưu điểm: tìm kiếm prefix O(m) bất kể số lượng từ trong dictionary.
-      </p>
-    </div>
+				<div class="section" id="trie">
+					<div class="section-header">
+						<div class="section-number">02</div>
+						<span class="section-title">Trie / Prefix Tree</span>
+						<span class="tag tag-advanced">Advanced → Expert</span>
+					</div>
+					<p class="desc">
+						<strong>Trie</strong> (hay <em>Prefix Tree</em>) là cây n-ary trong đó mỗi node đại diện cho một ký tự. Dùng cho autocomplete,
+						spell-check, IP routing (prefix match), và word dictionary. Ưu điểm: tìm kiếm prefix O(m) bất kể số lượng từ trong dictionary.
+					</p>
+				</div>
 
-    <div class="section" id="trie-concept">
-      <h2 class="sub">① DEFINE — Cấu trúc Trie</h2>
+				<div class="section" id="trie-concept">
+					<h2 class="sub">① DEFINE — Cấu trúc Trie</h2>
 
-      <div class="diagram-box">
-        <div class="diagram-header">
-          <div class="diagram-title">Trie Architecture — Insert "go", "golang", "good", "get"</div>
-        </div>
-        <div class="diagram-body">
-          <svg width="700" height="280" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
-            <!-- Root -->
-            <circle cx="350" cy="30" r="22" fill="#21262d" stroke="#3fb950" stroke-width="2"/>
-            <text x="350" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">root</text>
+					<div
+						class="premium-illustration-container"
+						style="
+							text-align: center;
+							margin: 20px 0;
+							border: 1px solid var(--border);
+							border-radius: 12px;
+							padding: 16px;
+							background: rgba(255, 255, 255, 0.02);
+						"
+					>
+						<img
+							src="../../public/images/trie.png"
+							alt="Trie / Prefix Tree Illustration"
+							style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5)"
+						/>
+						<div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; font-family: &quot;JetBrains Mono&quot;, monospace">
+							Visual 3D Infographic — Trie Prefix Tree Architecture
+						</div>
+					</div>
 
-            <!-- Level 1: g -->
-            <circle cx="250" cy="100" r="20" fill="#21262d" stroke="#58a6ff" stroke-width="2"/>
-            <text x="250" y="106" text-anchor="middle" fill="#58a6ff" font-size="15" font-weight="700">g</text>
-            <line x1="350" y1="52" x2="265" y2="82" stroke="#30363d" stroke-width="1.5"/>
+					<div class="diagram-box">
+						<div class="diagram-header">
+							<div class="diagram-title">Trie Architecture — Insert "go", "golang", "good", "get"</div>
+						</div>
+						<div class="diagram-body">
+							<svg width="700" height="280" viewBox="0 0 700 280" xmlns="http://www.w3.org/2000/svg">
+								<!-- Root -->
+								<circle cx="350" cy="30" r="22" fill="#21262d" stroke="#3fb950" stroke-width="2" />
+								<text x="350" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">root</text>
 
-            <!-- Level 1: other... -->
-            <circle cx="450" cy="100" r="20" fill="#21262d" stroke="#30363d" stroke-width="1.5"/>
-            <text x="450" y="106" text-anchor="middle" fill="#6e7681" font-size="13">...</text>
-            <line x1="350" y1="52" x2="435" y2="82" stroke="#30363d" stroke-width="1" stroke-dasharray="4"/>
+								<!-- Level 1: g -->
+								<circle cx="250" cy="100" r="20" fill="#21262d" stroke="#58a6ff" stroke-width="2" />
+								<text x="250" y="106" text-anchor="middle" fill="#58a6ff" font-size="15" font-weight="700">g</text>
+								<line x1="350" y1="52" x2="265" y2="82" stroke="#30363d" stroke-width="1.5" />
 
-            <!-- Level 2 under g: o, e -->
-            <circle cx="180" cy="170" r="20" fill="#21262d" stroke="#58a6ff" stroke-width="2"/>
-            <text x="180" y="176" text-anchor="middle" fill="#58a6ff" font-size="15" font-weight="700">o</text>
-            <line x1="250" y1="120" x2="193" y2="152" stroke="#30363d" stroke-width="1.5"/>
+								<!-- Level 1: other... -->
+								<circle cx="450" cy="100" r="20" fill="#21262d" stroke="#30363d" stroke-width="1.5" />
+								<text x="450" y="106" text-anchor="middle" fill="#6e7681" font-size="13">...</text>
+								<line x1="350" y1="52" x2="435" y2="82" stroke="#30363d" stroke-width="1" stroke-dasharray="4" />
 
-            <circle cx="320" cy="170" r="20" fill="#21262d" stroke="#ffa657" stroke-width="2"/>
-            <text x="320" y="176" text-anchor="middle" fill="#ffa657" font-size="15" font-weight="700">e</text>
-            <line x1="250" y1="120" x2="307" y2="152" stroke="#30363d" stroke-width="1.5"/>
+								<!-- Level 2 under g: o, e -->
+								<circle cx="180" cy="170" r="20" fill="#21262d" stroke="#58a6ff" stroke-width="2" />
+								<text x="180" y="176" text-anchor="middle" fill="#58a6ff" font-size="15" font-weight="700">o</text>
+								<line x1="250" y1="120" x2="193" y2="152" stroke="#30363d" stroke-width="1.5" />
 
-            <!-- Level 3 under o: End(go), o, l -->
-            <circle cx="100" cy="240" r="20" fill="#21262d" stroke="#3fb950" stroke-width="2.5"/>
-            <text x="100" y="246" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">✓</text>
-            <text x="100" y="270" text-anchor="middle" fill="#3fb950" font-size="10">"go"</text>
-            <line x1="180" y1="190" x2="113" y2="222" stroke="#30363d" stroke-width="1.5"/>
+								<circle cx="320" cy="170" r="20" fill="#21262d" stroke="#ffa657" stroke-width="2" />
+								<text x="320" y="176" text-anchor="middle" fill="#ffa657" font-size="15" font-weight="700">e</text>
+								<line x1="250" y1="120" x2="307" y2="152" stroke="#30363d" stroke-width="1.5" />
 
-            <circle cx="180" cy="240" r="20" fill="#21262d" stroke="#58a6ff" stroke-width="2"/>
-            <text x="180" y="246" text-anchor="middle" fill="#58a6ff" font-size="15" font-weight="700">o</text>
-            <text x="180" y="270" text-anchor="middle" fill="#6e7681" font-size="10">→"good"</text>
-            <line x1="180" y1="190" x2="180" y2="220" stroke="#30363d" stroke-width="1.5"/>
+								<!-- Level 3 under o: End(go), o, l -->
+								<circle cx="100" cy="240" r="20" fill="#21262d" stroke="#3fb950" stroke-width="2.5" />
+								<text x="100" y="246" text-anchor="middle" fill="#3fb950" font-size="12" font-weight="700">✓</text>
+								<text x="100" y="270" text-anchor="middle" fill="#3fb950" font-size="10">"go"</text>
+								<line x1="180" y1="190" x2="113" y2="222" stroke="#30363d" stroke-width="1.5" />
 
-            <circle cx="260" cy="240" r="20" fill="#21262d" stroke="#bc8cff" stroke-width="2"/>
-            <text x="260" y="246" text-anchor="middle" fill="#bc8cff" font-size="14" font-weight="700">l</text>
-            <text x="260" y="270" text-anchor="middle" fill="#6e7681" font-size="10">→"golang"</text>
-            <line x1="180" y1="190" x2="247" y2="222" stroke="#30363d" stroke-width="1.5"/>
+								<circle cx="180" cy="240" r="20" fill="#21262d" stroke="#58a6ff" stroke-width="2" />
+								<text x="180" y="246" text-anchor="middle" fill="#58a6ff" font-size="15" font-weight="700">o</text>
+								<text x="180" y="270" text-anchor="middle" fill="#6e7681" font-size="10">→"good"</text>
+								<line x1="180" y1="190" x2="180" y2="220" stroke="#30363d" stroke-width="1.5" />
 
-            <!-- Level 3 under e: t -->
-            <circle cx="320" cy="240" r="20" fill="#21262d" stroke="#ffa657" stroke-width="2"/>
-            <text x="320" y="246" text-anchor="middle" fill="#ffa657" font-size="15" font-weight="700">t</text>
-            <text x="320" y="270" text-anchor="middle" fill="#3fb950" font-size="10">✓ "get"</text>
-            <line x1="320" y1="190" x2="320" y2="220" stroke="#30363d" stroke-width="1.5"/>
+								<circle cx="260" cy="240" r="20" fill="#21262d" stroke="#bc8cff" stroke-width="2" />
+								<text x="260" y="246" text-anchor="middle" fill="#bc8cff" font-size="14" font-weight="700">l</text>
+								<text x="260" y="270" text-anchor="middle" fill="#6e7681" font-size="10">→"golang"</text>
+								<line x1="180" y1="190" x2="247" y2="222" stroke="#30363d" stroke-width="1.5" />
 
-            <!-- Legend -->
-            <rect x="480" y="160" width="200" height="100" fill="#161b22" stroke="#30363d" rx="8"/>
-            <text x="500" y="182" fill="#8b949e" font-size="11" font-weight="600">LEGEND</text>
-            <circle cx="498" cy="200" r="7" fill="#21262d" stroke="#3fb950" stroke-width="2"/>
-            <text x="512" y="204" fill="#3fb950" font-size="11">✓ = EndOfWord = true</text>
-            <circle cx="498" cy="220" r="7" fill="#21262d" stroke="#58a6ff" stroke-width="2"/>
-            <text x="512" y="224" fill="#8b949e" font-size="11">Intermediate node</text>
-            <circle cx="498" cy="240" r="7" fill="#21262d" stroke="#bc8cff" stroke-width="2"/>
-            <text x="512" y="244" fill="#8b949e" font-size="11">Unique branch</text>
-          </svg>
-        </div>
-      </div>
+								<!-- Level 3 under e: t -->
+								<circle cx="320" cy="240" r="20" fill="#21262d" stroke="#ffa657" stroke-width="2" />
+								<text x="320" y="246" text-anchor="middle" fill="#ffa657" font-size="15" font-weight="700">t</text>
+								<text x="320" y="270" text-anchor="middle" fill="#3fb950" font-size="10">✓ "get"</text>
+								<line x1="320" y1="190" x2="320" y2="220" stroke="#30363d" stroke-width="1.5" />
 
-      <table class="cmp-table">
-        <thead>
-          <tr><th>Thao tác</th><th>Trie</th><th>HashMap</th><th>Binary Search (sorted)</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Insert</td><td class="good">O(m)</td><td class="good">O(m)</td><td class="bad">O(m·log n)</td>
-          </tr>
-          <tr>
-            <td>Search exact</td><td class="good">O(m)</td><td class="good">O(m) avg</td><td class="good">O(m·log n)</td>
-          </tr>
-          <tr>
-            <td>Prefix search</td><td class="good">O(m)</td><td class="bad">O(n·m)</td><td class="med">O(m·log n)</td>
-          </tr>
-          <tr>
-            <td>Delete</td><td class="good">O(m)</td><td class="good">O(m)</td><td class="bad">O(n)</td>
-          </tr>
-          <tr>
-            <td>Autocomplete top-k</td><td class="good">O(m + k)</td><td class="bad">O(n·m)</td><td class="bad">O(n)</td>
-          </tr>
-          <tr>
-            <td>Space</td><td class="bad">O(∑·n·m)</td><td class="med">O(n·m)</td><td class="med">O(n·m)</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+								<!-- Legend -->
+								<rect x="480" y="160" width="200" height="100" fill="#161b22" stroke="#30363d" rx="8" />
+								<text x="500" y="182" fill="#8b949e" font-size="11" font-weight="600">LEGEND</text>
+								<circle cx="498" cy="200" r="7" fill="#21262d" stroke="#3fb950" stroke-width="2" />
+								<text x="512" y="204" fill="#3fb950" font-size="11">✓ = EndOfWord = true</text>
+								<circle cx="498" cy="220" r="7" fill="#21262d" stroke="#58a6ff" stroke-width="2" />
+								<text x="512" y="224" fill="#8b949e" font-size="11">Intermediate node</text>
+								<circle cx="498" cy="240" r="7" fill="#21262d" stroke="#bc8cff" stroke-width="2" />
+								<text x="512" y="244" fill="#8b949e" font-size="11">Unique branch</text>
+							</svg>
+						</div>
+					</div>
 
-    <!-- ── TRIE BASIC ── -->
-    <div class="section" id="trie-basic">
-      <h2 class="sub">② CODE — Trie cơ bản với Delete</h2>
-      <div class="badge-row"><span class="tag tag-intermediate">Intermediate</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">trie.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+					<table class="cmp-table">
+						<thead>
+							<tr>
+								<th>Thao tác</th>
+								<th>Trie</th>
+								<th>HashMap</th>
+								<th>Binary Search (sorted)</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Insert</td>
+								<td class="good">O(m)</td>
+								<td class="good">O(m)</td>
+								<td class="bad">O(m·log n)</td>
+							</tr>
+							<tr>
+								<td>Search exact</td>
+								<td class="good">O(m)</td>
+								<td class="good">O(m) avg</td>
+								<td class="good">O(m·log n)</td>
+							</tr>
+							<tr>
+								<td>Prefix search</td>
+								<td class="good">O(m)</td>
+								<td class="bad">O(n·m)</td>
+								<td class="med">O(m·log n)</td>
+							</tr>
+							<tr>
+								<td>Delete</td>
+								<td class="good">O(m)</td>
+								<td class="good">O(m)</td>
+								<td class="bad">O(n)</td>
+							</tr>
+							<tr>
+								<td>Autocomplete top-k</td>
+								<td class="good">O(m + k)</td>
+								<td class="bad">O(n·m)</td>
+								<td class="bad">O(n)</td>
+							</tr>
+							<tr>
+								<td>Space</td>
+								<td class="bad">O(∑·n·m)</td>
+								<td class="med">O(n·m)</td>
+								<td class="med">O(n·m)</td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
+
+				<!-- ── TRIE BASIC ── -->
+				<div class="section" id="trie-basic">
+					<h2 class="sub">② CODE — Trie cơ bản với Delete</h2>
+					<div class="badge-row"><span class="tag tag-intermediate">Intermediate</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">trie.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="cm">// TrieNode — mỗi node chứa tối đa 26 con (lowercase letters)
 // Dùng array thay map: O(1) access, cache-friendly hơn</span>
@@ -1195,19 +1504,19 @@
     }
     <span class="kw">return</span> <span class="kw">true</span>
 }</pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── TRIE GENERIC ── -->
-    <div class="section" id="trie-generic">
-      <h2 class="sub">③ CODE — Generic Trie (Go 1.18+)</h2>
-      <div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">trie_generic.go</span>
-        </div>
-        <pre><span class="cm">// GenericTrie — Trie với value type T, dùng generics Go 1.18+
+				<!-- ── TRIE GENERIC ── -->
+				<div class="section" id="trie-generic">
+					<h2 class="sub">③ CODE — Generic Trie (Go 1.18+)</h2>
+					<div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">trie_generic.go</span>
+						</div>
+						<pre><span class="cm">// GenericTrie — Trie với value type T, dùng generics Go 1.18+
 // Có thể lưu bất kỳ metadata nào tại EndOfWord node
 // Use case: autocomplete + metadata (frequency, score, document_id...)</span>
 
@@ -1287,19 +1596,19 @@
 // trie.Upsert("go", 5000)
 // results := trie.AllWithPrefix("go")
 // → [{Word:"go", Val:5000}, {Word:"golang", Val:1500}]</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── TRIE AUTOCOMPLETE ── -->
-    <div class="section" id="trie-autocomplete">
-      <h2 class="sub">④ CODE — Autocomplete Engine với Top-K</h2>
-      <div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">autocomplete.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+				<!-- ── TRIE AUTOCOMPLETE ── -->
+				<div class="section" id="trie-autocomplete">
+					<h2 class="sub">④ CODE — Autocomplete Engine với Top-K</h2>
+					<div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">autocomplete.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="kw">import</span> (
     <span class="st">"container/heap"</span>
@@ -1380,23 +1689,26 @@
 <span class="kw">func</span> (h *<span class="ty">SugHeap</span>) <span class="fn">Pop</span>() <span class="ty">any</span>          { old := *h; n := <span class="fn">len</span>(old); x := old[n-<span class="nm">1</span>]; *h = old[:n-<span class="nm">1</span>]; <span class="kw">return</span> x }
 
 <span class="kw">var</span> _ <span class="id">heap</span>.<span class="ty">Interface</span> = (*<span class="ty">SugHeap</span>)(<span class="kw">nil</span>) <span class="cm">// compile-time interface check</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── TRIE EXPERT ── -->
-    <div class="section" id="trie-expert">
-      <h2 class="sub">⑤ CODE — Expert: Concurrent Trie với RWMutex</h2>
-      <div class="badge-row"><span class="tag tag-expert">★ Expert</span></div>
-      <div class="callout callout-warn">
-        <span class="callout-icon">⚡</span>
-        <p><strong>Production Pattern:</strong> Trie đơn luồng không an toàn khi nhiều goroutine ghi đồng thời. Dùng <strong>sync.RWMutex</strong> — nhiều reader song song, writer độc quyền. Nếu read-heavy (autocomplete), đây là lựa chọn tối ưu.</p>
-      </div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">concurrent_trie.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+				<!-- ── TRIE EXPERT ── -->
+				<div class="section" id="trie-expert">
+					<h2 class="sub">⑤ CODE — Expert: Concurrent Trie với RWMutex</h2>
+					<div class="badge-row"><span class="tag tag-expert">★ Expert</span></div>
+					<div class="callout callout-warn">
+						<span class="callout-icon">⚡</span>
+						<p>
+							<strong>Production Pattern:</strong> Trie đơn luồng không an toàn khi nhiều goroutine ghi đồng thời. Dùng
+							<strong>sync.RWMutex</strong> — nhiều reader song song, writer độc quyền. Nếu read-heavy (autocomplete), đây là lựa chọn tối ưu.
+						</p>
+					</div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">concurrent_trie.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="kw">import</span> (
     <span class="st">"context"</span>
@@ -1477,96 +1789,120 @@
 
 <span class="cm">// Metrics — đọc atomic counter không cần lock</span>
 <span class="kw">func</span> (ct *<span class="ty">ConcurrentTrie</span>) <span class="fn">TotalOps</span>() <span class="ty">int64</span> { <span class="kw">return</span> ct.ops.<span class="fn">Load</span>() }</pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ══════════════════════════════════════
+				<!-- ══════════════════════════════════════
          03 — PALINDROME
     ══════════════════════════════════════ -->
-    <div class="section" id="palindrome">
-      <div class="section-header">
-        <div class="section-number">03</div>
-        <span class="section-title">Palindrome Algorithms</span>
-        <span class="tag tag-expert">★ Manacher O(n)</span>
-      </div>
-      <p class="desc">
-        <strong>Palindrome</strong> là chuỗi đọc xuôi ngược đều giống nhau ("racecar", "level").
-        Ba cách tiếp cận từ O(n²) đến <strong>O(n)</strong> — từ DP trực quan đến thuật toán Manacher tối ưu nhất.
-      </p>
-    </div>
+				<div class="section" id="palindrome">
+					<div class="section-header">
+						<div class="section-number">03</div>
+						<span class="section-title">Palindrome Algorithms</span>
+						<span class="tag tag-expert">★ Manacher O(n)</span>
+					</div>
+					<p class="desc">
+						<strong>Palindrome</strong> là chuỗi đọc xuôi ngược đều giống nhau ("racecar", "level"). Ba cách tiếp cận từ O(n²) đến
+						<strong>O(n)</strong> — từ DP trực quan đến thuật toán Manacher tối ưu nhất.
+					</p>
+				</div>
 
-    <div class="section" id="pal-concept">
-      <h2 class="sub">① DEFINE — Phân loại &amp; Cơ chế</h2>
-      <div class="diagram-box">
-        <div class="diagram-header">
-          <div class="diagram-title">Palindrome Types &amp; Center Expansion</div>
-        </div>
-        <div class="diagram-body">
-          <svg width="700" height="220" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
-            <!-- Odd palindrome -->
-            <g transform="translate(30, 20)">
-              <text x="0" y="15" fill="#8b949e" font-size="12" font-weight="600">Odd-length: "racecar"</text>
-              <g transform="translate(0,25)">
-                <rect x="0" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="20" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">r</text>
-                <rect x="44" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="64" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
-                <rect x="88" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="108" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">c</text>
-                <rect x="132" y="0" width="40" height="36" fill="#21262d" stroke="#3fb950" stroke-width="2" rx="3"/>
-                <text x="152" y="24" text-anchor="middle" fill="#3fb950" font-size="16" font-weight="700">e</text>
-                <rect x="176" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="196" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">c</text>
-                <rect x="220" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="240" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
-                <rect x="264" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="284" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">r</text>
+				<div class="section" id="pal-concept">
+					<h2 class="sub">① DEFINE — Phân loại &amp; Cơ chế</h2>
 
-                <!-- Arrows expand -->
-                <line x1="145" y1="18" x2="10" y2="18" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4"/>
-                <line x1="159" y1="18" x2="294" y2="18" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4"/>
-                <text x="152" y="55" text-anchor="middle" fill="#3fb950" font-size="11">center = 3</text>
-              </g>
-            </g>
+					<div
+						class="premium-illustration-container"
+						style="
+							text-align: center;
+							margin: 20px 0;
+							border: 1px solid var(--border);
+							border-radius: 12px;
+							padding: 16px;
+							background: rgba(255, 255, 255, 0.02);
+						"
+					>
+						<img
+							src="../../public/images/palindrome.png"
+							alt="Palindrome Symmetry Illustration"
+							style="max-width: 100%; border-radius: 8px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5)"
+						/>
+						<div style="font-size: 12px; color: var(--text-muted); margin-top: 8px; font-family: &quot;JetBrains Mono&quot;, monospace">
+							Visual 3D Infographic — Palindrome String Symmetry
+						</div>
+					</div>
 
-            <!-- Even palindrome -->
-            <g transform="translate(380, 20)">
-              <text x="0" y="15" fill="#8b949e" font-size="12" font-weight="600">Even-length: "abba"</text>
-              <g transform="translate(0,25)">
-                <rect x="0" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="20" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
-                <rect x="44" y="0" width="40" height="36" fill="#21262d" stroke="#58a6ff" stroke-width="2" rx="3"/>
-                <text x="64" y="24" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="700">b</text>
-                <rect x="88" y="0" width="40" height="36" fill="#21262d" stroke="#58a6ff" stroke-width="2" rx="3"/>
-                <text x="108" y="24" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="700">b</text>
-                <rect x="132" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="152" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
+					<div class="diagram-box">
+						<div class="diagram-header">
+							<div class="diagram-title">Palindrome Types &amp; Center Expansion</div>
+						</div>
+						<div class="diagram-body">
+							<svg width="700" height="220" viewBox="0 0 700 220" xmlns="http://www.w3.org/2000/svg">
+								<!-- Odd palindrome -->
+								<g transform="translate(30, 20)">
+									<text x="0" y="15" fill="#8b949e" font-size="12" font-weight="600">Odd-length: "racecar"</text>
+									<g transform="translate(0,25)">
+										<rect x="0" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="20" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">r</text>
+										<rect x="44" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="64" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
+										<rect x="88" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="108" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">c</text>
+										<rect x="132" y="0" width="40" height="36" fill="#21262d" stroke="#3fb950" stroke-width="2" rx="3" />
+										<text x="152" y="24" text-anchor="middle" fill="#3fb950" font-size="16" font-weight="700">e</text>
+										<rect x="176" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="196" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">c</text>
+										<rect x="220" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="240" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
+										<rect x="264" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="284" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">r</text>
 
-                <line x1="66" y1="18" x2="10" y2="18" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4"/>
-                <line x1="106" y1="18" x2="162" y2="18" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4"/>
-                <text x="86" y="55" text-anchor="middle" fill="#58a6ff" font-size="11">center giữa 1&amp;2</text>
-              </g>
-            </g>
+										<!-- Arrows expand -->
+										<line x1="145" y1="18" x2="10" y2="18" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4" />
+										<line x1="159" y1="18" x2="294" y2="18" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4" />
+										<text x="152" y="55" text-anchor="middle" fill="#3fb950" font-size="11">center = 3</text>
+									</g>
+								</g>
 
-            <!-- Key insight -->
-            <rect x="30" y="145" width="640" height="55" fill="#161b22" stroke="#30363d" rx="8"/>
-            <text x="50" y="167" fill="#8b949e" font-size="12" font-weight="600">Key insight — Expand Around Center:</text>
-            <text x="50" y="187" fill="#ffa657" font-size="12" font-family="JetBrains Mono, monospace">2n-1 centers  (n odd centers + n-1 even centers)  →  loop 2n-1 lần, expand O(1) amortized</text>
-          </svg>
-        </div>
-      </div>
-    </div>
+								<!-- Even palindrome -->
+								<g transform="translate(380, 20)">
+									<text x="0" y="15" fill="#8b949e" font-size="12" font-weight="600">Even-length: "abba"</text>
+									<g transform="translate(0,25)">
+										<rect x="0" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="20" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
+										<rect x="44" y="0" width="40" height="36" fill="#21262d" stroke="#58a6ff" stroke-width="2" rx="3" />
+										<text x="64" y="24" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="700">b</text>
+										<rect x="88" y="0" width="40" height="36" fill="#21262d" stroke="#58a6ff" stroke-width="2" rx="3" />
+										<text x="108" y="24" text-anchor="middle" fill="#58a6ff" font-size="16" font-weight="700">b</text>
+										<rect x="132" y="0" width="40" height="36" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="152" y="24" text-anchor="middle" fill="#e6edf3" font-size="16">a</text>
 
-    <!-- ── PAL EXPAND ── -->
-    <div class="section" id="pal-expand">
-      <h2 class="sub">② CODE — Expand Around Center</h2>
-      <div class="badge-row"><span class="tag tag-intermediate">Intermediate</span></div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">palindrome_expand.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+										<line x1="66" y1="18" x2="10" y2="18" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4" />
+										<line x1="106" y1="18" x2="162" y2="18" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr)" stroke-dasharray="4" />
+										<text x="86" y="55" text-anchor="middle" fill="#58a6ff" font-size="11">center giữa 1&amp;2</text>
+									</g>
+								</g>
+
+								<!-- Key insight -->
+								<rect x="30" y="145" width="640" height="55" fill="#161b22" stroke="#30363d" rx="8" />
+								<text x="50" y="167" fill="#8b949e" font-size="12" font-weight="600">Key insight — Expand Around Center:</text>
+								<text x="50" y="187" fill="#ffa657" font-size="12" font-family="JetBrains Mono, monospace">
+									2n-1 centers (n odd centers + n-1 even centers) → loop 2n-1 lần, expand O(1) amortized
+								</text>
+							</svg>
+						</div>
+					</div>
+				</div>
+
+				<!-- ── PAL EXPAND ── -->
+				<div class="section" id="pal-expand">
+					<h2 class="sub">② CODE — Expand Around Center</h2>
+					<div class="badge-row"><span class="tag tag-intermediate">Intermediate</span></div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">palindrome_expand.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="cm">// LongestPalindrome — Expand Around Center, O(n²) time O(1) space
 // Xét từng center (gồm cả giữa 2 ký tự), expand ra 2 phía</span>
@@ -1627,23 +1963,26 @@
     }
     <span class="kw">return</span> count
 }</pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── PAL DP ── -->
-    <div class="section" id="pal-dp">
-      <h2 class="sub">③ CODE — Dynamic Programming: Longest Palindromic Subsequence</h2>
-      <div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
-      <div class="callout callout-info">
-        <span class="callout-icon">📌</span>
-        <p><strong>Phân biệt:</strong> <em>Substring</em> = các ký tự phải liên tiếp. <em>Subsequence</em> = có thể bỏ ký tự giữa. DP giải cả hai, nhưng logic khác nhau.</p>
-      </div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">palindrome_dp.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+				<!-- ── PAL DP ── -->
+				<div class="section" id="pal-dp">
+					<h2 class="sub">③ CODE — Dynamic Programming: Longest Palindromic Subsequence</h2>
+					<div class="badge-row"><span class="tag tag-advanced">Advanced</span></div>
+					<div class="callout callout-info">
+						<span class="callout-icon">📌</span>
+						<p>
+							<strong>Phân biệt:</strong> <em>Substring</em> = các ký tự phải liên tiếp. <em>Subsequence</em> = có thể bỏ ký tự giữa. DP giải cả hai,
+							nhưng logic khác nhau.
+						</p>
+					</div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">palindrome_dp.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="cm">// LongestPalindromicSubsequence — DP O(n²) time O(n²) space
 // dp[i][j] = độ dài LPS của s[i..j]
@@ -1703,80 +2042,80 @@
 }
 
 <span class="kw">func</span> <span class="fn">max</span>(a, b <span class="ty">int</span>) <span class="ty">int</span> { <span class="kw">if</span> a &gt; b { <span class="kw">return</span> a }; <span class="kw">return</span> b }</pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ── MANACHER ── -->
-    <div class="section" id="pal-manacher">
-      <h2 class="sub">④ CODE — Expert: Manacher's Algorithm O(n)</h2>
-      <div class="badge-row"><span class="tag tag-expert">★ Expert</span></div>
-      <div class="diagram-box">
-        <div class="diagram-header"><div class="diagram-title">Manacher — Transform &amp; P Array</div></div>
-        <div class="diagram-body">
-          <svg width="680" height="190" viewBox="0 0 680 190" xmlns="http://www.w3.org/2000/svg">
-            <g transform="translate(20,20)">
-              <text x="0" y="14" fill="#8b949e" font-size="12">Input:</text>
-              <text x="70" y="14" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="14">"ababd"</text>
+				<!-- ── MANACHER ── -->
+				<div class="section" id="pal-manacher">
+					<h2 class="sub">④ CODE — Expert: Manacher's Algorithm O(n)</h2>
+					<div class="badge-row"><span class="tag tag-expert">★ Expert</span></div>
+					<div class="diagram-box">
+						<div class="diagram-header"><div class="diagram-title">Manacher — Transform &amp; P Array</div></div>
+						<div class="diagram-body">
+							<svg width="680" height="190" viewBox="0 0 680 190" xmlns="http://www.w3.org/2000/svg">
+								<g transform="translate(20,20)">
+									<text x="0" y="14" fill="#8b949e" font-size="12">Input:</text>
+									<text x="70" y="14" fill="#e6edf3" font-family="JetBrains Mono, monospace" font-size="14">"ababd"</text>
 
-              <text x="0" y="40" fill="#8b949e" font-size="12">Transform:</text>
-              <text x="70" y="40" fill="#ffa657" font-family="JetBrains Mono, monospace" font-size="14">"#a#b#a#b#d#"</text>
-              <text x="310" y="40" fill="#6e7681" font-size="11">← chèn '#' để xử lý cả odd và even cùng một cách</text>
+									<text x="0" y="40" fill="#8b949e" font-size="12">Transform:</text>
+									<text x="70" y="40" fill="#ffa657" font-family="JetBrains Mono, monospace" font-size="14">"#a#b#a#b#d#"</text>
+									<text x="310" y="40" fill="#6e7681" font-size="11">← chèn '#' để xử lý cả odd và even cùng một cách</text>
 
-              <!-- P array visualization -->
-              <text x="0" y="75" fill="#8b949e" font-size="12">T:</text>
-              <g transform="translate(30,58)">
-                <rect x="0" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="15" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
-                <rect x="34" y="0" width="30" height="28" fill="#21262d" stroke="#3fb950" rx="3"/>
-                <text x="49" y="20" text-anchor="middle" fill="#3fb950" font-size="14">a</text>
-                <rect x="68" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="83" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
-                <rect x="102" y="0" width="30" height="28" fill="#21262d" stroke="#58a6ff" rx="3"/>
-                <text x="117" y="20" text-anchor="middle" fill="#58a6ff" font-size="14">b</text>
-                <rect x="136" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="151" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
-                <rect x="170" y="0" width="30" height="28" fill="#21262d" stroke="#bc8cff" rx="3"/>
-                <text x="185" y="20" text-anchor="middle" fill="#bc8cff" font-size="14">a</text>
-                <rect x="204" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="219" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
-                <rect x="238" y="0" width="30" height="28" fill="#21262d" stroke="#58a6ff" rx="3"/>
-                <text x="253" y="20" text-anchor="middle" fill="#58a6ff" font-size="14">b</text>
-                <rect x="272" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="287" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
-                <rect x="306" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="321" y="20" text-anchor="middle" fill="#e6edf3" font-size="14">d</text>
-                <rect x="340" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3"/>
-                <text x="355" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
-              </g>
+									<!-- P array visualization -->
+									<text x="0" y="75" fill="#8b949e" font-size="12">T:</text>
+									<g transform="translate(30,58)">
+										<rect x="0" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="15" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
+										<rect x="34" y="0" width="30" height="28" fill="#21262d" stroke="#3fb950" rx="3" />
+										<text x="49" y="20" text-anchor="middle" fill="#3fb950" font-size="14">a</text>
+										<rect x="68" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="83" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
+										<rect x="102" y="0" width="30" height="28" fill="#21262d" stroke="#58a6ff" rx="3" />
+										<text x="117" y="20" text-anchor="middle" fill="#58a6ff" font-size="14">b</text>
+										<rect x="136" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="151" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
+										<rect x="170" y="0" width="30" height="28" fill="#21262d" stroke="#bc8cff" rx="3" />
+										<text x="185" y="20" text-anchor="middle" fill="#bc8cff" font-size="14">a</text>
+										<rect x="204" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="219" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
+										<rect x="238" y="0" width="30" height="28" fill="#21262d" stroke="#58a6ff" rx="3" />
+										<text x="253" y="20" text-anchor="middle" fill="#58a6ff" font-size="14">b</text>
+										<rect x="272" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="287" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
+										<rect x="306" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="321" y="20" text-anchor="middle" fill="#e6edf3" font-size="14">d</text>
+										<rect x="340" y="0" width="30" height="28" fill="#161b22" stroke="#30363d" rx="3" />
+										<text x="355" y="20" text-anchor="middle" fill="#6e7681" font-size="13">#</text>
+									</g>
 
-              <!-- P values -->
-              <text x="0" y="110" fill="#8b949e" font-size="12">P:</text>
-              <g transform="translate(30,96)">
-                <text x="15" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-                <text x="49" y="18" text-anchor="middle" fill="#3fb950" font-family="JetBrains Mono" font-size="13">1</text>
-                <text x="83" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-                <text x="117" y="18" text-anchor="middle" fill="#58a6ff" font-family="JetBrains Mono" font-size="13">3</text>
-                <text x="151" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-                <text x="185" y="18" text-anchor="middle" fill="#bc8cff" font-family="JetBrains Mono" font-size="13">1</text>
-                <text x="219" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-                <text x="253" y="18" text-anchor="middle" fill="#58a6ff" font-family="JetBrains Mono" font-size="13">1</text>
-                <text x="287" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-                <text x="321" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-                <text x="355" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
-              </g>
+									<!-- P values -->
+									<text x="0" y="110" fill="#8b949e" font-size="12">P:</text>
+									<g transform="translate(30,96)">
+										<text x="15" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+										<text x="49" y="18" text-anchor="middle" fill="#3fb950" font-family="JetBrains Mono" font-size="13">1</text>
+										<text x="83" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+										<text x="117" y="18" text-anchor="middle" fill="#58a6ff" font-family="JetBrains Mono" font-size="13">3</text>
+										<text x="151" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+										<text x="185" y="18" text-anchor="middle" fill="#bc8cff" font-family="JetBrains Mono" font-size="13">1</text>
+										<text x="219" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+										<text x="253" y="18" text-anchor="middle" fill="#58a6ff" font-family="JetBrains Mono" font-size="13">1</text>
+										<text x="287" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+										<text x="321" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+										<text x="355" y="18" text-anchor="middle" fill="#e6edf3" font-family="JetBrains Mono" font-size="13">0</text>
+									</g>
 
-              <text x="0" y="145" fill="#8b949e" font-size="12">→ max P[i] = 3 tại vị trí 3 (ký tự 'b') → palindrome gốc dài 3: "aba"</text>
-              <text x="0" y="165" fill="#ffa657" font-size="12">P[i] = độ dài palindrome trong T kể từ center i (trừ chính center)</text>
-            </g>
-          </svg>
-        </div>
-      </div>
-      <div class="code-block">
-        <div class="code-header">
-          <span class="code-lang">GO</span>
-          <span class="code-filename">manacher.go</span>
-        </div>
-        <pre><span class="kw">package</span> <span class="id">stringalgo</span>
+									<text x="0" y="145" fill="#8b949e" font-size="12">→ max P[i] = 3 tại vị trí 3 (ký tự 'b') → palindrome gốc dài 3: "aba"</text>
+									<text x="0" y="165" fill="#ffa657" font-size="12">P[i] = độ dài palindrome trong T kể từ center i (trừ chính center)</text>
+								</g>
+							</svg>
+						</div>
+					</div>
+					<div class="code-block">
+						<div class="code-header">
+							<span class="code-lang">GO</span>
+							<span class="code-filename">manacher.go</span>
+						</div>
+						<pre><span class="kw">package</span> <span class="id">stringalgo</span>
 
 <span class="cm">// Manacher — O(n) time O(n) space, tìm palindrome dài nhất
 // Ý tưởng: tận dụng tính đối xứng — nếu đã biết P[mirror], P[i] có bound
@@ -1873,240 +2212,257 @@
 <span class="cm">// Benchmark:
 // BenchmarkManacher-8       3000000     415 ns/op   n=100
 // BenchmarkExpand-8          800000    1850 ns/op   n=100  ← 4.5x slower</span></pre>
-      </div>
-    </div>
+					</div>
+				</div>
 
-    <!-- ══════════════════════════════════════
+				<!-- ══════════════════════════════════════
          PITFALLS
     ══════════════════════════════════════ -->
-    <div class="section" id="pitfalls">
-      <div class="section-header">
-        <div class="section-number">⚠</div>
-        <span class="section-title">Pitfalls thường gặp &amp; Cách fix</span>
-      </div>
+				<div class="section" id="pitfalls">
+					<div class="section-header">
+						<div class="section-number">⚠</div>
+						<span class="section-title">Pitfalls thường gặp &amp; Cách fix</span>
+					</div>
 
-      <h2 class="sub">Sliding Window</h2>
-      <table class="pitfall-table">
-        <thead>
-          <tr><th>Lỗi</th><th>Mức độ</th><th>Nguyên nhân</th><th>Fix</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Off-by-one trong window size</td>
-            <td><span class="err-badge err-warn">WARN</span></td>
-            <td>Dùng <code>right - left</code> thay vì <code>right - left + 1</code></td>
-            <td><span class="fix-badge">curLen = right - left + 1</span></td>
-          </tr>
-          <tr>
-            <td>left không được cập nhật đúng</td>
-            <td><span class="err-badge err-fatal">BUG</span></td>
-            <td>Dynamic window: nên dùng <code>max(left, lastSeen[ch]+1)</code></td>
-            <td><span class="fix-badge">left = max(left, idx+1)</span></td>
-          </tr>
-          <tr>
-            <td>Dùng map khi <code>[26]int</code> đủ</td>
-            <td><span class="err-badge err-warn">PERF</span></td>
-            <td>map có allocation overhead, cache miss</td>
-            <td><span class="fix-badge">var freq [26]int — zero alloc</span></td>
-          </tr>
-          <tr>
-            <td>Không handle Unicode (multibyte)</td>
-            <td><span class="err-badge err-fatal">BUG</span></td>
-            <td>Index bằng byte index, không phải rune</td>
-            <td><span class="fix-badge">dùng []rune(s) hoặc range loop</span></td>
-          </tr>
-        </tbody>
-      </table>
+					<h2 class="sub">Sliding Window</h2>
+					<table class="pitfall-table">
+						<thead>
+							<tr>
+								<th>Lỗi</th>
+								<th>Mức độ</th>
+								<th>Nguyên nhân</th>
+								<th>Fix</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Off-by-one trong window size</td>
+								<td><span class="err-badge err-warn">WARN</span></td>
+								<td>Dùng <code>right - left</code> thay vì <code>right - left + 1</code></td>
+								<td><span class="fix-badge">curLen = right - left + 1</span></td>
+							</tr>
+							<tr>
+								<td>left không được cập nhật đúng</td>
+								<td><span class="err-badge err-fatal">BUG</span></td>
+								<td>Dynamic window: nên dùng <code>max(left, lastSeen[ch]+1)</code></td>
+								<td><span class="fix-badge">left = max(left, idx+1)</span></td>
+							</tr>
+							<tr>
+								<td>Dùng map khi <code>[26]int</code> đủ</td>
+								<td><span class="err-badge err-warn">PERF</span></td>
+								<td>map có allocation overhead, cache miss</td>
+								<td><span class="fix-badge">var freq [26]int — zero alloc</span></td>
+							</tr>
+							<tr>
+								<td>Không handle Unicode (multibyte)</td>
+								<td><span class="err-badge err-fatal">BUG</span></td>
+								<td>Index bằng byte index, không phải rune</td>
+								<td><span class="fix-badge">dùng []rune(s) hoặc range loop</span></td>
+							</tr>
+						</tbody>
+					</table>
 
-      <h2 class="sub">Trie</h2>
-      <table class="pitfall-table">
-        <thead>
-          <tr><th>Lỗi</th><th>Mức độ</th><th>Nguyên nhân</th><th>Fix</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Memory leak: không xóa node sau Delete</td>
-            <td><span class="err-badge err-fatal">FATAL</span></td>
-            <td>Chỉ set isEnd=false, không set children=nil</td>
-            <td><span class="fix-badge">Dùng recursive delete, set node=nil khi wordCount==0</span></td>
-          </tr>
-          <tr>
-            <td>Index out of range với uppercase</td>
-            <td><span class="err-badge err-fatal">PANIC</span></td>
-            <td><code>ch - 'a'</code> âm nếu ch là uppercase</td>
-            <td><span class="fix-badge">Validate: if idx < 0 || idx >= 26</span></td>
-          </tr>
-          <tr>
-            <td>Race condition trong Concurrent Trie</td>
-            <td><span class="err-badge err-fatal">FATAL</span></td>
-            <td>Nhiều goroutine ghi cùng node</td>
-            <td><span class="fix-badge">sync.RWMutex hoặc sync/atomic cho counters</span></td>
-          </tr>
-          <tr>
-            <td>Dùng [26] cho Unicode</td>
-            <td><span class="err-badge err-warn">BUG</span></td>
-            <td>Chỉ đúng với ASCII lowercase</td>
-            <td><span class="fix-badge">Dùng map[rune]*TrieNode cho Unicode</span></td>
-          </tr>
-        </tbody>
-      </table>
+					<h2 class="sub">Trie</h2>
+					<table class="pitfall-table">
+						<thead>
+							<tr>
+								<th>Lỗi</th>
+								<th>Mức độ</th>
+								<th>Nguyên nhân</th>
+								<th>Fix</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Memory leak: không xóa node sau Delete</td>
+								<td><span class="err-badge err-fatal">FATAL</span></td>
+								<td>Chỉ set isEnd=false, không set children=nil</td>
+								<td><span class="fix-badge">Dùng recursive delete, set node=nil khi wordCount==0</span></td>
+							</tr>
+							<tr>
+								<td>Index out of range với uppercase</td>
+								<td><span class="err-badge err-fatal">PANIC</span></td>
+								<td><code>ch - 'a'</code> âm nếu ch là uppercase</td>
+								<td><span class="fix-badge">Validate: if idx < 0 || idx >= 26</span></td>
+							</tr>
+							<tr>
+								<td>Race condition trong Concurrent Trie</td>
+								<td><span class="err-badge err-fatal">FATAL</span></td>
+								<td>Nhiều goroutine ghi cùng node</td>
+								<td><span class="fix-badge">sync.RWMutex hoặc sync/atomic cho counters</span></td>
+							</tr>
+							<tr>
+								<td>Dùng [26] cho Unicode</td>
+								<td><span class="err-badge err-warn">BUG</span></td>
+								<td>Chỉ đúng với ASCII lowercase</td>
+								<td><span class="fix-badge">Dùng map[rune]*TrieNode cho Unicode</span></td>
+							</tr>
+						</tbody>
+					</table>
 
-      <h2 class="sub">Palindrome</h2>
-      <table class="pitfall-table">
-        <thead>
-          <tr><th>Lỗi</th><th>Mức độ</th><th>Nguyên nhân</th><th>Fix</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Expand không check cả odd và even</td>
-            <td><span class="err-badge err-fatal">BUG</span></td>
-            <td>Chỉ expand(i,i) → bỏ sót even palindrome</td>
-            <td><span class="fix-badge">expand(i,i) VÀ expand(i, i+1)</span></td>
-          </tr>
-          <tr>
-            <td>Manacher: tính start sai</td>
-            <td><span class="err-badge err-warn">WARN</span></td>
-            <td>Dùng <code>bestCenter - bestLen</code> thay vì chia 2</td>
-            <td><span class="fix-badge">start = (bestCenter - bestLen) / 2</span></td>
-          </tr>
-          <tr>
-            <td>DP: không xử lý length==2 riêng</td>
-            <td><span class="err-badge err-fatal">BUG</span></td>
-            <td><code>dp[i+1][j-1]</code> truy cập sai khi length=2</td>
-            <td><span class="fix-badge">if length == 2 { dp[i][j] = 2 } else { ... }</span></td>
-          </tr>
-          <tr>
-            <td>IsPalindrome: không normalize</td>
-            <td><span class="err-badge err-warn">WARN</span></td>
-            <td>"A man, a plan" != palindrome nếu không bỏ dấu cách/dấu câu</td>
-            <td><span class="fix-badge">Filter non-alphanumeric + lowercase trước khi compare</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+					<h2 class="sub">Palindrome</h2>
+					<table class="pitfall-table">
+						<thead>
+							<tr>
+								<th>Lỗi</th>
+								<th>Mức độ</th>
+								<th>Nguyên nhân</th>
+								<th>Fix</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr>
+								<td>Expand không check cả odd và even</td>
+								<td><span class="err-badge err-fatal">BUG</span></td>
+								<td>Chỉ expand(i,i) → bỏ sót even palindrome</td>
+								<td><span class="fix-badge">expand(i,i) VÀ expand(i, i+1)</span></td>
+							</tr>
+							<tr>
+								<td>Manacher: tính start sai</td>
+								<td><span class="err-badge err-warn">WARN</span></td>
+								<td>Dùng <code>bestCenter - bestLen</code> thay vì chia 2</td>
+								<td><span class="fix-badge">start = (bestCenter - bestLen) / 2</span></td>
+							</tr>
+							<tr>
+								<td>DP: không xử lý length==2 riêng</td>
+								<td><span class="err-badge err-fatal">BUG</span></td>
+								<td><code>dp[i+1][j-1]</code> truy cập sai khi length=2</td>
+								<td><span class="fix-badge">if length == 2 { dp[i][j] = 2 } else { ... }</span></td>
+							</tr>
+							<tr>
+								<td>IsPalindrome: không normalize</td>
+								<td><span class="err-badge err-warn">WARN</span></td>
+								<td>"A man, a plan" != palindrome nếu không bỏ dấu cách/dấu câu</td>
+								<td><span class="fix-badge">Filter non-alphanumeric + lowercase trước khi compare</span></td>
+							</tr>
+						</tbody>
+					</table>
+				</div>
 
-    <!-- ══════════════════════════════════════
+				<!-- ══════════════════════════════════════
          REFERENCES
     ══════════════════════════════════════ -->
-    <div class="section" id="references">
-      <div class="section-header">
-        <div class="section-number">REF</div>
-        <span class="section-title">Tài liệu tham khảo</span>
-      </div>
+				<div class="section" id="references">
+					<div class="section-header">
+						<div class="section-number">REF</div>
+						<span class="section-title">Tài liệu tham khảo</span>
+					</div>
 
-      <h2 class="sub">📦 Go Source &amp; Packages</h2>
-      <div class="ref-grid">
-        <a class="ref-card" href="https://pkg.go.dev/strings" target="_blank">
-          <div class="ref-card-title">pkg.go.dev/strings</div>
-          <div class="ref-card-desc">Go standard library strings package — Contains, Index, Cut, Builder</div>
-          <div class="ref-card-url">pkg.go.dev/strings</div>
-        </a>
-        <a class="ref-card" href="https://pkg.go.dev/unicode/utf8" target="_blank">
-          <div class="ref-card-title">pkg.go.dev/unicode/utf8</div>
-          <div class="ref-card-desc">UTF-8 encoding functions — RuneCountInString, DecodeRune</div>
-          <div class="ref-card-url">pkg.go.dev/unicode/utf8</div>
-        </a>
-        <a class="ref-card" href="https://pkg.go.dev/sync" target="_blank">
-          <div class="ref-card-title">pkg.go.dev/sync</div>
-          <div class="ref-card-desc">RWMutex, Once, Map — concurrent data structures</div>
-          <div class="ref-card-url">pkg.go.dev/sync</div>
-        </a>
-        <a class="ref-card" href="https://pkg.go.dev/container/heap" target="_blank">
-          <div class="ref-card-title">pkg.go.dev/container/heap</div>
-          <div class="ref-card-desc">Min/Max heap interface — dùng cho Top-K autocomplete</div>
-          <div class="ref-card-url">pkg.go.dev/container/heap</div>
-        </a>
-      </div>
+					<h2 class="sub">📦 Go Source &amp; Packages</h2>
+					<div class="ref-grid">
+						<a class="ref-card" href="https://pkg.go.dev/strings" target="_blank">
+							<div class="ref-card-title">pkg.go.dev/strings</div>
+							<div class="ref-card-desc">Go standard library strings package — Contains, Index, Cut, Builder</div>
+							<div class="ref-card-url">pkg.go.dev/strings</div>
+						</a>
+						<a class="ref-card" href="https://pkg.go.dev/unicode/utf8" target="_blank">
+							<div class="ref-card-title">pkg.go.dev/unicode/utf8</div>
+							<div class="ref-card-desc">UTF-8 encoding functions — RuneCountInString, DecodeRune</div>
+							<div class="ref-card-url">pkg.go.dev/unicode/utf8</div>
+						</a>
+						<a class="ref-card" href="https://pkg.go.dev/sync" target="_blank">
+							<div class="ref-card-title">pkg.go.dev/sync</div>
+							<div class="ref-card-desc">RWMutex, Once, Map — concurrent data structures</div>
+							<div class="ref-card-url">pkg.go.dev/sync</div>
+						</a>
+						<a class="ref-card" href="https://pkg.go.dev/container/heap" target="_blank">
+							<div class="ref-card-title">pkg.go.dev/container/heap</div>
+							<div class="ref-card-desc">Min/Max heap interface — dùng cho Top-K autocomplete</div>
+							<div class="ref-card-url">pkg.go.dev/container/heap</div>
+						</a>
+					</div>
 
-      <h2 class="sub">🏆 GitHub Repositories (⭐ Top Rated)</h2>
-      <div class="ref-grid">
-        <a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
-          <div class="ref-card-title">TheAlgorithms/Go ⭐ 16k+</div>
-          <div class="ref-card-desc">Tất cả algorithms cơ bản bằng Go — string, tree, graph, dynamic programming</div>
-          <div class="ref-card-url">github.com/TheAlgorithms/Go</div>
-        </a>
-        <a class="ref-card" href="https://github.com/avelino/awesome-go" target="_blank">
-          <div class="ref-card-title">avelino/awesome-go ⭐ 130k+</div>
-          <div class="ref-card-desc">Curated list of awesome Go frameworks, libraries, software</div>
-          <div class="ref-card-url">github.com/avelino/awesome-go</div>
-        </a>
-        <a class="ref-card" href="https://github.com/emirpasic/gods" target="_blank">
-          <div class="ref-card-title">emirpasic/gods ⭐ 15k+</div>
-          <div class="ref-card-desc">GoDS — Red-Black Tree, AVL Tree, Trie, HashMap implementation</div>
-          <div class="ref-card-url">github.com/emirpasic/gods</div>
-        </a>
-        <a class="ref-card" href="https://github.com/arnauddri/algorithms" target="_blank">
-          <div class="ref-card-title">arnauddri/algorithms ⭐ 1.8k</div>
-          <div class="ref-card-desc">Go implementations: sorting, graph, string algorithms với tests</div>
-          <div class="ref-card-url">github.com/arnauddri/algorithms</div>
-        </a>
-        <a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
-          <div class="ref-card-title">halfrost/LeetCode-Go ⭐ 32k+</div>
-          <div class="ref-card-desc">LeetCode giải bằng Go — sliding window, trie, palindrome đủ cả</div>
-          <div class="ref-card-url">github.com/halfrost/LeetCode-Go</div>
-        </a>
-        <a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
-          <div class="ref-card-title">labuladong/fucking-algorithm ⭐ 125k</div>
-          <div class="ref-card-desc">Algorithm framework — sliding window template, Manacher giải thích chi tiết</div>
-          <div class="ref-card-url">github.com/labuladong/fucking-algorithm</div>
-        </a>
-      </div>
+					<h2 class="sub">🏆 GitHub Repositories (⭐ Top Rated)</h2>
+					<div class="ref-grid">
+						<a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+							<div class="ref-card-title">TheAlgorithms/Go ⭐ 16k+</div>
+							<div class="ref-card-desc">Tất cả algorithms cơ bản bằng Go — string, tree, graph, dynamic programming</div>
+							<div class="ref-card-url">github.com/TheAlgorithms/Go</div>
+						</a>
+						<a class="ref-card" href="https://github.com/avelino/awesome-go" target="_blank">
+							<div class="ref-card-title">avelino/awesome-go ⭐ 130k+</div>
+							<div class="ref-card-desc">Curated list of awesome Go frameworks, libraries, software</div>
+							<div class="ref-card-url">github.com/avelino/awesome-go</div>
+						</a>
+						<a class="ref-card" href="https://github.com/emirpasic/gods" target="_blank">
+							<div class="ref-card-title">emirpasic/gods ⭐ 15k+</div>
+							<div class="ref-card-desc">GoDS — Red-Black Tree, AVL Tree, Trie, HashMap implementation</div>
+							<div class="ref-card-url">github.com/emirpasic/gods</div>
+						</a>
+						<a class="ref-card" href="https://github.com/arnauddri/algorithms" target="_blank">
+							<div class="ref-card-title">arnauddri/algorithms ⭐ 1.8k</div>
+							<div class="ref-card-desc">Go implementations: sorting, graph, string algorithms với tests</div>
+							<div class="ref-card-url">github.com/arnauddri/algorithms</div>
+						</a>
+						<a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+							<div class="ref-card-title">halfrost/LeetCode-Go ⭐ 32k+</div>
+							<div class="ref-card-desc">LeetCode giải bằng Go — sliding window, trie, palindrome đủ cả</div>
+							<div class="ref-card-url">github.com/halfrost/LeetCode-Go</div>
+						</a>
+						<a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
+							<div class="ref-card-title">labuladong/fucking-algorithm ⭐ 125k</div>
+							<div class="ref-card-desc">Algorithm framework — sliding window template, Manacher giải thích chi tiết</div>
+							<div class="ref-card-url">github.com/labuladong/fucking-algorithm</div>
+						</a>
+					</div>
 
-      <h2 class="sub">📚 Tài liệu học thuật &amp; Interactive</h2>
-      <div class="ref-grid">
-        <a class="ref-card" href="https://cp-algorithms.com/string/manacher.html" target="_blank">
-          <div class="ref-card-title">cp-algorithms.com — Manacher</div>
-          <div class="ref-card-desc">Giải thích từng bước Manacher algorithm với proof và implementation</div>
-          <div class="ref-card-url">cp-algorithms.com/string/manacher.html</div>
-        </a>
-        <a class="ref-card" href="https://visualgo.net/en/trie" target="_blank">
-          <div class="ref-card-title">VisuAlgo — Trie Visualization</div>
-          <div class="ref-card-desc">Interactive Trie insert/delete/search animation step-by-step</div>
-          <div class="ref-card-url">visualgo.net/en/trie</div>
-        </a>
-        <a class="ref-card" href="https://go.dev/blog/strings" target="_blank">
-          <div class="ref-card-title">Go Blog: Strings, bytes, runes</div>
-          <div class="ref-card-desc">Official Go blog về string internals — UTF-8, rune, byte slice</div>
-          <div class="ref-card-url">go.dev/blog/strings</div>
-        </a>
-        <a class="ref-card" href="https://leetcode.com/tag/sliding-window/" target="_blank">
-          <div class="ref-card-title">LeetCode — Sliding Window Problems</div>
-          <div class="ref-card-desc">76, 239, 424, 438, 567, 1004 — bài luyện tập có editorial</div>
-          <div class="ref-card-url">leetcode.com/tag/sliding-window/</div>
-        </a>
-      </div>
-    </div>
+					<h2 class="sub">📚 Tài liệu học thuật &amp; Interactive</h2>
+					<div class="ref-grid">
+						<a class="ref-card" href="https://cp-algorithms.com/string/manacher.html" target="_blank">
+							<div class="ref-card-title">cp-algorithms.com — Manacher</div>
+							<div class="ref-card-desc">Giải thích từng bước Manacher algorithm với proof và implementation</div>
+							<div class="ref-card-url">cp-algorithms.com/string/manacher.html</div>
+						</a>
+						<a class="ref-card" href="https://visualgo.net/en/trie" target="_blank">
+							<div class="ref-card-title">VisuAlgo — Trie Visualization</div>
+							<div class="ref-card-desc">Interactive Trie insert/delete/search animation step-by-step</div>
+							<div class="ref-card-url">visualgo.net/en/trie</div>
+						</a>
+						<a class="ref-card" href="https://go.dev/blog/strings" target="_blank">
+							<div class="ref-card-title">Go Blog: Strings, bytes, runes</div>
+							<div class="ref-card-desc">Official Go blog về string internals — UTF-8, rune, byte slice</div>
+							<div class="ref-card-url">go.dev/blog/strings</div>
+						</a>
+						<a class="ref-card" href="https://leetcode.com/tag/sliding-window/" target="_blank">
+							<div class="ref-card-title">LeetCode — Sliding Window Problems</div>
+							<div class="ref-card-desc">76, 239, 424, 438, 567, 1004 — bài luyện tập có editorial</div>
+							<div class="ref-card-url">leetcode.com/tag/sliding-window/</div>
+						</a>
+					</div>
+				</div>
+			</main>
+		</div>
 
-  </main>
-</div>
+		<script>
+			function setNav(el) {
+				document.querySelectorAll("nav a").forEach((a) => a.classList.remove("active"));
+				el.classList.add("active");
+			}
+			function setSidebar(el) {
+				document.querySelectorAll(".sidebar-link").forEach((a) => a.classList.remove("active"));
+				el.classList.add("active");
+			}
 
-<script>
-  function setNav(el) {
-    document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
-    el.classList.add('active');
-  }
-  function setSidebar(el) {
-    document.querySelectorAll('.sidebar-link').forEach(a => a.classList.remove('active'));
-    el.classList.add('active');
-  }
+			// Scroll spy
+			const sections = document.querySelectorAll(".section[id]");
+			const sideLinks = document.querySelectorAll(".sidebar-link");
+			const navLinks = document.querySelectorAll("nav a");
 
-  // Scroll spy
-  const sections = document.querySelectorAll('.section[id]');
-  const sideLinks = document.querySelectorAll('.sidebar-link');
-  const navLinks = document.querySelectorAll('nav a');
+			const observer = new IntersectionObserver(
+				(entries) => {
+					entries.forEach((e) => {
+						if (e.isIntersecting) {
+							const id = e.target.id;
+							sideLinks.forEach((l) => {
+								l.classList.toggle("active", l.getAttribute("href") === "#" + id);
+							});
+						}
+					});
+				},
+				{ threshold: 0.3, rootMargin: "-60px 0px -60% 0px" }
+			);
 
-  const observer = new IntersectionObserver(entries => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        const id = e.target.id;
-        sideLinks.forEach(l => {
-          l.classList.toggle('active', l.getAttribute('href') === '#' + id);
-        });
-      }
-    });
-  }, { threshold: 0.3, rootMargin: '-60px 0px -60% 0px' });
-
-  sections.forEach(s => observer.observe(s));
-</script>
-</body>
+			sections.forEach((s) => observer.observe(s));
+		</script>
+	</body>
 </html>
