@@ -6,7 +6,7 @@ Học trước khi code bất kỳ concurrent system nào:
 1. [**Goroutines cơ bản**](./goroutines-guide.html) - Hiểu cách Go spawn lightweight threads
 2. [**Unbuffered Channels**](buffered-unbuffered-channels.html) - Synchronous communication (blocking)
 3. [**Buffered Channels**](buffered-unbuffered-channels.html) - Asynchronous với capacity
-4. [**Race Conditions**](./go-race-conditions.html) - Tại sao cần synchronization (chạy với `-race` flag)
+4. [**Race Conditions**](./race-conditions.html) - Tại sao cần synchronization (chạy với `-race` flag)
 5. [**Mutex & RWMutex**](./mutex-and-confinement.html) - Bảo vệ shared memory
 
 🔥 **So sánh với Node.js**: Goroutines ≈ async/await nhưng truly concurrent, channels ≈ EventEmitter nhưng type-safe
@@ -18,15 +18,15 @@ Patterns thực tế cho production:
 6. [**WaitGroup**](./wait-group.html) - Chờ nhóm goroutines (như `Promise.all()`)
 7. [**Context**](./context.html) - Cancellation, timeout, request-scoped values (giống AbortController)
 8. [**Select Statement**](./select-statement.html) - Multiplexing channels (unique trong Go)
-9. [**Or-Done Pattern** ](./go-or-done-pattern.html)- Kết hợp context với channel cleanup
-10. [**Pipeline Pattern**](./go-pipeline-pattern.html) - Chain processing stages (như Stream API)
+9. [**Or-Done Pattern** ](./or-done-pattern.html)- Kết hợp context với channel cleanup
+10. [**Pipeline Pattern**](./pipeline-pattern.html) - Chain processing stages (như Stream API)
 
 #### **LEVEL 3: Advanced Patterns (11-15)**
 
 Scale và optimize:
 
 11. [**Fan-Out/Fan-In**](./fan-out-fan-in-go.html) - Distribute work + merge results
-12. [**Worker Pool**](./go-worker-pool.html) - Fixed workers cho load balancing (như BullMQ trong Node)
+12. [**Worker Pool**](./worker-pool.html) - Fixed workers cho load balancing (như BullMQ trong Node)
 13. [**Tunny Worker Pool**](./tunny-worker-pool.html) - Production-ready pool với library
 14. [**Tee Channel**](./tee-channel-go-pattern.html) - Duplicate stream cho nhiều consumers
 15. [**ErrorGroup**](./errgroup-guide.html) - Coordinated error handling (`golang.org/x/sync/errgroup`)
@@ -35,10 +35,10 @@ Scale và optimize:
 
 Performance tuning:
 
-16. [**sync.Pool & Buffer Pool**](./go-sync-pool.html) - Object reuse, giảm GC pressure
-17. [**Resource Manager**](./go-resource-manager.html) - Quản lý connections, file handles
+16. [**sync.Pool & Buffer Pool**](./sync-pool.html) - Object reuse, giảm GC pressure
+17. [**Resource Manager**](./resource-manager.html) - Quản lý connections, file handles
 18. [**Rate Limiting**](./rate-limiting-go.html) - Token bucket, leaky bucket patterns
-19. [**Semaphore**](./go-semaphore-guide.html) - Limit concurrent operations (`golang.org/x/sync/semaphore`)
+19. [**Semaphore**](./semaphore-guide.html) - Limit concurrent operations (`golang.org/x/sync/semaphore`)
 20. [**Bounded Parallelism**](./bounded-parallelism-errgroup.html) - Control parallelism level với errgroup
 
 #### **BONUS: Production Patterns (21-22)**

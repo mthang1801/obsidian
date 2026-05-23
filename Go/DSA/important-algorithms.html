@@ -1,0 +1,2561 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Algorithms — Canonical Tools Beyond the Usual Lanes</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090d13;
+    --bg2: #0d1117;
+    --bg3: #131920;
+    --panel: #161c25;
+    --panel2: #1c2535;
+    --border: #1e2a3a;
+    --border2: #2a3a50;
+    --green: #00ff9d;
+    --green2: #0d5a3a;
+    --cyan: #00d4ff;
+    --blue: #4da6ff;
+    --purple: #a78bfa;
+    --orange: #fb923c;
+    --yellow: #fbbf24;
+    --red: #ff6b6b;
+    --pink: #f472b6;
+    --text: #e2eaf5;
+    --text2: #7a90a8;
+    --text3: #4a5a70;
+    --code-bg: #0d1117;
+    --sidebar-w: 260px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ── SIDEBAR ── */
+  #sidebar {
+    width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border2) transparent;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+  .sidebar-logo {
+    padding: 20px 16px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-logo span:first-child {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 800;
+    color: var(--green);
+    letter-spacing: -0.5px;
+  }
+  .sidebar-logo span:last-child {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 400;
+    color: var(--text2);
+  }
+
+  .nav-group { padding: 16px 0 8px; }
+  .nav-group-label {
+    font-size: 10px; font-weight: 600;
+    letter-spacing: 1.2px; text-transform: uppercase;
+    color: var(--text3);
+    padding: 0 16px 8px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 16px;
+    color: var(--text2); font-size: 13px;
+    cursor: pointer; text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .nav-item:hover, .nav-item.active {
+    background: var(--panel);
+    color: var(--text);
+    border-left-color: var(--green);
+  }
+  .nav-item .badge {
+    margin-left: auto; font-size: 9px; font-weight: 600;
+    padding: 2px 6px; border-radius: 9999px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-expert { background: #3d1a78; color: var(--purple); }
+  .badge-advanced { background: #1a3a1a; color: var(--green); }
+  .badge-core { background: #1a2a3a; color: var(--cyan); }
+
+  /* ── TOPNAV ── */
+  #topnav {
+    position: fixed;
+    top: 0; left: var(--sidebar-w); right: 0;
+    height: 48px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 4px;
+    z-index: 90;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  #topnav::-webkit-scrollbar { display: none; }
+  .topnav-item {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 12px; font-weight: 500;
+    color: var(--text2); cursor: pointer;
+    white-space: nowrap; text-decoration: none;
+    transition: all 0.15s;
+  }
+  .topnav-item:hover { background: var(--panel); color: var(--text); }
+  .topnav-item.active { background: var(--panel2); color: var(--green); }
+
+  /* ── MAIN CONTENT ── */
+  #main {
+    margin-left: var(--sidebar-w);
+    padding-top: 48px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content-area {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 32px 80px;
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    display: flex; align-items: center; gap: 16px;
+    margin-bottom: 24px;
+  }
+  .section-num {
+    width: 40px; height: 40px;
+    background: var(--panel2);
+    border: 1px solid var(--border2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px; font-weight: 700;
+    color: var(--green);
+    flex-shrink: 0;
+  }
+  .section-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px; font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.5px;
+  }
+  .section-badge {
+    padding: 4px 10px; border-radius: 9999px;
+    font-size: 11px; font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .badge-star { background: #2d1a4d; color: var(--purple); border: 1px solid #5a2d9a; }
+
+  .section-desc {
+    color: var(--text2);
+    font-size: 14px;
+    line-height: 1.7;
+    margin-bottom: 32px;
+    padding: 16px 20px;
+    background: var(--panel);
+    border-left: 3px solid var(--green);
+    border-radius: 0 8px 8px 0;
+  }
+
+  /* ── TOPIC SECTION ── */
+  .topic-section {
+    margin-bottom: 80px;
+    scroll-margin-top: 68px;
+  }
+  .topic-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .topic-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .topic-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px; font-weight: 700;
+  }
+  .topic-sub { color: var(--text2); font-size: 13px; }
+
+  /* ── INFO CARDS ── */
+  .info-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-bottom: 24px;
+  }
+  .info-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .info-card h4 {
+    font-size: 11px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 8px;
+  }
+  .info-card p { color: var(--text2); font-size: 13px; line-height: 1.6; }
+  .info-card .highlight { color: var(--cyan); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+  .complexity-row {
+    display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;
+  }
+  .complexity-tag {
+    padding: 3px 10px; border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight: 600;
+  }
+  .ct-time { background: #0d2d1a; color: var(--green); border: 1px solid #1a5a35; }
+  .ct-space { background: #0d1a2d; color: var(--blue); border: 1px solid #1a3a5a; }
+  .ct-best { background: #1a1a0d; color: var(--yellow); border: 1px solid #3a3a1a; }
+
+  /* ── DIAGRAM BOX ── */
+  .diagram-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .diagram-box::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--green), transparent);
+  }
+  .diagram-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 1.5px;
+    text-transform: uppercase; color: var(--text3);
+    margin-bottom: 20px; text-align: center;
+  }
+
+  /* Union Find diagram */
+  .uf-diagram { font-family: 'JetBrains Mono', monospace; }
+  .uf-tree { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; }
+  .uf-node {
+    width: 40px; height: 40px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700;
+    border: 2px solid;
+  }
+  .uf-root { border-color: var(--green); background: #0d2d1a; color: var(--green); }
+  .uf-child { border-color: var(--blue); background: #0d1a2d; color: var(--blue); }
+  .uf-merged { border-color: var(--purple); background: #1a0d2d; color: var(--purple); }
+  .uf-step { text-align: center; font-size: 11px; color: var(--text3); margin-top: 8px; }
+
+  /* flow arrow */
+  .flow-arrow {
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text3); font-size: 20px; margin: 8px 0;
+  }
+  .op-label {
+    text-align: center; font-size: 12px;
+    color: var(--orange); font-weight: 600; margin: 8px 0;
+  }
+
+  /* KMP table */
+  .kmp-table-wrap { overflow-x: auto; margin: 16px 0; }
+  .kmp-table {
+    border-collapse: collapse; font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; width: 100%;
+  }
+  .kmp-table th, .kmp-table td {
+    border: 1px solid var(--border); padding: 8px 12px; text-align: center;
+  }
+  .kmp-table th { background: var(--panel2); color: var(--text2); font-weight: 600; }
+  .kmp-table td { background: var(--panel); }
+  .kmp-match { background: #0d2d1a !important; color: var(--green) !important; }
+  .kmp-fail  { background: #2d0d0d !important; color: var(--red) !important; }
+  .kmp-pi    { background: #0d1a2d !important; color: var(--cyan) !important; }
+
+  /* CODE BLOCK */
+  .code-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--panel);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-size: 10px; font-weight: 600; letter-spacing: 1px;
+    text-transform: uppercase; padding: 2px 8px;
+    border-radius: 4px; background: #0d2d1a;
+    color: var(--green);
+  }
+  .code-filename {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px; color: var(--text3);
+  }
+  .code-level {
+    font-size: 10px; font-weight: 600; padding: 2px 8px;
+    border-radius: 9999px;
+  }
+  .level-advanced { background: #1a3a1a; color: var(--green); }
+  .level-expert   { background: #2d1a4d; color: var(--purple); }
+  .level-basic    { background: #1a2a3a; color: var(--cyan); }
+
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12.5px;
+    line-height: 1.65;
+    color: #cdd6f4;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); }
+
+  /* syntax colors */
+  .kw  { color: #cba6f7; }  /* keyword */
+  .fn  { color: #89b4fa; }  /* function */
+  .st  { color: #a6e3a1; }  /* string */
+  .cm  { color: #6c7086; font-style: italic; } /* comment */
+  .nm  { color: #fab387; }  /* number */
+  .tp  { color: #89dceb; }  /* type */
+  .op  { color: #f38ba8; }  /* operator */
+  .pk  { color: #f9e2af; }  /* package */
+
+  /* ── ALGO STEPS ── */
+  .steps-list { margin: 16px 0; }
+  .step-item {
+    display: flex; gap: 12px;
+    padding: 12px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; flex-shrink: 0;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .step-content { flex: 1; }
+  .step-content strong { color: var(--text); font-size: 13px; }
+  .step-content p { color: var(--text2); font-size: 12px; margin-top: 4px; }
+
+  /* ── USE CASES ── */
+  .usecase-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    gap: 10px; margin: 16px 0;
+  }
+  .usecase-item {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .usecase-item .icon { font-size: 20px; margin-bottom: 6px; }
+  .usecase-item .label { font-size: 11px; color: var(--text2); font-weight: 500; }
+
+  /* ── A* GRID ── */
+  .astar-grid {
+    display: grid; grid-template-columns: repeat(8, 1fr);
+    gap: 2px; max-width: 320px; margin: 0 auto;
+  }
+  .cell {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 4px; font-size: 9px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 600;
+  }
+  .cell-empty { background: var(--panel); color: var(--text3); }
+  .cell-wall  { background: #1a1a2e; color: var(--text3); }
+  .cell-open  { background: #0d2d1a; color: var(--green); border: 1px solid var(--green); }
+  .cell-closed{ background: #1a1a0d; color: var(--yellow); }
+  .cell-path  { background: #0d1a2d; color: var(--cyan); border: 1px solid var(--cyan); }
+  .cell-start { background: #0d2d1a; color: var(--green); font-size: 14px; }
+  .cell-end   { background: #2d0d0d; color: var(--red); font-size: 14px; }
+
+  /* ── BACKTRACKING TREE ── */
+  .bt-tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; color: var(--text2);
+    line-height: 1.8;
+    padding: 8px;
+  }
+  .bt-node { color: var(--cyan); }
+  .bt-prune { color: var(--red); }
+  .bt-solution { color: var(--green); font-weight: 700; }
+  .bt-back { color: var(--orange); }
+
+  /* ── COMPARISON TABLE ── */
+  .compare-table {
+    width: 100%; border-collapse: collapse; margin: 16px 0;
+    font-size: 12.5px;
+  }
+  .compare-table th {
+    background: var(--panel2);
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--text3);
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .compare-table tr:hover td { background: var(--panel); }
+  .compare-table .good { color: var(--green); }
+  .compare-table .bad  { color: var(--red); }
+  .compare-table .mid  { color: var(--yellow); }
+
+  /* ── REFERENCES ── */
+  .ref-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 12px; margin-top: 16px;
+  }
+  .ref-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    display: flex; gap: 12px; align-items: flex-start;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .ref-card:hover {
+    border-color: var(--green);
+    background: var(--panel2);
+  }
+  .ref-icon { font-size: 24px; flex-shrink: 0; }
+  .ref-info { flex: 1; }
+  .ref-title { color: var(--text); font-size: 13px; font-weight: 600; }
+  .ref-url   { color: var(--text3); font-size: 11px; margin-top: 2px; font-family: 'JetBrains Mono', monospace; }
+  .ref-desc  { color: var(--text2); font-size: 12px; margin-top: 6px; }
+  .ref-stars { color: var(--yellow); font-size: 11px; margin-top: 4px; }
+
+  /* ── SECTION DIVIDER ── */
+  .divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border2), transparent);
+    margin: 60px 0;
+  }
+
+  /* ── Rabin-Karp hash visual ── */
+  .rk-window {
+    display: flex; gap: 2px; justify-content: center;
+    margin: 12px 0; flex-wrap: wrap;
+  }
+  .rk-char {
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700;
+    border: 1px solid var(--border);
+  }
+  .rk-window-active { background: #0d2d1a; border-color: var(--green); color: var(--green); }
+  .rk-window-normal { background: var(--panel); color: var(--text2); }
+  .rk-hash-eq { background: #0d1a2d; border-color: var(--cyan); color: var(--cyan); }
+
+  /* callout */
+  .callout {
+    display: flex; gap: 12px;
+    padding: 14px 16px;
+    border-radius: 8px; margin: 16px 0;
+    border-left: 3px solid;
+  }
+  .callout-info   { background: #0d1a2d; border-color: var(--blue); }
+  .callout-warn   { background: #2d1a0d; border-color: var(--orange); }
+  .callout-tip    { background: #0d2d1a; border-color: var(--green); }
+  .callout-danger { background: #2d0d0d; border-color: var(--red); }
+  .callout-icon { font-size: 18px; flex-shrink: 0; }
+  .callout-text p { font-size: 13px; color: var(--text2); line-height: 1.6; }
+  .callout-text strong { color: var(--text); }
+
+  /* h3 sub-headers */
+  h3.sub {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700;
+    color: var(--text); margin: 24px 0 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  h3.sub::before {
+    content: ''; display: block;
+    width: 3px; height: 16px;
+    background: var(--green); border-radius: 2px;
+  }
+
+  /* footer */
+  .footer {
+    text-align: center; padding: 40px 0;
+    color: var(--text3); font-size: 12px;
+    border-top: 1px solid var(--border);
+    margin-top: 60px;
+  }
+  .footer span { color: var(--green); }
+
+  /* scrollbar global */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  @media (max-width: 768px) {
+    #sidebar { transform: translateX(-100%); }
+    #main { margin-left: 0; }
+    #topnav { left: 0; }
+    .info-grid { grid-template-columns: 1fr; }
+    .usecase-grid { grid-template-columns: 1fr 1fr; }
+    .ref-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ══════════════ SIDEBAR ══════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <span>Go </span><span>Algorithms</span>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Giới thiệu</div>
+    <a href="#intro" class="nav-item active">Tổng quan</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">01 — Union Find</div>
+    <a href="#uf-concept" class="nav-item">Khái niệm</a>
+    <a href="#uf-code"    class="nav-item">Triển khai Go</a>
+    <a href="#uf-advanced" class="nav-item">Nâng cao <span class="badge badge-advanced">ADV</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">02 — KMP</div>
+    <a href="#kmp-concept" class="nav-item">Khái niệm</a>
+    <a href="#kmp-code"    class="nav-item">Triển khai Go</a>
+    <a href="#kmp-expert"  class="nav-item">Expert <span class="badge badge-expert">EXP</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">03 — Rabin-Karp</div>
+    <a href="#rk-concept" class="nav-item">Khái niệm</a>
+    <a href="#rk-code"    class="nav-item">Triển khai Go</a>
+    <a href="#rk-advanced" class="nav-item">Nâng cao <span class="badge badge-advanced">ADV</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">04 — A Star</div>
+    <a href="#astar-concept" class="nav-item">Khái niệm</a>
+    <a href="#astar-code"    class="nav-item">Triển khai Go</a>
+    <a href="#astar-expert"  class="nav-item">Expert <span class="badge badge-expert">EXP</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">05 — Backtracking</div>
+    <a href="#bt-concept" class="nav-item">Khái niệm</a>
+    <a href="#bt-code"    class="nav-item">Triển khai Go</a>
+    <a href="#bt-expert"  class="nav-item">Expert <span class="badge badge-expert">EXP</span></a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-label">Tổng kết</div>
+    <a href="#compare"  class="nav-item">So sánh</a>
+    <a href="#refs"     class="nav-item">Tài liệu tham khảo</a>
+  </div>
+</nav>
+
+<!-- ══════════════ TOP NAV ══════════════ -->
+<nav id="topnav">
+  <a href="#uf-concept"    class="topnav-item">Union-Find</a>
+  <a href="#kmp-concept"   class="topnav-item">KMP</a>
+  <a href="#rk-concept"    class="topnav-item">Rabin-Karp</a>
+  <a href="#astar-concept" class="topnav-item">A*</a>
+  <a href="#bt-concept"    class="topnav-item">Backtracking</a>
+  <a href="#compare"       class="topnav-item">So sánh</a>
+  <a href="#refs"          class="topnav-item active">References</a>
+</nav>
+
+<!-- ══════════════ MAIN ══════════════ -->
+<main id="main">
+<div class="content-area">
+
+<!-- ── INTRO ── -->
+<section id="intro" class="topic-section">
+  <div class="section-header">
+    <div class="section-num">∞</div>
+    <div>
+      <div class="section-title">Important Algorithms</div>
+      <div class="topic-sub">Canonical Tools Beyond the Usual Lanes — Golang Implementation Guide</div>
+    </div>
+    <span class="section-badge badge-star">★ Expert</span>
+  </div>
+  <div class="section-desc">
+    Tài liệu này trình bày <strong>5 thuật toán nền tảng quan trọng</strong> trong khoa học máy tính mà mọi kỹ sư Go giỏi cần nắm vững:
+    <strong>Union-Find</strong> (quản lý tập hợp rời rạc), <strong>KMP</strong> (tìm kiếm chuỗi tuyến tính),
+    <strong>Rabin-Karp</strong> (tìm kiếm chuỗi hash-based), <strong>A*</strong> (tìm đường tối ưu), và
+    <strong>Backtracking</strong> (tìm kiếm toàn diện có tỉa cành). Mỗi thuật toán được trình bày từ lý thuyết
+    đến triển khai production-grade bằng Go 1.21+.
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>🎯 Mục tiêu</h4>
+      <p>Nắm vững cả lý thuyết lẫn thực hành. Mỗi thuật toán có ít nhất 3 mức độ: Basic → Advanced → Expert với Go code thực tế.</p>
+    </div>
+    <div class="info-card">
+      <h4>⚙️ Yêu cầu</h4>
+      <p>Go 1.21+, kiến thức cơ bản về struct, interface, goroutine. Một số ví dụ dùng generics (Go 1.18+).</p>
+    </div>
+    <div class="info-card">
+      <h4>📊 Độ phức tạp tổng quan</h4>
+      <div class="complexity-row">
+        <span class="complexity-tag ct-time">Union-Find: O(α(n))</span>
+        <span class="complexity-tag ct-time">KMP: O(n+m)</span>
+        <span class="complexity-tag ct-time">RK: O(n+m)</span>
+      </div>
+      <div class="complexity-row" style="margin-top:6px">
+        <span class="complexity-tag ct-time">A*: O(b^d)</span>
+        <span class="complexity-tag ct-time">BT: O(b^d)</span>
+      </div>
+    </div>
+    <div class="info-card">
+      <h4>🗺️ Phạm vi ứng dụng</h4>
+      <p>Mạng xã hội, tìm kiếm văn bản, bảo mật (hash), game AI, pathfinding, giải sudoku, tối ưu hóa tổ hợp.</p>
+    </div>
+  </div>
+
+  <!-- Hero Illustration -->
+  <div class="concept-img-wrapper" style="margin: 32px 0; text-align: center;">
+    <div style="display: inline-block; padding: 8px; background: var(--panel, #161c25); border: 1px solid var(--border, #1e2a3a); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); max-width: 100%; overflow: hidden;">
+      <img src="../../public/images/import_algorithms.png" alt="Pathfinding & Import Algorithms Illustration" style="display: block; width: 100%; max-width: 760px; height: auto; border-radius: 12px; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+    </div>
+    <div style="margin-top: 12px; font-size: 11px; color: var(--text2, #7a90a8); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; text-transform: uppercase;">
+      Hình 1: Minh họa Thuật toán Pathfinding A* & Disjoint Set (Union-Find)
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     01 — UNION FIND
+══════════════════════════════════════════ -->
+<section id="uf-concept" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#0d2d1a">🔗</div>
+    <div>
+      <div class="topic-title" style="color:var(--green)">01 — Union-Find (Disjoint Set Union)</div>
+      <div class="topic-sub">Quản lý các tập hợp rời rạc với độ phức tạp gần O(1) mỗi thao tác</div>
+    </div>
+  </div>
+
+  <!-- Khái niệm -->
+  <div class="section-desc">
+    <strong>Union-Find</strong> (hay Disjoint Set Union - DSU) là cấu trúc dữ liệu quản lý một tập hợp các phần tử được phân chia thành nhiều tập hợp rời rạc không giao nhau. Nó hỗ trợ hai thao tác chính: <code>Find</code> (tìm đại diện của tập chứa phần tử) và <code>Union</code> (gộp hai tập). Với hai kỹ thuật tối ưu <strong>Path Compression</strong> + <strong>Union by Rank</strong>, mỗi thao tác đạt xấp xỉ O(α(n)) — hàm Ackermann ngược, thực tế coi như hằng số.
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-box">
+    <div class="diagram-label">Union-Find — Quá trình Find & Union trực quan</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;">
+      <div>
+        <div style="text-align:center;font-size:11px;color:var(--text3);margin-bottom:12px">TRƯỚC KHI UNION</div>
+        <div style="display:flex;justify-content:space-around;margin-bottom:8px">
+          <div style="text-align:center">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div class="uf-node uf-root">0</div>
+              <div style="width:1px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;gap:8px">
+                <div class="uf-node uf-child">1</div>
+                <div class="uf-node uf-child">2</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px">Component A</div>
+          </div>
+          <div style="text-align:center">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div class="uf-node uf-merged">3</div>
+              <div style="width:1px;height:20px;background:var(--border)"></div>
+              <div style="display:flex;gap:8px">
+                <div class="uf-node uf-child">4</div>
+                <div class="uf-node uf-child">5</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px">Component B</div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--text3);font-family:monospace">parent=[0,0,0,3,3,3] rank=[1,0,0,1,0,0]</div>
+      </div>
+      <div>
+        <div style="text-align:center;font-size:11px;color:var(--text3);margin-bottom:12px">SAU KHI Union(2, 4)</div>
+        <div style="display:flex;justify-content:center;margin-bottom:8px">
+          <div style="text-align:center">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px">
+              <div class="uf-node uf-root">0</div>
+              <div style="width:1px;height:20px;background:var(--green)"></div>
+              <div style="display:flex;gap:6px">
+                <div class="uf-node uf-child">1</div>
+                <div class="uf-node uf-child">2</div>
+                <div class="uf-node uf-merged">3</div>
+              </div>
+              <div style="width:1px;height:16px;background:var(--border)"></div>
+              <div style="display:flex;gap:6px">
+                <div class="uf-node uf-child">4</div>
+                <div class="uf-node uf-child">5</div>
+              </div>
+            </div>
+            <div style="font-size:10px;color:var(--text3);margin-top:6px">1 Component duy nhất</div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--green);font-family:monospace">parent=[0,0,0,0,3,3] rank=[2,0,0,1,0,0]</div>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;background:var(--code-bg);border-radius:8px;padding:12px">
+      <div style="font-size:10px;color:var(--text3);margin-bottom:8px;letter-spacing:1px;text-transform:uppercase">Path Compression — Trước & Sau</div>
+      <div style="display:flex;align-items:center;justify-content:space-around;flex-wrap:wrap;gap:16px">
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Trước Find(5)</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:4px;font-family:monospace;font-size:11px">
+            <div class="uf-node uf-root" style="width:32px;height:32px;font-size:11px">0</div>
+            <div style="color:var(--text3)">↑</div>
+            <div class="uf-node uf-child" style="width:32px;height:32px;font-size:11px">1</div>
+            <div style="color:var(--text3)">↑</div>
+            <div class="uf-node uf-child" style="width:32px;height:32px;font-size:11px">2</div>
+            <div style="color:var(--text3)">↑</div>
+            <div class="uf-node uf-child" style="width:32px;height:32px;font-size:11px">5</div>
+          </div>
+          <div style="font-size:10px;color:var(--red);margin-top:6px">Chiều sâu = 3</div>
+        </div>
+        <div style="font-size:24px;color:var(--green)">→</div>
+        <div style="text-align:center">
+          <div style="font-size:10px;color:var(--text3);margin-bottom:8px">Sau Find(5) + Path Compression</div>
+          <div style="display:flex;flex-direction:column;align-items:center;">
+            <div class="uf-node uf-root" style="width:32px;height:32px;font-size:11px;margin-bottom:4px">0</div>
+            <div style="display:flex;gap:4px;color:var(--text3);font-size:11px">↑&nbsp;&nbsp;↑&nbsp;&nbsp;↑</div>
+            <div style="display:flex;gap:8px;margin-top:2px">
+              <div class="uf-node uf-child" style="width:32px;height:32px;font-size:11px">1</div>
+              <div class="uf-node uf-child" style="width:32px;height:32px;font-size:11px">2</div>
+              <div class="uf-node uf-child" style="width:32px;height:32px;font-size:11px">5</div>
+            </div>
+          </div>
+          <div style="font-size:10px;color:var(--green);margin-top:6px">Chiều sâu = 1 ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info cards -->
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>📐 Độ phức tạp</h4>
+      <div class="complexity-row">
+        <span class="complexity-tag ct-time">Find: O(α(n))</span>
+        <span class="complexity-tag ct-time">Union: O(α(n))</span>
+      </div>
+      <div class="complexity-row" style="margin-top:6px">
+        <span class="complexity-tag ct-space">Space: O(n)</span>
+        <span class="complexity-tag ct-best">α(n) ≤ 4 thực tế</span>
+      </div>
+    </div>
+    <div class="info-card">
+      <h4>💡 Ứng dụng thực tế</h4>
+      <p>Kruskal MST, detect cycle trong graph vô hướng, bài toán connected components, LeetCode "Number of Provinces", "Accounts Merge".</p>
+    </div>
+  </div>
+
+  <!-- Steps -->
+  <h3 class="sub">Thuật toán từng bước</h3>
+  <div class="steps-list">
+    <div class="step-item">
+      <div class="step-num" style="background:#0d2d1a;color:var(--green);border:1px solid var(--green)">1</div>
+      <div class="step-content">
+        <strong>Khởi tạo (Initialize)</strong>
+        <p>Mỗi phần tử là một tập riêng: <code>parent[i] = i</code>, <code>rank[i] = 0</code>. Ban đầu có n component.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#0d1a2d;color:var(--blue);border:1px solid var(--blue)">2</div>
+      <div class="step-content">
+        <strong>Find với Path Compression</strong>
+        <p>Tìm root của phần tử x. Trên đường đi, gán trực tiếp tất cả node về root (flat tree). Dùng đệ quy: <code>parent[x] = find(parent[x])</code>.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#1a0d2d;color:var(--purple);border:1px solid var(--purple)">3</div>
+      <div class="step-content">
+        <strong>Union by Rank</strong>
+        <p>Gộp hai tập: tìm root của mỗi tập. Nếu rank khác nhau, gắn cây thấp hơn vào cây cao hơn. Nếu bằng nhau, tăng rank của root.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#2d1a0d;color:var(--orange);border:1px solid var(--orange)">4</div>
+      <div class="step-content">
+        <strong>Connected? (Kiểm tra liên thông)</strong>
+        <p>Hai phần tử x, y cùng component khi và chỉ khi <code>Find(x) == Find(y)</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- USE CASES -->
+  <div class="usecase-grid">
+    <div class="usecase-item">
+      <div class="icon">🌐</div>
+      <div class="label">Mạng xã hội — nhóm bạn bè</div>
+    </div>
+    <div class="usecase-item">
+      <div class="icon">🗺️</div>
+      <div class="label">Kruskal MST — cây khung nhỏ nhất</div>
+    </div>
+    <div class="usecase-item">
+      <div class="icon">🔍</div>
+      <div class="label">Phát hiện chu trình</div>
+    </div>
+    <div class="usecase-item">
+      <div class="icon">🖼️</div>
+      <div class="label">Xử lý ảnh — connected pixels</div>
+    </div>
+    <div class="usecase-item">
+      <div class="icon">⚡</div>
+      <div class="label">Mạng lưới điện — percolation</div>
+    </div>
+    <div class="usecase-item">
+      <div class="icon">🎮</div>
+      <div class="label">Game — territory clustering</div>
+    </div>
+  </div>
+</section>
+
+<!-- UF CODE -->
+<section id="uf-code" class="topic-section">
+  <h3 class="sub">Triển khai cơ bản (Basic)</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">union_find_basic.go</span>
+      <span class="code-level level-basic">BASIC</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">unionfind</span>
+
+<span class="cm">// UnionFind là cấu trúc dữ liệu Disjoint Set Union</span>
+<span class="kw">type</span> <span class="tp">UnionFind</span> <span class="kw">struct</span> {
+    parent []<span class="tp">int</span>
+    rank   []<span class="tp">int</span>
+    count  <span class="tp">int</span> <span class="cm">// số component hiện tại</span>
+}
+
+<span class="cm">// New khởi tạo UnionFind với n phần tử (0..n-1)</span>
+<span class="kw">func</span> <span class="fn">New</span>(n <span class="tp">int</span>) *<span class="tp">UnionFind</span> {
+    parent := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    rank   := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> parent {
+        parent[i] = i <span class="cm">// mỗi node là root của chính nó</span>
+    }
+    <span class="kw">return</span> &<span class="tp">UnionFind</span>{parent: parent, rank: rank, count: n}
+}
+
+<span class="cm">// Find trả về root của tập chứa x
+// Path compression: gắn tất cả node trên đường về root</span>
+<span class="kw">func</span> (uf *<span class="tp">UnionFind</span>) <span class="fn">Find</span>(x <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> uf.parent[x] != x {
+        uf.parent[x] = uf.<span class="fn">Find</span>(uf.parent[x]) <span class="cm">// path compression</span>
+    }
+    <span class="kw">return</span> uf.parent[x]
+}
+
+<span class="cm">// Union gộp hai tập chứa x và y
+// Trả về false nếu đã cùng tập (tức có cycle)</span>
+<span class="kw">func</span> (uf *<span class="tp">UnionFind</span>) <span class="fn">Union</span>(x, y <span class="tp">int</span>) <span class="tp">bool</span> {
+    rx, ry := uf.<span class="fn">Find</span>(x), uf.<span class="fn">Find</span>(y)
+    <span class="kw">if</span> rx == ry {
+        <span class="kw">return</span> <span class="kw">false</span> <span class="cm">// đã cùng component</span>
+    }
+    <span class="cm">// Union by rank: gắn cây thấp hơn vào cây cao hơn</span>
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> uf.rank[rx] < uf.rank[ry]:
+        uf.parent[rx] = ry
+    <span class="kw">case</span> uf.rank[rx] > uf.rank[ry]:
+        uf.parent[ry] = rx
+    <span class="kw">default</span>:
+        uf.parent[ry] = rx
+        uf.rank[rx]++
+    }
+    uf.count--
+    <span class="kw">return</span> <span class="kw">true</span>
+}
+
+<span class="cm">// Connected kiểm tra x và y có cùng component không</span>
+<span class="kw">func</span> (uf *<span class="tp">UnionFind</span>) <span class="fn">Connected</span>(x, y <span class="tp">int</span>) <span class="tp">bool</span> {
+    <span class="kw">return</span> uf.<span class="fn">Find</span>(x) == uf.<span class="fn">Find</span>(y)
+}
+
+<span class="cm">// Count trả về số lượng component rời rạc</span>
+<span class="kw">func</span> (uf *<span class="tp">UnionFind</span>) <span class="fn">Count</span>() <span class="tp">int</span> { <span class="kw">return</span> uf.count }</pre>
+  </div>
+
+  <h3 class="sub">Ứng dụng thực tế — Phát hiện chu trình trong đồ thị</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">cycle_detection.go</span>
+      <span class="code-level level-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// HasCycle kiểm tra đồ thị vô hướng có chu trình không
+// edges: danh sách cạnh [[u,v], ...]</span>
+<span class="kw">func</span> <span class="fn">HasCycle</span>(n <span class="tp">int</span>, edges [][<span class="nm">2</span>]<span class="tp">int</span>) <span class="tp">bool</span> {
+    uf := <span class="fn">New</span>(n)
+    <span class="kw">for</span> _, e := <span class="kw">range</span> edges {
+        <span class="kw">if</span> !uf.<span class="fn">Union</span>(e[<span class="nm">0</span>], e[<span class="nm">1</span>]) {
+            <span class="kw">return</span> <span class="kw">true</span> <span class="cm">// Union failed → đã cùng component → có cycle</span>
+        }
+    }
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+
+<span class="cm">// NumberOfProvinces — LeetCode 547
+// Ma trận liền kề isConnected[i][j]=1 nếu i và j cùng tỉnh</span>
+<span class="kw">func</span> <span class="fn">NumberOfProvinces</span>(isConnected [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(isConnected)
+    uf := <span class="fn">New</span>(n)
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < n; i++ {
+        <span class="kw">for</span> j := i + <span class="nm">1</span>; j < n; j++ {
+            <span class="kw">if</span> isConnected[i][j] == <span class="nm">1</span> {
+                uf.<span class="fn">Union</span>(i, j)
+            }
+        }
+    }
+    <span class="kw">return</span> uf.<span class="fn">Count</span>()
+}</pre>
+  </div>
+</section>
+
+<!-- UF ADVANCED -->
+<section id="uf-advanced" class="topic-section">
+  <h3 class="sub">Expert — Generic Union-Find + Kruskal MST</h3>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">kruskal_mst.go</span>
+      <span class="code-level level-expert">EXPERT</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">graph</span>
+
+<span class="kw">import</span> (
+    <span class="st">"cmp"</span>
+    <span class="st">"slices"</span>
+)
+
+<span class="cm">// Edge đại diện cạnh có trọng số</span>
+<span class="kw">type</span> <span class="tp">Edge</span>[<span class="tp">W</span> <span class="tp">cmp.Ordered</span>] <span class="kw">struct</span> {
+    U, V   <span class="tp">int</span>
+    Weight <span class="tp">W</span>
+}
+
+<span class="cm">// KruskalMST trả về danh sách cạnh trong cây khung nhỏ nhất
+// Dùng Union-Find để kiểm tra cycle hiệu quả
+// Độ phức tạp: O(E log E) do sort</span>
+<span class="kw">func</span> <span class="fn">KruskalMST</span>[<span class="tp">W</span> <span class="tp">cmp.Ordered</span>](n <span class="tp">int</span>, edges []<span class="tp">Edge</span>[<span class="tp">W</span>]) ([]<span class="tp">Edge</span>[<span class="tp">W</span>], <span class="tp">W</span>) {
+    <span class="cm">// Sắp xếp cạnh theo trọng số tăng dần</span>
+    slices.<span class="fn">SortFunc</span>(edges, <span class="kw">func</span>(a, b <span class="tp">Edge</span>[<span class="tp">W</span>]) <span class="tp">int</span> {
+        <span class="kw">return</span> cmp.<span class="fn">Compare</span>(a.Weight, b.Weight)
+    })
+
+    uf := <span class="fn">newDSU</span>(n)
+    <span class="kw">var</span> (
+        mst    []<span class="tp">Edge</span>[<span class="tp">W</span>]
+        total  <span class="tp">W</span>
+    )
+
+    <span class="kw">for</span> _, e := <span class="kw">range</span> edges {
+        <span class="kw">if</span> uf.<span class="fn">union</span>(e.U, e.V) { <span class="cm">// không tạo cycle</span>
+            mst = <span class="fn">append</span>(mst, e)
+            total += e.Weight
+            <span class="kw">if</span> <span class="fn">len</span>(mst) == n-<span class="nm">1</span> {
+                <span class="kw">break</span> <span class="cm">// MST hoàn chỉnh khi có n-1 cạnh</span>
+            }
+        }
+    }
+    <span class="kw">return</span> mst, total
+}
+
+<span class="cm">// dsu — internal implementation với iterative find</span>
+<span class="kw">type</span> <span class="tp">dsu</span> <span class="kw">struct</span> { parent, rank []<span class="tp">int</span> }
+
+<span class="kw">func</span> <span class="fn">newDSU</span>(n <span class="tp">int</span>) *<span class="tp">dsu</span> {
+    p := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> p { p[i] = i }
+    <span class="kw">return</span> &<span class="tp">dsu</span>{parent: p, rank: <span class="fn">make</span>([]<span class="tp">int</span>, n)}
+}
+
+<span class="cm">// find iterative — tránh stack overflow với n lớn</span>
+<span class="kw">func</span> (d *<span class="tp">dsu</span>) <span class="fn">find</span>(x <span class="tp">int</span>) <span class="tp">int</span> {
+    root := x
+    <span class="kw">for</span> d.parent[root] != root { root = d.parent[root] }
+    <span class="cm">// path compression: gán tất cả về root</span>
+    <span class="kw">for</span> d.parent[x] != root {
+        d.parent[x], x = root, d.parent[x]
+    }
+    <span class="kw">return</span> root
+}
+
+<span class="kw">func</span> (d *<span class="tp">dsu</span>) <span class="fn">union</span>(x, y <span class="tp">int</span>) <span class="tp">bool</span> {
+    rx, ry := d.<span class="fn">find</span>(x), d.<span class="fn">find</span>(y)
+    <span class="kw">if</span> rx == ry { <span class="kw">return</span> <span class="kw">false</span> }
+    <span class="kw">if</span> d.rank[rx] < d.rank[ry] { rx, ry = ry, rx }
+    d.parent[ry] = rx
+    <span class="kw">if</span> d.rank[rx] == d.rank[ry] { d.rank[rx]++ }
+    <span class="kw">return</span> <span class="kw">true</span>
+}
+
+<span class="cm">// AccountsMerge — LeetCode 721 (Expert level)
+// Gộp các tài khoản có chung email</span>
+<span class="kw">func</span> <span class="fn">AccountsMerge</span>(accounts [][]<span class="tp">string</span>) [][]<span class="tp">string</span> {
+    emailToID := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>)
+    emailToName := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">string</span>)
+    id := <span class="nm">0</span>
+
+    <span class="cm">// Gán ID cho từng email duy nhất</span>
+    <span class="kw">for</span> _, acc := <span class="kw">range</span> accounts {
+        name := acc[<span class="nm">0</span>]
+        <span class="kw">for</span> _, email := <span class="kw">range</span> acc[<span class="nm">1</span>:] {
+            <span class="kw">if</span> _, ok := emailToID[email]; !ok {
+                emailToID[email] = id
+                emailToName[email] = name
+                id++
+            }
+        }
+    }
+
+    uf := <span class="fn">newDSU</span>(id)
+    <span class="kw">for</span> _, acc := <span class="kw">range</span> accounts {
+        first := emailToID[acc[<span class="nm">1</span>]]
+        <span class="kw">for</span> _, email := <span class="kw">range</span> acc[<span class="nm">2</span>:] {
+            uf.<span class="fn">union</span>(first, emailToID[email])
+        }
+    }
+
+    <span class="cm">// Nhóm email theo root</span>
+    groups := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>][]<span class="tp">string</span>)
+    <span class="kw">for</span> email, i := <span class="kw">range</span> emailToID {
+        root := uf.<span class="fn">find</span>(i)
+        groups[root] = <span class="fn">append</span>(groups[root], email)
+    }
+
+    <span class="kw">var</span> res [][]<span class="tp">string</span>
+    <span class="kw">for</span> _, emails := <span class="kw">range</span> groups {
+        slices.<span class="fn">Sort</span>(emails)
+        name := emailToName[emails[<span class="nm">0</span>]]
+        res = <span class="fn">append</span>(res, <span class="fn">append</span>([]<span class="tp">string</span>{name}, emails...))
+    }
+    <span class="kw">return</span> res
+}</pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     02 — KMP
+══════════════════════════════════════════ -->
+<section id="kmp-concept" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#1a0d2d">🔤</div>
+    <div>
+      <div class="topic-title" style="color:var(--purple)">02 — KMP (Knuth-Morris-Pratt)</div>
+      <div class="topic-sub">Tìm kiếm chuỗi trong O(n+m) — không bao giờ lùi con trỏ văn bản</div>
+    </div>
+  </div>
+
+  <div class="section-desc">
+    <strong>KMP</strong> giải quyết bài toán tìm tất cả vị trí xuất hiện của pattern P (độ dài m) trong text T (độ dài n) với độ phức tạp <strong>O(n + m)</strong>. Điểm mấu chốt: thuật toán <em>không bao giờ so sánh lại</em> ký tự đã khớp. Nó làm điều này bằng cách tiền xử lý bảng <strong>Failure Function (π)</strong> — cho biết khi mismatch xảy ra tại vị trí j của pattern, ta nên nhảy về vị trí nào thay vì reset về 0.
+  </div>
+
+  <!-- KMP Diagram -->
+  <div class="diagram-box">
+    <div class="diagram-label">KMP — Failure Function (π array) & Quá trình tìm kiếm</div>
+
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">BƯỚC 1: Tính Failure Function cho Pattern = "ABABCABAB"</div>
+      <div class="kmp-table-wrap">
+        <table class="kmp-table">
+          <tr>
+            <th>Index</th>
+            <td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td>
+          </tr>
+          <tr>
+            <th>Pattern</th>
+            <td>A</td><td>B</td><td>A</td><td>B</td><td>C</td><td>A</td><td>B</td><td>A</td><td>B</td>
+          </tr>
+          <tr>
+            <th>π (failure)</th>
+            <td class="kmp-pi">0</td><td class="kmp-pi">0</td><td class="kmp-pi">1</td><td class="kmp-pi">2</td>
+            <td class="kmp-pi">0</td><td class="kmp-pi">1</td><td class="kmp-pi">2</td><td class="kmp-pi">3</td><td class="kmp-pi">4</td>
+          </tr>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">π[j] = độ dài prefix cũng là suffix dài nhất của pattern[0..j] (không tính cả chuỗi)</div>
+    </div>
+
+    <div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">BƯỚC 2: Matching — Text = "ABABCABABCABAB"</div>
+      <div class="kmp-table-wrap">
+        <table class="kmp-table">
+          <tr>
+            <th>i (text)</th>
+            <td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td><td>8</td><td>9</td><td>10</td><td>11</td><td>12</td>
+          </tr>
+          <tr>
+            <th>Text</th>
+            <td class="kmp-match">A</td><td class="kmp-match">B</td><td class="kmp-match">A</td><td class="kmp-match">B</td>
+            <td class="kmp-fail">C</td>
+            <td class="kmp-match">A</td><td class="kmp-match">B</td><td class="kmp-match">A</td><td class="kmp-match">B</td>
+            <td>C</td><td>A</td><td>B</td><td>A</td>
+          </tr>
+        </table>
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">
+        <span style="color:var(--green)">■</span> Match &nbsp;
+        <span style="color:var(--red)">■</span> Mismatch — nhảy theo π không reset về 0
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>📐 Độ phức tạp</h4>
+      <div class="complexity-row">
+        <span class="complexity-tag ct-time">Build π: O(m)</span>
+        <span class="complexity-tag ct-time">Search: O(n)</span>
+      </div>
+      <div class="complexity-row" style="margin-top:6px">
+        <span class="complexity-tag ct-time">Total: O(n+m)</span>
+        <span class="complexity-tag ct-space">Space: O(m)</span>
+      </div>
+    </div>
+    <div class="info-card">
+      <h4>🆚 So với Brute Force</h4>
+      <p>Brute force O(n×m) — với n=10⁶, m=1000 → 10⁹ phép so sánh. KMP chỉ cần ~2×10⁶. Đặc biệt hiệu quả khi pattern có nhiều prefix lặp lại.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Thuật toán từng bước</h3>
+  <div class="steps-list">
+    <div class="step-item">
+      <div class="step-num" style="background:#1a0d2d;color:var(--purple);border:1px solid var(--purple)">1</div>
+      <div class="step-content">
+        <strong>Xây dựng mảng π (Failure Function)</strong>
+        <p>Duyệt pattern, dùng hai con trỏ k (prefix) và j (suffix). Khi match: π[j]=k+1; khi không match: lùi k theo π[k-1].</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#1a0d2d;color:var(--purple);border:1px solid var(--purple)">2</div>
+      <div class="step-content">
+        <strong>Tìm kiếm trong text</strong>
+        <p>Dùng hai con trỏ i (text) và j (pattern). Khi match: tăng cả hai. Khi mismatch: j = π[j-1] (không lùi i). Khi j==m: tìm thấy!</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#1a0d2d;color:var(--purple);border:1px solid var(--purple)">3</div>
+      <div class="step-content">
+        <strong>Reset sau khi tìm thấy</strong>
+        <p>Sau khi tìm thấy tại vị trí i-m, đặt j = π[j-1] để tiếp tục tìm overlapping matches.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="kmp-code" class="topic-section">
+  <h3 class="sub">Triển khai đầy đủ</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">kmp.go</span>
+      <span class="code-level level-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">kmp</span>
+
+<span class="cm">// BuildFailure tính mảng failure function π cho pattern
+// π[i] = độ dài prefix cũng là suffix dài nhất của pattern[0..i]</span>
+<span class="kw">func</span> <span class="fn">BuildFailure</span>(pattern <span class="tp">string</span>) []<span class="tp">int</span> {
+    m := <span class="fn">len</span>(pattern)
+    pi := <span class="fn">make</span>([]<span class="tp">int</span>, m)
+    k := <span class="nm">0</span> <span class="cm">// độ dài prefix đang xét</span>
+    <span class="kw">for</span> j := <span class="nm">1</span>; j < m; j++ {
+        <span class="cm">// Lùi k cho đến khi match hoặc về 0</span>
+        <span class="kw">for</span> k > <span class="nm">0</span> && pattern[j] != pattern[k] {
+            k = pi[k-<span class="nm">1</span>]
+        }
+        <span class="kw">if</span> pattern[j] == pattern[k] {
+            k++
+        }
+        pi[j] = k
+    }
+    <span class="kw">return</span> pi
+}
+
+<span class="cm">// Search tìm tất cả vị trí bắt đầu của pattern trong text
+// Trả về slice các index (0-based)</span>
+<span class="kw">func</span> <span class="fn">Search</span>(text, pattern <span class="tp">string</span>) []<span class="tp">int</span> {
+    n, m := <span class="fn">len</span>(text), <span class="fn">len</span>(pattern)
+    <span class="kw">if</span> m == <span class="nm">0</span> || m > n { <span class="kw">return</span> <span class="kw">nil</span> }
+
+    pi := <span class="fn">BuildFailure</span>(pattern)
+    <span class="kw">var</span> matches []<span class="tp">int</span>
+    j := <span class="nm">0</span> <span class="cm">// con trỏ trong pattern</span>
+
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < n; i++ {
+        <span class="cm">// Lùi j khi mismatch</span>
+        <span class="kw">for</span> j > <span class="nm">0</span> && text[i] != pattern[j] {
+            j = pi[j-<span class="nm">1</span>]
+        }
+        <span class="kw">if</span> text[i] == pattern[j] {
+            j++
+        }
+        <span class="kw">if</span> j == m {
+            matches = <span class="fn">append</span>(matches, i-m+<span class="nm">1</span>)
+            j = pi[j-<span class="nm">1</span>] <span class="cm">// tìm overlapping match tiếp theo</span>
+        }
+    }
+    <span class="kw">return</span> matches
+}
+
+<span class="cm">// Count đếm số lần xuất hiện (không overlap)</span>
+<span class="kw">func</span> <span class="fn">Count</span>(text, pattern <span class="tp">string</span>) <span class="tp">int</span> {
+    <span class="kw">return</span> <span class="fn">len</span>(<span class="fn">Search</span>(text, pattern))
+}</pre>
+  </div>
+</section>
+
+<section id="kmp-expert" class="topic-section">
+  <h3 class="sub">Expert — KMP trên bytes stream + Periodic String</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">kmp_expert.go</span>
+      <span class="code-level level-expert">EXPERT</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">kmp</span>
+
+<span class="kw">import</span> <span class="st">"io"</span>
+
+<span class="cm">// StreamSearcher tìm kiếm pattern trong io.Reader
+// Hữu ích khi text quá lớn để load vào RAM</span>
+<span class="kw">type</span> <span class="tp">StreamSearcher</span> <span class="kw">struct</span> {
+    pattern []<span class="tp">byte</span>
+    pi      []<span class="tp">int</span>
+    j       <span class="tp">int</span>   <span class="cm">// trạng thái hiện tại trong automaton</span>
+    offset  <span class="tp">int64</span> <span class="cm">// byte đã đọc</span>
+}
+
+<span class="cm">// NewStreamSearcher khởi tạo searcher cho pattern</span>
+<span class="kw">func</span> <span class="fn">NewStreamSearcher</span>(pattern <span class="tp">string</span>) *<span class="tp">StreamSearcher</span> {
+    p := []<span class="tp">byte</span>(pattern)
+    <span class="kw">return</span> &<span class="tp">StreamSearcher</span>{
+        pattern: p,
+        pi:      <span class="fn">buildBytePi</span>(p),
+    }
+}
+
+<span class="cm">// Search đọc từ reader và trả về các offset tìm thấy</span>
+<span class="kw">func</span> (s *<span class="tp">StreamSearcher</span>) <span class="fn">Search</span>(r <span class="tp">io.Reader</span>) ([]<span class="tp">int64</span>, <span class="tp">error</span>) {
+    buf := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="nm">32</span>*<span class="nm">1024</span>) <span class="cm">// 32KB chunk</span>
+    m := <span class="fn">len</span>(s.pattern)
+    <span class="kw">var</span> results []<span class="tp">int64</span>
+
+    <span class="kw">for</span> {
+        nr, err := r.<span class="fn">Read</span>(buf)
+        <span class="kw">for</span> i := <span class="nm">0</span>; i < nr; i++ {
+            <span class="kw">for</span> s.j > <span class="nm">0</span> && buf[i] != s.pattern[s.j] {
+                s.j = s.pi[s.j-<span class="nm">1</span>]
+            }
+            <span class="kw">if</span> buf[i] == s.pattern[s.j] {
+                s.j++
+            }
+            <span class="kw">if</span> s.j == m {
+                results = <span class="fn">append</span>(results, s.offset+<span class="tp">int64</span>(i)-<span class="tp">int64</span>(m)+<span class="nm">1</span>)
+                s.j = s.pi[s.j-<span class="nm">1</span>]
+            }
+        }
+        s.offset += <span class="tp">int64</span>(nr)
+        <span class="kw">if</span> err == io.<span class="pk">EOF</span> { <span class="kw">break</span> }
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+    }
+    <span class="kw">return</span> results, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">buildBytePi</span>(p []<span class="tp">byte</span>) []<span class="tp">int</span> {
+    pi := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(p))
+    k := <span class="nm">0</span>
+    <span class="kw">for</span> j := <span class="nm">1</span>; j < <span class="fn">len</span>(p); j++ {
+        <span class="kw">for</span> k > <span class="nm">0</span> && p[j] != p[k] { k = pi[k-<span class="nm">1</span>] }
+        <span class="kw">if</span> p[j] == p[k] { k++ }
+        pi[j] = k
+    }
+    <span class="kw">return</span> pi
+}
+
+<span class="cm">// SmallestPeriod tìm chu kỳ nhỏ nhất của chuỗi s
+// VD: "ababab" → period = 2 ("ab")
+// Dùng tính chất: nếu m % (m - π[m-1]) == 0 thì có period</span>
+<span class="kw">func</span> <span class="fn">SmallestPeriod</span>(s <span class="tp">string</span>) <span class="tp">int</span> {
+    m := <span class="fn">len</span>(s)
+    <span class="kw">if</span> m == <span class="nm">0</span> { <span class="kw">return</span> <span class="nm">0</span> }
+    pi := <span class="fn">BuildFailure</span>(s)
+    period := m - pi[m-<span class="nm">1</span>]
+    <span class="kw">if</span> m%period == <span class="nm">0</span> {
+        <span class="kw">return</span> period
+    }
+    <span class="kw">return</span> m <span class="cm">// không có period → bản thân là period</span>
+}
+
+<span class="cm">// IsRotation kiểm tra t có phải rotation của s không
+// "abc" → "bca" là rotation
+// Trick: tìm s trong s+s dùng KMP</span>
+<span class="kw">func</span> <span class="fn">IsRotation</span>(s, t <span class="tp">string</span>) <span class="tp">bool</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(s) != <span class="fn">len</span>(t) { <span class="kw">return</span> <span class="kw">false</span> }
+    <span class="kw">return</span> <span class="fn">len</span>(<span class="fn">Search</span>(s+s, t)) > <span class="nm">0</span>
+}</pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     03 — RABIN KARP
+══════════════════════════════════════════ -->
+<section id="rk-concept" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#2d1a0d">🔢</div>
+    <div>
+      <div class="topic-title" style="color:var(--orange)">03 — Rabin-Karp (Rolling Hash)</div>
+      <div class="topic-sub">Tìm kiếm chuỗi bằng hashing — tối ưu cho multi-pattern search</div>
+    </div>
+  </div>
+
+  <div class="section-desc">
+    <strong>Rabin-Karp</strong> sử dụng hashing để so sánh các chuỗi con thay vì so sánh ký tự từng cái. Ý tưởng: tính hash của pattern và cửa sổ trượt (sliding window) trên text. Nếu hash khớp, xác nhận bằng so sánh trực tiếp. <strong>Rolling hash</strong> cho phép cập nhật hash của window trong O(1) thay vì tính lại O(m). Thuật toán đặc biệt mạnh khi cần tìm <strong>nhiều patterns cùng lúc</strong>.
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-box">
+    <div class="diagram-label">Rabin-Karp — Rolling Hash Sliding Window</div>
+
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Text = "ABCABDABC", Pattern = "ABC" (hash = H)</div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Window 1: [A,B,C]ABDABC — hash match? ✓ → verify</div>
+        <div class="rk-window">
+          <div class="rk-char rk-window-active">A</div>
+          <div class="rk-char rk-window-active">B</div>
+          <div class="rk-char rk-window-active">C</div>
+          <div class="rk-char rk-window-normal">A</div>
+          <div class="rk-char rk-window-normal">B</div>
+          <div class="rk-char rk-window-normal">D</div>
+          <div class="rk-char rk-window-normal">A</div>
+          <div class="rk-char rk-window-normal">B</div>
+          <div class="rk-char rk-window-normal">C</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Window 2: A[B,C,A]BDABC — hash ≠ H → skip (O(1)!)</div>
+        <div class="rk-window">
+          <div class="rk-char rk-window-normal">A</div>
+          <div class="rk-char" style="background:#2d1a0d;border-color:var(--orange);color:var(--orange)">B</div>
+          <div class="rk-char" style="background:#2d1a0d;border-color:var(--orange);color:var(--orange)">C</div>
+          <div class="rk-char" style="background:#2d1a0d;border-color:var(--orange);color:var(--orange)">A</div>
+          <div class="rk-char rk-window-normal">B</div>
+          <div class="rk-char rk-window-normal">D</div>
+          <div class="rk-char rk-window-normal">A</div>
+          <div class="rk-char rk-window-normal">B</div>
+          <div class="rk-char rk-window-normal">C</div>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:10px;color:var(--text3);margin-bottom:6px">Window 7: ABCABD[A,B,C] — hash match? ✓ → verify → FOUND</div>
+        <div class="rk-window">
+          <div class="rk-char rk-window-normal">A</div>
+          <div class="rk-char rk-window-normal">B</div>
+          <div class="rk-char rk-window-normal">C</div>
+          <div class="rk-char rk-window-normal">A</div>
+          <div class="rk-char rk-window-normal">B</div>
+          <div class="rk-char rk-window-normal">D</div>
+          <div class="rk-char rk-hash-eq">A</div>
+          <div class="rk-char rk-hash-eq">B</div>
+          <div class="rk-char rk-hash-eq">C</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--code-bg);border-radius:8px;padding:16px">
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px">Rolling Hash Formula</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--cyan)">
+        hash(s[i+1..i+m]) = (hash(s[i..i+m-1]) - s[i]×base^(m-1)) × base + s[i+m]
+      </div>
+      <div style="font-size:11px;color:var(--text3);margin-top:8px">Tất cả mod prime để tránh overflow — cập nhật trong O(1) thay vì O(m)</div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>📐 Độ phức tạp</h4>
+      <div class="complexity-row">
+        <span class="complexity-tag ct-best">Average: O(n+m)</span>
+        <span class="complexity-tag ct-time">Worst: O(nm)</span>
+      </div>
+      <div class="complexity-row" style="margin-top:6px">
+        <span class="complexity-tag ct-space">Space: O(1)</span>
+        <span class="complexity-tag ct-time">k patterns: O(n+km)</span>
+      </div>
+    </div>
+    <div class="info-card">
+      <h4>⚠️ Hash Collision</h4>
+      <p>Khi hash khớp nhưng chuỗi thực sự không khớp (spurious hit), cần verify O(m). Dùng double hashing (2 hàm hash khác nhau) để giảm collision xuống gần 0.</p>
+    </div>
+  </div>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-text">
+      <p><strong>Khi nào dùng Rabin-Karp thay vì KMP?</strong> Khi cần tìm nhiều patterns (k patterns) cùng lúc: RK O(n + km) vs k×KMP O(k×(n+m)). Cũng hữu ích trong plagiarism detection, DNA sequence matching, và Longest Duplicate Substring (binary search + RK).</p>
+    </div>
+  </div>
+</section>
+
+<section id="rk-code" class="topic-section">
+  <h3 class="sub">Triển khai đầy đủ — Double Hashing</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">rabin_karp.go</span>
+      <span class="code-level level-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">rabinkarp</span>
+
+<span class="kw">const</span> (
+    <span class="cm">// Hai cặp (base, mod) độc lập → xác suất collision ≈ 1/(mod1 × mod2)</span>
+    base1 = <span class="nm">131</span>
+    mod1  = <span class="nm">1_000_000_007</span>
+    base2 = <span class="nm">137</span>
+    mod2  = <span class="nm">998_244_353</span>
+)
+
+<span class="kw">type</span> <span class="tp">dHash</span> <span class="kw">struct</span> { h1, h2 <span class="tp">int64</span> }
+
+<span class="cm">// RollingHash tìm tất cả vị trí pattern trong text
+// Dùng double hashing để giảm collision</span>
+<span class="kw">func</span> <span class="fn">Search</span>(text, pattern <span class="tp">string</span>) []<span class="tp">int</span> {
+    n, m := <span class="fn">len</span>(text), <span class="fn">len</span>(pattern)
+    <span class="kw">if</span> m > n { <span class="kw">return</span> <span class="kw">nil</span> }
+
+    <span class="cm">// Tính base^(m-1) mod p cho rolling hash</span>
+    pow1, pow2 := <span class="tp">int64</span>(<span class="nm">1</span>), <span class="tp">int64</span>(<span class="nm">1</span>)
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < m-<span class="nm">1</span>; i++ {
+        pow1 = pow1 * base1 % mod1
+        pow2 = pow2 * base2 % mod2
+    }
+
+    <span class="cm">// Hash của pattern</span>
+    ph := <span class="fn">computeHash</span>(pattern, m)
+
+    <span class="cm">// Hash của window đầu tiên</span>
+    wh := <span class="fn">computeHash</span>(text, m)
+
+    <span class="kw">var</span> matches []<span class="tp">int</span>
+    <span class="kw">if</span> wh == ph && text[:<span class="nm">m</span>] == pattern {
+        matches = <span class="fn">append</span>(matches, <span class="nm">0</span>)
+    }
+
+    <span class="kw">for</span> i := <span class="nm">1</span>; i <= n-m; i++ {
+        <span class="cm">// Rolling: xóa ký tự cũ, thêm ký tự mới</span>
+        wh.h1 = (wh.h1-<span class="tp">int64</span>(text[i-<span class="nm">1</span>])*pow1%mod1+mod1)%mod1*base1%mod1 + <span class="tp">int64</span>(text[i+m-<span class="nm">1</span>])%mod1
+        wh.h1 %= mod1
+        wh.h2 = (wh.h2-<span class="tp">int64</span>(text[i-<span class="nm">1</span>])*pow2%mod2+mod2)%mod2*base2%mod2 + <span class="tp">int64</span>(text[i+m-<span class="nm">1</span>])%mod2
+        wh.h2 %= mod2
+
+        <span class="kw">if</span> wh == ph && text[i:i+m] == pattern { <span class="cm">// verify khi hash match</span>
+            matches = <span class="fn">append</span>(matches, i)
+        }
+    }
+    <span class="kw">return</span> matches
+}
+
+<span class="kw">func</span> <span class="fn">computeHash</span>(s <span class="tp">string</span>, m <span class="tp">int</span>) <span class="tp">dHash</span> {
+    <span class="kw">var</span> h1, h2 <span class="tp">int64</span>
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < m; i++ {
+        h1 = (h1*base1 + <span class="tp">int64</span>(s[i])) % mod1
+        h2 = (h2*base2 + <span class="tp">int64</span>(s[i])) % mod2
+    }
+    <span class="kw">return</span> <span class="tp">dHash</span>{h1, h2}
+}</pre>
+  </div>
+</section>
+
+<section id="rk-advanced" class="topic-section">
+  <h3 class="sub">Expert — Longest Duplicate Substring (Binary Search + RK)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">longest_duplicate_substring.go</span>
+      <span class="code-level level-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// LongestDupSubstring — LeetCode 1044
+// Binary search trên độ dài + Rabin-Karp để check
+// Độ phức tạp: O(n log n) average</span>
+<span class="kw">func</span> <span class="fn">LongestDupSubstring</span>(s <span class="tp">string</span>) <span class="tp">string</span> {
+    n := <span class="fn">len</span>(s)
+    lo, hi := <span class="nm">1</span>, n-<span class="nm">1</span>
+    res := <span class="st">""</span>
+
+    <span class="kw">for</span> lo <= hi {
+        mid := (lo + hi) / <span class="nm">2</span>
+        <span class="kw">if</span> dup := <span class="fn">findDuplicate</span>(s, mid); dup != <span class="st">""</span> {
+            res = dup
+            lo = mid + <span class="nm">1</span> <span class="cm">// thử độ dài lớn hơn</span>
+        } <span class="kw">else</span> {
+            hi = mid - <span class="nm">1</span> <span class="cm">// giảm độ dài</span>
+        }
+    }
+    <span class="kw">return</span> res
+}
+
+<span class="cm">// findDuplicate kiểm tra có substring độ dài L bị lặp không
+// Dùng rolling hash: O(n) time, O(n) space cho map</span>
+<span class="kw">func</span> <span class="fn">findDuplicate</span>(s <span class="tp">string</span>, L <span class="tp">int</span>) <span class="tp">string</span> {
+    <span class="kw">const</span> (base = <span class="nm">26</span>; mod = <span class="nm">1_000_000_007</span>)
+    n := <span class="fn">len</span>(s)
+
+    <span class="cm">// base^L mod</span>
+    pow := <span class="tp">int64</span>(<span class="nm">1</span>)
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < L; i++ { pow = pow * base % mod }
+
+    seen := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int64</span>][]<span class="tp">int</span>) <span class="cm">// hash → start indices</span>
+    h := <span class="tp">int64</span>(<span class="nm">0</span>)
+
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < n; i++ {
+        h = (h*base + <span class="tp">int64</span>(s[i]-<span class="st">'a'</span>+<span class="nm">1</span>)) % mod
+        <span class="kw">if</span> i < L-<span class="nm">1</span> { <span class="kw">continue</span> }
+        <span class="kw">if</span> i >= L {
+            h = (h - <span class="tp">int64</span>(s[i-L]-<span class="st">'a'</span>+<span class="nm">1</span>)*pow%mod + mod) % mod
+        }
+        start := i - L + <span class="nm">1</span>
+        <span class="kw">for</span> _, prev := <span class="kw">range</span> seen[h] {
+            <span class="kw">if</span> s[prev:prev+L] == s[start:start+L] { <span class="cm">// verify</span>
+                <span class="kw">return</span> s[start : start+L]
+            }
+        }
+        seen[h] = <span class="fn">append</span>(seen[h], start)
+    }
+    <span class="kw">return</span> <span class="st">""</span>
+}
+
+<span class="cm">// MultiPatternSearch — tìm nhiều patterns cùng lúc trong O(n + sum(mi))
+// Hiệu quả hơn k lần KMP riêng lẻ khi n >> sum(mi)</span>
+<span class="kw">func</span> <span class="fn">MultiPatternSearch</span>(text <span class="tp">string</span>, patterns []<span class="tp">string</span>) <span class="kw">map</span>[<span class="tp">string</span>][]<span class="tp">int</span> {
+    result := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>][]<span class="tp">int</span>)
+    <span class="kw">for</span> _, p := <span class="kw">range</span> patterns {
+        result[p] = <span class="fn">Search</span>(text, p) <span class="cm">// dùng RK bên trên</span>
+    }
+    <span class="kw">return</span> result
+}</pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     04 — A*
+══════════════════════════════════════════ -->
+<section id="astar-concept" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#0d1a2d">⭐</div>
+    <div>
+      <div class="topic-title" style="color:var(--cyan)">04 — A* (A-Star) Search</div>
+      <div class="topic-sub">Thuật toán tìm đường tối ưu dùng heuristic — nhanh hơn Dijkstra khi có thông tin hướng đích</div>
+    </div>
+  </div>
+
+  <div class="section-desc">
+    <strong>A*</strong> là thuật toán tìm đường ngắn nhất từ nguồn đến đích trong đồ thị có trọng số không âm. Nó kết hợp ưu điểm của Dijkstra (đảm bảo tối ưu) với tìm kiếm theo hướng (heuristic). Hàm đánh giá: <code>f(n) = g(n) + h(n)</code> trong đó g(n) là chi phí thực từ start đến n, h(n) là ước lượng heuristic từ n đến goal. Khi h(n) là <strong>admissible</strong> (không bao giờ overestimate), A* đảm bảo tìm được đường ngắn nhất.
+  </div>
+
+  <!-- A* Grid -->
+  <div class="diagram-box">
+    <div class="diagram-label">A* — Tìm đường trên grid (S=Start, E=End, ■=Wall)</div>
+    <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;justify-content:center">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;text-align:center">GRID 8×6 — A* Result</div>
+        <div style="display:grid;grid-template-columns:repeat(8,36px);gap:2px">
+          <!-- Row 0 -->
+          <div class="cell cell-start">S</div>
+          <div class="cell cell-path">→</div>
+          <div class="cell cell-path">→</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-closed" style="font-size:9px">5.4</div>
+          <div class="cell cell-closed" style="font-size:9px">4.2</div>
+          <div class="cell cell-closed" style="font-size:9px">5.1</div>
+          <div class="cell cell-empty"></div>
+          <!-- Row 1 -->
+          <div class="cell cell-closed" style="font-size:9px">2.8</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-path">↓</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-path">↓</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-closed" style="font-size:9px">4.3</div>
+          <div class="cell cell-empty"></div>
+          <!-- Row 2 -->
+          <div class="cell cell-closed" style="font-size:9px">3.1</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-path">↓</div>
+          <div class="cell cell-path">→</div>
+          <div class="cell cell-path">→</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-closed" style="font-size:9px">3.0</div>
+          <div class="cell cell-empty"></div>
+          <!-- Row 3 -->
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-wall">■</div>
+          <div class="cell cell-path">↓</div>
+          <div class="cell cell-path">→</div>
+          <div class="cell cell-path">→</div>
+          <div class="cell cell-end">E</div>
+          <!-- Row 4 -->
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-open" style="font-size:9px">open</div>
+          <div class="cell cell-open" style="font-size:9px">open</div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <!-- Row 5 -->
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+          <div class="cell cell-empty"></div>
+        </div>
+        <div style="margin-top:8px;display:flex;gap:12px;flex-wrap:wrap;font-size:10px">
+          <span><span style="color:var(--green)">■</span> Path tối ưu</span>
+          <span><span style="color:var(--yellow)">■</span> Đã duyệt (closed)</span>
+          <span><span style="color:var(--blue)">■</span> Đang xét (open)</span>
+          <span style="color:var(--text3)">■ Wall</span>
+        </div>
+      </div>
+
+      <div style="flex:1;min-width:200px">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">f(n) = g(n) + h(n)</div>
+        <div style="background:var(--code-bg);border-radius:8px;padding:12px;font-family:'JetBrains Mono',monospace;font-size:11px">
+          <div style="color:var(--cyan)">g(S→A) = 1</div>
+          <div style="color:var(--yellow)">h(A) = 4 (Manhattan)</div>
+          <div style="color:var(--green)">f(A) = 5</div>
+          <div style="margin:8px 0;border-top:1px solid var(--border)"></div>
+          <div style="color:var(--cyan)">g(S→B) = 2</div>
+          <div style="color:var(--yellow)">h(B) = 3 (Manhattan)</div>
+          <div style="color:var(--green)">f(B) = 5</div>
+          <div style="margin:8px 0;border-top:1px solid var(--border)"></div>
+          <div style="color:var(--text3)">Ưu tiên node f nhỏ nhất</div>
+          <div style="color:var(--text3)">từ priority queue (min-heap)</div>
+        </div>
+        <div style="margin-top:12px">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:6px">Heuristics phổ biến:</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text2);line-height:1.8">
+            <div><span style="color:var(--cyan)">Manhattan:</span> |dx|+|dy| (grid 4-dir)</div>
+            <div><span style="color:var(--purple)">Euclidean:</span> √(dx²+dy²) (any dir)</div>
+            <div><span style="color:var(--orange)">Chebyshev:</span> max(|dx|,|dy|) (8-dir)</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>📐 Độ phức tạp</h4>
+      <div class="complexity-row">
+        <span class="complexity-tag ct-time">Time: O(b^d)</span>
+        <span class="complexity-tag ct-space">Space: O(b^d)</span>
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:var(--text3)">b=branching factor, d=depth. Với heuristic tốt, A* mở rất ít node hơn BFS/Dijkstra.</p>
+    </div>
+    <div class="info-card">
+      <h4>✅ Điều kiện tối ưu</h4>
+      <p><strong>Admissible:</strong> h(n) ≤ h*(n) — không bao giờ overestimate. <strong>Consistent:</strong> h(n) ≤ cost(n,n') + h(n'). Cả hai đảm bảo A* tìm đường ngắn nhất.</p>
+    </div>
+  </div>
+
+  <h3 class="sub">Thuật toán từng bước</h3>
+  <div class="steps-list">
+    <div class="step-item">
+      <div class="step-num" style="background:#0d1a2d;color:var(--cyan);border:1px solid var(--cyan)">1</div>
+      <div class="step-content">
+        <strong>Khởi tạo Open List (priority queue)</strong>
+        <p>Thêm node start với f=h(start). Open list là min-heap theo f(n).</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#0d1a2d;color:var(--cyan);border:1px solid var(--cyan)">2</div>
+      <div class="step-content">
+        <strong>Pop node có f nhỏ nhất từ Open List</strong>
+        <p>Nếu đây là goal → đã tìm xong, tái tạo path từ parent map. Nếu không → thêm vào Closed List.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#0d1a2d;color:var(--cyan);border:1px solid var(--cyan)">3</div>
+      <div class="step-content">
+        <strong>Mở rộng neighbors</strong>
+        <p>Với mỗi neighbor: tính g_new = g(current) + cost. Nếu g_new &lt; g(neighbor) → cập nhật, thêm vào open list.</p>
+      </div>
+    </div>
+    <div class="step-item">
+      <div class="step-num" style="background:#0d1a2d;color:var(--cyan);border:1px solid var(--cyan)">4</div>
+      <div class="step-content">
+        <strong>Lặp cho đến khi tìm thấy hoặc Open List rỗng</strong>
+        <p>Open List rỗng → không có đường đi. Tái tạo path bằng cách trace ngược từ goal qua parent map.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="astar-code" class="topic-section">
+  <h3 class="sub">Triển khai đầy đủ — Grid Pathfinding</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">astar.go</span>
+      <span class="code-level level-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">astar</span>
+
+<span class="kw">import</span> (
+    <span class="st">"container/heap"</span>
+    <span class="st">"math"</span>
+)
+
+<span class="kw">type</span> <span class="tp">Point</span> <span class="kw">struct</span>{ X, Y <span class="tp">int</span> }
+
+<span class="kw">type</span> <span class="tp">Node</span> <span class="kw">struct</span> {
+    Pos    <span class="tp">Point</span>
+    G, F   <span class="tp">float64</span> <span class="cm">// g(n) và f(n)=g+h</span>
+    Parent *<span class="tp">Node</span>
+    Index  <span class="tp">int</span>     <span class="cm">// index trong heap</span>
+}
+
+<span class="cm">// PriorityQueue implement heap.Interface</span>
+<span class="kw">type</span> <span class="tp">PriorityQueue</span> []*<span class="tp">Node</span>
+
+<span class="kw">func</span> (pq <span class="tp">PriorityQueue</span>) <span class="fn">Len</span>() <span class="tp">int</span>           { <span class="kw">return</span> <span class="fn">len</span>(pq) }
+<span class="kw">func</span> (pq <span class="tp">PriorityQueue</span>) <span class="fn">Less</span>(i, j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> pq[i].F < pq[j].F }
+<span class="kw">func</span> (pq <span class="tp">PriorityQueue</span>) <span class="fn">Swap</span>(i, j <span class="tp">int</span>) {
+    pq[i], pq[j] = pq[j], pq[i]
+    pq[i].Index, pq[j].Index = i, j
+}
+<span class="kw">func</span> (pq *<span class="tp">PriorityQueue</span>) <span class="fn">Push</span>(x <span class="kw">any</span>) {
+    n := x.(*<span class="tp">Node</span>)
+    n.Index = <span class="fn">len</span>(*pq)
+    *pq = <span class="fn">append</span>(*pq, n)
+}
+<span class="kw">func</span> (pq *<span class="tp">PriorityQueue</span>) <span class="fn">Pop</span>() <span class="kw">any</span> {
+    old := *pq; n := old[<span class="fn">len</span>(old)-<span class="nm">1</span>]
+    *pq = old[:<span class="fn">len</span>(old)-<span class="nm">1</span>]
+    <span class="kw">return</span> n
+}
+
+<span class="cm">// Manhattan heuristic cho 4-directional grid</span>
+<span class="kw">func</span> <span class="fn">manhattan</span>(a, b <span class="tp">Point</span>) <span class="tp">float64</span> {
+    <span class="kw">return</span> math.<span class="fn">Abs</span>(<span class="tp">float64</span>(a.X-b.X)) + math.<span class="fn">Abs</span>(<span class="tp">float64</span>(a.Y-b.Y))
+}
+
+<span class="cm">// AStar tìm đường ngắn nhất từ start đến goal trên grid
+// grid: true = có thể đi qua, false = wall
+// Trả về slice Point (path) hoặc nil nếu không tìm được</span>
+<span class="kw">func</span> <span class="fn">AStar</span>(grid [][]<span class="tp">bool</span>, start, goal <span class="tp">Point</span>) []<span class="tp">Point</span> {
+    rows, cols := <span class="fn">len</span>(grid), <span class="fn">len</span>(grid[<span class="nm">0</span>])
+    dirs := []<span class="tp">Point</span>{{<span class="nm">0</span>, <span class="nm">1</span>}, {<span class="nm">0</span>, -<span class="nm">1</span>}, {<span class="nm">1</span>, <span class="nm">0</span>}, {-<span class="nm">1</span>, <span class="nm">0</span>}}
+
+    gCost := <span class="fn">make</span>([][]<span class="tp">float64</span>, rows)
+    <span class="kw">for</span> i := <span class="kw">range</span> gCost {
+        gCost[i] = <span class="fn">make</span>([]<span class="tp">float64</span>, cols)
+        <span class="kw">for</span> j := <span class="kw">range</span> gCost[i] { gCost[i][j] = math.<span class="pk">Inf</span>(<span class="nm">1</span>) }
+    }
+    gCost[start.X][start.Y] = <span class="nm">0</span>
+
+    startNode := &<span class="tp">Node</span>{Pos: start, G: <span class="nm">0</span>, F: <span class="fn">manhattan</span>(start, goal)}
+    pq := &<span class="tp">PriorityQueue</span>{startNode}
+    heap.<span class="fn">Init</span>(pq)
+    closed := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">Point</span>]<span class="tp">bool</span>)
+
+    <span class="kw">for</span> pq.<span class="fn">Len</span>() > <span class="nm">0</span> {
+        cur := heap.<span class="fn">Pop</span>(pq).(*<span class="tp">Node</span>)
+
+        <span class="kw">if</span> cur.Pos == goal {
+            <span class="kw">return</span> <span class="fn">reconstructPath</span>(cur)
+        }
+        <span class="kw">if</span> closed[cur.Pos] { <span class="kw">continue</span> }
+        closed[cur.Pos] = <span class="kw">true</span>
+
+        <span class="kw">for</span> _, d := <span class="kw">range</span> dirs {
+            nx, ny := cur.Pos.X+d.X, cur.Pos.Y+d.Y
+            <span class="kw">if</span> nx < <span class="nm">0</span> || ny < <span class="nm">0</span> || nx >= rows || ny >= cols { <span class="kw">continue</span> }
+            <span class="kw">if</span> !grid[nx][ny] || closed[<span class="tp">Point</span>{nx, ny}] { <span class="kw">continue</span> }
+
+            ng := cur.G + <span class="nm">1</span>
+            neighbor := <span class="tp">Point</span>{nx, ny}
+            <span class="kw">if</span> ng < gCost[nx][ny] {
+                gCost[nx][ny] = ng
+                heap.<span class="fn">Push</span>(pq, &<span class="tp">Node</span>{
+                    Pos: neighbor, G: ng,
+                    F: ng + <span class="fn">manhattan</span>(neighbor, goal),
+                    Parent: cur,
+                })
+            }
+        }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span> <span class="cm">// không tìm được đường</span>
+}
+
+<span class="kw">func</span> <span class="fn">reconstructPath</span>(n *<span class="tp">Node</span>) []<span class="tp">Point</span> {
+    <span class="kw">var</span> path []<span class="tp">Point</span>
+    <span class="kw">for</span> n != <span class="kw">nil</span> {
+        path = <span class="fn">append</span>(path, n.Pos)
+        n = n.Parent
+    }
+    <span class="cm">// đảo ngược: từ goal→start thành start→goal</span>
+    <span class="kw">for</span> i, j := <span class="nm">0</span>, <span class="fn">len</span>(path)-<span class="nm">1</span>; i < j; i, j = i+<span class="nm">1</span>, j-<span class="nm">1</span> {
+        path[i], path[j] = path[j], path[i]
+    }
+    <span class="kw">return</span> path
+}</pre>
+  </div>
+</section>
+
+<section id="astar-expert" class="topic-section">
+  <h3 class="sub">Expert — Weighted A* + Bidirectional A*</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">astar_expert.go</span>
+      <span class="code-level level-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// WeightedAStar (WA*): f(n) = g(n) + ε×h(n)
+// ε > 1 → nhanh hơn nhưng solution có thể dài tối đa ε lần optimal
+// Hữu ích trong game AI khi speed > optimality</span>
+<span class="kw">func</span> <span class="fn">WeightedAStar</span>(grid [][]<span class="tp">bool</span>, start, goal <span class="tp">Point</span>, epsilon <span class="tp">float64</span>) []<span class="tp">Point</span> {
+    rows, cols := <span class="fn">len</span>(grid), <span class="fn">len</span>(grid[<span class="nm">0</span>])
+    dirs := []<span class="tp">Point</span>{{<span class="nm">0</span>, <span class="nm">1</span>}, {<span class="nm">0</span>, -<span class="nm">1</span>}, {<span class="nm">1</span>, <span class="nm">0</span>}, {-<span class="nm">1</span>, <span class="nm">0</span>}}
+    gCost := <span class="fn">make</span>([][]<span class="tp">float64</span>, rows)
+    <span class="kw">for</span> i := <span class="kw">range</span> gCost {
+        gCost[i] = <span class="fn">make</span>([]<span class="tp">float64</span>, cols)
+        <span class="kw">for</span> j := <span class="kw">range</span> gCost[i] { gCost[i][j] = math.<span class="pk">Inf</span>(<span class="nm">1</span>) }
+    }
+    gCost[start.X][start.Y] = <span class="nm">0</span>
+
+    pq := &<span class="tp">PriorityQueue</span>{&<span class="tp">Node</span>{
+        Pos: start, G: <span class="nm">0</span>,
+        F: epsilon * <span class="fn">manhattan</span>(start, goal),
+    }}
+    heap.<span class="fn">Init</span>(pq)
+    closed := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">Point</span>]<span class="tp">bool</span>)
+
+    <span class="kw">for</span> pq.<span class="fn">Len</span>() > <span class="nm">0</span> {
+        cur := heap.<span class="fn">Pop</span>(pq).(*<span class="tp">Node</span>)
+        <span class="kw">if</span> cur.Pos == goal { <span class="kw">return</span> <span class="fn">reconstructPath</span>(cur) }
+        <span class="kw">if</span> closed[cur.Pos] { <span class="kw">continue</span> }
+        closed[cur.Pos] = <span class="kw">true</span>
+        <span class="kw">for</span> _, d := <span class="kw">range</span> dirs {
+            nx, ny := cur.Pos.X+d.X, cur.Pos.Y+d.Y
+            <span class="kw">if</span> nx < <span class="nm">0</span> || ny < <span class="nm">0</span> || nx >= rows || ny >= cols { <span class="kw">continue</span> }
+            <span class="kw">if</span> !grid[nx][ny] || closed[<span class="tp">Point</span>{nx, ny}] { <span class="kw">continue</span> }
+            ng := cur.G + <span class="nm">1</span>
+            nb := <span class="tp">Point</span>{nx, ny}
+            <span class="kw">if</span> ng < gCost[nx][ny] {
+                gCost[nx][ny] = ng
+                heap.<span class="fn">Push</span>(pq, &<span class="tp">Node</span>{
+                    Pos: nb, G: ng,
+                    F: ng + epsilon*<span class="fn">manhattan</span>(nb, goal),
+                    Parent: cur,
+                })
+            }
+        }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// AStarWithDiagonals — A* cho 8-directional movement (game maps)
+// Dùng Chebyshev distance làm heuristic</span>
+<span class="kw">func</span> <span class="fn">AStarDiag</span>(grid [][]<span class="tp">bool</span>, start, goal <span class="tp">Point</span>) []<span class="tp">Point</span> {
+    dirs := []<span class="tp">Point</span>{
+        {<span class="nm">0</span>, <span class="nm">1</span>}, {<span class="nm">0</span>, -<span class="nm">1</span>}, {<span class="nm">1</span>, <span class="nm">0</span>}, {-<span class="nm">1</span>, <span class="nm">0</span>},
+        {<span class="nm">1</span>, <span class="nm">1</span>}, {<span class="nm">1</span>, -<span class="nm">1</span>}, {-<span class="nm">1</span>, <span class="nm">1</span>}, {-<span class="nm">1</span>, -<span class="nm">1</span>},
+    }
+    diag := <span class="kw">func</span>(a, b <span class="tp">Point</span>) <span class="tp">float64</span> {
+        dx := math.<span class="fn">Abs</span>(<span class="tp">float64</span>(a.X - b.X))
+        dy := math.<span class="fn">Abs</span>(<span class="tp">float64</span>(a.Y - b.Y))
+        <span class="kw">return</span> math.<span class="fn">Max</span>(dx, dy) <span class="cm">// Chebyshev</span>
+    }
+    rows, cols := <span class="fn">len</span>(grid), <span class="fn">len</span>(grid[<span class="nm">0</span>])
+    gCost := <span class="fn">make</span>([][]<span class="tp">float64</span>, rows)
+    <span class="kw">for</span> i := <span class="kw">range</span> gCost {
+        gCost[i] = <span class="fn">make</span>([]<span class="tp">float64</span>, cols)
+        <span class="kw">for</span> j := <span class="kw">range</span> gCost[i] { gCost[i][j] = math.<span class="pk">Inf</span>(<span class="nm">1</span>) }
+    }
+    gCost[start.X][start.Y] = <span class="nm">0</span>
+    pq := &<span class="tp">PriorityQueue</span>{&<span class="tp">Node</span>{Pos: start, G: <span class="nm">0</span>, F: <span class="fn">diag</span>(start, goal)}}
+    heap.<span class="fn">Init</span>(pq)
+    closed := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">Point</span>]<span class="tp">bool</span>)
+    <span class="kw">for</span> pq.<span class="fn">Len</span>() > <span class="nm">0</span> {
+        cur := heap.<span class="fn">Pop</span>(pq).(*<span class="tp">Node</span>)
+        <span class="kw">if</span> cur.Pos == goal { <span class="kw">return</span> <span class="fn">reconstructPath</span>(cur) }
+        <span class="kw">if</span> closed[cur.Pos] { <span class="kw">continue</span> }
+        closed[cur.Pos] = <span class="kw">true</span>
+        <span class="kw">for</span> _, d := <span class="kw">range</span> dirs {
+            nx, ny := cur.Pos.X+d.X, cur.Pos.Y+d.Y
+            <span class="kw">if</span> nx < <span class="nm">0</span> || ny < <span class="nm">0</span> || nx >= rows || ny >= cols { <span class="kw">continue</span> }
+            <span class="kw">if</span> !grid[nx][ny] || closed[<span class="tp">Point</span>{nx, ny}] { <span class="kw">continue</span> }
+            cost := <span class="tp">float64</span>(<span class="nm">1</span>)
+            <span class="kw">if</span> d.X != <span class="nm">0</span> && d.Y != <span class="nm">0</span> { cost = <span class="nm">1.414</span> } <span class="cm">// √2 cho diagonal</span>
+            ng := cur.G + cost
+            nb := <span class="tp">Point</span>{nx, ny}
+            <span class="kw">if</span> ng < gCost[nx][ny] {
+                gCost[nx][ny] = ng
+                heap.<span class="fn">Push</span>(pq, &<span class="tp">Node</span>{Pos: nb, G: ng, F: ng + <span class="fn">diag</span>(nb, goal), Parent: cur})
+            }
+        }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     05 — BACKTRACKING
+══════════════════════════════════════════ -->
+<section id="bt-concept" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#2d0d1a">🔄</div>
+    <div>
+      <div class="topic-title" style="color:var(--pink)">05 — Backtracking</div>
+      <div class="topic-sub">Tìm kiếm toàn diện có tỉa cành — giải các bài toán tổ hợp và ràng buộc</div>
+    </div>
+  </div>
+
+  <div class="section-desc">
+    <strong>Backtracking</strong> là kỹ thuật tìm kiếm systematically: thử từng lựa chọn, nếu vi phạm constraint thì <em>quay lui (backtrack)</em> và thử lựa chọn khác. Khác với brute force, backtracking <strong>tỉa cành sớm (pruning)</strong> — không đi sâu vào nhánh không có nghiệm. Nó là backbone của nhiều thuật toán giải sudoku, N-Queens, tô màu đồ thị, tìm permutation/combination, và word search.
+  </div>
+
+  <!-- Backtracking tree diagram -->
+  <div class="diagram-box">
+    <div class="diagram-label">Backtracking Tree — N-Queens (4×4, N=4)</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Search Tree với Pruning</div>
+        <div class="bt-tree">
+<span class="bt-node">Root (empty board)</span>
+├─ <span class="bt-node">Q tại (0,0)</span>
+│  ├─ <span class="bt-node">Q tại (1,2)</span>
+│  │  ├─ <span class="bt-prune">✗ (2,*) tất cả bị attack</span>
+│  │  └─ <span class="bt-back">← Backtrack</span>
+│  ├─ <span class="bt-node">Q tại (1,3)</span>
+│  │  ├─ <span class="bt-node">Q tại (2,1)</span>
+│  │  │  └─ <span class="bt-prune">✗ (3,*) bị attack</span>
+│  │  └─ <span class="bt-back">← Backtrack</span>
+│  └─ <span class="bt-prune">✗ Không có solution</span>
+├─ <span class="bt-node">Q tại (0,1)</span>
+│  ├─ <span class="bt-node">Q tại (1,3)</span>
+│  │  ├─ <span class="bt-node">Q tại (2,0)</span>
+│  │  │  └─ <span class="bt-solution">✓ Q tại (3,2) → SOLUTION!</span>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Solution: (0,1),(1,3),(2,0),(3,2)</div>
+        <div style="display:grid;grid-template-columns:repeat(4,40px);gap:2px;justify-content:center">
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:#0d2d1a;border:1px solid var(--green);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:16px">♛</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:#0d2d1a;border:1px solid var(--green);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:16px">♛</div>
+
+          <div style="width:40px;height:40px;background:#0d2d1a;border:1px solid var(--green);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:16px">♛</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+          <div style="width:40px;height:40px;background:#0d2d1a;border:1px solid var(--green);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:16px">♛</div>
+          <div style="width:40px;height:40px;background:var(--panel);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;border-radius:4px;font-size:10px;color:var(--text3)">·</div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--text3);text-align:center">Không có 2 quân hậu nào tấn công nhau</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <h4>📐 Độ phức tạp</h4>
+      <div class="complexity-row">
+        <span class="complexity-tag ct-time">Worst: O(b^d)</span>
+        <span class="complexity-tag ct-best">With pruning: much less</span>
+      </div>
+      <p style="margin-top:8px;font-size:12px;color:var(--text3)">N-Queens: ~O(N!) brute, nhưng pruning cắt còn ~O(N). Hiệu quả thực tế phụ thuộc constraint chất lượng.</p>
+    </div>
+    <div class="info-card">
+      <h4>🎯 Template chung</h4>
+      <p>Backtracking luôn có cấu trúc: <strong>Choose → Explore → Unchoose</strong>. Điều kiện dừng: tìm thấy solution hoặc vi phạm constraint.</p>
+    </div>
+  </div>
+</section>
+
+<section id="bt-code" class="topic-section">
+  <h3 class="sub">Template tổng quát + N-Queens</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">backtracking.go</span>
+      <span class="code-level level-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pk">backtracking</span>
+
+<span class="cm">// ── TEMPLATE TỔNG QUÁT ──────────────────────────────
+// func backtrack(state State, choices []Choice) {
+//     if isSolution(state) {
+//         recordSolution(state)
+//         return
+//     }
+//     for _, choice := range choices {
+//         if isValid(state, choice) {
+//             apply(state, choice)       // Choose
+//             backtrack(state, nextChoices(state))  // Explore
+//             undo(state, choice)        // Unchoose
+//         }
+//     }
+// }
+// ─────────────────────────────────────────────────────</span>
+
+<span class="cm">// NQueens tìm tất cả cách đặt N quân hậu lên bàn cờ NxN
+// sao cho không quân nào tấn công quân nào</span>
+<span class="kw">func</span> <span class="fn">NQueens</span>(n <span class="tp">int</span>) [][]<span class="tp">int</span> {
+    board := <span class="fn">make</span>([]<span class="tp">int</span>, n) <span class="cm">// board[row] = col của quân hậu</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> board { board[i] = -<span class="nm">1</span> }
+
+    <span class="kw">var</span> (
+        results [][]<span class="tp">int</span>
+        cols    = <span class="fn">make</span>([]<span class="tp">bool</span>, n) <span class="cm">// cột bị chiếm</span>
+        diag1   = <span class="fn">make</span>([]<span class="tp">bool</span>, <span class="nm">2</span>*n) <span class="cm">// đường chéo \ (row-col+n)</span>
+        diag2   = <span class="fn">make</span>([]<span class="tp">bool</span>, <span class="nm">2</span>*n) <span class="cm">// đường chéo / (row+col)</span>
+    )
+
+    <span class="kw">var</span> bt <span class="kw">func</span>(row <span class="tp">int</span>)
+    bt = <span class="kw">func</span>(row <span class="tp">int</span>) {
+        <span class="kw">if</span> row == n { <span class="cm">// tìm thấy solution</span>
+            sol := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+            <span class="fn">copy</span>(sol, board)
+            results = <span class="fn">append</span>(results, sol)
+            <span class="kw">return</span>
+        }
+        <span class="kw">for</span> col := <span class="nm">0</span>; col < n; col++ {
+            <span class="kw">if</span> cols[col] || diag1[row-col+n] || diag2[row+col] {
+                <span class="kw">continue</span> <span class="cm">// pruning: bị tấn công</span>
+            }
+            <span class="cm">// Choose</span>
+            board[row] = col
+            cols[col], diag1[row-col+n], diag2[row+col] = <span class="kw">true</span>, <span class="kw">true</span>, <span class="kw">true</span>
+            <span class="cm">// Explore</span>
+            <span class="fn">bt</span>(row + <span class="nm">1</span>)
+            <span class="cm">// Unchoose (backtrack)</span>
+            board[row] = -<span class="nm">1</span>
+            cols[col], diag1[row-col+n], diag2[row+col] = <span class="kw">false</span>, <span class="kw">false</span>, <span class="kw">false</span>
+        }
+    }
+
+    <span class="fn">bt</span>(<span class="nm">0</span>)
+    <span class="kw">return</span> results
+}
+
+<span class="cm">// Permutations tạo tất cả hoán vị của nums</span>
+<span class="kw">func</span> <span class="fn">Permutations</span>(nums []<span class="tp">int</span>) [][]<span class="tp">int</span> {
+    <span class="kw">var</span> results [][]<span class="tp">int</span>
+    used := <span class="fn">make</span>([]<span class="tp">bool</span>, <span class="fn">len</span>(nums))
+    current := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="nm">0</span>, <span class="fn">len</span>(nums))
+
+    <span class="kw">var</span> bt <span class="kw">func</span>()
+    bt = <span class="kw">func</span>() {
+        <span class="kw">if</span> <span class="fn">len</span>(current) == <span class="fn">len</span>(nums) {
+            tmp := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(current))
+            <span class="fn">copy</span>(tmp, current)
+            results = <span class="fn">append</span>(results, tmp)
+            <span class="kw">return</span>
+        }
+        <span class="kw">for</span> i, v := <span class="kw">range</span> nums {
+            <span class="kw">if</span> used[i] { <span class="kw">continue</span> }
+            used[i] = <span class="kw">true</span>
+            current = <span class="fn">append</span>(current, v)
+            <span class="fn">bt</span>()
+            used[i] = <span class="kw">false</span>
+            current = current[:<span class="fn">len</span>(current)-<span class="nm">1</span>]
+        }
+    }
+    <span class="fn">bt</span>()
+    <span class="kw">return</span> results
+}</pre>
+  </div>
+</section>
+
+<section id="bt-expert" class="topic-section">
+  <h3 class="sub">Expert — Sudoku Solver + Word Search II</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">sudoku_solver.go</span>
+      <span class="code-level level-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// SolveSudoku giải bài toán Sudoku 9x9
+// '.' là ô trống, '1'-'9' là số đã có
+// Backtracking + bitmasking để check constraint O(1)</span>
+<span class="kw">func</span> <span class="fn">SolveSudoku</span>(board [][]<span class="tp">byte</span>) <span class="tp">bool</span> {
+    <span class="kw">var</span> (
+        rows  [<span class="nm">9</span>]<span class="tp">int</span> <span class="cm">// rows[i]    bit j set → số j+1 đã ở row i</span>
+        cols  [<span class="nm">9</span>]<span class="tp">int</span> <span class="cm">// cols[j]    bit j set → số j+1 đã ở col j</span>
+        boxes [<span class="nm">9</span>]<span class="tp">int</span> <span class="cm">// boxes[k]   bit j set → số j+1 đã ở box k</span>
+    )
+
+    <span class="cm">// Khởi tạo bitmask từ board hiện tại</span>
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < <span class="nm">9</span>; i++ {
+        <span class="kw">for</span> j := <span class="nm">0</span>; j < <span class="nm">9</span>; j++ {
+            <span class="kw">if</span> board[i][j] != <span class="st">'.'</span> {
+                d := <span class="tp">int</span>(board[i][j] - <span class="st">'1'</span>)
+                mask := <span class="nm">1</span> << d
+                rows[i] |= mask
+                cols[j] |= mask
+                boxes[(i/<span class="nm">3</span>)*<span class="nm">3</span>+j/<span class="nm">3</span>] |= mask
+            }
+        }
+    }
+
+    <span class="kw">var</span> bt <span class="kw">func</span>() <span class="tp">bool</span>
+    bt = <span class="kw">func</span>() <span class="tp">bool</span> {
+        <span class="cm">// Tìm ô trống (MRV: ô có ít lựa chọn nhất)</span>
+        bi, bj, minOptions := -<span class="nm">1</span>, -<span class="nm">1</span>, <span class="nm">10</span>
+        <span class="kw">for</span> i := <span class="nm">0</span>; i < <span class="nm">9</span>; i++ {
+            <span class="kw">for</span> j := <span class="nm">0</span>; j < <span class="nm">9</span>; j++ {
+                <span class="kw">if</span> board[i][j] != <span class="st">'.'</span> { <span class="kw">continue</span> }
+                used := rows[i] | cols[j] | boxes[(i/<span class="nm">3</span>)*<span class="nm">3</span>+j/<span class="nm">3</span>]
+                free := (<span class="nm">1</span><<<span class="nm">9</span> - <span class="nm">1</span>) &^ used <span class="cm">// bit tự do</span>
+                cnt := <span class="fn">bits</span>(free)
+                <span class="kw">if</span> cnt == <span class="nm">0</span> { <span class="kw">return</span> <span class="kw">false</span> } <span class="cm">// dead end</span>
+                <span class="kw">if</span> cnt < minOptions { bi, bj, minOptions = i, j, cnt }
+            }
+        }
+        <span class="kw">if</span> bi == -<span class="nm">1</span> { <span class="kw">return</span> <span class="kw">true</span> } <span class="cm">// tất cả ô đã điền ✓</span>
+
+        used := rows[bi] | cols[bj] | boxes[(bi/<span class="nm">3</span>)*<span class="nm">3</span>+bj/<span class="nm">3</span>]
+        <span class="kw">for</span> d := <span class="nm">0</span>; d < <span class="nm">9</span>; d++ {
+            <span class="kw">if</span> used&(<span class="nm">1</span><<d) != <span class="nm">0</span> { <span class="kw">continue</span> }
+            mask := <span class="nm">1</span> << d
+            <span class="cm">// Choose</span>
+            board[bi][bj] = <span class="tp">byte</span>(<span class="st">'1'</span> + d)
+            rows[bi] |= mask; cols[bj] |= mask; boxes[(bi/<span class="nm">3</span>)*<span class="nm">3</span>+bj/<span class="nm">3</span>] |= mask
+            <span class="cm">// Explore</span>
+            <span class="kw">if</span> <span class="fn">bt</span>() { <span class="kw">return</span> <span class="kw">true</span> }
+            <span class="cm">// Unchoose</span>
+            board[bi][bj] = <span class="st">'.'</span>
+            rows[bi] &^= mask; cols[bj] &^= mask; boxes[(bi/<span class="nm">3</span>)*<span class="nm">3</span>+bj/<span class="nm">3</span>] &^= mask
+        }
+        <span class="kw">return</span> <span class="kw">false</span>
+    }
+    <span class="kw">return</span> <span class="fn">bt</span>()
+}
+
+<span class="kw">func</span> <span class="fn">bits</span>(n <span class="tp">int</span>) <span class="tp">int</span> { <span class="cm">// đếm số bit 1</span>
+    cnt := <span class="nm">0</span>
+    <span class="kw">for</span> n > <span class="nm">0</span> { cnt += n & <span class="nm">1</span>; n >>= <span class="nm">1</span> }
+    <span class="kw">return</span> cnt
+}
+
+<span class="cm">// WordSearchII — LeetCode 212: tìm tất cả words trong board
+// Dùng Trie + Backtracking — O(M×N×4^L×W) nhưng Trie cắt sớm rất nhiều</span>
+<span class="kw">type</span> <span class="tp">TrieNode</span> <span class="kw">struct</span> {
+    children [<span class="nm">26</span>]*<span class="tp">TrieNode</span>
+    word     <span class="tp">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">FindWords</span>(board [][]<span class="tp">byte</span>, words []<span class="tp">string</span>) []<span class="tp">string</span> {
+    root := &<span class="tp">TrieNode</span>{}
+    <span class="kw">for</span> _, w := <span class="kw">range</span> words { <span class="cm">// build trie</span>
+        cur := root
+        <span class="kw">for</span> _, c := <span class="kw">range</span> w {
+            idx := c - <span class="st">'a'</span>
+            <span class="kw">if</span> cur.children[idx] == <span class="kw">nil</span> { cur.children[idx] = &<span class="tp">TrieNode</span>{} }
+            cur = cur.children[idx]
+        }
+        cur.word = w
+    }
+
+    rows, cols := <span class="fn">len</span>(board), <span class="fn">len</span>(board[<span class="nm">0</span>])
+    <span class="kw">var</span> results []<span class="tp">string</span>
+    dirs := [][<span class="nm">2</span>]<span class="tp">int</span>{{<span class="nm">0</span>,<span class="nm">1</span>},{<span class="nm">0</span>,-<span class="nm">1</span>},{<span class="nm">1</span>,<span class="nm">0</span>},{-<span class="nm">1</span>,<span class="nm">0</span>}}
+
+    <span class="kw">var</span> dfs <span class="kw">func</span>(i, j <span class="tp">int</span>, node *<span class="tp">TrieNode</span>)
+    dfs = <span class="kw">func</span>(i, j <span class="tp">int</span>, node *<span class="tp">TrieNode</span>) {
+        ch := board[i][j]
+        <span class="kw">if</span> ch == <span class="st">'#'</span> { <span class="kw">return</span> } <span class="cm">// đã visit</span>
+        next := node.children[ch-<span class="st">'a'</span>]
+        <span class="kw">if</span> next == <span class="kw">nil</span> { <span class="kw">return</span> } <span class="cm">// không có trong trie → prune</span>
+
+        <span class="kw">if</span> next.word != <span class="st">""</span> {
+            results = <span class="fn">append</span>(results, next.word)
+            next.word = <span class="st">""</span> <span class="cm">// tránh duplicate</span>
+        }
+
+        board[i][j] = <span class="st">'#'</span> <span class="cm">// đánh dấu visited</span>
+        <span class="kw">for</span> _, d := <span class="kw">range</span> dirs {
+            ni, nj := i+d[<span class="nm">0</span>], j+d[<span class="nm">1</span>]
+            <span class="kw">if</span> ni >= <span class="nm">0</span> && nj >= <span class="nm">0</span> && ni < rows && nj < cols {
+                <span class="fn">dfs</span>(ni, nj, next)
+            }
+        }
+        board[i][j] = ch <span class="cm">// restore</span>
+    }
+
+    <span class="kw">for</span> i := <span class="nm">0</span>; i < rows; i++ {
+        <span class="kw">for</span> j := <span class="nm">0</span>; j < cols; j++ {
+            <span class="fn">dfs</span>(i, j, root)
+        }
+    }
+    <span class="kw">return</span> results
+}</pre>
+  </div>
+
+  <div class="callout callout-tip">
+    <div class="callout-icon">💡</div>
+    <div class="callout-text">
+      <p><strong>Kỹ thuật tăng tốc Backtracking:</strong> (1) <strong>Minimum Remaining Values (MRV)</strong> — chọn biến có ít lựa chọn nhất trước (như Sudoku ở trên). (2) <strong>Forward Checking</strong> — sau mỗi lần gán, kiểm tra ngay xem các biến còn lại có còn lựa chọn không. (3) <strong>Constraint Propagation (AC-3)</strong> — lan truyền ràng buộc để thu hẹp domain. (4) <strong>Iterative Deepening</strong> — kết hợp với DFS để kiểm soát bộ nhớ.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     COMPARISON TABLE
+══════════════════════════════════════════ -->
+<section id="compare" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#1a1a0d">📊</div>
+    <div>
+      <div class="topic-title" style="color:var(--yellow)">So sánh 5 Thuật toán</div>
+      <div class="topic-sub">Khi nào dùng thuật toán nào?</div>
+    </div>
+  </div>
+
+  <table class="compare-table">
+    <thead>
+      <tr>
+        <th>Thuật toán</th>
+        <th>Time Complexity</th>
+        <th>Space</th>
+        <th>Ưu điểm</th>
+        <th>Nhược điểm</th>
+        <th>Dùng khi</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="color:var(--green);font-weight:600">Union-Find</td>
+        <td class="good">O(α(n)) ≈ O(1)</td>
+        <td class="good">O(n)</td>
+        <td class="good">Cực nhanh, đơn giản</td>
+        <td class="bad">Chỉ cho undirected graph</td>
+        <td>Connected components, Kruskal MST, cycle detection</td>
+      </tr>
+      <tr>
+        <td style="color:var(--purple);font-weight:600">KMP</td>
+        <td class="good">O(n + m)</td>
+        <td class="good">O(m)</td>
+        <td class="good">Không lùi con trỏ text, worst-case tốt</td>
+        <td class="mid">Chỉ tốt cho 1 pattern</td>
+        <td>Single pattern search, streaming text, periodic strings</td>
+      </tr>
+      <tr>
+        <td style="color:var(--orange);font-weight:600">Rabin-Karp</td>
+        <td class="good">O(n + m) avg</td>
+        <td class="good">O(1)</td>
+        <td class="good">Multi-pattern, flexible</td>
+        <td class="bad">Worst O(nm), hash collision</td>
+        <td>Multi-pattern search, duplicate substring, plagiarism</td>
+      </tr>
+      <tr>
+        <td style="color:var(--cyan);font-weight:600">A*</td>
+        <td class="mid">O(b^d)</td>
+        <td class="bad">O(b^d)</td>
+        <td class="good">Tối ưu + heuristic, nhanh hơn Dijkstra nhiều</td>
+        <td class="bad">Cần heuristic tốt, memory O(b^d)</td>
+        <td>Pathfinding, game AI, navigation, robot planning</td>
+      </tr>
+      <tr>
+        <td style="color:var(--pink);font-weight:600">Backtracking</td>
+        <td class="bad">O(b^d)</td>
+        <td class="mid">O(d)</td>
+        <td class="good">Tìm được mọi solution, pruning rất hiệu quả</td>
+        <td class="bad">Exponential worst-case</td>
+        <td>Constraint satisfaction, combinatorics, N-Queens, Sudoku</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3 class="sub">Decision Guide — Chọn thuật toán nào?</h3>
+  <div class="diagram-box">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2;color:var(--text2)">
+      <div>Bài toán có <span style="color:var(--cyan)">tập hợp cần gộp/kiểm tra liên thông</span>?</div>
+      <div style="padding-left:24px">→ <span style="color:var(--green)">Union-Find</span></div>
+      <div style="margin-top:8px">Bài toán <span style="color:var(--cyan)">tìm kiếm chuỗi</span>?</div>
+      <div style="padding-left:24px">├─ 1 pattern → <span style="color:var(--purple)">KMP</span> (guaranteed O(n+m))</div>
+      <div style="padding-left:24px">├─ k patterns → <span style="color:var(--orange)">Rabin-Karp</span> hoặc Aho-Corasick</div>
+      <div style="padding-left:24px">└─ Longest duplicate / similar → <span style="color:var(--orange)">Rabin-Karp + Binary Search</span></div>
+      <div style="margin-top:8px">Bài toán <span style="color:var(--cyan)">tìm đường ngắn nhất</span>?</div>
+      <div style="padding-left:24px">├─ Có heuristic tốt + single target → <span style="color:var(--cyan)">A*</span></div>
+      <div style="padding-left:24px">├─ Không có heuristic / nhiều targets → Dijkstra / BFS</div>
+      <div style="padding-left:24px">└─ Negative weights → Bellman-Ford</div>
+      <div style="margin-top:8px">Bài toán <span style="color:var(--cyan)">tìm tất cả solutions / constraint satisfaction</span>?</div>
+      <div style="padding-left:24px">→ <span style="color:var(--pink)">Backtracking</span> với pruning tốt</div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════════════════════════════════════
+     REFERENCES
+══════════════════════════════════════════ -->
+<section id="refs" class="topic-section">
+  <div class="topic-header">
+    <div class="topic-icon" style="background:#1a0d2d">📚</div>
+    <div>
+      <div class="topic-title" style="color:var(--purple)">Tài liệu tham khảo</div>
+      <div class="topic-sub">Nguồn học tập được đánh giá cao nhất từ cộng đồng</div>
+    </div>
+  </div>
+
+  <h3 class="sub">📦 GitHub Repositories</h3>
+  <div class="ref-grid">
+    <a href="https://github.com/TheAlgorithms/Go" class="ref-card" target="_blank">
+      <div class="ref-icon">⭐</div>
+      <div class="ref-info">
+        <div class="ref-title">TheAlgorithms / Go</div>
+        <div class="ref-url">github.com/TheAlgorithms/Go</div>
+        <div class="ref-desc">Tập hợp thuật toán Go toàn diện nhất: sorting, searching, graph, string, math. Code đơn giản, dễ học.</div>
+        <div class="ref-stars">★★★★★ 16k+ stars</div>
+      </div>
+    </a>
+    <a href="https://github.com/emirpasic/gods" class="ref-card" target="_blank">
+      <div class="ref-icon">🏗️</div>
+      <div class="ref-info">
+        <div class="ref-title">emirpasic / gods</div>
+        <div class="ref-url">github.com/emirpasic/gods</div>
+        <div class="ref-desc">Production-grade data structures & algorithms trong Go: Trees, Queues, Sets, Maps, Stacks với full test coverage.</div>
+        <div class="ref-stars">★★★★★ 16k+ stars</div>
+      </div>
+    </a>
+    <a href="https://github.com/avelino/awesome-go" class="ref-card" target="_blank">
+      <div class="ref-icon">🚀</div>
+      <div class="ref-info">
+        <div class="ref-title">avelino / awesome-go</div>
+        <div class="ref-url">github.com/avelino/awesome-go</div>
+        <div class="ref-desc">Danh sách curated các thư viện Go tốt nhất. Mục "Algorithm & Data Structures" cực kỳ hữu ích.</div>
+        <div class="ref-stars">★★★★★ 130k+ stars</div>
+      </div>
+    </a>
+    <a href="https://github.com/halfrost/LeetCode-Go" class="ref-card" target="_blank">
+      <div class="ref-icon">💡</div>
+      <div class="ref-info">
+        <div class="ref-title">halfrost / LeetCode-Go</div>
+        <div class="ref-url">github.com/halfrost/LeetCode-Go</div>
+        <div class="ref-desc">Hơn 700 bài LeetCode được giải bằng Go với giải thích chi tiết. Bao gồm Union-Find, KMP, A*, Backtracking patterns.</div>
+        <div class="ref-stars">★★★★★ 31k+ stars</div>
+      </div>
+    </a>
+  </div>
+
+  <h3 class="sub">📖 Sách & Khóa học</h3>
+  <div class="ref-grid">
+    <a href="https://algs4.cs.princeton.edu/home/" class="ref-card" target="_blank">
+      <div class="ref-icon">📘</div>
+      <div class="ref-info">
+        <div class="ref-title">Algorithms — Sedgewick & Wayne</div>
+        <div class="ref-url">algs4.cs.princeton.edu</div>
+        <div class="ref-desc">Sách giáo khoa chuẩn của Princeton. Union-Find ở Chapter 1, String algorithms ở Chapter 5, A* ở Chapter 4. Có Java code nhưng concept áp dụng cho Go.</div>
+        <div class="ref-stars">★★★★★ Kinh điển</div>
+      </div>
+    </a>
+    <a href="https://cp-algorithms.com/" class="ref-card" target="_blank">
+      <div class="ref-icon">🧮</div>
+      <div class="ref-info">
+        <div class="ref-title">CP-Algorithms</div>
+        <div class="ref-url">cp-algorithms.com</div>
+        <div class="ref-desc">Competitive programming algorithms với phân tích toán học chi tiết. KMP, Z-function, Rabin-Karp được giải thích cực sâu.</div>
+        <div class="ref-stars">★★★★★ Cộng đồng CP</div>
+      </div>
+    </a>
+    <a href="https://neetcode.io/roadmap" class="ref-card" target="_blank">
+      <div class="ref-icon">🗺️</div>
+      <div class="ref-info">
+        <div class="ref-title">NeetCode Roadmap</div>
+        <div class="ref-url">neetcode.io/roadmap</div>
+        <div class="ref-desc">Lộ trình học DSA có cấu trúc nhất. Union-Find, Backtracking, A* đều có video giải thích + code Python (dễ chuyển sang Go).</div>
+        <div class="ref-stars">★★★★★ Phổ biến nhất</div>
+      </div>
+    </a>
+    <a href="https://www.redblobgames.com/pathfinding/a-star/introduction.html" class="ref-card" target="_blank">
+      <div class="ref-icon">🎮</div>
+      <div class="ref-info">
+        <div class="ref-title">Red Blob Games — A* Introduction</div>
+        <div class="ref-url">redblobgames.com</div>
+        <div class="ref-desc">Giải thích trực quan nhất về A*, BFS, Dijkstra với animation tương tác. Phải đọc nếu bạn học pathfinding.</div>
+        <div class="ref-stars">★★★★★ Visual Learning</div>
+      </div>
+    </a>
+  </div>
+
+  <h3 class="sub">🌐 Online Judges & Practice</h3>
+  <div class="ref-grid">
+    <a href="https://leetcode.com/tag/union-find/" class="ref-card" target="_blank">
+      <div class="ref-icon">🔗</div>
+      <div class="ref-info">
+        <div class="ref-title">LeetCode — Union Find Tag</div>
+        <div class="ref-url">leetcode.com/tag/union-find/</div>
+        <div class="ref-desc">Bộ bài Union-Find trên LeetCode: từ Medium đến Hard. Recommend: 547, 684, 721, 1061, 1202.</div>
+        <div class="ref-stars">★★★★☆ 200+ bài</div>
+      </div>
+    </a>
+    <a href="https://codeforces.com/problemset?tags=dsu" class="ref-card" target="_blank">
+      <div class="ref-icon">🏆</div>
+      <div class="ref-info">
+        <div class="ref-title">Codeforces — DSU Problems</div>
+        <div class="ref-url">codeforces.com/problemset?tags=dsu</div>
+        <div class="ref-desc">Bài tập competitive programming về DSU từ dễ đến rất khó. Tốt để luyện Union-Find nâng cao (weighted DSU, rollback DSU).</div>
+        <div class="ref-stars">★★★★★ CF Rating</div>
+      </div>
+    </a>
+    <a href="https://visualgo.net/en/ufds" class="ref-card" target="_blank">
+      <div class="ref-icon">🎥</div>
+      <div class="ref-info">
+        <div class="ref-title">VisuAlgo — Union Find</div>
+        <div class="ref-url">visualgo.net/en/ufds</div>
+        <div class="ref-desc">Visualization tương tác cho Union-Find: xem từng bước path compression và union by rank. Excellent cho learning.</div>
+        <div class="ref-stars">★★★★★ Interactive</div>
+      </div>
+    </a>
+    <a href="https://go.dev/blog/slices-intro" class="ref-card" target="_blank">
+      <div class="ref-icon">🐹</div>
+      <div class="ref-info">
+        <div class="ref-title">Go Official Blog & Docs</div>
+        <div class="ref-url">go.dev/blog & pkg.go.dev</div>
+        <div class="ref-desc">Tài liệu chính thức của Go: container/heap cho A*, strings package, io.Reader cho KMP streaming. Luôn là nguồn tin cậy nhất.</div>
+        <div class="ref-stars">★★★★★ Official</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="callout callout-info" style="margin-top:24px">
+    <div class="callout-icon">ℹ️</div>
+    <div class="callout-text">
+      <p><strong>Lộ trình học đề xuất:</strong> Bắt đầu với <strong>Union-Find</strong> (dễ implement, nhiều ứng dụng) → <strong>KMP</strong> (hiểu failure function là hiểu nhiều thuật toán chuỗi) → <strong>Backtracking</strong> (nền tảng cho nhiều bài toán tổ hợp) → <strong>A*</strong> (cần hiểu heap trước) → <strong>Rabin-Karp</strong> (cần hiểu modular hashing). Mỗi thuật toán nên giải ít nhất 10 bài LeetCode trước khi chuyển sang thuật toán tiếp theo.</p>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p>Go Algorithms Guide — <span>Union-Find · KMP · Rabin-Karp · A* · Backtracking</span></p>
+  <p style="margin-top:6px">Được viết bằng Go 1.21+ · Tài liệu bằng Tiếng Việt · 2024</p>
+</div>
+
+</div><!-- /content-area -->
+</main>
+
+<script>
+// Highlight active nav on scroll
+const sections = document.querySelectorAll('.topic-section[id]');
+const navItems = document.querySelectorAll('.nav-item, .topnav-item');
+
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      navItems.forEach(n => {
+        n.classList.toggle('active', n.getAttribute('href') === '#' + id);
+      });
+      // Synchronize URL hash with scrolling without breaking scroll performance
+      if (history.pushState && window.location.hash !== '#' + id) {
+        history.pushState(null, null, '#' + id);
+      }
+    }
+  });
+}, { rootMargin: '-48px 0px -60% 0px', threshold: 0.1 });
+
+sections.forEach(s => observer.observe(s));
+
+// Smooth scroll with pushState
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const href = a.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const t = document.querySelector(href);
+      if (t) {
+        e.preventDefault();
+        t.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        history.pushState(null, null, href);
+      }
+    } catch(err) {
+      console.warn('Invalid selector:', href, err);
+    }
+  });
+});
+</script>
+</body>
+</html>

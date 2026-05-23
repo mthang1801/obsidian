@@ -1,0 +1,2423 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go DSA Patterns - Hướng dẫn chuyên sâu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,212,255,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); display: flex; min-height: 100vh; }
+
+  /* ====== SIDEBAR ====== */
+  #sidebar { width: 270px; min-width: 270px; background: var(--bg-secondary); border-right: 1px solid var(--border); position: fixed; top: 0; left: 0; bottom: 0; overflow-y: auto; z-index: 100; display: flex; flex-direction: column; }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  .sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+  .logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: white; font-family: var(--font-mono); }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+  .logo-sub { font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); }
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-section-title { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); padding: 0 8px; margin-bottom: 6px; }
+  .nav-item { display: flex; align-items: center; padding: 7px 8px; border-radius: 6px; text-decoration: none; color: var(--text-secondary); font-size: 13px; cursor: pointer; transition: all 0.15s; border: none; background: none; width: 100%; text-align: left; }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active { background: rgba(0,212,255,0.1); color: var(--accent-cyan); border-left: 2px solid var(--accent-cyan); padding-left: 6px; }
+  .nav-icon { margin-right: 8px; font-size: 14px; }
+
+  /* ====== TOP NAV ====== */
+  #topnav { position: fixed; top: 0; left: 270px; right: 0; height: 52px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 32px; gap: 8px; z-index: 50; overflow-x: auto; }
+  .topnav-item { padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500; color: var(--text-secondary); cursor: pointer; white-space: nowrap; text-decoration: none; transition: all 0.15s; border: none; background: none; }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .topnav-item.active { color: var(--accent-cyan); background: rgba(0,212,255,0.1); }
+
+  /* ====== MAIN CONTENT ====== */
+  #main { margin-left: 270px; margin-top: 52px; flex: 1; max-width: calc(100% - 270px); }
+  .content-area { padding: 48px 56px; max-width: 980px; }
+
+  /* ====== SECTION HEADERS ====== */
+  .section-header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+  .section-number { width: 36px; height: 36px; border-radius: 8px; background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 14px; font-weight: 700; color: white; flex-shrink: 0; }
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; font-family: var(--font-mono); }
+  .badge-expert { background: rgba(168,85,247,0.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced { background: rgba(245,158,11,0.12); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-basic { background: rgba(0,212,255,0.1); color: var(--accent-cyan); border: 1px solid rgba(0,212,255,0.25); }
+
+  /* ====== PAGE SECTIONS ====== */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ====== PROSE ====== */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code { background: rgba(0,212,255,0.08); color: var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px; }
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* ====== CARDS ====== */
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: border-color 0.2s; }
+  .card:hover { border-color: var(--border-accent); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* ====== CONCEPT BOX ====== */
+  .concept-box { background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(168,85,247,0.05)); border: 1px solid rgba(0,212,255,0.2); border-radius: 12px; padding: 24px; margin-bottom: 28px; }
+  .concept-box .label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--accent-cyan); margin-bottom: 8px; font-family: var(--font-mono); }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+
+  /* ====== CODE BLOCKS ====== */
+  .code-block { background: var(--bg-code); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .code-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02); }
+  .code-lang { font-size: 11px; font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+  .code-badge { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+  .code-badge-basic { background: rgba(0,212,255,0.1); color: var(--accent-cyan); }
+  .code-badge-advanced { background: rgba(245,158,11,0.1); color: var(--accent-amber); }
+  .code-badge-expert { background: rgba(168,85,247,0.1); color: var(--accent-purple); }
+  .code-copy { font-size: 11px; color: var(--text-muted); cursor: pointer; background: none; border: 1px solid var(--border); border-radius: 4px; padding: 3px 10px; color: var(--text-secondary); transition: all 0.15s; font-family: var(--font-sans); }
+  .code-copy:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  pre { margin: 0; padding: 20px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Syntax colors */
+  .kw { color: #c084fc; }
+  .fn { color: #60a5fa; }
+  .str { color: #86efac; }
+  .cm { color: #4b5563; font-style: italic; }
+  .num { color: #fb923c; }
+  .tp { color: #67e8f9; }
+  .pkg { color: #a78bfa; }
+  .op { color: #f472b6; }
+
+  /* ====== DIAGRAM ====== */
+  .diagram-container { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin-bottom: 28px; overflow: hidden; }
+  .diagram-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); margin-bottom: 20px; font-family: var(--font-mono); text-align: center; }
+
+  /* ====== TABLE ====== */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th { padding: 10px 14px; text-align: left; background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td code { background: rgba(0,212,255,0.08); color: var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+  .tc-good { color: var(--accent-green) !important; font-weight: 600; font-family: var(--font-mono); }
+  .tc-mid { color: var(--accent-amber) !important; font-weight: 600; font-family: var(--font-mono); }
+  .tc-bad { color: var(--accent-coral) !important; font-weight: 600; font-family: var(--font-mono); }
+
+  /* ====== NOTE ====== */
+  .note { display: flex; gap: 12px; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .note-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+  .note-info { background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2); color: var(--accent-cyan); }
+  .note-danger { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); color: var(--accent-green); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* ====== REFS ====== */
+  .ref-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin-bottom: 12px; display: flex; align-items: flex-start; gap: 14px; text-decoration: none; transition: all 0.15s; cursor: pointer; }
+  .ref-card:hover { border-color: var(--accent-cyan); transform: translateX(2px); }
+  .ref-icon { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ref-body { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url { font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* ====== COMPARE ====== */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .compare-head { padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--font-mono); border-bottom: 1px solid var(--border); }
+  .compare-head.cyan { background: rgba(0,212,255,0.08); color: var(--accent-cyan); }
+  .compare-head.purple { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+  .compare-head.green { background: rgba(0,255,136,0.08); color: var(--accent-green); }
+  .compare-head.amber { background: rgba(245,158,11,0.08); color: var(--accent-amber); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); margin: 3px; }
+  .tag-good { background: rgba(0,255,136,0.08); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-bad { background: rgba(255,107,107,0.08); color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  /* ====== ALGO STEPS ====== */
+  .steps { list-style: none; counter-reset: step; margin-bottom: 24px; }
+  .steps li { counter-increment: step; display: flex; gap: 16px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .steps li:last-child { border-bottom: none; }
+  .steps li::before { content: counter(step); min-width: 28px; height: 28px; background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.25); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--accent-cyan); font-family: var(--font-mono); flex-shrink: 0; }
+  .step-content { font-size: 14px; color: var(--text-secondary); line-height: 1.7; padding-top: 2px; }
+  .step-content strong { color: var(--text-primary); }
+
+  /* ====== PATTERN TAG ====== */
+  .pattern-tag { display: inline-block; padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 600; font-family: var(--font-mono); margin: 2px; }
+  .pt-hashmap { background: rgba(0,212,255,0.1); color: var(--accent-cyan); border: 1px solid rgba(0,212,255,0.2); }
+  .pt-prefix { background: rgba(0,255,136,0.1); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .pt-window { background: rgba(245,158,11,0.1); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.2); }
+  .pt-stack { background: rgba(168,85,247,0.1); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.2); }
+  .pt-queue { background: rgba(59,130,246,0.1); color: var(--accent-blue); border: 1px solid rgba(59,130,246,0.2); }
+  .pt-twoptr { background: rgba(255,107,107,0.1); color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  /* ====== COMPLEXITY BADGE ====== */
+  .complexity-row { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .complexity-pill { padding: 8px 16px; border-radius: 8px; font-family: var(--font-mono); font-size: 13px; font-weight: 600; }
+  .cp-time { background: rgba(0,212,255,0.1); color: var(--accent-cyan); border: 1px solid rgba(0,212,255,0.2); }
+  .cp-space { background: rgba(168,85,247,0.1); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.2); }
+  .cp-label { font-size: 10px; font-weight: 400; opacity: 0.7; display: block; }
+
+  /* ====== OVERVIEW CARD ====== */
+  .overview-pattern-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; cursor: pointer; transition: all 0.2s; text-decoration: none; margin-bottom: 12px; }
+  .overview-pattern-card:hover { border-color: var(--border-accent); transform: translateX(3px); }
+  .opc-icon { font-size: 28px; flex-shrink: 0; }
+  .opc-body { flex: 1; }
+  .opc-name { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .opc-desc { font-size: 13px; color: var(--text-muted); }
+  .opc-tags { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .opc-complexity { font-family: var(--font-mono); font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">DSA Patterns</div>
+      <div class="logo-sub">golang · algorithms</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tổng quan</div>
+    <button class="nav-item active" onclick="showSection('intro')"><span class="nav-icon">🏠</span>Giới thiệu</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Core Patterns</div>
+    <button class="nav-item" onclick="showSection('hashmap')"><span class="nav-icon">🗂️</span>Hash Maps &amp; Sets</button>
+    <button class="nav-item" onclick="showSection('prefix')"><span class="nav-icon">∑</span>Prefix Sums</button>
+    <button class="nav-item" onclick="showSection('sliding')"><span class="nav-icon">🪟</span>Sliding Window</button>
+    <button class="nav-item" onclick="showSection('stack')"><span class="nav-icon">📚</span>Stack</button>
+    <button class="nav-item" onclick="showSection('queue')"><span class="nav-icon">🚶</span>Queue</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Pointer Patterns</div>
+    <button class="nav-item" onclick="showSection('twoptr')"><span class="nav-icon">👈👉</span>Two Pointers</button>
+    <button class="nav-item" onclick="showSection('fastslw')"><span class="nav-icon">🐢🐇</span>Fast &amp; Slow Pointers</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Advanced</div>
+    <button class="nav-item" onclick="showSection('monostack')"><span class="nav-icon">📈</span>Monotonic Stack</button>
+    <button class="nav-item" onclick="showSection('refs')"><span class="nav-icon">📖</span>References</button>
+  </div>
+</nav>
+
+<!-- ===== TOP NAV ===== -->
+<nav id="topnav">
+  <button class="topnav-item active" onclick="showSection('intro')">Giới thiệu</button>
+  <button class="topnav-item" onclick="showSection('hashmap')">Hash Maps</button>
+  <button class="topnav-item" onclick="showSection('prefix')">Prefix Sums</button>
+  <button class="topnav-item" onclick="showSection('sliding')">Sliding Window</button>
+  <button class="topnav-item" onclick="showSection('stack')">Stack</button>
+  <button class="topnav-item" onclick="showSection('queue')">Queue</button>
+  <button class="topnav-item" onclick="showSection('twoptr')">Two Pointers</button>
+  <button class="topnav-item" onclick="showSection('fastslw')">Fast &amp; Slow</button>
+  <button class="topnav-item" onclick="showSection('monostack')">Monotonic Stack</button>
+  <button class="topnav-item" onclick="showSection('refs')">References</button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main id="main">
+<div class="content-area">
+
+<!-- ==================== INTRO ==================== -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">00</div>
+    <div>
+      <div class="section-title">Go DSA Patterns — Tổng quan</div>
+      <div class="section-subtitle">8 pattern nền tảng giải quyết 80% bài toán trong coding interview &amp; production</div>
+    </div>
+    <span class="badge badge-basic">OVERVIEW</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Triết lý</div>
+    <div class="title">Tại sao phải học DSA Patterns?</div>
+    <p class="prose">
+      Thay vì học thuộc lòng từng bài toán, <strong>pattern-based thinking</strong> giúp bạn nhận ra cấu trúc ẩn sau mỗi bài toán và áp dụng giải pháp đã biết. Trong Go, sức mạnh của các pattern còn được khuếch đại bởi <strong>slice nhanh, map built-in O(1), và interface linh hoạt</strong>.
+    </p>
+    <p class="prose">
+      Document này trình bày <strong>8 pattern cốt lõi</strong> theo cấu trúc: <code>Định nghĩa → Diagram → Code (basic→expert) → Complexity → Pitfalls</code>. Tất cả ví dụ đều dùng Go idioms chuẩn.
+    </p>
+  </div>
+
+  <h3>8 Pattern Cốt Lõi</h3>
+
+  <div class="overview-pattern-card" onclick="showSection('hashmap')">
+    <div class="opc-icon">🗂️</div>
+    <div class="opc-body">
+      <div class="opc-name">Hash Maps &amp; Sets</div>
+      <div class="opc-desc">Tra cứu O(1) — biến bài toán O(n²) thành O(n). Nền tảng của mọi frequency counting, lookup, deduplication.</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-hashmap">Two Sum</span>
+        <span class="pattern-tag pt-hashmap">Anagram</span>
+        <span class="pattern-tag pt-hashmap">LRU Cache</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time · O(n) space</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('prefix')">
+    <div class="opc-icon">∑</div>
+    <div class="opc-body">
+      <div class="opc-name">Prefix Sums</div>
+      <div class="opc-desc">Tính range query O(1) sau O(n) preprocessing. Mạnh với bài toán subarray sum, range difference.</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-prefix">Range Sum</span>
+        <span class="pattern-tag pt-prefix">Subarray Sum=K</span>
+        <span class="pattern-tag pt-prefix">2D Matrix</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(1) query · O(n) build</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('sliding')">
+    <div class="opc-icon">🪟</div>
+    <div class="opc-body">
+      <div class="opc-name">Sliding Window</div>
+      <div class="opc-desc">Xử lý subarray/substring liên tiếp với cửa sổ di động. Tránh nested loops O(n²) → O(n).</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-window">Max Subarray</span>
+        <span class="pattern-tag pt-window">Min Window</span>
+        <span class="pattern-tag pt-window">No-repeat Substr</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('stack')">
+    <div class="opc-icon">📚</div>
+    <div class="opc-body">
+      <div class="opc-name">Stack Pattern</div>
+      <div class="opc-desc">LIFO — xử lý bài toán cần "nhớ" trạng thái trước đó: ngoặc đơn, backtracking, DFS iterative.</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-stack">Valid Parentheses</span>
+        <span class="pattern-tag pt-stack">Min Stack</span>
+        <span class="pattern-tag pt-stack">Calculator</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time · O(n) space</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('queue')">
+    <div class="opc-icon">🚶</div>
+    <div class="opc-body">
+      <div class="opc-name">Queue Pattern</div>
+      <div class="opc-desc">FIFO — BFS, xử lý theo thứ tự, sliding window maximum với deque. Nền tảng cho graph traversal.</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-queue">BFS</span>
+        <span class="pattern-tag pt-queue">Level Order</span>
+        <span class="pattern-tag pt-queue">Deque</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('twoptr')">
+    <div class="opc-icon">👈👉</div>
+    <div class="opc-body">
+      <div class="opc-name">Two Pointers</div>
+      <div class="opc-desc">Hai con trỏ di chuyển theo điều kiện — tuyến tính trên mảng đã sắp xếp. Loại bỏ inner loop.</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-twoptr">3Sum</span>
+        <span class="pattern-tag pt-twoptr">Container Water</span>
+        <span class="pattern-tag pt-twoptr">Palindrome</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time · O(1) space</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('fastslw')">
+    <div class="opc-icon">🐢🐇</div>
+    <div class="opc-body">
+      <div class="opc-name">Fast &amp; Slow Pointers</div>
+      <div class="opc-desc">Phát hiện cycle, tìm middle node trong linked list. Floyd's Tortoise &amp; Hare algorithm.</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-twoptr">Cycle Detection</span>
+        <span class="pattern-tag pt-twoptr">Find Middle</span>
+        <span class="pattern-tag pt-twoptr">Happy Number</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time · O(1) space</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="overview-pattern-card" onclick="showSection('monostack')">
+    <div class="opc-icon">📈</div>
+    <div class="opc-body">
+      <div class="opc-name">Monotonic Stack</div>
+      <div class="opc-desc">Stack duy trì thứ tự tăng/giảm — tìm next greater/smaller element, trapping rain water trong O(n).</div>
+      <div class="opc-tags">
+        <span class="pattern-tag pt-stack">Next Greater</span>
+        <span class="pattern-tag pt-stack">Daily Temps</span>
+        <span class="pattern-tag pt-stack">Trapping Rain</span>
+        <span class="opc-complexity" style="background:rgba(0,255,136,0.1);color:var(--accent-green)">O(n) time · O(n) space</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <h3>Khi nào dùng pattern nào?</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Pattern Decision Tree — Nhận diện nhanh</div>
+    <svg width="100%" viewBox="0 0 860 520" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs>
+        <marker id="arrd" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M2 2L8 5L2 8" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Root -->
+      <rect x="330" y="20" width="200" height="44" rx="8" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="430" y="40" text-anchor="middle" font-size="13" font-weight="700" fill="#e2e8f0">Bài toán mới</text>
+      <text x="430" y="57" text-anchor="middle" font-size="11" fill="#94a3b8">cần tối ưu?</text>
+
+      <!-- Q1: Array/String? -->
+      <line x1="430" y1="64" x2="430" y2="100" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <rect x="300" y="100" width="260" height="40" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="430" y="117" text-anchor="middle" font-size="12" fill="#94a3b8">Array / String liên tiếp?</text>
+      <text x="430" y="131" text-anchor="middle" font-size="11" fill="#64748b">(subarray, substring, window)</text>
+
+      <!-- Yes → Sliding Window / Prefix -->
+      <line x1="300" y1="120" x2="200" y2="160" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <text x="245" y="148" text-anchor="middle" font-size="10" fill="#f59e0b">Yes</text>
+      <rect x="100" y="160" width="195" height="60" rx="7" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1"/>
+      <text x="197" y="185" text-anchor="middle" font-size="12" font-weight="600" fill="#f59e0b">🪟 Sliding Window</text>
+      <text x="197" y="201" text-anchor="middle" font-size="11" fill="#64748b">∑ Prefix Sums</text>
+      <text x="197" y="214" text-anchor="middle" font-size="10" fill="#4b5563">fixed/variable size</text>
+
+      <!-- No → Sorted array? -->
+      <line x1="560" y1="120" x2="660" y2="160" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <text x="615" y="148" text-anchor="middle" font-size="10" fill="#f59e0b">No</text>
+      <rect x="565" y="160" width="195" height="60" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="662" y="183" text-anchor="middle" font-size="12" fill="#94a3b8">Linked List?</text>
+      <text x="662" y="199" text-anchor="middle" font-size="11" fill="#64748b">cycle / middle?</text>
+
+      <!-- Linked List → Fast Slow -->
+      <line x1="662" y1="220" x2="662" y2="265" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <rect x="565" y="265" width="195" height="44" rx="7" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+      <text x="662" y="283" text-anchor="middle" font-size="12" font-weight="600" fill="#00ff88">🐢🐇 Fast &amp; Slow</text>
+      <text x="662" y="298" text-anchor="middle" font-size="11" fill="#64748b">Floyd's algorithm</text>
+
+      <!-- Q2: Lookup O(1)? -->
+      <line x1="430" y1="140" x2="430" y2="185" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <rect x="300" y="185" width="260" height="40" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="430" y="202" text-anchor="middle" font-size="12" fill="#94a3b8">Cần tra cứu nhanh O(1)?</text>
+      <text x="430" y="217" text-anchor="middle" font-size="11" fill="#64748b">(count, exist, complement)</text>
+
+      <!-- Yes → HashMap -->
+      <line x1="300" y1="205" x2="200" y2="270" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <text x="245" y="247" text-anchor="middle" font-size="10" fill="#f59e0b">Yes</text>
+      <rect x="100" y="270" width="195" height="44" rx="7" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="197" y="288" text-anchor="middle" font-size="12" font-weight="600" fill="#00d4ff">🗂️ Hash Maps &amp; Sets</text>
+      <text x="197" y="303" text-anchor="middle" font-size="11" fill="#64748b">frequency, dedup, group</text>
+
+      <!-- Q3: Sorted? -->
+      <line x1="430" y1="225" x2="430" y2="270" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <rect x="300" y="270" width="260" height="40" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="430" y="287" text-anchor="middle" font-size="12" fill="#94a3b8">Mảng đã sort?</text>
+      <text x="430" y="303" text-anchor="middle" font-size="11" fill="#64748b">(two-sum, pair, partition)</text>
+
+      <!-- Sorted → Two Pointers -->
+      <line x1="430" y1="310" x2="430" y2="355" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <rect x="300" y="355" width="260" height="44" rx="7" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="430" y="373" text-anchor="middle" font-size="12" font-weight="600" fill="#ff6b6b">👈👉 Two Pointers</text>
+      <text x="430" y="389" text-anchor="middle" font-size="11" fill="#64748b">left + right, opposite ends</text>
+
+      <!-- Q4: Order matters? -->
+      <line x1="430" y1="399" x2="430" y2="440" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <rect x="280" y="440" width="300" height="40" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="430" y="457" text-anchor="middle" font-size="12" fill="#94a3b8">Cần nhớ trạng thái trước?</text>
+      <text x="430" y="472" text-anchor="middle" font-size="11" fill="#64748b">(nested structure, history)</text>
+
+      <!-- Stack / Queue -->
+      <line x1="300" y1="460" x2="190" y2="490" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <text x="242" y="483" text-anchor="middle" font-size="10" fill="#f59e0b">LIFO</text>
+      <rect x="90" y="490" width="185" height="40" rx="7" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.3)" stroke-width="1"/>
+      <text x="182" y="508" text-anchor="middle" font-size="12" font-weight="600" fill="#a855f7">📚 Stack · Monotonic</text>
+      <text x="182" y="522" text-anchor="middle" font-size="11" fill="#64748b">DFS, bracket, NGE</text>
+
+      <line x1="560" y1="460" x2="660" y2="490" stroke="#475569" stroke-width="1" marker-end="url(#arrd)"/>
+      <text x="616" y="483" text-anchor="middle" font-size="10" fill="#f59e0b">FIFO</text>
+      <rect x="565" y="490" width="185" height="40" rx="7" fill="rgba(59,130,246,0.08)" stroke="rgba(59,130,246,0.3)" stroke-width="1"/>
+      <text x="657" y="508" text-anchor="middle" font-size="12" font-weight="600" fill="#3b82f6">🚶 Queue</text>
+      <text x="657" y="522" text-anchor="middle" font-size="11" fill="#64748b">BFS, level order</text>
+    </svg>
+  </div>
+
+  <div class="note note-info">
+    <div class="note-icon">🎯</div>
+    <p><strong>Chiến lược học:</strong> Mỗi pattern có signature dấu hiệu nhận biết. Khi đọc đề bài, hỏi: "Có cần subarray liên tiếp không?" → Sliding Window. "Cần tra cứu complement không?" → HashMap. "Có linked list + cycle không?" → Fast/Slow Pointers.</p>
+  </div>
+</section>
+
+<!-- ==================== HASH MAPS & SETS ==================== -->
+<section class="page-section" id="s-hashmap">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Hash Maps &amp; Sets Pattern</div>
+      <div class="section-subtitle">Tra cứu O(1) — nền tảng của frequency counting &amp; grouping</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 1</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Hash Map &amp; Hash Set là gì?</div>
+    <p class="prose">
+      <strong>Hash Map</strong> (<code>map[K]V</code> trong Go) lưu cặp key-value với tra cứu, chèn, xóa trung bình <strong>O(1)</strong> nhờ hàm băm (hash function). <strong>Hash Set</strong> (<code>map[K]struct{}</code>) chỉ lưu key — dùng để kiểm tra tồn tại và deduplication.
+    </p>
+    <p class="prose">
+      Pattern này giải quyết bài toán: đếm tần suất, tìm phần bù (complement), nhóm phần tử, xây dựng index ngược, loại trùng lặp. Go không có built-in <code>Set</code> type — ta dùng <code>map[T]struct{}</code> với zero-cost value.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Hash Map Internal — Hashing + Bucket + Collision</div>
+    <svg width="100%" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs>
+        <marker id="arr1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 2L8 5L2 8" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Keys input -->
+      <text x="30" y="28" font-size="11" fill="#64748b">Keys</text>
+      <rect x="30" y="40" width="100" height="28" rx="5" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="80" y="59" text-anchor="middle" font-size="13" font-weight="600" fill="#00d4ff">"apple"</text>
+      <rect x="30" y="78" width="100" height="28" rx="5" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="80" y="97" text-anchor="middle" font-size="13" font-weight="600" fill="#00d4ff">"banana"</text>
+      <rect x="30" y="116" width="100" height="28" rx="5" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="80" y="135" text-anchor="middle" font-size="13" font-weight="600" fill="#00d4ff">"cherry"</text>
+      <rect x="30" y="154" width="100" height="28" rx="5" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1"/>
+      <text x="80" y="173" text-anchor="middle" font-size="13" font-weight="600" fill="#a855f7">"grape"</text>
+
+      <!-- Hash Function box -->
+      <rect x="200" y="70" width="140" height="100" rx="10" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1.5"/>
+      <text x="270" y="108" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="700">Hash Function</text>
+      <text x="270" y="128" text-anchor="middle" font-size="11" fill="#64748b">h(key) % buckets</text>
+      <text x="270" y="148" text-anchor="middle" font-size="11" fill="#4b5563">→ bucket index</text>
+
+      <!-- Arrows to hash fn -->
+      <line x1="130" y1="54" x2="200" y2="105" stroke="#475569" stroke-width="1" marker-end="url(#arr1)"/>
+      <line x1="130" y1="92" x2="200" y2="115" stroke="#475569" stroke-width="1" marker-end="url(#arr1)"/>
+      <line x1="130" y1="130" x2="200" y2="125" stroke="#475569" stroke-width="1" marker-end="url(#arr1)"/>
+      <line x1="130" y1="168" x2="200" y2="135" stroke="#475569" stroke-width="1" marker-end="url(#arr1)"/>
+
+      <!-- Bucket Array -->
+      <text x="410" y="28" font-size="11" fill="#64748b">Buckets</text>
+      <!-- bucket 0 -->
+      <rect x="410" y="40" width="120" height="32" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <text x="420" y="53" font-size="10" fill="#4b5563">[0]</text>
+      <text x="460" y="60" text-anchor="middle" font-size="11" fill="#64748b">empty</text>
+      <!-- bucket 1 -->
+      <rect x="410" y="78" width="120" height="32" rx="4" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="420" y="91" font-size="10" fill="#4b5563">[1]</text>
+      <text x="470" y="98" text-anchor="middle" font-size="11" fill="#00ff88">"apple"→5</text>
+      <!-- bucket 2 -->
+      <rect x="410" y="116" width="120" height="32" rx="4" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+      <text x="420" y="129" font-size="10" fill="#4b5563">[2]</text>
+      <text x="470" y="136" text-anchor="middle" font-size="11" fill="#00d4ff">"banana"→3</text>
+      <!-- bucket 3 -->
+      <rect x="410" y="154" width="120" height="32" rx="4" fill="rgba(168,85,247,0.06)" stroke="rgba(168,85,247,0.25)" stroke-width="1"/>
+      <text x="420" y="167" font-size="10" fill="#4b5563">[3]</text>
+      <text x="470" y="174" text-anchor="middle" font-size="11" fill="#a855f7">"cherry"→1</text>
+      <!-- bucket 4 - collision -->
+      <rect x="410" y="192" width="120" height="32" rx="4" fill="rgba(255,107,107,0.06)" stroke="rgba(255,107,107,0.25)" stroke-width="1"/>
+      <text x="420" y="205" font-size="10" fill="#4b5563">[4]</text>
+      <text x="470" y="212" text-anchor="middle" font-size="11" fill="#ff6b6b">"grape"→8</text>
+
+      <!-- Arrows from hash fn to buckets -->
+      <line x1="340" y1="100" x2="408" y2="94" stroke="#60a5fa" stroke-width="1" marker-end="url(#arr1)"/>
+      <line x1="340" y1="112" x2="408" y2="130" stroke="#60a5fa" stroke-width="1" marker-end="url(#arr1)"/>
+      <line x1="340" y1="122" x2="408" y2="168" stroke="#a78bfa" stroke-width="1" marker-end="url(#arr1)"/>
+      <line x1="340" y1="132" x2="408" y2="207" stroke="#a78bfa" stroke-width="1" marker-end="url(#arr1)"/>
+
+      <!-- Chaining for collision -->
+      <rect x="545" y="192" width="120" height="32" rx="4" fill="rgba(255,107,107,0.04)" stroke="rgba(255,107,107,0.15)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="605" y="212" text-anchor="middle" font-size="11" fill="#ff6b6b">→ "mango"→2</text>
+      <line x1="530" y1="208" x2="545" y2="208" stroke="#ff6b6b" stroke-width="1" marker-end="url(#arr1)"/>
+      <text x="570" y="245" text-anchor="middle" font-size="10" fill="#64748b">collision: chaining</text>
+
+      <!-- Go map facts -->
+      <rect x="410" y="268" width="370" height="64" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+      <text x="420" y="286" font-size="11" fill="#64748b">Go map facts:</text>
+      <text x="420" y="302" font-size="11" fill="#94a3b8">• Runtime: hash map với chaining  • Load factor: ~6.5</text>
+      <text x="420" y="318" font-size="11" fill="#94a3b8">• make(map[K]V, hint)  • Not safe for concurrent R/W</text>
+
+      <!-- Complexity box -->
+      <rect x="30" y="240" width="300" height="80" rx="8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="45" y="260" font-size="11" fill="#64748b">Complexity (average)</text>
+      <text x="45" y="278" font-size="12" fill="#00ff88" font-weight="700">Insert:  O(1)</text>
+      <text x="45" y="296" font-size="12" fill="#00ff88" font-weight="700">Lookup:  O(1)</text>
+      <text x="45" y="314" font-size="12" fill="#f59e0b" font-weight="700">Worst:   O(n)  — hash collision</text>
+    </svg>
+  </div>
+
+  <h3>Khi nào dùng HashMap/Set?</h3>
+  <div class="card-grid">
+    <div class="card"><div class="card-title">🔢 Frequency Count</div><p class="prose" style="margin:0;font-size:13px">Đếm số lần xuất hiện của phần tử. <code>freq[x]++</code>. Dùng cho: anagram, top-k elements.</p></div>
+    <div class="card"><div class="card-title">🎯 Complement Lookup</div><p class="prose" style="margin:0;font-size:13px">Tìm phần bù: biết <code>target - x</code>, cần kiểm tra xem đã thấy chưa. Two Sum, k-diff pairs.</p></div>
+    <div class="card"><div class="card-title">🏷️ Grouping</div><p class="prose" style="margin:0;font-size:13px">Nhóm phần tử theo key: group anagrams, sort by frequency.</p></div>
+    <div class="card"><div class="card-title">🔍 Deduplication</div><p class="prose" style="margin:0;font-size:13px">Loại trùng lặp, kiểm tra tập con. <code>map[T]struct{}</code> tiết kiệm hơn <code>map[T]bool</code>.</p></div>
+  </div>
+
+  <h3>📝 Example 1 — Two Sum (Basic)</h3>
+  <div class="complexity-row">
+    <div class="complexity-pill cp-time"><span class="cp-label">Time</span>O(n)</div>
+    <div class="complexity-pill cp-space"><span class="cp-label">Space</span>O(n)</div>
+  </div>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">two_sum.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="cm">// TwoSum: tìm 2 chỉ số có tổng = target
+// Pattern: complement lookup — với mỗi nums[i], kiểm tra target-nums[i] đã xuất hiện chưa</span>
+<span class="kw">func</span> <span class="fn">twoSum</span>(nums []<span class="tp">int</span>, target <span class="tp">int</span>) []<span class="tp">int</span> {
+    seen := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>) <span class="cm">// value → index</span>
+
+    <span class="kw">for</span> i, n := <span class="kw">range</span> nums {
+        complement := target - n
+        <span class="kw">if</span> j, ok := seen[complement]; ok {
+            <span class="kw">return</span> []<span class="tp">int</span>{j, i}
+        }
+        seen[n] = i <span class="cm">// lưu sau khi check để tránh dùng cùng phần tử</span>
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// Test</span>
+<span class="cm">// twoSum([2,7,11,15], 9)  → [0,1]  (2+7=9)
+// twoSum([3,2,4], 6)       → [1,2]  (2+4=6)</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Group Anagrams (Advanced)</h3>
+  <div class="complexity-row">
+    <div class="complexity-pill cp-time"><span class="cp-label">Time</span>O(n·k)</div>
+    <div class="complexity-pill cp-space"><span class="cp-label">Space</span>O(n·k)</div>
+  </div>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">group_anagrams.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// GroupAnagrams: nhóm các anagram lại với nhau
+// Key insight: dùng sorted string hoặc [26]byte frequency array làm key</span>
+<span class="kw">func</span> <span class="fn">groupAnagrams</span>(strs []<span class="tp">string</span>) [][]<span class="tp">string</span> {
+    groups := <span class="kw">make</span>(<span class="kw">map</span>[[<span class="num">26</span>]<span class="tp">byte</span>][]<span class="tp">string</span>)
+
+    <span class="kw">for</span> _, s := <span class="kw">range</span> strs {
+        <span class="kw">var</span> key [<span class="num">26</span>]<span class="tp">byte</span>
+        <span class="kw">for</span> _, ch := <span class="kw">range</span> s {
+            key[ch-<span class="str">'a'</span>]++ <span class="cm">// frequency fingerprint</span>
+        }
+        groups[key] = <span class="fn">append</span>(groups[key], s)
+    }
+
+    result := <span class="fn">make</span>([][]<span class="tp">string</span>, <span class="num">0</span>, <span class="fn">len</span>(groups))
+    <span class="kw">for</span> _, v := <span class="kw">range</span> groups {
+        result = <span class="fn">append</span>(result, v)
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// Tại sao [26]byte thay vì sort?
+// sort: O(k log k) per string  →  total O(n·k·log k)
+// [26]byte: O(k) per string    →  total O(n·k)  ← nhanh hơn</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — LRU Cache (Expert)</h3>
+  <div class="complexity-row">
+    <div class="complexity-pill cp-time"><span class="cp-label">Time</span>O(1) get/put</div>
+    <div class="complexity-pill cp-space"><span class="cp-label">Space</span>O(capacity)</div>
+  </div>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">lru_cache.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// LRU Cache: HashMap + Doubly Linked List
+// HashMap cho O(1) lookup; DLL cho O(1) insert/delete ở đầu/cuối</span>
+<span class="kw">type</span> <span class="tp">Node</span> <span class="kw">struct</span> {
+    key, val   <span class="tp">int</span>
+    prev, next *<span class="tp">Node</span>
+}
+
+<span class="kw">type</span> <span class="tp">LRUCache</span> <span class="kw">struct</span> {
+    capacity <span class="tp">int</span>
+    cache    <span class="kw">map</span>[<span class="tp">int</span>]*<span class="tp">Node</span>
+    head     *<span class="tp">Node</span> <span class="cm">// sentinel: MRU end</span>
+    tail     *<span class="tp">Node</span> <span class="cm">// sentinel: LRU end</span>
+}
+
+<span class="kw">func</span> <span class="fn">Constructor</span>(capacity <span class="tp">int</span>) <span class="tp">LRUCache</span> {
+    head := &<span class="tp">Node</span>{}
+    tail := &<span class="tp">Node</span>{}
+    head.next = tail
+    tail.prev = head
+    <span class="kw">return</span> <span class="tp">LRUCache</span>{
+        capacity: capacity,
+        cache:    <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]*<span class="tp">Node</span>, capacity),
+        head:     head, tail: tail,
+    }
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">remove</span>(n *<span class="tp">Node</span>) {
+    n.prev.next = n.next
+    n.next.prev = n.prev
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">insertFront</span>(n *<span class="tp">Node</span>) {
+    n.next = c.head.next
+    n.prev = c.head
+    c.head.next.prev = n
+    c.head.next = n
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">Get</span>(key <span class="tp">int</span>) <span class="tp">int</span> {
+    node, ok := c.cache[key]
+    <span class="kw">if</span> !ok { <span class="kw">return</span> -<span class="num">1</span> }
+    c.<span class="fn">remove</span>(node)
+    c.<span class="fn">insertFront</span>(node) <span class="cm">// move to MRU</span>
+    <span class="kw">return</span> node.val
+}
+
+<span class="kw">func</span> (c *<span class="tp">LRUCache</span>) <span class="fn">Put</span>(key, value <span class="tp">int</span>) {
+    <span class="kw">if</span> node, ok := c.cache[key]; ok {
+        node.val = value
+        c.<span class="fn">remove</span>(node)
+        c.<span class="fn">insertFront</span>(node)
+        <span class="kw">return</span>
+    }
+    <span class="kw">if</span> <span class="fn">len</span>(c.cache) >= c.capacity {
+        lru := c.tail.prev       <span class="cm">// evict least recently used</span>
+        c.<span class="fn">remove</span>(lru)
+        <span class="kw">delete</span>(c.cache, lru.key)
+    }
+    node := &<span class="tp">Node</span>{key: key, val: value}
+    c.cache[key] = node
+    c.<span class="fn">insertFront</span>(node)
+}
+
+<span class="cm">// Bonus: Go 1.23+ có maps.Clone, maps.Keys, slices.Collect tiện hơn</span></pre>
+  </div>
+
+  <h3>📝 Example 4 — Top K Frequent Elements (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">top_k_frequent.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// TopKFrequent: tìm k phần tử xuất hiện nhiều nhất — Bucket Sort O(n)
+// Thay vì heap O(n log k), dùng bucket sort: index = frequency</span>
+<span class="kw">func</span> <span class="fn">topKFrequent</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="cm">// Bước 1: đếm frequency</span>
+    freq := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>)
+    <span class="kw">for</span> _, n := <span class="kw">range</span> nums {
+        freq[n]++
+    }
+
+    <span class="cm">// Bước 2: bucket[i] = các số xuất hiện đúng i lần</span>
+    buckets := <span class="kw">make</span>([][]<span class="tp">int</span>, <span class="fn">len</span>(nums)+<span class="num">1</span>)
+    <span class="kw">for</span> val, cnt := <span class="kw">range</span> freq {
+        buckets[cnt] = <span class="fn">append</span>(buckets[cnt], val)
+    }
+
+    <span class="cm">// Bước 3: duyệt từ bucket có freq cao nhất</span>
+    result := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="num">0</span>, k)
+    <span class="kw">for</span> i := <span class="fn">len</span>(buckets) - <span class="num">1</span>; i >= <span class="num">0</span> && <span class="fn">len</span>(result) < k; i-- {
+        result = <span class="fn">append</span>(result, buckets[i]...)
+    }
+    <span class="kw">return</span> result[:<span class="num">k</span>]
+}
+<span class="cm">// Time: O(n)  Space: O(n)  — tốt hơn heap O(n log k)</span></pre>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p><strong>Pitfall phổ biến:</strong> <code>map</code> trong Go <strong>không safe cho concurrent access</strong>. Dùng <code>sync.RWMutex</code> hoặc <code>sync.Map</code> khi có goroutine đọc/ghi đồng thời. Ngoài ra, đừng assume thứ tự duyệt <code>range map</code> — thứ tự là <em>ngẫu nhiên</em> trong Go.</p>
+  </div>
+</section>
+
+<!-- ==================== PREFIX SUMS ==================== -->
+<section class="page-section" id="s-prefix">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div>
+      <div class="section-title">Prefix Sums Pattern</div>
+      <div class="section-subtitle">Tiền xử lý O(n) → truy vấn range O(1)</div>
+    </div>
+    <span class="badge badge-basic">PATTERN 2</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Prefix Sum là gì?</div>
+    <p class="prose">
+      <strong>Prefix Sum</strong> (tổng tiền tố) là mảng <code>prefix[i]</code> lưu tổng của tất cả phần tử từ index 0 đến i-1. Công thức: <code>prefix[i] = prefix[i-1] + nums[i-1]</code>.
+    </p>
+    <p class="prose">
+      Sau khi xây dựng, ta có thể tính tổng bất kỳ đoạn <code>[l, r]</code> trong O(1): <code>sum(l,r) = prefix[r+1] - prefix[l]</code>. Cực kỳ mạnh khi cần trả lời nhiều range query.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Prefix Sum — Xây dựng &amp; Range Query</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Original array -->
+      <text x="30" y="30" font-size="11" fill="#64748b">nums[]</text>
+      <text x="30" y="55" font-size="11" fill="#64748b">index:</text>
+      <rect x="90" y="40" width="70" height="36" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1.2"/>
+      <text x="125" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#00d4ff">3</text>
+      <text x="125" y="78" text-anchor="middle" font-size="10" fill="#4b5563">0</text>
+      <rect x="170" y="40" width="70" height="36" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1.2"/>
+      <text x="205" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#00d4ff">1</text>
+      <text x="205" y="78" text-anchor="middle" font-size="10" fill="#4b5563">1</text>
+      <rect x="250" y="40" width="70" height="36" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1.2"/>
+      <text x="285" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#00d4ff">4</text>
+      <text x="285" y="78" text-anchor="middle" font-size="10" fill="#4b5563">2</text>
+      <rect x="330" y="40" width="70" height="36" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+      <text x="365" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#f59e0b">1</text>
+      <text x="365" y="78" text-anchor="middle" font-size="10" fill="#4b5563">3</text>
+      <rect x="410" y="40" width="70" height="36" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+      <text x="445" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#f59e0b">5</text>
+      <text x="445" y="78" text-anchor="middle" font-size="10" fill="#4b5563">4</text>
+      <rect x="490" y="40" width="70" height="36" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+      <text x="525" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#f59e0b">9</text>
+      <text x="525" y="78" text-anchor="middle" font-size="10" fill="#4b5563">5</text>
+      <rect x="570" y="40" width="70" height="36" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" stroke-width="1.2"/>
+      <text x="605" y="62" text-anchor="middle" font-size="15" font-weight="700" fill="#00d4ff">2</text>
+      <text x="605" y="78" text-anchor="middle" font-size="10" fill="#4b5563">6</text>
+      <!-- Brace for range query [3,5] -->
+      <path d="M325 82 Q325 95 365 95 Q445 95 445 95 Q525 95 525 95 Q525 82" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="425" y="112" text-anchor="middle" font-size="11" fill="#f59e0b">query: sum(3,5) = 1+5+9 = 15</text>
+
+      <!-- Prefix array -->
+      <text x="30" y="145" font-size="11" fill="#64748b">prefix[]</text>
+      <text x="30" y="168" font-size="11" fill="#64748b">index:</text>
+      <rect x="50" y="152" width="70" height="36" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1.2"/>
+      <text x="85" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#a855f7">0</text>
+      <text x="85" y="190" text-anchor="middle" font-size="10" fill="#4b5563">0</text>
+      <rect x="130" y="152" width="70" height="36" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1.2"/>
+      <text x="165" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#a855f7">3</text>
+      <text x="165" y="190" text-anchor="middle" font-size="10" fill="#4b5563">1</text>
+      <rect x="210" y="152" width="70" height="36" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1.2"/>
+      <text x="245" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#a855f7">4</text>
+      <text x="245" y="190" text-anchor="middle" font-size="10" fill="#4b5563">2</text>
+      <rect x="290" y="152" width="70" height="36" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1.2"/>
+      <text x="325" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#a855f7">8</text>
+      <text x="325" y="190" text-anchor="middle" font-size="10" fill="#4b5563">3</text>
+      <rect x="370" y="152" width="70" height="36" rx="4" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.8"/>
+      <text x="405" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#00ff88">9</text>
+      <text x="405" y="190" text-anchor="middle" font-size="10" fill="#4b5563">4</text>
+      <rect x="450" y="152" width="70" height="36" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1.2"/>
+      <text x="485" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#a855f7">14</text>
+      <text x="485" y="190" text-anchor="middle" font-size="10" fill="#4b5563">5</text>
+      <rect x="530" y="152" width="70" height="36" rx="4" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.8"/>
+      <text x="565" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#00ff88">23</text>
+      <text x="565" y="190" text-anchor="middle" font-size="10" fill="#4b5563">6</text>
+      <rect x="610" y="152" width="70" height="36" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" stroke-width="1.2"/>
+      <text x="645" y="174" text-anchor="middle" font-size="15" font-weight="700" fill="#a855f7">25</text>
+      <text x="645" y="190" text-anchor="middle" font-size="10" fill="#4b5563">7</text>
+
+      <!-- Formula -->
+      <rect x="30" y="218" width="700" height="36" rx="6" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.15)" stroke-width="1"/>
+      <text x="380" y="232" text-anchor="middle" font-size="12" fill="#94a3b8">sum(l=3, r=5)</text>
+      <text x="380" y="247" text-anchor="middle" font-size="13" font-weight="700" fill="#00ff88">= prefix[r+1] - prefix[l]  =  prefix[6] - prefix[3]  =  23 - 8  =  15  ✓</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Range Sum Query (Basic)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">range_sum_query.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="cm">// NumArray: xây prefix sum, query O(1)</span>
+<span class="kw">type</span> <span class="tp">NumArray</span> <span class="kw">struct</span> {
+    prefix []<span class="tp">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewNumArray</span>(nums []<span class="tp">int</span>) *<span class="tp">NumArray</span> {
+    prefix := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(nums)+<span class="num">1</span>)
+    <span class="kw">for</span> i, v := <span class="kw">range</span> nums {
+        prefix[i+<span class="num">1</span>] = prefix[i] + v
+    }
+    <span class="kw">return</span> &<span class="tp">NumArray</span>{prefix: prefix}
+}
+
+<span class="cm">// SumRange: O(1) — không cần loop</span>
+<span class="kw">func</span> (na *<span class="tp">NumArray</span>) <span class="fn">SumRange</span>(left, right <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">return</span> na.prefix[right+<span class="num">1</span>] - na.prefix[left]
+}
+
+<span class="cm">// arr := NewNumArray([]int{3,1,4,1,5,9,2})
+// arr.SumRange(1, 4) → 11  (1+4+1+5)</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Subarray Sum Equals K (Advanced)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">subarray_sum_k.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// SubarraySumEqualsK: đếm số subarray có tổng = k
+// Key insight: prefix[j] - prefix[i] = k  →  cần prefix[i] = prefix[j] - k
+// Dùng HashMap đếm số lần prefix sum đã xuất hiện</span>
+<span class="kw">func</span> <span class="fn">subarraySum</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) <span class="tp">int</span> {
+    count := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>)
+    count[<span class="num">0</span>] = <span class="num">1</span> <span class="cm">// base case: prefix sum = 0 xuất hiện 1 lần (empty prefix)</span>
+
+    sum, result := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, n := <span class="kw">range</span> nums {
+        sum += n
+        <span class="cm">// Nếu (sum - k) đã thấy, có count[sum-k] subarray kết thúc ở đây với tổng = k</span>
+        result += count[sum-k]
+        count[sum]++
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// nums=[1,1,1], k=2 → 2 (subarray [0:2] và [1:3])</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — 2D Prefix Sum (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">2d_prefix_sum.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// NumMatrix: 2D prefix sum — query rectangle sum O(1)
+// prefix[i][j] = tổng tất cả phần tử trong rectangle (0,0) → (i-1,j-1)</span>
+<span class="kw">type</span> <span class="tp">NumMatrix</span> <span class="kw">struct</span> {
+    prefix [][]<span class="tp">int</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewNumMatrix</span>(matrix [][]<span class="tp">int</span>) *<span class="tp">NumMatrix</span> {
+    m, n := <span class="fn">len</span>(matrix), <span class="fn">len</span>(matrix[<span class="num">0</span>])
+    prefix := <span class="kw">make</span>([][]<span class="tp">int</span>, m+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> prefix {
+        prefix[i] = <span class="kw">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    }
+    <span class="kw">for</span> i := <span class="num">1</span>; i <= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j <= n; j++ {
+            prefix[i][j] = matrix[i-<span class="num">1</span>][j-<span class="num">1</span>] +
+                prefix[i-<span class="num">1</span>][j] +     <span class="cm">// trên</span>
+                prefix[i][j-<span class="num">1</span>] -     <span class="cm">// trái</span>
+                prefix[i-<span class="num">1</span>][j-<span class="num">1</span>]   <span class="cm">// bỏ phần đã cộng đôi (góc trên-trái)</span>
+        }
+    }
+    <span class="kw">return</span> &<span class="tp">NumMatrix</span>{prefix: prefix}
+}
+
+<span class="cm">// SumRegion: O(1) — inclusion-exclusion</span>
+<span class="kw">func</span> (nm *<span class="tp">NumMatrix</span>) <span class="fn">SumRegion</span>(r1, c1, r2, c2 <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">return</span> nm.prefix[r2+<span class="num">1</span>][c2+<span class="num">1</span>] -
+        nm.prefix[r1][c2+<span class="num">1</span>] -
+        nm.prefix[r2+<span class="num">1</span>][c1] +
+        nm.prefix[r1][c1]
+}
+<span class="cm">// Công thức: A(r2,c2) - A(r1-1,c2) - A(r2,c1-1) + A(r1-1,c1-1)</span></pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Nhận diện Pattern:</strong> Khi đề bài có nhiều query về range sum / range count và mảng không thay đổi → nghĩ ngay đến Prefix Sum. Nếu mảng thay đổi → dùng Segment Tree hoặc BIT (Fenwick Tree).</p>
+  </div>
+</section>
+
+<!-- ==================== SLIDING WINDOW ==================== -->
+<section class="page-section" id="s-sliding">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div>
+      <div class="section-title">Sliding Window Pattern</div>
+      <div class="section-subtitle">Cửa sổ di động — tối ưu bài toán subarray/substring</div>
+    </div>
+    <span class="badge badge-advanced">PATTERN 3</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Sliding Window là gì?</div>
+    <p class="prose">
+      <strong>Sliding Window</strong> duy trì một "cửa sổ" [left, right] trên mảng/chuỗi và di chuyển nó theo điều kiện, tránh tính lại từ đầu mỗi lần. Có hai biến thể: <strong>Fixed Size</strong> (kích thước cố định k) và <strong>Variable Size</strong> (kích thước thay đổi theo điều kiện).
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Sliding Window — Fixed vs Variable Size</div>
+    <svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Fixed Window label -->
+      <text x="30" y="28" font-size="12" font-weight="700" fill="#00d4ff">Fixed Window (k=3)</text>
+      <text x="30" y="46" font-size="11" fill="#64748b">s = "ABCABC"</text>
+      <!-- Array cells -->
+      <rect x="30" y="54" width="44" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="52" y="77" text-anchor="middle" font-size="14" fill="#00d4ff">A</text>
+      <rect x="78" y="54" width="44" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="100" y="77" text-anchor="middle" font-size="14" fill="#00d4ff">B</text>
+      <rect x="126" y="54" width="44" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="148" y="77" text-anchor="middle" font-size="14" fill="#00d4ff">C</text>
+      <rect x="174" y="54" width="44" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="196" y="77" text-anchor="middle" font-size="14" fill="#64748b">A</text>
+      <rect x="222" y="54" width="44" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="244" y="77" text-anchor="middle" font-size="14" fill="#64748b">B</text>
+      <rect x="270" y="54" width="44" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="292" y="77" text-anchor="middle" font-size="14" fill="#64748b">C</text>
+      <!-- window bracket -->
+      <rect x="26" y="50" width="146" height="44" rx="6" fill="none" stroke="#00d4ff" stroke-width="2" stroke-dasharray="0"/>
+      <text x="99" y="112" text-anchor="middle" font-size="11" fill="#00d4ff">window [0,2]</text>
+
+      <!-- Arrow sliding -->
+      <text x="340" y="80" font-size="20" fill="#f59e0b">→</text>
+
+      <rect x="378" y="54" width="44" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="400" y="77" text-anchor="middle" font-size="14" fill="#64748b">A</text>
+      <rect x="426" y="54" width="44" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="448" y="77" text-anchor="middle" font-size="14" fill="#00d4ff">B</text>
+      <rect x="474" y="54" width="44" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="496" y="77" text-anchor="middle" font-size="14" fill="#00d4ff">C</text>
+      <rect x="522" y="54" width="44" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="544" y="77" text-anchor="middle" font-size="14" fill="#00d4ff">A</text>
+      <rect x="570" y="54" width="44" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="592" y="77" text-anchor="middle" font-size="14" fill="#64748b">B</text>
+      <rect x="618" y="54" width="44" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="640" y="77" text-anchor="middle" font-size="14" fill="#64748b">C</text>
+      <rect x="422" y="50" width="146" height="44" rx="6" fill="none" stroke="#00d4ff" stroke-width="2"/>
+      <text x="494" y="112" text-anchor="middle" font-size="11" fill="#00d4ff">window [1,3]</text>
+
+      <!-- Variable Window label -->
+      <text x="30" y="152" font-size="12" font-weight="700" fill="#f59e0b">Variable Window — Longest Substr No Repeat</text>
+      <!-- States -->
+      <rect x="30" y="162" width="700" height="120" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <!-- State 1 -->
+      <text x="45" y="180" font-size="11" fill="#64748b">Step 1: L=0, R=0</text>
+      <rect x="45" y="186" width="30" height="24" rx="3" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="60" y="203" text-anchor="middle" font-size="12" fill="#00ff88">a</text>
+      <rect x="79" y="186" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="94" y="203" text-anchor="middle" font-size="12" fill="#64748b">b</text>
+      <rect x="113" y="186" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="128" y="203" text-anchor="middle" font-size="12" fill="#64748b">c</text>
+      <rect x="147" y="186" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="162" y="203" text-anchor="middle" font-size="12" fill="#64748b">a</text>
+      <rect x="181" y="186" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="196" y="203" text-anchor="middle" font-size="12" fill="#64748b">b</text>
+      <text x="220" y="203" font-size="11" fill="#4b5563">→ window="a", len=1</text>
+      <!-- State 2 -->
+      <text x="45" y="225" font-size="11" fill="#64748b">Step 3: L=0, R=2</text>
+      <rect x="45" y="231" width="30" height="24" rx="3" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="60" y="248" text-anchor="middle" font-size="12" fill="#00d4ff">a</text>
+      <rect x="79" y="231" width="30" height="24" rx="3" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="94" y="248" text-anchor="middle" font-size="12" fill="#00d4ff">b</text>
+      <rect x="113" y="231" width="30" height="24" rx="3" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="128" y="248" text-anchor="middle" font-size="12" fill="#00d4ff">c</text>
+      <rect x="147" y="231" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="162" y="248" text-anchor="middle" font-size="12" fill="#64748b">a</text>
+      <rect x="181" y="231" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="196" y="248" text-anchor="middle" font-size="12" fill="#64748b">b</text>
+      <text x="220" y="248" font-size="11" fill="#00ff88">→ window="abc", len=3 ★</text>
+      <!-- State 3 - shrink -->
+      <text x="45" y="270" font-size="11" fill="#64748b">Step 4: R=3 ('a' duplicate) → shrink L</text>
+      <rect x="45" y="276" width="30" height="24" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="60" y="293" text-anchor="middle" font-size="12" fill="#ff6b6b">a</text>
+      <rect x="79" y="276" width="30" height="24" rx="3" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="94" y="293" text-anchor="middle" font-size="12" fill="#00d4ff">b</text>
+      <rect x="113" y="276" width="30" height="24" rx="3" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="128" y="293" text-anchor="middle" font-size="12" fill="#00d4ff">c</text>
+      <rect x="147" y="276" width="30" height="24" rx="3" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="162" y="293" text-anchor="middle" font-size="12" fill="#00d4ff">a</text>
+      <rect x="181" y="276" width="30" height="24" rx="3" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="196" y="293" text-anchor="middle" font-size="12" fill="#64748b">b</text>
+      <text x="220" y="293" font-size="11" fill="#f59e0b">→ L moves to 1, window="bca"</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Max Sum Subarray k (Fixed Window)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">max_sum_subarray.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="cm">// MaxSumSubarrayK: tổng lớn nhất của subarray kích thước k
+// Pattern: cửa sổ cố định — thêm phần tử mới, bỏ phần tử cũ nhất</span>
+<span class="kw">func</span> <span class="fn">maxSumSubarrayK</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(nums) < k { <span class="kw">return</span> <span class="num">0</span> }
+
+    <span class="cm">// Khởi tạo cửa sổ đầu tiên</span>
+    windowSum := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i < k; i++ {
+        windowSum += nums[i]
+    }
+    maxSum := windowSum
+
+    <span class="cm">// Trượt cửa sổ: +phần tử mới ở phải, -phần tử cũ ở trái</span>
+    <span class="kw">for</span> i := k; i < <span class="fn">len</span>(nums); i++ {
+        windowSum += nums[i] - nums[i-k]
+        <span class="kw">if</span> windowSum > maxSum {
+            maxSum = windowSum
+        }
+    }
+    <span class="kw">return</span> maxSum
+}
+<span class="cm">// nums=[2,1,5,1,3,2], k=3 → 9 (subarray [5,1,3])</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Longest Substring Without Repeating (Variable Window)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">longest_no_repeat.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// LengthOfLongestSubstring: cửa sổ co giãn + hashmap
+// right: mở rộng; left: thu nhỏ khi gặp ký tự trùng</span>
+<span class="kw">func</span> <span class="fn">lengthOfLongestSubstring</span>(s <span class="tp">string</span>) <span class="tp">int</span> {
+    lastSeen := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">byte</span>]<span class="tp">int</span>) <span class="cm">// char → last index</span>
+    left, best := <span class="num">0</span>, <span class="num">0</span>
+
+    <span class="kw">for</span> right := <span class="num">0</span>; right < <span class="fn">len</span>(s); right++ {
+        ch := s[right]
+        <span class="cm">// Nếu đã thấy ch trong window hiện tại → dịch left</span>
+        <span class="kw">if</span> idx, ok := lastSeen[ch]; ok && idx >= left {
+            left = idx + <span class="num">1</span>
+        }
+        lastSeen[ch] = right
+        <span class="kw">if</span> size := right - left + <span class="num">1</span>; size > best {
+            best = size
+        }
+    }
+    <span class="kw">return</span> best
+}
+<span class="cm">// "abcabcbb" → 3 ("abc")
+// "pwwkew"   → 3 ("wke")</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — Minimum Window Substring (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">min_window_substr.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// MinWindow: tìm substring ngắn nhất trong s chứa tất cả ký tự của t
+// Approach: cửa sổ + 2 map + biến "formed" để track điều kiện</span>
+<span class="kw">func</span> <span class="fn">minWindow</span>(s, t <span class="tp">string</span>) <span class="tp">string</span> {
+    need := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">byte</span>]<span class="tp">int</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i < <span class="fn">len</span>(t); i++ { need[t[i]]++ }
+
+    have, total := <span class="num">0</span>, <span class="fn">len</span>(need) <span class="cm">// số ký tự đủ count vs cần</span>
+    window := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">byte</span>]<span class="tp">int</span>)
+    best := [<span class="num">3</span>]<span class="tp">int</span>{-<span class="num">1</span>, <span class="num">0</span>, <span class="num">0</span>} <span class="cm">// {length, l, r}</span>
+    left := <span class="num">0</span>
+
+    <span class="kw">for</span> right := <span class="num">0</span>; right < <span class="fn">len</span>(s); right++ {
+        ch := s[right]
+        window[ch]++
+        <span class="cm">// check nếu ký tự này đã đủ count trong window</span>
+        <span class="kw">if</span> cnt, ok := need[ch]; ok && window[ch] == cnt {
+            have++
+        }
+        <span class="cm">// Thu hẹp từ trái khi đã có đủ tất cả ký tự</span>
+        <span class="kw">for</span> have == total {
+            <span class="cm">// Cập nhật kết quả tốt nhất</span>
+            <span class="kw">if</span> best[<span class="num">0</span>] == -<span class="num">1</span> || right-left+<span class="num">1</span> < best[<span class="num">0</span>] {
+                best = [<span class="num">3</span>]<span class="tp">int</span>{right - left + <span class="num">1</span>, left, right}
+            }
+            lch := s[left]
+            window[lch]--
+            <span class="kw">if</span> cnt, ok := need[lch]; ok && window[lch] < cnt {
+                have--
+            }
+            left++
+        }
+    }
+    <span class="kw">if</span> best[<span class="num">0</span>] == -<span class="num">1</span> { <span class="kw">return</span> <span class="str">""</span> }
+    <span class="kw">return</span> s[best[<span class="num">1</span>]:best[<span class="num">2</span>]+<span class="num">1</span>]
+}
+<span class="cm">// s="ADOBECODEBANC", t="ABC" → "BANC"   Time: O(|s|+|t|)</span></pre>
+  </div>
+</section>
+
+<!-- ==================== STACK ==================== -->
+<section class="page-section" id="s-stack">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div>
+      <div class="section-title">Stack Pattern</div>
+      <div class="section-subtitle">LIFO — xử lý bài toán cần "nhớ" ngữ cảnh trước đó</div>
+    </div>
+    <span class="badge badge-advanced">PATTERN 4</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Stack (Ngăn xếp)</div>
+    <p class="prose">
+      <strong>Stack</strong> là cấu trúc dữ liệu <strong>LIFO</strong> (Last In First Out). Trong Go, slice được dùng làm stack với <code>append</code> (push) và <code>slice[:len-1]</code> (pop). Stack giải quyết bài toán cần "nhớ" trạng thái trước đó: ngoặc đơn, DFS iterative, expression evaluation, backtracking.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Stack Operations — LIFO Visualization</div>
+    <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Stack box -->
+      <rect x="60" y="30" width="120" height="180" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <text x="120" y="22" text-anchor="middle" font-size="11" fill="#64748b">Empty Stack</text>
+      <text x="120" y="220" text-anchor="middle" font-size="10" fill="#4b5563">TOP</text>
+
+      <!-- After Push(1) -->
+      <rect x="230" y="30" width="120" height="180" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <rect x="238" y="162" width="104" height="40" rx="4" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="290" y="187" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff">1</text>
+      <text x="290" y="22" text-anchor="middle" font-size="11" fill="#64748b">Push(1)</text>
+      <text x="200" y="183" font-size="18" fill="#00ff88">→</text>
+      <text x="290" y="220" text-anchor="middle" font-size="10" fill="#00d4ff">TOP=1</text>
+
+      <!-- After Push(2) -->
+      <rect x="400" y="30" width="120" height="180" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <rect x="408" y="162" width="104" height="40" rx="4" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.25)" stroke-width="1"/>
+      <text x="460" y="187" text-anchor="middle" font-size="14" fill="#64748b">1</text>
+      <rect x="408" y="118" width="104" height="40" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="1.8"/>
+      <text x="460" y="143" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff">2</text>
+      <text x="460" y="22" text-anchor="middle" font-size="11" fill="#64748b">Push(2)</text>
+      <text x="370" y="143" font-size="18" fill="#00ff88">→</text>
+      <text x="460" y="220" text-anchor="middle" font-size="10" fill="#00d4ff">TOP=2</text>
+
+      <!-- After Push(3) -->
+      <rect x="570" y="30" width="120" height="180" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <rect x="578" y="162" width="104" height="40" rx="4" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.15)" stroke-width="1"/>
+      <text x="630" y="187" text-anchor="middle" font-size="14" fill="#4b5563">1</text>
+      <rect x="578" y="118" width="104" height="40" rx="4" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.25)" stroke-width="1"/>
+      <text x="630" y="143" text-anchor="middle" font-size="14" fill="#64748b">2</text>
+      <rect x="578" y="74" width="104" height="40" rx="4" fill="rgba(168,85,247,0.2)" stroke="rgba(168,85,247,0.6)" stroke-width="2"/>
+      <text x="630" y="99" text-anchor="middle" font-size="14" font-weight="700" fill="#a855f7">3</text>
+      <text x="630" y="22" text-anchor="middle" font-size="11" fill="#64748b">Push(3) → Pop()=3</text>
+      <text x="540" y="99" font-size="18" fill="#00ff88">→</text>
+      <text x="630" y="220" text-anchor="middle" font-size="10" fill="#a855f7">TOP=3  ← POP</text>
+
+      <!-- Labels -->
+      <text x="120" y="190" text-anchor="middle" font-size="10" fill="#4b5563">[]</text>
+      <text x="290" y="170" text-anchor="middle" font-size="9" fill="#4b5563">len=1</text>
+      <text x="460" y="126" text-anchor="middle" font-size="9" fill="#4b5563">len=2</text>
+      <text x="630" y="82" text-anchor="middle" font-size="9" fill="#4b5563">len=3</text>
+    </svg>
+  </div>
+
+  <h3>Go Stack Implementation</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">stack.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="cm">// Generic Stack dùng Go 1.18+ generics</span>
+<span class="kw">type</span> <span class="tp">Stack</span>[T <span class="kw">any</span>] <span class="kw">struct</span> {
+    data []T
+}
+
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[T]) <span class="fn">Push</span>(v T)      { s.data = <span class="fn">append</span>(s.data, v) }
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[T]) <span class="fn">Len</span>() <span class="tp">int</span>      { <span class="kw">return</span> <span class="fn">len</span>(s.data) }
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[T]) <span class="fn">IsEmpty</span>() <span class="tp">bool</span> { <span class="kw">return</span> <span class="fn">len</span>(s.data) == <span class="num">0</span> }
+
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[T]) <span class="fn">Peek</span>() (T, <span class="tp">bool</span>) {
+    <span class="kw">var</span> zero T
+    <span class="kw">if</span> s.<span class="fn">IsEmpty</span>() { <span class="kw">return</span> zero, <span class="kw">false</span> }
+    <span class="kw">return</span> s.data[<span class="fn">len</span>(s.data)-<span class="num">1</span>], <span class="kw">true</span>
+}
+
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[T]) <span class="fn">Pop</span>() (T, <span class="tp">bool</span>) {
+    <span class="kw">var</span> zero T
+    <span class="kw">if</span> s.<span class="fn">IsEmpty</span>() { <span class="kw">return</span> zero, <span class="kw">false</span> }
+    n := <span class="fn">len</span>(s.data) - <span class="num">1</span>
+    v := s.data[n]
+    s.data = s.data[:n]
+    <span class="kw">return</span> v, <span class="kw">true</span>
+}</pre>
+  </div>
+
+  <h3>📝 Example 1 — Valid Parentheses (Basic)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">valid_parentheses.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="kw">func</span> <span class="fn">isValid</span>(s <span class="tp">string</span>) <span class="tp">bool</span> {
+    stack := <span class="kw">make</span>([]<span class="tp">byte</span>, <span class="num">0</span>, <span class="fn">len</span>(s))
+    pair := <span class="kw">map</span>[<span class="tp">byte</span>]<span class="tp">byte</span>{<span class="str">')'</span>: <span class="str">'('</span>, <span class="str">']'</span>: <span class="str">'['</span>, <span class="str">'}'</span>: <span class="str">'{'</span>}
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i < <span class="fn">len</span>(s); i++ {
+        ch := s[i]
+        <span class="kw">if</span> ch == <span class="str">'('</span> || ch == <span class="str">'['</span> || ch == <span class="str">'{'</span> {
+            stack = <span class="fn">append</span>(stack, ch) <span class="cm">// push opening bracket</span>
+        } <span class="kw">else</span> {
+            <span class="kw">if</span> <span class="fn">len</span>(stack) == <span class="num">0</span> || stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] != pair[ch] {
+                <span class="kw">return</span> <span class="kw">false</span>
+            }
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>] <span class="cm">// pop</span>
+        }
+    }
+    <span class="kw">return</span> <span class="fn">len</span>(stack) == <span class="num">0</span>
+}
+<span class="cm">// "()[]{}" → true  |  "([)]" → false  |  "{[]}" → true</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Min Stack O(1) (Advanced)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">min_stack.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// MinStack: push/pop/top/getMin đều O(1)
+// Trick: dùng 2 stack — stack chính + minStack (luôn có min ở đỉnh)</span>
+<span class="kw">type</span> <span class="tp">MinStack</span> <span class="kw">struct</span> {
+    stack    []<span class="tp">int</span>
+    minStack []<span class="tp">int</span>
+}
+
+<span class="kw">func</span> (ms *<span class="tp">MinStack</span>) <span class="fn">Push</span>(val <span class="tp">int</span>) {
+    ms.stack = <span class="fn">append</span>(ms.stack, val)
+    <span class="kw">if</span> <span class="fn">len</span>(ms.minStack) == <span class="num">0</span> || val <= ms.minStack[<span class="fn">len</span>(ms.minStack)-<span class="num">1</span>] {
+        ms.minStack = <span class="fn">append</span>(ms.minStack, val)
+    }
+}
+
+<span class="kw">func</span> (ms *<span class="tp">MinStack</span>) <span class="fn">Pop</span>() {
+    top := ms.stack[<span class="fn">len</span>(ms.stack)-<span class="num">1</span>]
+    ms.stack = ms.stack[:<span class="fn">len</span>(ms.stack)-<span class="num">1</span>]
+    <span class="kw">if</span> top == ms.minStack[<span class="fn">len</span>(ms.minStack)-<span class="num">1</span>] {
+        ms.minStack = ms.minStack[:<span class="fn">len</span>(ms.minStack)-<span class="num">1</span>]
+    }
+}
+
+<span class="kw">func</span> (ms *<span class="tp">MinStack</span>) <span class="fn">Top</span>() <span class="tp">int</span> { <span class="kw">return</span> ms.stack[<span class="fn">len</span>(ms.stack)-<span class="num">1</span>] }
+<span class="kw">func</span> (ms *<span class="tp">MinStack</span>) <span class="fn">GetMin</span>() <span class="tp">int</span> { <span class="kw">return</span> ms.minStack[<span class="fn">len</span>(ms.minStack)-<span class="num">1</span>] }</pre>
+  </div>
+
+  <h3>📝 Example 3 — Largest Rectangle in Histogram (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">largest_rectangle.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// LargestRectangleArea: diện tích hình chữ nhật lớn nhất trong histogram
+// Dùng monotonic increasing stack — khi gặp bar thấp hơn, pop và tính area</span>
+<span class="kw">func</span> <span class="fn">largestRectangleArea</span>(heights []<span class="tp">int</span>) <span class="tp">int</span> {
+    stack := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="num">0</span>) <span class="cm">// stack of indices</span>
+    maxArea := <span class="num">0</span>
+    heights = <span class="fn">append</span>(heights, <span class="num">0</span>) <span class="cm">// sentinel để flush stack cuối</span>
+
+    <span class="kw">for</span> i, h := <span class="kw">range</span> heights {
+        <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="num">0</span> && heights[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]] > h {
+            height := heights[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]]
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            width := i
+            <span class="kw">if</span> <span class="fn">len</span>(stack) > <span class="num">0</span> {
+                width = i - stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] - <span class="num">1</span>
+            }
+            <span class="kw">if</span> area := height * width; area > maxArea {
+                maxArea = area
+            }
+        }
+        stack = <span class="fn">append</span>(stack, i)
+    }
+    <span class="kw">return</span> maxArea
+}
+<span class="cm">// heights=[2,1,5,6,2,3] → 10   Time: O(n)  Space: O(n)</span></pre>
+  </div>
+</section>
+
+<!-- ==================== QUEUE ==================== -->
+<section class="page-section" id="s-queue">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div>
+      <div class="section-title">Queue Pattern</div>
+      <div class="section-subtitle">FIFO — BFS, Level Order, Deque cho sliding window max</div>
+    </div>
+    <span class="badge badge-advanced">PATTERN 5</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Queue (Hàng đợi)</div>
+    <p class="prose">
+      <strong>Queue</strong> là cấu trúc dữ liệu <strong>FIFO</strong> (First In First Out). Trong Go, <code>container/list</code> hoặc slice với con trỏ head/tail được dùng. Queue là nền tảng của <strong>BFS (Breadth-First Search)</strong>, xử lý theo thứ tự, và sliding window maximum với <strong>Deque</strong> (Double-ended queue).
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Queue vs Deque — FIFO Operations</div>
+    <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Queue label -->
+      <text x="30" y="26" font-size="12" font-weight="700" fill="#3b82f6">Queue (FIFO)</text>
+      <!-- Enqueue arrow -->
+      <text x="30" y="60" font-size="11" fill="#64748b">Enqueue →</text>
+      <!-- Queue cells -->
+      <rect x="120" y="44" width="60" height="36" rx="4" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
+      <text x="150" y="67" text-anchor="middle" font-size="13" font-weight="600" fill="#3b82f6">1</text>
+      <rect x="184" y="44" width="60" height="36" rx="4" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
+      <text x="214" y="67" text-anchor="middle" font-size="13" font-weight="600" fill="#3b82f6">2</text>
+      <rect x="248" y="44" width="60" height="36" rx="4" fill="rgba(59,130,246,0.15)" stroke="rgba(59,130,246,0.4)" stroke-width="1.5"/>
+      <text x="278" y="67" text-anchor="middle" font-size="13" font-weight="600" fill="#3b82f6">3</text>
+      <rect x="312" y="44" width="60" height="36" rx="4" fill="rgba(0,255,136,0.15)" stroke="rgba(0,255,136,0.4)" stroke-width="2"/>
+      <text x="342" y="67" text-anchor="middle" font-size="13" font-weight="600" fill="#00ff88">4</text>
+      <!-- Arrows -->
+      <text x="385" y="67" font-size="16" fill="#00ff88">← 4 Enqueued</text>
+      <text x="75" y="100" font-size="11" fill="#ff6b6b">← Dequeue</text>
+      <rect x="120" y="88" width="60" height="36" rx="4" fill="rgba(255,107,107,0.15)" stroke="rgba(255,107,107,0.4)" stroke-width="2" stroke-dasharray="4,3"/>
+      <text x="150" y="111" text-anchor="middle" font-size="13" font-weight="600" fill="#ff6b6b">1</text>
+      <text x="185" y="111" text-anchor="middle" font-size="11" fill="#64748b">2</text>
+      <text x="250" y="111" text-anchor="middle" font-size="11" fill="#64748b">3</text>
+      <text x="315" y="111" text-anchor="middle" font-size="11" fill="#64748b">4</text>
+      <text x="385" y="111" font-size="11" fill="#ff6b6b">← 1 Dequeued (FIFO)</text>
+
+      <!-- Deque label -->
+      <text x="30" y="152" font-size="12" font-weight="700" fill="#a855f7">Deque (Double-ended)</text>
+      <text x="30" y="175" font-size="11" fill="#64748b">Front ↔ Back</text>
+      <rect x="115" y="160" width="60" height="36" rx="4" fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.5)" stroke-width="1.5"/>
+      <text x="145" y="183" text-anchor="middle" font-size="13" font-weight="600" fill="#a855f7">A</text>
+      <rect x="179" y="160" width="60" height="36" rx="4" fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.5)" stroke-width="1.5"/>
+      <text x="209" y="183" text-anchor="middle" font-size="13" font-weight="600" fill="#a855f7">B</text>
+      <rect x="243" y="160" width="60" height="36" rx="4" fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.5)" stroke-width="1.5"/>
+      <text x="273" y="183" text-anchor="middle" font-size="13" font-weight="600" fill="#a855f7">C</text>
+      <text x="60" y="183" font-size="16" fill="#a855f7">↔</text>
+      <text x="315" y="183" font-size="16" fill="#a855f7">↔</text>
+      <text x="355" y="183" font-size="11" fill="#64748b">AddFront / AddBack / RemoveFront / RemoveBack</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — BFS Level Order Traversal (Basic)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">bfs_level_order.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="kw">type</span> <span class="tp">TreeNode</span> <span class="kw">struct</span> {
+    Val         <span class="tp">int</span>
+    Left, Right *<span class="tp">TreeNode</span>
+}
+
+<span class="cm">// LevelOrder: BFS với queue — trả về từng level</span>
+<span class="kw">func</span> <span class="fn">levelOrder</span>(root *<span class="tp">TreeNode</span>) [][]<span class="tp">int</span> {
+    <span class="kw">if</span> root == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+
+    result := [][]<span class="tp">int</span>{}
+    queue := []*<span class="tp">TreeNode</span>{root}
+
+    <span class="kw">for</span> <span class="fn">len</span>(queue) > <span class="num">0</span> {
+        levelSize := <span class="fn">len</span>(queue)
+        level := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="num">0</span>, levelSize)
+
+        <span class="kw">for</span> i := <span class="num">0</span>; i < levelSize; i++ {
+            node := queue[<span class="num">0</span>]
+            queue = queue[<span class="num">1</span>:] <span class="cm">// dequeue</span>
+            level = <span class="fn">append</span>(level, node.Val)
+            <span class="kw">if</span> node.Left != <span class="kw">nil</span>  { queue = <span class="fn">append</span>(queue, node.Left) }
+            <span class="kw">if</span> node.Right != <span class="kw">nil</span> { queue = <span class="fn">append</span>(queue, node.Right) }
+        }
+        result = <span class="fn">append</span>(result, level)
+    }
+    <span class="kw">return</span> result
+}
+<span class="cm">// Time: O(n)   Space: O(n) — queue có thể chứa toàn bộ leaf level</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Sliding Window Maximum với Deque (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">sliding_window_max.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// MaxSlidingWindow: tìm max trong mỗi window size k — O(n)
+// Deque lưu indices, duy trì monotonic decreasing order của values
+// Front của deque luôn là index của max trong window hiện tại</span>
+<span class="kw">func</span> <span class="fn">maxSlidingWindow</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) []<span class="tp">int</span> {
+    deque := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="num">0</span>, k) <span class="cm">// stores indices</span>
+    result := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="num">0</span>, <span class="fn">len</span>(nums)-k+<span class="num">1</span>)
+
+    <span class="kw">for</span> i, v := <span class="kw">range</span> nums {
+        <span class="cm">// Bỏ index đã ra ngoài window</span>
+        <span class="kw">if</span> <span class="fn">len</span>(deque) > <span class="num">0</span> && deque[<span class="num">0</span>] <= i-k {
+            deque = deque[<span class="num">1</span>:] <span class="cm">// pop front</span>
+        }
+        <span class="cm">// Bỏ các index nhỏ hơn v từ phía sau (không thể là max)</span>
+        <span class="kw">for</span> <span class="fn">len</span>(deque) > <span class="num">0</span> && nums[deque[<span class="fn">len</span>(deque)-<span class="num">1</span>]] < v {
+            deque = deque[:<span class="fn">len</span>(deque)-<span class="num">1</span>] <span class="cm">// pop back</span>
+        }
+        deque = <span class="fn">append</span>(deque, i)
+        <span class="cm">// Ghi kết quả khi window đủ k phần tử</span>
+        <span class="kw">if</span> i >= k-<span class="num">1</span> {
+            result = <span class="fn">append</span>(result, nums[deque[<span class="num">0</span>]])
+        }
+    }
+    <span class="kw">return</span> result
+}
+<span class="cm">// [1,3,-1,-3,5,3,6,7], k=3 → [3,3,5,5,6,7]   Time: O(n)</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — BFS Shortest Path in Grid (Advanced)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">bfs_shortest_path.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// ShortestPath: BFS trong grid 0/1, tìm đường ngắn nhất từ (0,0) đến (n-1,n-1)</span>
+<span class="kw">func</span> <span class="fn">shortestPathBinaryMatrix</span>(grid [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(grid)
+    <span class="kw">if</span> grid[<span class="num">0</span>][<span class="num">0</span>] == <span class="num">1</span> || grid[n-<span class="num">1</span>][n-<span class="num">1</span>] == <span class="num">1</span> { <span class="kw">return</span> -<span class="num">1</span> }
+
+    dirs := [][<span class="num">2</span>]<span class="tp">int</span>{{-<span class="num">1</span>,-<span class="num">1</span>},{-<span class="num">1</span>,<span class="num">0</span>},{-<span class="num">1</span>,<span class="num">1</span>},{<span class="num">0</span>,-<span class="num">1</span>},{<span class="num">0</span>,<span class="num">1</span>},{<span class="num">1</span>,-<span class="num">1</span>},{<span class="num">1</span>,<span class="num">0</span>},{<span class="num">1</span>,<span class="num">1</span>}}
+    <span class="kw">type</span> <span class="tp">pos</span> = [<span class="num">2</span>]<span class="tp">int</span>
+
+    queue := []<span class="tp">pos</span>{{<span class="num">0</span>, <span class="num">0</span>}}
+    grid[<span class="num">0</span>][<span class="num">0</span>] = <span class="num">1</span> <span class="cm">// mark visited</span>
+    steps := <span class="num">1</span>
+
+    <span class="kw">for</span> <span class="fn">len</span>(queue) > <span class="num">0</span> {
+        <span class="kw">for</span> sz := <span class="fn">len</span>(queue); sz > <span class="num">0</span>; sz-- {
+            cur := queue[<span class="num">0</span>]; queue = queue[<span class="num">1</span>:]
+            <span class="kw">if</span> cur[<span class="num">0</span>] == n-<span class="num">1</span> && cur[<span class="num">1</span>] == n-<span class="num">1</span> { <span class="kw">return</span> steps }
+            <span class="kw">for</span> _, d := <span class="kw">range</span> dirs {
+                r, c := cur[<span class="num">0</span>]+d[<span class="num">0</span>], cur[<span class="num">1</span>]+d[<span class="num">1</span>]
+                <span class="kw">if</span> r >= <span class="num">0</span> && r < n && c >= <span class="num">0</span> && c < n && grid[r][c] == <span class="num">0</span> {
+                    grid[r][c] = <span class="num">1</span>
+                    queue = <span class="fn">append</span>(queue, <span class="tp">pos</span>{r, c})
+                }
+            }
+        }
+        steps++
+    }
+    <span class="kw">return</span> -<span class="num">1</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ==================== TWO POINTERS ==================== -->
+<section class="page-section" id="s-twoptr">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div>
+      <div class="section-title">Two Pointers Pattern</div>
+      <div class="section-subtitle">Hai con trỏ — loại bỏ inner loop, tuyến tính trên mảng đã sort</div>
+    </div>
+    <span class="badge badge-advanced">PATTERN 6</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Two Pointers — Hai chiến lược</div>
+    <p class="prose">
+      <strong>Opposite Ends:</strong> left = 0, right = n-1, di chuyển vào nhau — dùng với mảng sort (two sum, 3sum, palindrome). <strong>Same Direction:</strong> slow + fast, cùng chiều — dùng để remove duplicates, partition.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Two Pointers — Opposite Ends vs Same Direction</div>
+    <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Opposite Ends -->
+      <text x="30" y="26" font-size="12" font-weight="700" fill="#ff6b6b">Opposite Ends — target sum</text>
+      <text x="30" y="46" font-size="11" fill="#64748b">sorted: [-2, 0, 1, 3, 5, 8]  target=6</text>
+      <!-- Array cells -->
+      <rect x="30" y="54" width="55" height="36" rx="4" fill="rgba(255,107,107,0.15)" stroke="rgba(255,107,107,0.5)" stroke-width="2"/>
+      <text x="57" y="77" text-anchor="middle" font-size="14" font-weight="700" fill="#ff6b6b">-2</text>
+      <text x="57" y="100" text-anchor="middle" font-size="11" fill="#ff6b6b">L</text>
+      <rect x="89" y="54" width="55" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="116" y="77" text-anchor="middle" font-size="14" fill="#64748b">0</text>
+      <rect x="148" y="54" width="55" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="175" y="77" text-anchor="middle" font-size="14" fill="#64748b">1</text>
+      <rect x="207" y="54" width="55" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="234" y="77" text-anchor="middle" font-size="14" fill="#64748b">3</text>
+      <rect x="266" y="54" width="55" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="293" y="77" text-anchor="middle" font-size="14" fill="#64748b">5</text>
+      <rect x="325" y="54" width="55" height="36" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="2"/>
+      <text x="352" y="77" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff">8</text>
+      <text x="352" y="100" text-anchor="middle" font-size="11" fill="#00d4ff">R</text>
+      <text x="415" y="75" font-size="12" fill="#64748b">sum=-2+8=6 → too high? No→</text>
+      <text x="415" y="92" font-size="12" fill="#64748b">-2+8=6 == target ✓ FOUND</text>
+
+      <!-- Arrows converging -->
+      <path d="M57 106 Q175 126 293 126" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="175" y="140" text-anchor="middle" font-size="11" fill="#f59e0b">L moves right if sum &lt; target</text>
+      <text x="175" y="154" text-anchor="middle" font-size="11" fill="#f59e0b">R moves left if sum &gt; target</text>
+
+      <!-- Same Direction -->
+      <text x="30" y="178" font-size="12" font-weight="700" fill="#00ff88">Same Direction — Remove Duplicates</text>
+      <text x="30" y="198" font-size="11" fill="#64748b">nums: [1,1,2,3,3,4]  → in-place</text>
+      <rect x="30" y="204" width="50" height="28" rx="3" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="55" y="223" text-anchor="middle" font-size="13" fill="#00ff88">1</text>
+      <rect x="84" y="204" width="50" height="28" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="109" y="223" text-anchor="middle" font-size="13" fill="#ff6b6b">1</text>
+      <rect x="138" y="204" width="50" height="28" rx="3" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="163" y="223" text-anchor="middle" font-size="13" fill="#00ff88">2</text>
+      <rect x="192" y="204" width="50" height="28" rx="3" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="217" y="223" text-anchor="middle" font-size="13" fill="#00ff88">3</text>
+      <rect x="246" y="204" width="50" height="28" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="271" y="223" text-anchor="middle" font-size="13" fill="#ff6b6b">3</text>
+      <rect x="300" y="204" width="50" height="28" rx="3" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="325" y="223" text-anchor="middle" font-size="13" fill="#00ff88">4</text>
+      <text x="370" y="216" font-size="11" fill="#00ff88">slow=write ptr, fast=read ptr</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Container With Most Water (Advanced)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">container_water.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// MaxWater: diện tích nước lớn nhất giữa 2 thanh
+// Greedy: luôn di chuyển con trỏ có chiều cao thấp hơn</span>
+<span class="kw">func</span> <span class="fn">maxArea</span>(height []<span class="tp">int</span>) <span class="tp">int</span> {
+    left, right := <span class="num">0</span>, <span class="fn">len</span>(height)-<span class="num">1</span>
+    best := <span class="num">0</span>
+
+    <span class="kw">for</span> left < right {
+        h := height[left]
+        <span class="kw">if</span> height[right] < h { h = height[right] }
+        area := h * (right - left)
+        <span class="kw">if</span> area > best { best = area }
+
+        <span class="kw">if</span> height[left] <= height[right] {
+            left++  <span class="cm">// di chuyển cái thấp hơn để hi vọng tăng h</span>
+        } <span class="kw">else</span> {
+            right--
+        }
+    }
+    <span class="kw">return</span> best
+}
+<span class="cm">// [1,8,6,2,5,4,8,3,7] → 49   Time: O(n)  Space: O(1)</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — 3Sum (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">three_sum.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// ThreeSum: tìm tất cả bộ 3 có tổng = 0, không trùng
+// Fix nums[i], dùng Two Pointers cho phần còn lại
+// Sort trước để skip duplicates dễ dàng</span>
+<span class="kw">func</span> <span class="fn">threeSum</span>(nums []<span class="tp">int</span>) [][]<span class="tp">int</span> {
+    <span class="pkg">sort</span>.<span class="fn">Ints</span>(nums)
+    result := [][]<span class="tp">int</span>{}
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i < <span class="fn">len</span>(nums)-<span class="num">2</span>; i++ {
+        <span class="cm">// Skip duplicates cho i</span>
+        <span class="kw">if</span> i > <span class="num">0</span> && nums[i] == nums[i-<span class="num">1</span>] { <span class="kw">continue</span> }
+        <span class="cm">// Early termination: nums[i] > 0 → không thể có tổng = 0</span>
+        <span class="kw">if</span> nums[i] > <span class="num">0</span> { <span class="kw">break</span> }
+
+        left, right := i+<span class="num">1</span>, <span class="fn">len</span>(nums)-<span class="num">1</span>
+        <span class="kw">for</span> left < right {
+            sum := nums[i] + nums[left] + nums[right]
+            <span class="kw">switch</span> {
+            <span class="kw">case</span> sum == <span class="num">0</span>:
+                result = <span class="fn">append</span>(result, []<span class="tp">int</span>{nums[i], nums[left], nums[right]})
+                <span class="kw">for</span> left < right && nums[left] == nums[left+<span class="num">1</span>]  { left++ }
+                <span class="kw">for</span> left < right && nums[right] == nums[right-<span class="num">1</span>] { right-- }
+                left++; right--
+            <span class="kw">case</span> sum < <span class="num">0</span>:
+                left++
+            <span class="kw">default</span>:
+                right--
+            }
+        }
+    }
+    <span class="kw">return</span> result
+}
+<span class="cm">// [-1,0,1,2,-1,-4] → [[-1,-1,2],[-1,0,1]]   Time: O(n²)</span></pre>
+  </div>
+</section>
+
+<!-- ==================== FAST & SLOW POINTERS ==================== -->
+<section class="page-section" id="s-fastslw">
+  <div class="section-header">
+    <div class="section-number">07</div>
+    <div>
+      <div class="section-title">Fast &amp; Slow Pointers</div>
+      <div class="section-subtitle">Floyd's Tortoise &amp; Hare — phát hiện chu trình, tìm trung điểm</div>
+    </div>
+    <span class="badge badge-advanced">PATTERN 7</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa — Floyd's Cycle Detection</div>
+    <div class="title">Rùa &amp; Thỏ (Tortoise &amp; Hare)</div>
+    <p class="prose">
+      <strong>Fast pointer</strong> di chuyển 2 bước/lần, <strong>Slow pointer</strong> di chuyển 1 bước/lần. Nếu có cycle, fast và slow sẽ gặp nhau trong vòng lặp. Nếu không có cycle, fast sẽ đến <code>nil</code> trước. Không cần thêm memory (O(1) space).
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Fast &amp; Slow Pointers — Cycle Detection in Linked List</div>
+    <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs>
+        <marker id="arr3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 2L8 5L2 8" fill="none" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="arr4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 2L8 5L2 8" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Linked list nodes -->
+      <circle cx="60" cy="80" r="24" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <text x="60" y="85" text-anchor="middle" font-size="14" fill="#94a3b8">1</text>
+      <line x1="84" y1="80" x2="116" y2="80" stroke="#475569" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <circle cx="140" cy="80" r="24" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <text x="140" y="85" text-anchor="middle" font-size="14" fill="#94a3b8">2</text>
+      <line x1="164" y1="80" x2="196" y2="80" stroke="#475569" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <!-- Cycle start node -->
+      <circle cx="220" cy="80" r="24" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.5)" stroke-width="2"/>
+      <text x="220" y="85" text-anchor="middle" font-size="14" font-weight="700" fill="#00ff88">3</text>
+      <text x="220" y="110" text-anchor="middle" font-size="9" fill="#00ff88">cycle start</text>
+      <line x1="244" y1="80" x2="276" y2="80" stroke="#475569" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <circle cx="300" cy="80" r="24" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <text x="300" y="85" text-anchor="middle" font-size="14" fill="#94a3b8">4</text>
+      <line x1="324" y1="80" x2="356" y2="80" stroke="#475569" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <circle cx="380" cy="80" r="24" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <text x="380" y="85" text-anchor="middle" font-size="14" fill="#94a3b8">5</text>
+      <line x1="404" y1="80" x2="436" y2="80" stroke="#475569" stroke-width="1.5" marker-end="url(#arr3)"/>
+
+      <circle cx="460" cy="80" r="24" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.15)" stroke-width="1.5"/>
+      <text x="460" y="85" text-anchor="middle" font-size="14" fill="#94a3b8">6</text>
+      <!-- Cycle back to 3 -->
+      <path d="M460 104 Q460 160 340 160 Q220 160 220 104" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arr4)"/>
+      <text x="340" y="178" text-anchor="middle" font-size="11" fill="#f59e0b">cycle: 6 → back to 3</text>
+
+      <!-- Pointers -->
+      <text x="60" y="44" text-anchor="middle" font-size="11" fill="#a855f7">S/F</text>
+      <line x1="60" y1="46" x2="60" y2="55" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arr3)"/>
+      <text x="30" y="30" font-size="11" fill="#64748b">t=0: S=1, F=1</text>
+
+      <!-- Meeting point -->
+      <circle cx="460" cy="80" r="28" fill="none" stroke="#a855f7" stroke-width="2.5" stroke-dasharray="4,3"/>
+      <text x="510" y="66" font-size="11" fill="#a855f7">meet here</text>
+      <text x="510" y="80" font-size="11" fill="#64748b">S &amp; F collide</text>
+      <text x="510" y="95" font-size="11" fill="#64748b">→ cycle detected!</text>
+
+      <!-- Step trace -->
+      <rect x="30" y="200" width="750" height="14" rx="3" fill="rgba(255,255,255,0.02)"/>
+      <text x="40" y="212" font-size="10" fill="#64748b">Steps: t=1:S=2,F=3  t=2:S=3,F=5  t=3:S=4,F=3  t=4:S=5,F=5  ← MEET at node 5</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Detect Cycle in Linked List (Basic)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">linked_list_cycle.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="kw">type</span> <span class="tp">ListNode</span> <span class="kw">struct</span> {
+    Val  <span class="tp">int</span>
+    Next *<span class="tp">ListNode</span>
+}
+
+<span class="cm">// HasCycle: Floyd's algorithm — O(n) time, O(1) space</span>
+<span class="kw">func</span> <span class="fn">hasCycle</span>(head *<span class="tp">ListNode</span>) <span class="tp">bool</span> {
+    slow, fast := head, head
+    <span class="kw">for</span> fast != <span class="kw">nil</span> && fast.Next != <span class="kw">nil</span> {
+        slow = slow.Next       <span class="cm">// 1 bước</span>
+        fast = fast.Next.Next  <span class="cm">// 2 bước</span>
+        <span class="kw">if</span> slow == fast { <span class="kw">return</span> <span class="kw">true</span> }
+    }
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+
+<span class="cm">// Tìm điểm bắt đầu cycle (cycle entry point)</span>
+<span class="kw">func</span> <span class="fn">detectCycle</span>(head *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    slow, fast := head, head
+    <span class="kw">for</span> fast != <span class="kw">nil</span> && fast.Next != <span class="kw">nil</span> {
+        slow = slow.Next
+        fast = fast.Next.Next
+        <span class="kw">if</span> slow == fast {
+            <span class="cm">// Phase 2: reset slow về head, giữ fast tại meeting point</span>
+            <span class="cm">// Cả 2 đi 1 bước → gặp nhau tại cycle entry</span>
+            slow = head
+            <span class="kw">for</span> slow != fast {
+                slow = slow.Next
+                fast = fast.Next
+            }
+            <span class="kw">return</span> slow
+        }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <h3>📝 Example 2 — Find Middle of Linked List (Basic)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">find_middle.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="cm">// MiddleNode: tìm node giữa — khi fast đến cuối, slow ở giữa</span>
+<span class="kw">func</span> <span class="fn">middleNode</span>(head *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    slow, fast := head, head
+    <span class="kw">for</span> fast != <span class="kw">nil</span> && fast.Next != <span class="kw">nil</span> {
+        slow = slow.Next
+        fast = fast.Next.Next
+    }
+    <span class="kw">return</span> slow
+}
+<span class="cm">// 1→2→3→4→5 → node(3)   (fast tới nil sau 2 bước, slow ở 3)
+// 1→2→3→4   → node(3)   (second middle khi có 2 nodes giữa)</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — Happy Number (Advanced)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">happy_number.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// IsHappy: áp dụng Fast&Slow trên chuỗi số
+// Happy number: lặp lại tổng bình phương chữ số → cuối về 1
+// Unhappy: sẽ tạo cycle không qua 1 → Fast&Slow phát hiện</span>
+<span class="kw">func</span> <span class="fn">sumOfSquares</span>(n <span class="tp">int</span>) <span class="tp">int</span> {
+    s := <span class="num">0</span>
+    <span class="kw">for</span> n > <span class="num">0</span> {
+        d := n % <span class="num">10</span>
+        s += d * d
+        n /= <span class="num">10</span>
+    }
+    <span class="kw">return</span> s
+}
+
+<span class="kw">func</span> <span class="fn">isHappy</span>(n <span class="tp">int</span>) <span class="tp">bool</span> {
+    slow, fast := n, <span class="fn">sumOfSquares</span>(n)
+    <span class="kw">for</span> fast != <span class="num">1</span> && slow != fast {
+        slow = <span class="fn">sumOfSquares</span>(slow)
+        fast = <span class="fn">sumOfSquares</span>(<span class="fn">sumOfSquares</span>(fast))
+    }
+    <span class="kw">return</span> fast == <span class="num">1</span>
+}
+<span class="cm">// n=19: 1²+9²=82 → 8²+2²=68 → 6²+8²=100 → 1²=1 → happy!
+// n=2:  2→4→16→37→58→89→145→42→20→4 cycle → unhappy</span></pre>
+  </div>
+
+  <h3>📝 Example 4 — Palindrome Linked List (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">palindrome_linked_list.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// IsPalindrome: O(n) time, O(1) space
+// 1. Tìm middle (Fast&Slow)
+// 2. Reverse phần sau middle
+// 3. Compare 2 nửa
+// 4. Restore list (optional)</span>
+<span class="kw">func</span> <span class="fn">isPalindrome</span>(head *<span class="tp">ListNode</span>) <span class="tp">bool</span> {
+    <span class="kw">if</span> head == <span class="kw">nil</span> || head.Next == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">true</span> }
+
+    <span class="cm">// Step 1: tìm middle</span>
+    slow, fast := head, head
+    <span class="kw">for</span> fast.Next != <span class="kw">nil</span> && fast.Next.Next != <span class="kw">nil</span> {
+        slow = slow.Next
+        fast = fast.Next.Next
+    }
+
+    <span class="cm">// Step 2: reverse phần sau</span>
+    secondHalf := <span class="fn">reverse</span>(slow.Next)
+
+    <span class="cm">// Step 3: so sánh</span>
+    p1, p2 := head, secondHalf
+    result := <span class="kw">true</span>
+    <span class="kw">for</span> p2 != <span class="kw">nil</span> {
+        <span class="kw">if</span> p1.Val != p2.Val { result = <span class="kw">false</span>; <span class="kw">break</span> }
+        p1 = p1.Next; p2 = p2.Next
+    }
+    slow.Next = <span class="fn">reverse</span>(secondHalf) <span class="cm">// restore</span>
+    <span class="kw">return</span> result
+}
+
+<span class="kw">func</span> <span class="fn">reverse</span>(head *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">var</span> prev *<span class="tp">ListNode</span>
+    <span class="kw">for</span> head != <span class="kw">nil</span> {
+        next := head.Next
+        head.Next = prev
+        prev = head
+        head = next
+    }
+    <span class="kw">return</span> prev
+}</pre>
+  </div>
+</section>
+
+<!-- ==================== MONOTONIC STACK ==================== -->
+<section class="page-section" id="s-monostack">
+  <div class="section-header">
+    <div class="section-number">08</div>
+    <div>
+      <div class="section-title">Monotonic Stack</div>
+      <div class="section-subtitle">Stack đơn điệu — Next Greater/Smaller Element trong O(n)</div>
+    </div>
+    <span class="badge badge-expert">PATTERN 8</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Monotonic Stack — Stack duy trì thứ tự</div>
+    <p class="prose">
+      <strong>Monotonic Increasing Stack</strong>: phần tử từ bottom đến top tăng dần. <strong>Monotonic Decreasing Stack</strong>: giảm dần. Khi chèn phần tử mới vi phạm thứ tự, pop ra và xử lý — mỗi phần tử push/pop đúng 1 lần → <strong>O(n) amortized</strong>.
+    </p>
+    <p class="prose">Dùng để giải: Next Greater Element, Previous Smaller Element, Trapping Rain Water, Sum of Subarray Minimums.</p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Monotonic Decreasing Stack — Next Greater Element</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Input array -->
+      <text x="30" y="26" font-size="11" fill="#64748b">nums = [2, 1, 5, 6, 2, 3]</text>
+      <text x="30" y="46" font-size="11" fill="#64748b">NGE  = [5, 5, 6,-1, 3,-1]</text>
+
+      <!-- Step by step trace boxes -->
+      <text x="30" y="76" font-size="11" font-weight="700" fill="#a855f7">Stack trace (monotonic decreasing):</text>
+
+      <!-- i=0: push 2 -->
+      <rect x="30" y="84" width="110" height="56" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <text x="85" y="100" text-anchor="middle" font-size="10" fill="#64748b">i=0, val=2</text>
+      <rect x="45" y="107" width="60" height="22" rx="3" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.2"/>
+      <text x="75" y="123" text-anchor="middle" font-size="12" fill="#a855f7">2</text>
+      <text x="85" y="148" text-anchor="middle" font-size="10" fill="#4b5563">push(2)</text>
+
+      <!-- i=1: push 1 -->
+      <rect x="150" y="84" width="110" height="56" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <text x="205" y="100" text-anchor="middle" font-size="10" fill="#64748b">i=1, val=1</text>
+      <rect x="165" y="107" width="60" height="22" rx="3" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.2"/>
+      <text x="195" y="123" text-anchor="middle" font-size="12" fill="#a855f7">1</text>
+      <rect x="165" y="84" width="60" height="22" rx="3" fill="rgba(168,85,247,0.06)" stroke="rgba(168,85,247,0.2)" stroke-width="1"/>
+      <text x="195" y="99" text-anchor="middle" font-size="12" fill="#64748b">2</text>
+      <text x="205" y="148" text-anchor="middle" font-size="10" fill="#4b5563">push(1)</text>
+
+      <!-- i=2: val=5, pop 1→NGE=5, pop 2→NGE=5 -->
+      <rect x="270" y="84" width="130" height="56" rx="6" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="335" y="100" text-anchor="middle" font-size="10" fill="#64748b">i=2, val=5</text>
+      <rect x="285" y="107" width="100" height="22" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <text x="335" y="123" text-anchor="middle" font-size="12" fill="#ff6b6b">pop:1→NGE=5</text>
+      <text x="335" y="140" text-anchor="middle" font-size="10" fill="#ff6b6b">pop:2→NGE=5</text>
+      <text x="335" y="152" text-anchor="middle" font-size="10" fill="#4b5563">push(5)</text>
+
+      <!-- i=3: val=6, pop 5 →NGE=6 -->
+      <rect x="410" y="84" width="130" height="56" rx="6" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="475" y="100" text-anchor="middle" font-size="10" fill="#64748b">i=3, val=6</text>
+      <rect x="425" y="107" width="100" height="22" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <text x="475" y="123" text-anchor="middle" font-size="12" fill="#ff6b6b">pop:5→NGE=6</text>
+      <text x="475" y="148" text-anchor="middle" font-size="10" fill="#4b5563">push(6)</text>
+
+      <!-- i=4: val=2 -->
+      <rect x="550" y="84" width="110" height="56" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <text x="605" y="100" text-anchor="middle" font-size="10" fill="#64748b">i=4, val=2</text>
+      <rect x="565" y="107" width="60" height="22" rx="3" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.2"/>
+      <text x="595" y="123" text-anchor="middle" font-size="12" fill="#a855f7">2</text>
+      <rect x="565" y="84" width="60" height="22" rx="3" fill="rgba(168,85,247,0.06)" stroke="rgba(168,85,247,0.2)" stroke-width="1"/>
+      <text x="595" y="99" text-anchor="middle" font-size="12" fill="#64748b">6</text>
+      <text x="605" y="148" text-anchor="middle" font-size="10" fill="#4b5563">push(2)</text>
+
+      <!-- i=5: val=3, pop 2→NGE=3 -->
+      <rect x="670" y="84" width="130" height="56" rx="6" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="735" y="100" text-anchor="middle" font-size="10" fill="#64748b">i=5, val=3</text>
+      <rect x="685" y="107" width="100" height="22" rx="3" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <text x="735" y="123" text-anchor="middle" font-size="12" fill="#ff6b6b">pop:2→NGE=3</text>
+      <text x="735" y="148" text-anchor="middle" font-size="10" fill="#4b5563">push(3), [6 remains→-1]</text>
+
+      <!-- Result -->
+      <rect x="30" y="192" width="750" height="78" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.15)" stroke-width="1"/>
+      <text x="40" y="212" font-size="11" fill="#64748b">Kết quả:</text>
+      <text x="40" y="232" font-size="13" font-weight="700" fill="#e2e8f0">nums[0]=2 → NGE=5   nums[1]=1 → NGE=5   nums[2]=5 → NGE=6</text>
+      <text x="40" y="252" font-size="13" font-weight="700" fill="#e2e8f0">nums[3]=6 → NGE=-1  nums[4]=2 → NGE=3   nums[5]=3 → NGE=-1</text>
+      <text x="40" y="264" font-size="10" fill="#4b5563">Mỗi phần tử push 1 lần, pop 1 lần → O(n) total</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Next Greater Element I (Basic)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">next_greater_element.go</span>
+      <span class="code-badge code-badge-basic">BASIC</span>
+    </div>
+    <pre><span class="cm">// NextGreaterElement: tìm NGE cho mỗi phần tử
+// Monotonic decreasing stack — pop khi tìm thấy NGE</span>
+<span class="kw">func</span> <span class="fn">nextGreaterElement</span>(nums1, nums2 []<span class="tp">int</span>) []<span class="tp">int</span> {
+    nge := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>)
+    stack := []<span class="tp">int</span>{}
+
+    <span class="kw">for</span> _, v := <span class="kw">range</span> nums2 {
+        <span class="cm">// Pop và ghi NGE cho tất cả phần tử nhỏ hơn v</span>
+        <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="num">0</span> && stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] < v {
+            top := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            nge[top] = v
+        }
+        stack = <span class="fn">append</span>(stack, v)
+    }
+    <span class="cm">// Phần tử còn trong stack không có NGE → -1</span>
+    <span class="kw">for</span> _, v := <span class="kw">range</span> stack { nge[v] = -<span class="num">1</span> }
+
+    result := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(nums1))
+    <span class="kw">for</span> i, v := <span class="kw">range</span> nums1 { result[i] = nge[v] }
+    <span class="kw">return</span> result
+}</pre>
+  </div>
+
+  <h3>📝 Example 2 — Daily Temperatures (Advanced)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">daily_temperatures.go</span>
+      <span class="code-badge code-badge-advanced">ADVANCED</span>
+    </div>
+    <pre><span class="cm">// DailyTemperatures: tìm số ngày chờ đến ngày ấm hơn
+// Stack lưu index thay vì value — tính khoảng cách khi pop</span>
+<span class="kw">func</span> <span class="fn">dailyTemperatures</span>(temps []<span class="tp">int</span>) []<span class="tp">int</span> {
+    result := <span class="kw">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(temps))
+    stack := []<span class="tp">int</span>{} <span class="cm">// stores indices</span>
+
+    <span class="kw">for</span> i, t := <span class="kw">range</span> temps {
+        <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="num">0</span> && temps[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]] < t {
+            prevIdx := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            result[prevIdx] = i - prevIdx <span class="cm">// số ngày chờ</span>
+        }
+        stack = <span class="fn">append</span>(stack, i)
+    }
+    <span class="cm">// Còn trong stack: không có ngày ấm hơn → result[i] = 0 (zero value)</span>
+    <span class="kw">return</span> result
+}
+<span class="cm">// [73,74,75,71,69,72,76,73] → [1,1,4,2,1,1,0,0]</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — Trapping Rain Water (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">trapping_rain_water.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// TrapRainWater: tính tổng nước có thể chứa
+// Approach 1: Monotonic Stack O(n) time O(n) space
+// Approach 2: Two Pointers O(n) time O(1) space ← preferred</span>
+
+<span class="cm">// Approach 2: Two Pointers (optimal)</span>
+<span class="kw">func</span> <span class="fn">trap</span>(height []<span class="tp">int</span>) <span class="tp">int</span> {
+    left, right := <span class="num">0</span>, <span class="fn">len</span>(height)-<span class="num">1</span>
+    leftMax, rightMax := <span class="num">0</span>, <span class="num">0</span>
+    water := <span class="num">0</span>
+
+    <span class="kw">for</span> left < right {
+        <span class="kw">if</span> height[left] < height[right] {
+            <span class="kw">if</span> height[left] >= leftMax {
+                leftMax = height[left]
+            } <span class="kw">else</span> {
+                water += leftMax - height[left] <span class="cm">// đủ tường cao bên phải</span>
+            }
+            left++
+        } <span class="kw">else</span> {
+            <span class="kw">if</span> height[right] >= rightMax {
+                rightMax = height[right]
+            } <span class="kw">else</span> {
+                water += rightMax - height[right]
+            }
+            right--
+        }
+    }
+    <span class="kw">return</span> water
+}
+
+<span class="cm">// Approach 1: Monotonic Stack — tính từng "layer" nước nằm ngang</span>
+<span class="kw">func</span> <span class="fn">trapStack</span>(height []<span class="tp">int</span>) <span class="tp">int</span> {
+    stack := []<span class="tp">int</span>{}
+    water := <span class="num">0</span>
+
+    <span class="kw">for</span> i, h := <span class="kw">range</span> height {
+        <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="num">0</span> && height[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]] < h {
+            bottom := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            <span class="kw">if</span> <span class="fn">len</span>(stack) == <span class="num">0</span> { <span class="kw">break</span> }
+            left := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            w := i - left - <span class="num">1</span>
+            boundH := height[left]
+            <span class="kw">if</span> h < boundH { boundH = h }
+            water += w * (boundH - height[bottom])
+        }
+        stack = <span class="fn">append</span>(stack, i)
+    }
+    <span class="kw">return</span> water
+}
+<span class="cm">// [0,1,0,2,1,0,1,3,2,1,2,1] → 6   Time: O(n)  Space: O(1)</span></pre>
+  </div>
+
+  <h3>📝 Example 4 — Sum of Subarray Minimums (Expert)</h3>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">sum_subarray_mins.go</span>
+      <span class="code-badge code-badge-expert">EXPERT</span>
+    </div>
+    <pre><span class="cm">// SumSubarrayMins: tổng min của tất cả subarray — O(n)
+// Key: với mỗi arr[i], tính số subarray mà arr[i] là min
+//   left[i] = khoảng cách đến PSE (Previous Smaller Element)
+//   right[i] = khoảng cách đến NSE (Next Smaller or Equal)
+//   contribution[i] = arr[i] * left[i] * right[i]</span>
+<span class="kw">func</span> <span class="fn">sumSubarrayMins</span>(arr []<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">const</span> mod = <span class="num">1_000_000_007</span>
+    n := <span class="fn">len</span>(arr)
+    left  := <span class="kw">make</span>([]<span class="tp">int</span>, n) <span class="cm">// distance to previous smaller</span>
+    right := <span class="kw">make</span>([]<span class="tp">int</span>, n) <span class="cm">// distance to next smaller or equal</span>
+    stack := []<span class="tp">int</span>{}
+
+    <span class="cm">// Compute left[i] — monotonic increasing stack</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i < n; i++ {
+        <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="num">0</span> && arr[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]] >= arr[i] {
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+        }
+        <span class="kw">if</span> <span class="fn">len</span>(stack) == <span class="num">0</span> { left[i] = i + <span class="num">1</span> } <span class="kw">else</span> { left[i] = i - stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] }
+        stack = <span class="fn">append</span>(stack, i)
+    }
+    stack = stack[:<span class="num">0</span>]
+
+    <span class="cm">// Compute right[i] — right to left</span>
+    <span class="kw">for</span> i := n - <span class="num">1</span>; i >= <span class="num">0</span>; i-- {
+        <span class="kw">for</span> <span class="fn">len</span>(stack) > <span class="num">0</span> && arr[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]] > arr[i] {
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+        }
+        <span class="kw">if</span> <span class="fn">len</span>(stack) == <span class="num">0</span> { right[i] = n - i } <span class="kw">else</span> { right[i] = stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] - i }
+        stack = <span class="fn">append</span>(stack, i)
+    }
+
+    result := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i < n; i++ {
+        result = (result + arr[i]*left[i]*right[i]) % mod
+    }
+    <span class="kw">return</span> result
+}
+<span class="cm">// [3,1,2,4] → 17   (subarray mins: 3,1,1,1,2,1,3,1,2,4 = 17)</span></pre>
+  </div>
+
+  <h3>So sánh: Stack thường vs Monotonic Stack</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head cyan">Stack thường</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">Không có ràng buộc về thứ tự phần tử. Dùng cho: DFS, undo/redo, expression evaluation, backtracking.</p>
+        <div class="tag tag-good">✓ Linh hoạt</div>
+        <div class="tag tag-good">✓ Bất kỳ thứ tự</div>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head purple">Monotonic Stack</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">Duy trì tăng/giảm dần. Mỗi phần tử push/pop đúng 1 lần → O(n). Dùng cho: NGE, NSE, range min/max queries.</p>
+        <div class="tag tag-good">✓ O(n) amortized</div>
+        <div class="tag tag-bad">✗ Chỉ cho order-based query</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== REFERENCES ==================== -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">09</div>
+    <div>
+      <div class="section-title">References &amp; Tài liệu tham khảo</div>
+      <div class="section-subtitle">Nguồn học tập chất lượng cao — được cộng đồng đánh giá cao</div>
+    </div>
+    <span class="badge badge-basic">REFS</span>
+  </div>
+
+  <h3>📚 GitHub Repositories</h3>
+
+  <a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🐱</div>
+    <div class="ref-body">
+      <div class="ref-title">LeetCode-Go — halfrost</div>
+      <div class="ref-desc">Giải toàn bộ LeetCode bằng Go với giải thích chi tiết. Phân loại theo topic, có time/space complexity. Chuẩn idiom Go.</div>
+      <div class="ref-url">github.com/halfrost/LeetCode-Go</div>
+    </div>
+    <div class="ref-stars">⭐ 31k+</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/neetcode-gh/leetcode" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,0.1)">🎯</div>
+    <div class="ref-body">
+      <div class="ref-title">NeetCode Solutions (Go + Python + Java)</div>
+      <div class="ref-desc">Kèm theo video giải thích trực quan. Bao gồm NeetCode 150 và Blind 75 — interview staple.</div>
+      <div class="ref-url">github.com/neetcode-gh/leetcode</div>
+    </div>
+    <div class="ref-stars">⭐ 6k+</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🧮</div>
+    <div class="ref-body">
+      <div class="ref-title">TheAlgorithms / Go</div>
+      <div class="ref-desc">Triển khai tất cả thuật toán kinh điển bằng Go: sorting, searching, graph, DP, string algorithms.</div>
+      <div class="ref-url">github.com/TheAlgorithms/Go</div>
+    </div>
+    <div class="ref-stars">⭐ 5.5k+</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/avelino/awesome-go" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">✨</div>
+    <div class="ref-body">
+      <div class="ref-title">Awesome Go</div>
+      <div class="ref-desc">Curated list thư viện Go. Bao gồm data structure libraries, algorithm implementations, và tools.</div>
+      <div class="ref-url">github.com/avelino/awesome-go</div>
+    </div>
+    <div class="ref-stars">⭐ 130k+</div>
+  </a>
+
+  <h3>🌐 Online Platforms</h3>
+
+  <a class="ref-card" href="https://neetcode.io" target="_blank">
+    <div class="ref-icon" style="background:rgba(59,130,246,0.1)">🎓</div>
+    <div class="ref-body">
+      <div class="ref-title">NeetCode.io</div>
+      <div class="ref-desc">Roadmap học DSA theo thứ tự tối ưu. Video + code solution cho 150 bài interview tiêu biểu nhất. Có Go solutions.</div>
+      <div class="ref-url">neetcode.io/roadmap</div>
+    </div>
+  </a>
+
+  <a class="ref-card" href="https://leetcode.com/problemset/all/" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">💻</div>
+    <div class="ref-body">
+      <div class="ref-title">LeetCode</div>
+      <div class="ref-desc">Nền tảng thực hành số 1. Filter theo tag: Array, Hash Table, Stack, Queue, Two Pointers, Sliding Window.</div>
+      <div class="ref-url">leetcode.com/problemset</div>
+    </div>
+  </a>
+
+  <a class="ref-card" href="https://www.educative.io/courses/grokking-coding-interview-patterns-go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">📖</div>
+    <div class="ref-body">
+      <div class="ref-title">Grokking the Coding Interview — Patterns</div>
+      <div class="ref-desc">Học theo pattern thay vì bài toán riêng lẻ. Rất phù hợp với cách tiếp cận của document này. Go edition available.</div>
+      <div class="ref-url">educative.io/courses/grokking-coding-interview-patterns-go</div>
+    </div>
+  </a>
+
+  <h3>📰 Bài viết kỹ thuật chất lượng cao</h3>
+
+  <a class="ref-card" href="https://pkg.go.dev/golang.org/x/exp/slices" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">📦</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Standard Library — slices, maps packages</div>
+      <div class="ref-desc">Go 1.21+ thêm slices.SortFunc, maps.Keys, maps.Values — giảm boilerplate khi làm DSA với Go idioms mới nhất.</div>
+      <div class="ref-url">pkg.go.dev/slices + pkg.go.dev/maps</div>
+    </div>
+  </a>
+
+  <a class="ref-card" href="https://go.dev/blog/maps" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,0.1)">🗺️</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Blog — Maps in Action</div>
+      <div class="ref-desc">Bài viết chính thức từ Go team về cách sử dụng map hiệu quả: zero values, delete, range, map of slices.</div>
+      <div class="ref-url">go.dev/blog/maps</div>
+    </div>
+  </a>
+
+  <h3>📊 Complexity Cheat Sheet</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Pattern</th>
+        <th>Time</th>
+        <th>Space</th>
+        <th>Bài toán điển hình</th>
+        <th>Dấu hiệu nhận biết</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="pattern-tag pt-hashmap">HashMap/Set</span></td>
+        <td class="tc-good">O(n)</td>
+        <td class="tc-mid">O(n)</td>
+        <td><code>Two Sum, Anagram, LRU</code></td>
+        <td>Cần tra cứu nhanh, đếm tần suất</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-prefix">Prefix Sum</span></td>
+        <td class="tc-good">O(1) query</td>
+        <td class="tc-mid">O(n)</td>
+        <td><code>Range Sum, Subarray Sum=K</code></td>
+        <td>Nhiều range query, mảng bất biến</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-window">Sliding Window</span></td>
+        <td class="tc-good">O(n)</td>
+        <td class="tc-good">O(1)~O(k)</td>
+        <td><code>Max Subarray, Min Window</code></td>
+        <td>Subarray/string liên tiếp, window</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-stack">Stack</span></td>
+        <td class="tc-good">O(n)</td>
+        <td class="tc-mid">O(n)</td>
+        <td><code>Valid Parens, Calculator</code></td>
+        <td>Cần "nhớ" state trước, LIFO</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-queue">Queue</span></td>
+        <td class="tc-good">O(n)</td>
+        <td class="tc-mid">O(n)</td>
+        <td><code>BFS, Level Order</code></td>
+        <td>Xử lý theo thứ tự, FIFO, graph</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-twoptr">Two Pointers</span></td>
+        <td class="tc-good">O(n)</td>
+        <td class="tc-good">O(1)</td>
+        <td><code>3Sum, Container Water</code></td>
+        <td>Mảng đã sort, cần pair/triplet</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-twoptr">Fast &amp; Slow</span></td>
+        <td class="tc-good">O(n)</td>
+        <td class="tc-good">O(1)</td>
+        <td><code>Cycle, Middle Node</code></td>
+        <td>Linked list, cycle detection</td>
+      </tr>
+      <tr>
+        <td><span class="pattern-tag pt-stack">Monotonic Stack</span></td>
+        <td class="tc-good">O(n) amortized</td>
+        <td class="tc-mid">O(n)</td>
+        <td><code>NGE, Trapping Rain, Histogram</code></td>
+        <td>Cần nearest larger/smaller element</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note note-success">
+    <div class="note-icon">🎯</div>
+    <p><strong>Lộ trình học đề xuất:</strong> Hash Maps → Two Pointers → Sliding Window → Stack → Prefix Sums → Queue → Fast &amp; Slow → Monotonic Stack. Mỗi pattern học ít nhất 5 bài LeetCode trước khi chuyển sang bài tiếp theo.</p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<script>
+function showSection(id) {
+  // Hide all sections
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  // Show target
+  const target = document.getElementById('s-' + id);
+  if (target) target.classList.add('active');
+
+  // Update sidebar
+  document.querySelectorAll('#sidebar .nav-item').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#topnav .topnav-item').forEach(b => b.classList.remove('active'));
+
+  // Match by onclick
+  document.querySelectorAll('.nav-item').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) {
+      b.classList.add('active');
+    }
+  });
+  document.querySelectorAll('.topnav-item').forEach(b => {
+    if (b.getAttribute('onclick') && b.getAttribute('onclick').includes("'" + id + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Copy code button functionality
+document.querySelectorAll('.code-copy').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      const orig = btn.textContent;
+      btn.textContent = '✓ Copied';
+      btn.style.color = 'var(--accent-green)';
+      btn.style.borderColor = 'var(--accent-green)';
+      setTimeout(() => {
+        btn.textContent = orig;
+        btn.style.color = '';
+        btn.style.borderColor = '';
+      }, 1800);
+    });
+  });
+});
+
+// Add copy buttons to all code blocks
+document.querySelectorAll('.code-block').forEach(block => {
+  const header = block.querySelector('.code-header');
+  if (header && !header.querySelector('.code-copy')) {
+    const btn = document.createElement('button');
+    btn.className = 'code-copy';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      const pre = block.querySelector('pre');
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        btn.textContent = '✓ Copied';
+        setTimeout(() => btn.textContent = 'Copy', 1800);
+      });
+    });
+    header.appendChild(btn);
+  }
+});
+</script>
+</body>
+</html>

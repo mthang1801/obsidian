@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Go Linked Lists — Pointer Rewiring Under Pressure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,400;0,600;0,700;1,400&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #090d13;
+    --bg2: #0d1117;
+    --bg3: #161c25;
+    --bg4: #1c2535;
+    --border: #1e2a3a;
+    --border2: #2a3a50;
+    --text: #e2eaf5;
+    --text2: #7a90a8;
+    --text3: #4a5a70;
+    --cyan: #38bdf8;
+    --cyan2: #0284c7;
+    --green: #3ddc84;
+    --green2: #15803d;
+    --orange: #fb923c;
+    --orange2: #ea580c;
+    --purple: #a78bfa;
+    --purple2: #7c3aed;
+    --red: #f87171;
+    --yellow: #fbbf24;
+    --yellow2: #d97706;
+    --blue: #60a5fa;
+    --nav-w: 260px;
+    --header-h: 52px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    line-height:1.6;
+    display:flex;
+    flex-direction:column;
+    min-height:100vh;
+  }
+
+  /* ── TOPBAR ── */
+  header{
+    position:fixed;top:0;left:0;right:0;z-index:100;
+    height:var(--header-h);
+    background:rgba(10,14,20,.92);
+    backdrop-filter:blur(12px);
+    border-bottom:1px solid var(--border2);
+    display:flex;align-items:center;gap:0;
+  }
+  .logo{
+    width:var(--nav-w);
+    padding:0 20px;
+    font-family:'Syne',sans-serif;
+    font-weight:800;font-size:15px;
+    color:var(--cyan);
+    white-space:nowrap;flex-shrink:0;
+    border-right:1px solid var(--border2);
+    height:100%;display:flex;align-items:center;gap:8px;
+  }
+  .logo span{color:var(--text)}
+  nav.topnav{
+    display:flex;align-items:center;gap:2px;
+    padding:0 16px;overflow-x:auto;height:100%;flex:1;
+    scrollbar-width:none;
+  }
+  nav.topnav a{
+    color:var(--text2);text-decoration:none;
+    padding:6px 12px;border-radius:6px;
+    font-size:13px;font-weight:500;white-space:nowrap;
+    transition:all .2s;
+  }
+  nav.topnav a:hover,nav.topnav a.active{
+    color:var(--text);background:var(--bg3);
+  }
+
+  /* ── LAYOUT ── */
+  .shell{display:flex;margin-top:var(--header-h);min-height:calc(100vh - var(--header-h))}
+
+  /* ── SIDEBAR ── */
+  aside{
+    width:var(--nav-w);flex-shrink:0;
+    position:sticky;top:var(--header-h);height:calc(100vh - var(--header-h));
+    overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+    border-right:1px solid var(--border2);padding:20px 0;
+    background:var(--bg2);
+  }
+  .sidebar-group{margin-bottom:4px}
+  .sidebar-label{
+    padding:8px 20px 4px;
+    font-size:11px;font-weight:600;letter-spacing:.08em;
+    color:var(--text3);text-transform:uppercase;
+  }
+  .sidebar-link{
+    display:block;padding:6px 20px;
+    color:var(--text2);text-decoration:none;font-size:13px;
+    transition:all .15s;border-left:2px solid transparent;
+  }
+  .sidebar-link:hover{color:var(--text);background:var(--bg3)}
+  .sidebar-link.active{
+    color:var(--cyan);background:rgba(57,208,216,.07);
+    border-left-color:var(--cyan);
+  }
+
+  /* ── MAIN ── */
+  main{flex:1;min-width:0;padding:40px 48px;max-width:960px}
+
+  /* ── SECTION HEADER ── */
+  .section-badge{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--bg3);border:1px solid var(--border);
+    border-radius:6px;padding:4px 10px;
+    font-size:12px;font-weight:600;color:var(--orange);
+    margin-bottom:16px;
+  }
+  .section-num{
+    width:28px;height:28px;border-radius:6px;
+    background:var(--cyan2);
+    display:inline-flex;align-items:center;justify-content:center;
+    font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:#000;
+    flex-shrink:0;
+  }
+  .section-title{
+    font-family:'Syne',sans-serif;font-weight:700;font-size:26px;
+    color:var(--text);display:flex;align-items:center;gap:12px;
+    margin-bottom:12px;line-height:1.25;
+  }
+  .tag-expert{
+    background:rgba(188,140,255,.15);border:1px solid var(--purple);
+    color:var(--purple);border-radius:6px;padding:3px 8px;
+    font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;
+  }
+  .tag-advanced{
+    background:rgba(240,136,62,.12);border:1px solid var(--orange);
+    color:var(--orange);border-radius:6px;padding:3px 8px;
+    font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;
+  }
+  .tag-intermediate{
+    background:rgba(63,185,80,.12);border:1px solid var(--green);
+    color:var(--green);border-radius:6px;padding:3px 8px;
+    font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace;
+  }
+  .lead{
+    color:var(--text2);font-size:15px;line-height:1.7;
+    margin-bottom:28px;
+    border-left:3px solid var(--cyan);padding-left:16px;
+    background:rgba(57,208,216,.04);padding:12px 16px;border-radius:0 8px 8px 0;
+  }
+
+  /* ── CONCEPT BOX ── */
+  .concept-box{
+    background:var(--bg3);border:1px solid var(--border);
+    border-radius:10px;padding:20px 24px;margin-bottom:24px;
+  }
+  .concept-box h3{
+    font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+    color:var(--cyan);margin-bottom:10px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .concept-box p{color:var(--text2);line-height:1.7;font-size:14px}
+
+  /* ── DIAGRAM ── */
+  .diagram-wrap{
+    background:var(--bg4);border:1px solid var(--border);
+    border-radius:10px;overflow:hidden;margin:20px 0;
+  }
+  .diagram-title{
+    padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border2);
+    font-size:11px;font-weight:600;letter-spacing:.08em;
+    color:var(--text3);text-transform:uppercase;
+  }
+  .diagram-body{padding:20px;overflow-x:auto}
+  .diagram-body svg{display:block;margin:0 auto}
+
+  /* ── CODE BLOCK ── */
+  .code-wrap{
+    background:var(--bg2);border:1px solid var(--border);
+    border-radius:10px;overflow:hidden;margin:20px 0;
+  }
+  .code-header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 16px;background:var(--bg3);border-bottom:1px solid var(--border2);
+  }
+  .code-lang{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    font-weight:600;color:var(--cyan);letter-spacing:.05em;
+  }
+  .code-filename{
+    font-family:'JetBrains Mono',monospace;font-size:11px;
+    color:var(--text3);
+  }
+  pre{
+    overflow-x:auto;padding:20px;margin:0;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;line-height:1.65;
+    scrollbar-width:thin;scrollbar-color:var(--border) transparent;
+  }
+  .kw{color:#ff7b72}
+  .fn{color:#d2a8ff}
+  .str{color:#a5d6ff}
+  .num{color:#f0883e}
+  .cm{color:#8b949e;font-style:italic}
+  .tp{color:#ffa657}
+  .op{color:#79c0ff}
+  .var{color:#e6edf3}
+  .field{color:#79c0ff}
+  .lit{color:#56d364}
+
+  /* ── COMPLEXITY TABLE ── */
+  table{width:100%;border-collapse:collapse;margin:16px 0}
+  th{
+    background:var(--bg3);color:var(--text2);
+    font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;
+    padding:10px 14px;text-align:left;border:1px solid var(--border2);
+  }
+  td{
+    padding:9px 14px;border:1px solid var(--border2);
+    color:var(--text);font-size:13px;
+  }
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .complexity-o{color:var(--green);font-family:'JetBrains Mono',monospace;font-weight:600}
+  .complexity-on{color:var(--yellow2);font-family:'JetBrains Mono',monospace;font-weight:600}
+  .complexity-on2{color:var(--red);font-family:'JetBrains Mono',monospace;font-weight:600}
+
+  /* ── INFO/WARN BOXES ── */
+  .info-box,.warn-box,.tip-box{
+    border-radius:8px;padding:14px 18px;margin:16px 0;
+    font-size:13.5px;line-height:1.65;
+  }
+  .info-box{background:rgba(88,166,255,.08);border:1px solid rgba(88,166,255,.3);color:#7ec8e3}
+  .warn-box{background:rgba(240,136,62,.08);border:1px solid rgba(240,136,62,.3);color:#f0a76a}
+  .tip-box{background:rgba(63,185,80,.08);border:1px solid rgba(63,185,80,.3);color:#7fd69a}
+  .box-label{font-weight:700;margin-right:6px}
+
+  /* ── SECTION DIVIDER ── */
+  .divider{
+    height:1px;background:linear-gradient(90deg,var(--cyan),transparent);
+    margin:48px 0;opacity:.3;
+  }
+
+  /* ── STEP LIST ── */
+  .steps{list-style:none;margin:16px 0}
+  .steps li{
+    display:flex;gap:12px;margin-bottom:12px;
+    color:var(--text2);font-size:14px;line-height:1.6;
+  }
+  .step-num{
+    flex-shrink:0;width:24px;height:24px;border-radius:50%;
+    background:var(--cyan2);color:#000;
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:700;margin-top:2px;
+  }
+
+  /* ── HERO INTRO ── */
+  .hero{
+    background:linear-gradient(135deg,rgba(57,208,216,.08) 0%,rgba(188,140,255,.05) 100%);
+    border:1px solid var(--border);border-radius:14px;
+    padding:32px 36px;margin-bottom:36px;
+    position:relative;overflow:hidden;
+  }
+  .hero::before{
+    content:'';position:absolute;top:-40px;right:-40px;
+    width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle,rgba(57,208,216,.08),transparent 70%);
+    pointer-events:none;
+  }
+  .hero h1{
+    font-family:'Syne',sans-serif;font-weight:800;font-size:32px;
+    color:var(--text);line-height:1.2;margin-bottom:10px;
+  }
+  .hero h1 em{color:var(--cyan);font-style:normal}
+  .hero p{color:var(--text2);font-size:15px;line-height:1.7;max-width:680px}
+  .topic-pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .pill{
+    padding:5px 12px;border-radius:20px;
+    font-size:12px;font-weight:600;
+    background:var(--bg3);border:1px solid var(--border);color:var(--text2);
+    transition:all .2s;cursor:default;
+  }
+  .pill:hover{border-color:var(--cyan);color:var(--cyan)}
+
+  /* ── REFS ── */
+  .ref-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:20px}
+  .ref-card{
+    background:var(--bg3);border:1px solid var(--border);
+    border-radius:10px;padding:16px 18px;
+    text-decoration:none;color:inherit;
+    transition:all .2s;display:flex;flex-direction:column;gap:6px;
+  }
+  .ref-card:hover{border-color:var(--cyan);background:rgba(57,208,216,.05)}
+  .ref-title{color:var(--text);font-weight:600;font-size:14px}
+  .ref-sub{color:var(--text3);font-size:12px}
+  .ref-tag{
+    display:inline-block;padding:2px 8px;border-radius:12px;
+    font-size:11px;font-weight:600;
+    background:rgba(57,208,216,.12);color:var(--cyan);
+    width:fit-content;margin-top:4px;
+  }
+
+  h2.sub{
+    font-family:'Syne',sans-serif;font-size:18px;font-weight:700;
+    color:var(--text);margin:28px 0 14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  h2.sub::before{
+    content:'';display:inline-block;width:4px;height:20px;
+    background:var(--cyan);border-radius:2px;
+  }
+  p.body{color:var(--text2);line-height:1.7;margin-bottom:12px;font-size:14px}
+  ul.body-list{
+    margin:10px 0 16px 20px;color:var(--text2);
+    font-size:14px;line-height:1.7;
+  }
+  ul.body-list li{margin-bottom:4px}
+  strong{color:var(--text);font-weight:600}
+
+  @media(max-width:900px){
+    :root{--nav-w:0px}
+    aside{display:none}
+    main{padding:24px 20px}
+    nav.topnav{display:none}
+    .hero h1{font-size:22px}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Go <span>Linked Lists</span></div>
+  <nav class="topnav">
+    <a href="#intro" class="active">Giới thiệu</a>
+    <a href="#s01">Reversal</a>
+    <a href="#s02">Kth Last</a>
+    <a href="#s03">Intersection</a>
+    <a href="#s04">LRU Cache</a>
+    <a href="#s05">Palindrome</a>
+    <a href="#s06">Flatten</a>
+    <a href="#refs">References</a>
+  </nav>
+</header>
+
+<div class="shell">
+<aside>
+  <div class="sidebar-group">
+    <div class="sidebar-label">Tổng quan</div>
+    <a href="#intro" class="sidebar-link active">Giới thiệu</a>
+    <a href="#concept" class="sidebar-link">Khái niệm cơ bản</a>
+    <a href="#node" class="sidebar-link">Node &amp; Pointer</a>
+  </div>
+  <div class="sidebar-group">
+    <div class="sidebar-label">Các chủ đề</div>
+    <a href="#s01" class="sidebar-link">01 · Reversal</a>
+    <a href="#s02" class="sidebar-link">02 · Remove Kth Last</a>
+    <a href="#s03" class="sidebar-link">03 · Intersection</a>
+    <a href="#s04" class="sidebar-link">04 · LRU Cache</a>
+    <a href="#s05" class="sidebar-link">05 · Palindrome</a>
+    <a href="#s06" class="sidebar-link">06 · Flatten Multilevel</a>
+  </div>
+  <div class="sidebar-group">
+    <div class="sidebar-label">Khác</div>
+    <a href="#complexity" class="sidebar-link">Bảng Complexity</a>
+    <a href="#refs" class="sidebar-link">References</a>
+  </div>
+</aside>
+
+<main>
+
+<!-- ══════════ HERO ══════════ -->
+<section id="intro">
+<div class="hero">
+  <h1>Linked Lists —<br/><em>Pointer Rewiring Under Pressure</em></h1>
+  <p>Tài liệu chuyên sâu về Linked List trong Go: từ thao tác con trỏ cơ bản đến các thuật toán interview-grade nâng cao. Mỗi chủ đề bao gồm định nghĩa, sơ đồ trực quan, và code mẫu từ advanced đến expert.</p>
+  <div class="topic-pills">
+    <span class="pill">📝 01 Reversal</span>
+    <span class="pill">📝 02 Remove Kth Last</span>
+    <span class="pill">📝 03 Intersection</span>
+    <span class="pill">📝 04 LRU Cache</span>
+    <span class="pill">📝 05 Palindrome</span>
+    <span class="pill">📝 06 Flatten Multilevel</span>
+  </div>
+</div>
+
+<!-- Hero Illustration -->
+<div class="concept-img-wrapper" style="margin: 32px 0; text-align: center;">
+  <div style="display: inline-block; padding: 8px; background: var(--bg3, #161c25); border: 1px solid var(--border, #1e2a3a); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); max-width: 100%; overflow: hidden;">
+    <img src="../../public/images/linked_lists.png" alt="Doubly Linked List Illustration" style="display: block; width: 100%; max-width: 760px; height: auto; border-radius: 12px; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+  </div>
+  <div style="margin-top: 12px; font-size: 11px; color: var(--text2, #7a90a8); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; text-transform: uppercase;">
+    Hình 1: Trực quan hóa cấu trúc bộ nhớ Doubly Linked List với con trỏ Prev và Next
+  </div>
+</div>
+
+<!-- CONCEPT -->
+<div id="concept">
+<h2 class="sub">Khái niệm cơ bản về Linked List</h2>
+<p class="body">
+  <strong>Linked List</strong> là một cấu trúc dữ liệu tuyến tính trong đó mỗi phần tử (<strong>Node</strong>) chứa dữ liệu và một hoặc nhiều con trỏ (<strong>pointer</strong>) trỏ đến node tiếp theo (hoặc cả trước đó trong Doubly LL).
+  Không giống mảng, các node không cần nằm liền kề trong bộ nhớ — chúng được liên kết thông qua địa chỉ.
+</p>
+<p class="body">
+  Trong Go, không có kiểu Linked List built-in như Java/C++. Ta tự định nghĩa bằng <code>struct</code> và pointer.
+  Thư viện chuẩn có <code>container/list</code> nhưng trong phỏng vấn và DSA ta thường tự implement.
+</p>
+
+<div id="node">
+<div class="diagram-wrap">
+  <div class="diagram-title">Cấu trúc bộ nhớ — Singly vs Doubly Linked List</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 720 220" width="680" height="220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace">
+  <!-- Singly -->
+  <text x="16" y="24" fill="#8b949e" font-size="11" font-weight="600" letter-spacing="1">SINGLY LINKED LIST</text>
+  <!-- nodes -->
+  <g transform="translate(16,36)">
+    <!-- node 1 -->
+    <rect x="0" y="0" width="100" height="48" rx="6" fill="#1c2128" stroke="#30363d"/>
+    <text x="50" y="20" text-anchor="middle" fill="#79c0ff" font-size="11">val</text>
+    <text x="50" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">10</text>
+    <rect x="100" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="122" y="20" text-anchor="middle" fill="#79c0ff" font-size="10">next</text>
+    <!-- arrow 1->2 -->
+    <line x1="144" y1="24" x2="176" y2="24" stroke="#39d0d8" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- node 2 -->
+    <rect x="176" y="0" width="100" height="48" rx="6" fill="#1c2128" stroke="#30363d"/>
+    <text x="226" y="20" text-anchor="middle" fill="#79c0ff" font-size="11">val</text>
+    <text x="226" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">20</text>
+    <rect x="276" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="298" y="20" text-anchor="middle" fill="#79c0ff" font-size="10">next</text>
+    <line x1="320" y1="24" x2="352" y2="24" stroke="#39d0d8" stroke-width="2" marker-end="url(#arr)"/>
+    <!-- node 3 -->
+    <rect x="352" y="0" width="100" height="48" rx="6" fill="#1c2128" stroke="#30363d"/>
+    <text x="402" y="20" text-anchor="middle" fill="#79c0ff" font-size="11">val</text>
+    <text x="402" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">30</text>
+    <rect x="452" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="474" y="20" text-anchor="middle" fill="#79c0ff" font-size="10">next</text>
+    <text x="480" y="36" fill="#ff7b72" font-size="11">nil</text>
+    <!-- HEAD label -->
+    <text x="50" y="-8" text-anchor="middle" fill="#e3b341" font-size="11" font-weight="700">HEAD</text>
+    <line x1="50" y1="-4" x2="50" y2="0" stroke="#e3b341" stroke-width="1.5"/>
+  </g>
+
+  <!-- Doubly -->
+  <text x="16" y="140" fill="#8b949e" font-size="11" font-weight="600" letter-spacing="1">DOUBLY LINKED LIST</text>
+  <g transform="translate(16,152)">
+    <rect x="0" y="0" width="130" height="48" rx="6" fill="#1c2128" stroke="#30363d"/>
+    <text x="20" y="20" fill="#79c0ff" font-size="10">prev=nil</text>
+    <text x="65" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">10</text>
+    <rect x="130" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="152" y="20" text-anchor="middle" fill="#79c0ff" font-size="10">next</text>
+    <line x1="174" y1="24" x2="200" y2="24" stroke="#39d0d8" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="200" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="222" y="20" text-anchor="middle" fill="#bc8cff" font-size="10">prev</text>
+    <rect x="244" y="0" width="100" height="48" rx="6" fill="#1c2128" stroke="#30363d"/>
+    <text x="294" y="20" text-anchor="middle" fill="#79c0ff" font-size="11">val</text>
+    <text x="294" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">20</text>
+    <line x1="200" y1="30" x2="174" y2="30" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#arr2)"/>
+    <rect x="344" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="366" y="20" text-anchor="middle" fill="#79c0ff" font-size="10">next</text>
+    <line x1="388" y1="24" x2="414" y2="24" stroke="#39d0d8" stroke-width="2" marker-end="url(#arr)"/>
+    <rect x="414" y="0" width="44" height="48" rx="0" fill="#161b22" stroke="#30363d"/>
+    <text x="436" y="20" text-anchor="middle" fill="#bc8cff" font-size="10">prev</text>
+    <rect x="458" y="0" width="100" height="48" rx="6" fill="#1c2128" stroke="#30363d"/>
+    <text x="508" y="20" text-anchor="middle" fill="#79c0ff" font-size="11">val</text>
+    <text x="508" y="36" text-anchor="middle" fill="#3fb950" font-size="13" font-weight="700">30</text>
+    <line x1="414" y1="30" x2="388" y2="30" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#arr2)"/>
+  </g>
+
+  <defs>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#39d0d8"/>
+    </marker>
+    <marker id="arr2" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="#bc8cff"/>
+    </marker>
+  </defs>
+</svg>
+  </div>
+</div>
+</div>
+
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">node.go — Định nghĩa cơ bản</span>
+  </div>
+<pre><span class="cm">// ListNode — node cơ bản cho Singly Linked List</span>
+<span class="kw">type</span> <span class="tp">ListNode</span> <span class="kw">struct</span> {
+    <span class="field">Val</span>  <span class="tp">int</span>
+    <span class="field">Next</span> *<span class="tp">ListNode</span>
+}
+
+<span class="cm">// DListNode — node cho Doubly Linked List</span>
+<span class="kw">type</span> <span class="tp">DListNode</span> <span class="kw">struct</span> {
+    <span class="field">Val</span>        <span class="tp">int</span>
+    <span class="field">Prev</span>, <span class="field">Next</span> *<span class="tp">DListNode</span>
+}
+
+<span class="cm">// NewNode tạo một node mới với giá trị val</span>
+<span class="kw">func</span> <span class="fn">NewNode</span>(<span class="var">val</span> <span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">return</span> &<span class="tp">ListNode</span>{<span class="field">Val</span>: <span class="var">val</span>}
+}
+
+<span class="cm">// Build tạo linked list từ slice — tiện cho testing</span>
+<span class="kw">func</span> <span class="fn">Build</span>(<span class="var">vals</span> ...<span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="var">dummy</span> := &<span class="tp">ListNode</span>{}
+    <span class="var">cur</span> := <span class="var">dummy</span>
+    <span class="kw">for</span> _, <span class="var">v</span> := <span class="kw">range</span> <span class="var">vals</span> {
+        <span class="var">cur</span>.<span class="field">Next</span> = &<span class="tp">ListNode</span>{<span class="field">Val</span>: <span class="var">v</span>}
+        <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span>
+    }
+    <span class="kw">return</span> <span class="var">dummy</span>.<span class="field">Next</span>
+}
+
+<span class="cm">// ToSlice chuyển linked list thành []int để so sánh trong test</span>
+<span class="kw">func</span> <span class="fn">ToSlice</span>(<span class="var">head</span> *<span class="tp">ListNode</span>) []<span class="tp">int</span> {
+    <span class="kw">var</span> <span class="var">res</span> []<span class="tp">int</span>
+    <span class="kw">for</span> <span class="var">head</span> != <span class="kw">nil</span> {
+        <span class="var">res</span> = <span class="fn">append</span>(<span class="var">res</span>, <span class="var">head</span>.<span class="field">Val</span>)
+        <span class="var">head</span> = <span class="var">head</span>.<span class="field">Next</span>
+    }
+    <span class="kw">return</span> <span class="var">res</span>
+}</pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ 01 REVERSAL ══════════ -->
+<section id="s01">
+<div class="section-badge">📝 Chủ đề 01</div>
+<div class="section-title">
+  <div class="section-num">01</div>
+  Reversal — Đảo Ngược Linked List
+  <span class="tag-advanced">Advanced</span>
+</div>
+<div class="lead">
+  Đảo ngược một linked list bằng cách tái dây (rewire) con trỏ <code>Next</code> mà không cần thêm bộ nhớ phụ.
+  Đây là bài toán nền tảng xuất hiện trong hầu hết mọi cuộc phỏng vấn hệ thống.
+</div>
+
+<div class="concept-box">
+  <h3>🔍 Định nghĩa &amp; Tư duy</h3>
+  <p>
+    <strong>Reversal</strong> = thay đổi hướng của tất cả con trỏ <code>Next</code>.
+    Node cuối trở thành HEAD mới, node HEAD cũ trỏ về <code>nil</code>.
+    <br/><br/>
+    Kỹ thuật cốt lõi: duy trì <strong>3 con trỏ đồng thời</strong> — <code>prev</code>, <code>cur</code>, <code>next</code>.
+    Mỗi bước: lưu <code>next</code>, đảo hướng, tiến một bước.
+  </p>
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">Quá trình đảo ngược từng bước</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 680 300" width="640" height="300" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace" font-size="12">
+  <defs>
+    <marker id="ga" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#39d0d8"/>
+    </marker>
+    <marker id="gb" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#f0883e"/>
+    </marker>
+    <marker id="gc" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#3fb950"/>
+    </marker>
+  </defs>
+
+  <!-- STEP 0: initial -->
+  <text x="10" y="18" fill="#8b949e" font-size="10" letter-spacing="1">TRƯỚC (1 → 2 → 3 → 4 → nil)</text>
+  <g transform="translate(10,26)">
+    <rect x="0" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#39d0d8" stroke-width="1.5"/>
+    <text x="32" y="22" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <line x1="64" y1="18" x2="90" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ga)"/>
+    <rect x="90" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="122" y="22" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="154" y1="18" x2="180" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ga)"/>
+    <rect x="180" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="212" y="22" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <line x1="244" y1="18" x2="270" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ga)"/>
+    <rect x="270" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="302" y="22" text-anchor="middle" fill="#56d364" font-weight="700">4</text>
+    <text x="350" y="22" fill="#ff7b72">nil</text>
+    <text x="32" y="-6" text-anchor="middle" fill="#e3b341" font-size="10" font-weight="700">HEAD</text>
+  </g>
+
+  <!-- STEP 1 -->
+  <text x="10" y="98" fill="#8b949e" font-size="10" letter-spacing="1">BƯỚC 1: prev=nil, cur=1, next=2 → cur.Next=prev</text>
+  <g transform="translate(10,106)">
+    <rect x="0" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#f0883e" stroke-width="2"/>
+    <text x="32" y="22" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="32" y="50" text-anchor="middle" fill="#f0883e" font-size="10">cur</text>
+    <text x="-26" y="22" fill="#ff7b72">nil←</text>
+    <rect x="90" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="122" y="22" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <text x="122" y="50" text-anchor="middle" fill="#3fb950" font-size="10">next</text>
+    <rect x="180" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="212" y="22" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <rect x="270" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="302" y="22" text-anchor="middle" fill="#56d364" font-weight="700">4</text>
+  </g>
+
+  <!-- STEP 2 -->
+  <text x="10" y="188" fill="#8b949e" font-size="10" letter-spacing="1">BƯỚC 2: prev=1, cur=2 → cur.Next=prev (2→1)</text>
+  <g transform="translate(10,196)">
+    <rect x="0" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#bc8cff"/>
+    <text x="32" y="22" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="32" y="50" text-anchor="middle" fill="#bc8cff" font-size="10">prev</text>
+    <rect x="90" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#f0883e" stroke-width="2"/>
+    <text x="122" y="22" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <text x="122" y="50" text-anchor="middle" fill="#f0883e" font-size="10">cur</text>
+    <line x1="90" y1="18" x2="64" y2="18" stroke="#f0883e" stroke-width="1.5" marker-end="url(#gb)"/>
+    <rect x="180" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#3fb950"/>
+    <text x="212" y="22" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <text x="212" y="50" text-anchor="middle" fill="#3fb950" font-size="10">next</text>
+    <rect x="270" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="302" y="22" text-anchor="middle" fill="#56d364" font-weight="700">4</text>
+  </g>
+
+  <!-- AFTER -->
+  <text x="10" y="272" fill="#8b949e" font-size="10" letter-spacing="1">SAU: nil ← 1 ← 2 ← 3 ← 4 (HEAD mới)</text>
+  <g transform="translate(10,280)">
+    <text x="-10" y="18" fill="#ff7b72">nil</text>
+    <rect x="30" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="62" y="22" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <rect x="120" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="152" y="22" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="120" y1="18" x2="94" y2="18" stroke="#f0883e" stroke-width="1.5" marker-end="url(#gb)"/>
+    <rect x="210" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="242" y="22" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <line x1="210" y1="18" x2="184" y2="18" stroke="#f0883e" stroke-width="1.5" marker-end="url(#gb)"/>
+    <rect x="300" y="0" width="64" height="36" rx="5" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+    <text x="332" y="22" text-anchor="middle" fill="#56d364" font-weight="700">4</text>
+    <text x="332" y="-8" text-anchor="middle" fill="#39d0d8" font-size="10" font-weight="700">HEAD mới</text>
+    <line x1="300" y1="18" x2="274" y2="18" stroke="#f0883e" stroke-width="1.5" marker-end="url(#gb)"/>
+  </g>
+</svg>
+  </div>
+</div>
+
+<h2 class="sub">Giải pháp Iterative — Advanced</h2>
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">reverse_iterative.go</span>
+  </div>
+<pre><span class="cm">// ReverseList đảo ngược toàn bộ linked list.
+// Time: O(n) | Space: O(1) — rewire tại chỗ, không dùng bộ nhớ phụ.</span>
+<span class="kw">func</span> <span class="fn">ReverseList</span>(<span class="var">head</span> *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">var</span> <span class="var">prev</span> *<span class="tp">ListNode</span> <span class="cm">// ban đầu prev = nil</span>
+    <span class="var">cur</span> := <span class="var">head</span>
+
+    <span class="kw">for</span> <span class="var">cur</span> != <span class="kw">nil</span> {
+        <span class="var">next</span> := <span class="var">cur</span>.<span class="field">Next</span>  <span class="cm">// 1. lưu con trỏ next trước khi đứt</span>
+        <span class="var">cur</span>.<span class="field">Next</span> = <span class="var">prev</span>    <span class="cm">// 2. đảo chiều con trỏ</span>
+        <span class="var">prev</span> = <span class="var">cur</span>         <span class="cm">// 3. tiến prev</span>
+        <span class="var">cur</span> = <span class="var">next</span>          <span class="cm">// 4. tiến cur</span>
+    }
+    <span class="kw">return</span> <span class="var">prev</span> <span class="cm">// prev bây giờ là HEAD mới</span>
+}
+
+<span class="cm">// ReverseListRecursive — giải pháp đệ quy.
+// Time: O(n) | Space: O(n) call stack — dùng khi muốn giải thích elegance.</span>
+<span class="kw">func</span> <span class="fn">ReverseListRecursive</span>(<span class="var">head</span> *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">if</span> <span class="var">head</span> == <span class="kw">nil</span> || <span class="var">head</span>.<span class="field">Next</span> == <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="var">head</span> <span class="cm">// base case: 0 hoặc 1 node</span>
+    }
+    <span class="var">newHead</span> := <span class="fn">ReverseListRecursive</span>(<span class="var">head</span>.<span class="field">Next</span>)
+    <span class="cm">// sau khi đệ quy: head.Next trỏ đến node cuối đã xử lý</span>
+    <span class="var">head</span>.<span class="field">Next</span>.<span class="field">Next</span> = <span class="var">head</span> <span class="cm">// node kế trỏ ngược lại head</span>
+    <span class="var">head</span>.<span class="field">Next</span> = <span class="kw">nil</span>       <span class="cm">// cắt con trỏ cũ</span>
+    <span class="kw">return</span> <span class="var">newHead</span>
+}</pre>
+</div>
+
+<h2 class="sub">Đảo ngược đoạn [left, right] — Expert</h2>
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">reverse_between.go — LeetCode 92</span>
+  </div>
+<pre><span class="cm">// ReverseBetween đảo ngược đoạn từ vị trí left đến right (1-indexed).
+// Ví dụ: [1,2,3,4,5], left=2, right=4 → [1,4,3,2,5]
+// Time: O(n) | Space: O(1)</span>
+<span class="kw">func</span> <span class="fn">ReverseBetween</span>(<span class="var">head</span> *<span class="tp">ListNode</span>, <span class="var">left</span>, <span class="var">right</span> <span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">if</span> <span class="var">head</span> == <span class="kw">nil</span> || <span class="var">left</span> == <span class="var">right</span> {
+        <span class="kw">return</span> <span class="var">head</span>
+    }
+
+    <span class="var">dummy</span> := &<span class="tp">ListNode</span>{<span class="field">Next</span>: <span class="var">head</span>}
+    <span class="var">pre</span> := <span class="var">dummy</span>
+
+    <span class="cm">// tiến pre đến node ngay trước vị trí left</span>
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> < <span class="var">left</span>-<span class="num">1</span>; <span class="var">i</span>++ {
+        <span class="var">pre</span> = <span class="var">pre</span>.<span class="field">Next</span>
+    }
+
+    <span class="var">cur</span> := <span class="var">pre</span>.<span class="field">Next</span>
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> < <span class="var">right</span>-<span class="var">left</span>; <span class="var">i</span>++ {
+        <span class="cm">// "head insertion" — chèn nxt vào đầu đoạn đảo</span>
+        <span class="var">nxt</span> := <span class="var">cur</span>.<span class="field">Next</span>
+        <span class="var">cur</span>.<span class="field">Next</span> = <span class="var">nxt</span>.<span class="field">Next</span>
+        <span class="var">nxt</span>.<span class="field">Next</span> = <span class="var">pre</span>.<span class="field">Next</span>
+        <span class="var">pre</span>.<span class="field">Next</span> = <span class="var">nxt</span>
+    }
+    <span class="kw">return</span> <span class="var">dummy</span>.<span class="field">Next</span>
+}
+
+<span class="cm">// ReverseKGroup đảo ngược từng nhóm k node — Expert level.
+// [1,2,3,4,5], k=2 → [2,1,4,3,5]</span>
+<span class="kw">func</span> <span class="fn">ReverseKGroup</span>(<span class="var">head</span> *<span class="tp">ListNode</span>, <span class="var">k</span> <span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="var">dummy</span> := &<span class="tp">ListNode</span>{<span class="field">Next</span>: <span class="var">head</span>}
+    <span class="var">groupPrev</span> := <span class="var">dummy</span>
+
+    <span class="kw">for</span> {
+        <span class="cm">// kiểm tra còn đủ k node không</span>
+        <span class="var">kth</span> := <span class="fn">getKth</span>(<span class="var">groupPrev</span>, <span class="var">k</span>)
+        <span class="kw">if</span> <span class="var">kth</span> == <span class="kw">nil</span> {
+            <span class="kw">break</span>
+        }
+        <span class="var">groupNext</span> := <span class="var">kth</span>.<span class="field">Next</span>
+
+        <span class="cm">// đảo ngược đoạn [groupPrev.Next .. kth]</span>
+        <span class="var">prev</span>, <span class="var">cur</span> := <span class="var">groupNext</span>, <span class="var">groupPrev</span>.<span class="field">Next</span>
+        <span class="kw">for</span> <span class="var">cur</span> != <span class="var">groupNext</span> {
+            <span class="var">nxt</span> := <span class="var">cur</span>.<span class="field">Next</span>
+            <span class="var">cur</span>.<span class="field">Next</span> = <span class="var">prev</span>
+            <span class="var">prev</span> = <span class="var">cur</span>
+            <span class="var">cur</span> = <span class="var">nxt</span>
+        }
+        <span class="var">tmp</span> := <span class="var">groupPrev</span>.<span class="field">Next</span>
+        <span class="var">groupPrev</span>.<span class="field">Next</span> = <span class="var">kth</span>
+        <span class="var">groupPrev</span> = <span class="var">tmp</span>
+    }
+    <span class="kw">return</span> <span class="var">dummy</span>.<span class="field">Next</span>
+}
+
+<span class="kw">func</span> <span class="fn">getKth</span>(<span class="var">cur</span> *<span class="tp">ListNode</span>, <span class="var">k</span> <span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">for</span> <span class="var">cur</span> != <span class="kw">nil</span> && <span class="var">k</span> > <span class="num">0</span> {
+        <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span>; <span class="var">k</span>--
+    }
+    <span class="kw">return</span> <span class="var">cur</span>
+}</pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ 02 KTH LAST ══════════ -->
+<section id="s02">
+<div class="section-badge">📝 Chủ đề 02</div>
+<div class="section-title">
+  <div class="section-num">02</div>
+  Remove Kth From End — Xóa Node Thứ K Từ Cuối
+  <span class="tag-advanced">Advanced</span>
+</div>
+<div class="lead">
+  Dùng kỹ thuật <strong>Two Pointers (Fast &amp; Slow)</strong>: con trỏ nhanh đi trước <code>k</code> bước,
+  sau đó cả hai tiến cùng tốc độ. Khi fast đến cuối, slow đang ở node cần xóa.
+  Một lần duyệt, O(n) time, O(1) space.
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">Two-Pointer: Fast đi trước K bước</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 660 200" width="620" height="200" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace" font-size="12">
+  <defs>
+    <marker id="ha" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#39d0d8"/>
+    </marker>
+  </defs>
+
+  <!-- nodes top row: initial -->
+  <text x="10" y="14" fill="#8b949e" font-size="10" letter-spacing="1">LIST: 1 → 2 → 3 → 4 → 5, k=2 → xóa node 4</text>
+  <g transform="translate(10,22)">
+    <rect x="0"   y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+    <text x="30"  y="22" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <line x1="60" y1="18" x2="82" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="82"  y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="112" y="22" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="142" y1="18" x2="164" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="164" y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="194" y="22" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <line x1="224" y1="18" x2="246" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="246" y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#ff7b72" stroke-width="2"/>
+    <text x="276" y="22" text-anchor="middle" fill="#ff7b72" font-weight="700">4</text>
+    <line x1="306" y1="18" x2="328" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="328" y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="358" y="22" text-anchor="middle" fill="#56d364" font-weight="700">5</text>
+    <text x="358" y="-8" text-anchor="middle" fill="#ff7b72" font-size="10" font-weight="700">XÓA</text>
+  </g>
+
+  <!-- step 1: fast ahead k+1 -->
+  <text x="10" y="86" fill="#8b949e" font-size="10" letter-spacing="1">BƯỚC 1: fast đi trước k+1=3 bước</text>
+  <g transform="translate(10,94)">
+    <rect x="0"   y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="30"  y="22" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="30"  y="50" text-anchor="middle" fill="#bc8cff" font-size="10">slow</text>
+    <line x1="60" y1="18" x2="82" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="82"  y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="112" y="22" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="142" y1="18" x2="164" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="164" y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="194" y="22" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <text x="194" y="50" text-anchor="middle" fill="#f0883e" font-size="10">fast</text>
+    <line x1="224" y1="18" x2="246" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="246" y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#ff7b72" stroke-width="2"/>
+    <text x="276" y="22" text-anchor="middle" fill="#ff7b72" font-weight="700">4</text>
+    <line x1="306" y1="18" x2="328" y2="18" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ha)"/>
+    <rect x="328" y="0" width="60" height="36" rx="5" fill="#1c2128" stroke="#30363d"/>
+    <text x="358" y="22" text-anchor="middle" fill="#56d364" font-weight="700">5</text>
+  </g>
+
+  <!-- step 2: both advance until fast=nil -->
+  <text x="10" y="168" fill="#8b949e" font-size="10" letter-spacing="1">BƯỚC 2: tiến cùng tốc độ → slow.prev là node trước node xóa</text>
+  <g transform="translate(10,176)">
+    <rect x="0"   y="0" width="60" height="20" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="30"  y="14" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">1</text>
+    <line x1="60" y1="10" x2="82" y2="10" stroke="#39d0d8" stroke-width="1" marker-end="url(#ha)"/>
+    <rect x="82"  y="0" width="60" height="20" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="112" y="14" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">2</text>
+    <text x="112" y="-6" text-anchor="middle" fill="#bc8cff" font-size="10">slow</text>
+    <line x1="142" y1="10" x2="164" y2="10" stroke="#39d0d8" stroke-width="1" marker-end="url(#ha)"/>
+    <rect x="164" y="0" width="60" height="20" rx="4" fill="#1c2128" stroke="#ff7b72" stroke-width="2"/>
+    <text x="194" y="14" text-anchor="middle" fill="#ff7b72" font-size="11" font-weight="700">4</text>
+    <text x="194" y="-6" text-anchor="middle" fill="#ff7b72" font-size="10">DELETE</text>
+    <line x1="224" y1="10" x2="246" y2="10" stroke="#39d0d8" stroke-width="1" marker-end="url(#ha)"/>
+    <rect x="246" y="0" width="60" height="20" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="276" y="14" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">5</text>
+    <text x="276" y="-6" text-anchor="middle" fill="#f0883e" font-size="10">fast</text>
+    <text x="340" y="14" fill="#ff7b72">nil</text>
+    <line x1="306" y1="10" x2="328" y2="10" stroke="#39d0d8" stroke-width="1" marker-end="url(#ha)"/>
+    <text x="352" y="14" fill="#ff7b72">nil</text>
+    <!-- skip arrow -->
+    <path d="M 142 8 Q 194 -14 246 8" stroke="#f0883e" fill="none" stroke-width="1.5" stroke-dasharray="4"/>
+    <text x="194" y="-18" text-anchor="middle" fill="#f0883e" font-size="10">slow.Next = slow.Next.Next</text>
+  </g>
+</svg>
+  </div>
+</div>
+
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">remove_nth_from_end.go</span>
+  </div>
+<pre><span class="cm">// RemoveNthFromEnd xóa node thứ n từ cuối danh sách.
+// Sử dụng dummy node để xử lý edge case xóa head.
+// Time: O(n) — một lần duyệt | Space: O(1)</span>
+<span class="kw">func</span> <span class="fn">RemoveNthFromEnd</span>(<span class="var">head</span> *<span class="tp">ListNode</span>, <span class="var">n</span> <span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="var">dummy</span> := &<span class="tp">ListNode</span>{<span class="field">Next</span>: <span class="var">head</span>}
+    <span class="var">fast</span>, <span class="var">slow</span> := <span class="var">dummy</span>, <span class="var">dummy</span>
+
+    <span class="cm">// fast đi trước n+1 bước để slow dừng ở node TRƯỚC node cần xóa</span>
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> <= <span class="var">n</span>; <span class="var">i</span>++ {
+        <span class="kw">if</span> <span class="var">fast</span> == <span class="kw">nil</span> {
+            <span class="kw">return</span> <span class="var">head</span> <span class="cm">// n lớn hơn độ dài list</span>
+        }
+        <span class="var">fast</span> = <span class="var">fast</span>.<span class="field">Next</span>
+    }
+
+    <span class="cm">// tiến cả hai cho đến khi fast = nil</span>
+    <span class="kw">for</span> <span class="var">fast</span> != <span class="kw">nil</span> {
+        <span class="var">fast</span> = <span class="var">fast</span>.<span class="field">Next</span>
+        <span class="var">slow</span> = <span class="var">slow</span>.<span class="field">Next</span>
+    }
+
+    <span class="cm">// slow.Next là node cần xóa</span>
+    <span class="var">slow</span>.<span class="field">Next</span> = <span class="var">slow</span>.<span class="field">Next</span>.<span class="field">Next</span>
+    <span class="kw">return</span> <span class="var">dummy</span>.<span class="field">Next</span>
+}
+
+<span class="cm">// FindKthFromEnd chỉ tìm, không xóa — dùng trong nhiều bài khác.</span>
+<span class="kw">func</span> <span class="fn">FindKthFromEnd</span>(<span class="var">head</span> *<span class="tp">ListNode</span>, <span class="var">k</span> <span class="tp">int</span>) *<span class="tp">ListNode</span> {
+    <span class="var">fast</span>, <span class="var">slow</span> := <span class="var">head</span>, <span class="var">head</span>
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> < <span class="var">k</span>; <span class="var">i</span>++ {
+        <span class="kw">if</span> <span class="var">fast</span> == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+        <span class="var">fast</span> = <span class="var">fast</span>.<span class="field">Next</span>
+    }
+    <span class="kw">for</span> <span class="var">fast</span> != <span class="kw">nil</span> {
+        <span class="var">fast</span> = <span class="var">fast</span>.<span class="field">Next</span>
+        <span class="var">slow</span> = <span class="var">slow</span>.<span class="field">Next</span>
+    }
+    <span class="kw">return</span> <span class="var">slow</span>
+}
+
+<span class="cm">// RemoveNthTest — table-driven test</span>
+<span class="kw">func</span> <span class="fn">TestRemoveNthFromEnd</span>(<span class="var">t</span> *<span class="tp">testing.T</span>) {
+    <span class="kw">cases</span> := []<span class="kw">struct</span>{
+        <span class="field">vals</span>   []<span class="tp">int</span>
+        <span class="field">n</span>      <span class="tp">int</span>
+        <span class="field">expect</span> []<span class="tp">int</span>
+    }{
+        {[]<span class="tp">int</span>{<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>}, <span class="num">2</span>, []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">5</span>}},
+        {[]<span class="tp">int</span>{<span class="num">1</span>},           <span class="num">1</span>, []<span class="tp">int</span>{}},
+        {[]<span class="tp">int</span>{<span class="num">1</span>,<span class="num">2</span>},         <span class="num">1</span>, []<span class="tp">int</span>{<span class="num">1</span>}},
+    }
+    <span class="kw">for</span> _, <span class="var">c</span> := <span class="kw">range</span> <span class="kw">cases</span> {
+        <span class="var">got</span> := <span class="fn">ToSlice</span>(<span class="fn">RemoveNthFromEnd</span>(<span class="fn">Build</span>(<span class="var">c</span>.<span class="field">vals</span>...), <span class="var">c</span>.<span class="field">n</span>))
+        <span class="kw">if</span> !<span class="fn">reflect.DeepEqual</span>(<span class="var">got</span>, <span class="var">c</span>.<span class="field">expect</span>) {
+            <span class="var">t</span>.<span class="fn">Errorf</span>(<span class="str">"got %v want %v"</span>, <span class="var">got</span>, <span class="var">c</span>.<span class="field">expect</span>)
+        }
+    }
+}</pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ 03 INTERSECTION ══════════ -->
+<section id="s03">
+<div class="section-badge">📝 Chủ đề 03</div>
+<div class="section-title">
+  <div class="section-num">03</div>
+  Intersection — Tìm Điểm Giao Nhau
+  <span class="tag-advanced">Advanced</span>
+</div>
+<div class="lead">
+  Hai linked list có thể chia sẻ phần đuôi chung (cùng địa chỉ node, không chỉ cùng giá trị).
+  Kỹ thuật <strong>Two-pointer alignment</strong>: khi pointer đến cuối, nhảy sang đầu list kia — hai pointer sẽ gặp nhau tại điểm giao sau đúng <code>lenA + lenB</code> bước.
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">Kỹ thuật chuyển đổi pointer qua list kia</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 640 180" width="600" height="180" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace" font-size="11">
+  <defs>
+    <marker id="ia" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#39d0d8"/>
+    </marker>
+    <marker id="ib" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#f0883e"/>
+    </marker>
+  </defs>
+
+  <!-- List A -->
+  <text x="10" y="20" fill="#39d0d8" font-size="10" font-weight="700">List A</text>
+  <rect x="10" y="26" width="50" height="32" rx="5" fill="#1c2128" stroke="#39d0d8"/>
+  <text x="35" y="46" text-anchor="middle" fill="#56d364" font-weight="700">a1</text>
+  <line x1="60" y1="42" x2="80" y2="42" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ia)"/>
+  <rect x="80" y="26" width="50" height="32" rx="5" fill="#1c2128" stroke="#39d0d8"/>
+  <text x="105" y="46" text-anchor="middle" fill="#56d364" font-weight="700">a2</text>
+  <line x1="130" y1="42" x2="200" y2="72" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#ia)"/>
+
+  <!-- List B -->
+  <text x="10" y="100" fill="#f0883e" font-size="10" font-weight="700">List B</text>
+  <rect x="10" y="106" width="50" height="32" rx="5" fill="#1c2128" stroke="#f0883e"/>
+  <text x="35" y="126" text-anchor="middle" fill="#56d364" font-weight="700">b1</text>
+  <line x1="60" y1="122" x2="80" y2="122" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ib)"/>
+  <rect x="80" y="106" width="50" height="32" rx="5" fill="#1c2128" stroke="#f0883e"/>
+  <text x="105" y="126" text-anchor="middle" fill="#56d364" font-weight="700">b2</text>
+  <line x1="130" y1="122" x2="145" y2="122" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ib)"/>
+  <rect x="145" y="106" width="50" height="32" rx="5" fill="#1c2128" stroke="#f0883e"/>
+  <text x="170" y="126" text-anchor="middle" fill="#56d364" font-weight="700">b3</text>
+  <line x1="195" y1="122" x2="200" y2="100" stroke="#f0883e" stroke-width="1.5" marker-end="url(#ib)"/>
+
+  <!-- Intersection nodes -->
+  <rect x="200" y="62" width="56" height="32" rx="5" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+  <text x="228" y="82" text-anchor="middle" fill="#bc8cff" font-weight="700">c1</text>
+  <line x1="256" y1="78" x2="276" y2="78" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#ia)"/>
+  <rect x="276" y="62" width="56" height="32" rx="5" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+  <text x="304" y="82" text-anchor="middle" fill="#bc8cff" font-weight="700">c2</text>
+  <line x1="332" y1="78" x2="352" y2="78" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#ia)"/>
+  <rect x="352" y="62" width="56" height="32" rx="5" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+  <text x="380" y="82" text-anchor="middle" fill="#bc8cff" font-weight="700">c3</text>
+
+  <text x="228" y="52" text-anchor="middle" fill="#bc8cff" font-size="10" font-weight="700">INTERSECTION</text>
+
+  <!-- Pointer travel arrows at bottom -->
+  <text x="10" y="158" fill="#8b949e" font-size="10">pA: a1→a2→c1→c2→c3→b1→b2→b3→[c1✓]  |  pB: b1→b2→b3→c1→c2→c3→a1→a2→[c1✓]</text>
+</svg>
+  </div>
+</div>
+
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">intersection.go</span>
+  </div>
+<pre><span class="cm">// GetIntersectionNode trả về node giao nhau của hai linked list.
+// Nếu không giao: trả về nil.
+// Trick: khi pA hết list A, chuyển sang head của B (và ngược lại).
+// Sau lenA+lenB bước, hai pointer sẽ cùng ở điểm giao (hoặc cùng nil).
+// Time: O(m+n) | Space: O(1)</span>
+<span class="kw">func</span> <span class="fn">GetIntersectionNode</span>(<span class="var">headA</span>, <span class="var">headB</span> *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">if</span> <span class="var">headA</span> == <span class="kw">nil</span> || <span class="var">headB</span> == <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>
+    }
+    <span class="var">pA</span>, <span class="var">pB</span> := <span class="var">headA</span>, <span class="var">headB</span>
+    <span class="kw">for</span> <span class="var">pA</span> != <span class="var">pB</span> {
+        <span class="cm">// nil thì chuyển sang đầu list kia, không phải nil thì tiến</span>
+        <span class="kw">if</span> <span class="var">pA</span> == <span class="kw">nil</span> {
+            <span class="var">pA</span> = <span class="var">headB</span>
+        } <span class="kw">else</span> {
+            <span class="var">pA</span> = <span class="var">pA</span>.<span class="field">Next</span>
+        }
+        <span class="kw">if</span> <span class="var">pB</span> == <span class="kw">nil</span> {
+            <span class="var">pB</span> = <span class="var">headA</span>
+        } <span class="kw">else</span> {
+            <span class="var">pB</span> = <span class="var">pB</span>.<span class="field">Next</span>
+        }
+    }
+    <span class="kw">return</span> <span class="var">pA</span> <span class="cm">// hoặc nil nếu không giao</span>
+}
+
+<span class="cm">// GetIntersectionNodeWithLength — cách giải thay thế: đo độ dài, căn chỉnh.
+// Rõ ràng hơn cho người đọc, cùng complexity.</span>
+<span class="kw">func</span> <span class="fn">GetIntersectionNodeWithLength</span>(<span class="var">headA</span>, <span class="var">headB</span> *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    <span class="var">lenA</span>, <span class="var">lenB</span> := <span class="fn">listLen</span>(<span class="var">headA</span>), <span class="fn">listLen</span>(<span class="var">headB</span>)
+    <span class="kw">for</span> <span class="var">lenA</span> > <span class="var">lenB</span> { <span class="var">headA</span> = <span class="var">headA</span>.<span class="field">Next</span>; <span class="var">lenA</span>-- }
+    <span class="kw">for</span> <span class="var">lenB</span> > <span class="var">lenA</span> { <span class="var">headB</span> = <span class="var">headB</span>.<span class="field">Next</span>; <span class="var">lenB</span>-- }
+    <span class="kw">for</span> <span class="var">headA</span> != <span class="var">headB</span> {
+        <span class="var">headA</span>, <span class="var">headB</span> = <span class="var">headA</span>.<span class="field">Next</span>, <span class="var">headB</span>.<span class="field">Next</span>
+    }
+    <span class="kw">return</span> <span class="var">headA</span>
+}
+
+<span class="kw">func</span> <span class="fn">listLen</span>(<span class="var">h</span> *<span class="tp">ListNode</span>) <span class="tp">int</span> {
+    <span class="var">n</span> := <span class="num">0</span>
+    <span class="kw">for</span> <span class="var">h</span> != <span class="kw">nil</span> { <span class="var">n</span>++; <span class="var">h</span> = <span class="var">h</span>.<span class="field">Next</span> }
+    <span class="kw">return</span> <span class="var">n</span>
+}</pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ 04 LRU CACHE ══════════ -->
+<section id="s04">
+<div class="section-badge">📝 Chủ đề 04</div>
+<div class="section-title">
+  <div class="section-num">04</div>
+  LRU Cache — Bộ Nhớ Đệm Least Recently Used
+  <span class="tag-expert">Expert</span>
+</div>
+<div class="lead">
+  LRU Cache kết hợp <strong>HashMap + Doubly Linked List</strong>: HashMap cho O(1) lookup,
+  Doubly LL để di chuyển node lên đầu hoặc xóa khỏi đuôi trong O(1).
+  Đây là bài toán kinh điển nhất về kết hợp cấu trúc dữ liệu.
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">Kiến trúc LRU Cache: HashMap + Doubly Linked List</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 660 240" width="620" height="240" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace" font-size="11">
+  <defs>
+    <marker id="la" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#39d0d8"/>
+    </marker>
+    <marker id="lb" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M8,0 L8,6 L0,3 z" fill="#bc8cff"/>
+    </marker>
+  </defs>
+
+  <!-- HashMap -->
+  <text x="10" y="16" fill="#8b949e" font-size="10" letter-spacing="1">HASHMAP (key → *node)</text>
+  <rect x="10" y="22" width="160" height="160" rx="8" fill="#161b22" stroke="#30363d"/>
+  <text x="90" y="42" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="600">key</text>
+  <text x="130" y="42" text-anchor="middle" fill="#79c0ff" font-size="10" font-weight="600">*node</text>
+  <line x1="110" y1="46" x2="110" y2="178" stroke="#30363d" stroke-width="1"/>
+  <rect x="16" y="50" width="148" height="24" rx="3" fill="#1c2128"/>
+  <text x="60" y="66" text-anchor="middle" fill="#56d364">1</text>
+  <text x="130" y="66" text-anchor="middle" fill="#f0883e">→ 0xAB</text>
+  <rect x="16" y="78" width="148" height="24" rx="3" fill="#1c2128"/>
+  <text x="60" y="94" text-anchor="middle" fill="#56d364">2</text>
+  <text x="130" y="94" text-anchor="middle" fill="#f0883e">→ 0xCD</text>
+  <rect x="16" y="106" width="148" height="24" rx="3" fill="#1c2128"/>
+  <text x="60" y="122" text-anchor="middle" fill="#56d364">3</text>
+  <text x="130" y="122" text-anchor="middle" fill="#f0883e">→ 0xEF</text>
+  <text x="90" y="158" text-anchor="middle" fill="#3b444f" font-size="10">O(1) lookup</text>
+
+  <!-- DLL -->
+  <text x="220" y="16" fill="#8b949e" font-size="10" letter-spacing="1">DOUBLY LINKED LIST (MRU ← → LRU)</text>
+
+  <!-- dummy head -->
+  <rect x="220" y="22" width="56" height="44" rx="5" fill="#161b22" stroke="#30363d" stroke-dasharray="4"/>
+  <text x="248" y="48" text-anchor="middle" fill="#3b444f" font-size="10">DUMMY</text>
+  <text x="248" y="14" text-anchor="middle" fill="#e3b341" font-size="10" font-weight="700">HEAD</text>
+  <line x1="276" y1="44" x2="300" y2="44" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#la)"/>
+  <line x1="300" y1="36" x2="276" y2="36" stroke="#bc8cff" stroke-width="1" marker-end="url(#lb)"/>
+
+  <!-- node 3 (MRU) -->
+  <rect x="300" y="22" width="80" height="44" rx="5" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+  <text x="340" y="38" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">key=3</text>
+  <text x="340" y="56" text-anchor="middle" fill="#56d364">val=C</text>
+  <text x="340" y="14" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="700">MRU</text>
+  <line x1="380" y1="44" x2="404" y2="44" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#la)"/>
+  <line x1="404" y1="36" x2="380" y2="36" stroke="#bc8cff" stroke-width="1" marker-end="url(#lb)"/>
+
+  <!-- node 2 -->
+  <rect x="404" y="22" width="80" height="44" rx="5" fill="#1c2128" stroke="#30363d"/>
+  <text x="444" y="38" text-anchor="middle" fill="#79c0ff" font-size="10">key=2</text>
+  <text x="444" y="56" text-anchor="middle" fill="#56d364">val=B</text>
+  <line x1="484" y1="44" x2="508" y2="44" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#la)"/>
+  <line x1="508" y1="36" x2="484" y2="36" stroke="#bc8cff" stroke-width="1" marker-end="url(#lb)"/>
+
+  <!-- node 1 (LRU) -->
+  <rect x="508" y="22" width="80" height="44" rx="5" fill="#1c2128" stroke="#ff7b72" stroke-width="1.5"/>
+  <text x="548" y="38" text-anchor="middle" fill="#ff7b72" font-size="10">key=1</text>
+  <text x="548" y="56" text-anchor="middle" fill="#56d364">val=A</text>
+  <text x="548" y="14" text-anchor="middle" fill="#ff7b72" font-size="10" font-weight="700">LRU</text>
+  <line x1="588" y1="44" x2="612" y2="44" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#la)"/>
+  <line x1="612" y1="36" x2="588" y2="36" stroke="#bc8cff" stroke-width="1" marker-end="url(#lb)"/>
+
+  <!-- dummy tail -->
+  <rect x="612" y="22" width="36" height="44" rx="5" fill="#161b22" stroke="#30363d" stroke-dasharray="4"/>
+  <text x="630" y="48" text-anchor="middle" fill="#3b444f" font-size="10">TAIL</text>
+
+  <!-- Operation boxes -->
+  <text x="220" y="96" fill="#8b949e" font-size="10" letter-spacing="1">OPERAÇÕES</text>
+  <rect x="220" y="104" width="150" height="32" rx="5" fill="#161b22" stroke="#3fb950"/>
+  <text x="295" y="116" text-anchor="middle" fill="#3fb950" font-size="10" font-weight="600">Get(key)</text>
+  <text x="295" y="128" text-anchor="middle" fill="#8b949e" font-size="10">move to MRU + return val</text>
+
+  <rect x="380" y="104" width="150" height="32" rx="5" fill="#161b22" stroke="#f0883e"/>
+  <text x="455" y="116" text-anchor="middle" fill="#f0883e" font-size="10" font-weight="600">Put(key, val)</text>
+  <text x="455" y="128" text-anchor="middle" fill="#8b949e" font-size="10">insert MRU, evict LRU if full</text>
+
+  <!-- Pointer arrows from map to dll -->
+  <line x1="170" y1="66" x2="300" y2="44" stroke="#f0883e" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="170" y1="90" x2="404" y2="44" stroke="#f0883e" stroke-width="1" stroke-dasharray="3"/>
+  <line x1="170" y1="114" x2="508" y2="44" stroke="#f0883e" stroke-width="1" stroke-dasharray="3"/>
+
+  <!-- capacity indicator -->
+  <text x="220" y="165" fill="#8b949e" font-size="10">Capacity = 3  |  Size hiện tại = 3  |  Evict nếu Put thêm: key=1 bị xóa</text>
+</svg>
+  </div>
+</div>
+
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">lru_cache.go — Full Implementation</span>
+  </div>
+<pre><span class="kw">package</span> <span class="tp">lrucache</span>
+
+<span class="cm">// node là một node trong doubly linked list nội bộ</span>
+<span class="kw">type</span> <span class="tp">node</span> <span class="kw">struct</span> {
+    <span class="field">key</span>, <span class="field">val</span>      <span class="tp">int</span>
+    <span class="field">prev</span>, <span class="field">next</span>   *<span class="tp">node</span>
+}
+
+<span class="cm">// LRUCache triển khai cache LRU với O(1) get/put.
+// Sử dụng HashMap + Doubly Linked List với hai sentinel node (head, tail).
+// Sentinel nodes đơn giản hóa việc insert/remove biên.</span>
+<span class="kw">type</span> <span class="tp">LRUCache</span> <span class="kw">struct</span> {
+    <span class="field">cap</span>        <span class="tp">int</span>
+    <span class="field">cache</span>      <span class="kw">map</span>[<span class="tp">int</span>]*<span class="tp">node</span>
+    <span class="field">head</span>, <span class="field">tail</span> *<span class="tp">node</span> <span class="cm">// dummy sentinels</span>
+}
+
+<span class="cm">// Constructor khởi tạo LRUCache với capacity cap.</span>
+<span class="kw">func</span> <span class="fn">Constructor</span>(<span class="var">cap</span> <span class="tp">int</span>) <span class="tp">LRUCache</span> {
+    <span class="var">head</span> := &<span class="tp">node</span>{}
+    <span class="var">tail</span> := &<span class="tp">node</span>{}
+    <span class="var">head</span>.<span class="field">next</span> = <span class="var">tail</span>
+    <span class="var">tail</span>.<span class="field">prev</span> = <span class="var">head</span>
+    <span class="kw">return</span> <span class="tp">LRUCache</span>{
+        <span class="field">cap</span>:   <span class="var">cap</span>,
+        <span class="field">cache</span>: <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]*<span class="tp">node</span>),
+        <span class="field">head</span>:  <span class="var">head</span>, <span class="field">tail</span>: <span class="var">tail</span>,
+    }
+}
+
+<span class="cm">// Get trả về val của key, -1 nếu không tồn tại.
+// Cập nhật vị trí lên MRU.</span>
+<span class="kw">func</span> (<span class="var">c</span> *<span class="tp">LRUCache</span>) <span class="fn">Get</span>(<span class="var">key</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="var">n</span>, <span class="var">ok</span> := <span class="var">c</span>.<span class="field">cache</span>[<span class="var">key</span>]
+    <span class="kw">if</span> !<span class="var">ok</span> { <span class="kw">return</span> -<span class="num">1</span> }
+    <span class="var">c</span>.<span class="fn">remove</span>(<span class="var">n</span>)
+    <span class="var">c</span>.<span class="fn">insertFront</span>(<span class="var">n</span>)
+    <span class="kw">return</span> <span class="var">n</span>.<span class="field">val</span>
+}
+
+<span class="cm">// Put thêm hoặc cập nhật key-val.
+// Nếu full: evict LRU (node sát tail).</span>
+<span class="kw">func</span> (<span class="var">c</span> *<span class="tp">LRUCache</span>) <span class="fn">Put</span>(<span class="var">key</span>, <span class="var">val</span> <span class="tp">int</span>) {
+    <span class="kw">if</span> <span class="var">n</span>, <span class="var">ok</span> := <span class="var">c</span>.<span class="field">cache</span>[<span class="var">key</span>]; <span class="var">ok</span> {
+        <span class="var">n</span>.<span class="field">val</span> = <span class="var">val</span>
+        <span class="var">c</span>.<span class="fn">remove</span>(<span class="var">n</span>)
+        <span class="var">c</span>.<span class="fn">insertFront</span>(<span class="var">n</span>)
+        <span class="kw">return</span>
+    }
+    <span class="kw">if</span> <span class="fn">len</span>(<span class="var">c</span>.<span class="field">cache</span>) == <span class="var">c</span>.<span class="field">cap</span> {
+        <span class="cm">// xóa LRU: node ngay trước tail</span>
+        <span class="var">lru</span> := <span class="var">c</span>.<span class="field">tail</span>.<span class="field">prev</span>
+        <span class="var">c</span>.<span class="fn">remove</span>(<span class="var">lru</span>)
+        <span class="fn">delete</span>(<span class="var">c</span>.<span class="field">cache</span>, <span class="var">lru</span>.<span class="field">key</span>)
+    }
+    <span class="var">newNode</span> := &<span class="tp">node</span>{<span class="field">key</span>: <span class="var">key</span>, <span class="field">val</span>: <span class="var">val</span>}
+    <span class="var">c</span>.<span class="fn">insertFront</span>(<span class="var">newNode</span>)
+    <span class="var">c</span>.<span class="field">cache</span>[<span class="var">key</span>] = <span class="var">newNode</span>
+}
+
+<span class="cm">// remove tách node khỏi doubly list — O(1)</span>
+<span class="kw">func</span> (<span class="var">c</span> *<span class="tp">LRUCache</span>) <span class="fn">remove</span>(<span class="var">n</span> *<span class="tp">node</span>) {
+    <span class="var">n</span>.<span class="field">prev</span>.<span class="field">next</span> = <span class="var">n</span>.<span class="field">next</span>
+    <span class="var">n</span>.<span class="field">next</span>.<span class="field">prev</span> = <span class="var">n</span>.<span class="field">prev</span>
+}
+
+<span class="cm">// insertFront chèn node vào vị trí MRU (ngay sau head) — O(1)</span>
+<span class="kw">func</span> (<span class="var">c</span> *<span class="tp">LRUCache</span>) <span class="fn">insertFront</span>(<span class="var">n</span> *<span class="tp">node</span>) {
+    <span class="var">n</span>.<span class="field">next</span> = <span class="var">c</span>.<span class="field">head</span>.<span class="field">next</span>
+    <span class="var">n</span>.<span class="field">prev</span> = <span class="var">c</span>.<span class="field">head</span>
+    <span class="var">c</span>.<span class="field">head</span>.<span class="field">next</span>.<span class="field">prev</span> = <span class="var">n</span>
+    <span class="var">c</span>.<span class="field">head</span>.<span class="field">next</span> = <span class="var">n</span>
+}
+
+<span class="cm">// ─── Thread-safe LRU với sync.RWMutex ───────────────────────────────────────</span>
+
+<span class="kw">import</span> <span class="str">"sync"</span>
+
+<span class="kw">type</span> <span class="tp">SafeLRUCache</span> <span class="kw">struct</span> {
+    <span class="tp">LRUCache</span>
+    <span class="var">mu</span> <span class="tp">sync.RWMutex</span>
+}
+
+<span class="kw">func</span> (<span class="var">c</span> *<span class="tp">SafeLRUCache</span>) <span class="fn">Get</span>(<span class="var">key</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="var">c</span>.<span class="var">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> <span class="var">c</span>.<span class="var">mu</span>.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> <span class="var">c</span>.<span class="tp">LRUCache</span>.<span class="fn">Get</span>(<span class="var">key</span>)
+}
+
+<span class="kw">func</span> (<span class="var">c</span> *<span class="tp">SafeLRUCache</span>) <span class="fn">Put</span>(<span class="var">key</span>, <span class="var">val</span> <span class="tp">int</span>) {
+    <span class="var">c</span>.<span class="var">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> <span class="var">c</span>.<span class="var">mu</span>.<span class="fn">Unlock</span>()
+    <span class="var">c</span>.<span class="tp">LRUCache</span>.<span class="fn">Put</span>(<span class="var">key</span>, <span class="var">val</span>)
+}</pre>
+</div>
+
+<div class="tip-box">
+  <span class="box-label">💡 Mẹo thực tế:</span> Go stdlib cung cấp <code>container/list</code> (doubly LL). Trong production dùng được, nhưng trong phỏng vấn nên tự implement để chứng minh hiểu nguyên lý. Package <code>golang.org/x/exp/cache</code> có generic LRU từ Go 1.18+.
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ 05 PALINDROME ══════════ -->
+<section id="s05">
+<div class="section-badge">📝 Chủ đề 05</div>
+<div class="section-title">
+  <div class="section-num">05</div>
+  Palindrome — Kiểm Tra Chuỗi Đối Xứng
+  <span class="tag-advanced">Advanced</span>
+</div>
+<div class="lead">
+  Kiểm tra linked list có phải palindrome không trong <strong>O(n) time, O(1) space</strong>:
+  tìm giữa → đảo nửa sau → so sánh từ hai đầu → khôi phục list.
+  Kỹ thuật này kết hợp cả slow/fast pointer và reversal.
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">Chiến lược 3 pha: Tìm giữa → Đảo → So sánh</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 640 230" width="600" height="230" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace" font-size="11">
+  <defs>
+    <marker id="pa" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#39d0d8"/>
+    </marker>
+    <marker id="pb" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#f0883e"/>
+    </marker>
+  </defs>
+
+  <!-- Phase 1 -->
+  <text x="10" y="14" fill="#39d0d8" font-size="10" font-weight="700" letter-spacing="1">PHA 1: TÌM ĐIỂM GIỮA (slow/fast)</text>
+  <g transform="translate(10,22)">
+    <rect x="0"   y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="25" y="24" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <line x1="50" y1="19" x2="68" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="68"  y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+    <text x="93" y="24" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <text x="93" y="44" text-anchor="middle" fill="#39d0d8" font-size="10">slow</text>
+    <line x1="118" y1="19" x2="136" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="136" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="161" y="24" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <line x1="186" y1="19" x2="204" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="204" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="229" y="24" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="254" y1="19" x2="272" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="272" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#f0883e" stroke-width="2"/>
+    <text x="297" y="24" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="297" y="44" text-anchor="middle" fill="#f0883e" font-size="10">fast=nil</text>
+    <text x="25" y="-4" text-anchor="middle" fill="#e3b341" font-size="10">head</text>
+  </g>
+
+  <!-- Phase 2 -->
+  <text x="10" y="92" fill="#bc8cff" font-size="10" font-weight="700" letter-spacing="1">PHA 2: ĐẢO NGƯỢC NỬA SAU (từ slow.Next)</text>
+  <g transform="translate(10,100)">
+    <rect x="0"   y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="25" y="24" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <line x1="50" y1="19" x2="68" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="68"  y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+    <text x="93" y="24" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <text x="93" y="44" text-anchor="middle" fill="#39d0d8" font-size="10">p1</text>
+    <line x1="118" y1="19" x2="120" y2="19" stroke="#30363d" stroke-width="1" stroke-dasharray="3"/>
+    <text x="134" y="24" fill="#3b444f">×</text>
+    <rect x="204" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+    <text x="229" y="24" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <text x="229" y="44" text-anchor="middle" fill="#bc8cff" font-size="10">p2</text>
+    <line x1="200" y1="19" x2="182" y2="19" stroke="#f0883e" stroke-width="1.5" marker-end="url(#pb)"/>
+    <rect x="136" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+    <text x="161" y="24" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <line x1="272" y1="19" x2="254" y2="19" stroke="#f0883e" stroke-width="1.5" marker-end="url(#pb)"/>
+    <rect x="272" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+    <text x="297" y="24" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="297" y="44" text-anchor="middle" fill="#bc8cff" font-size="10">head2</text>
+  </g>
+
+  <!-- Phase 3 -->
+  <text x="10" y="172" fill="#3fb950" font-size="10" font-weight="700" letter-spacing="1">PHA 3: SO SÁNH TỪ HAI ĐẦU (1==1 ✓, 2==2 ✓, 3==3 ✓)</text>
+  <g transform="translate(10,180)">
+    <rect x="0"   y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+    <text x="25" y="24" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="25" y="-4" text-anchor="middle" fill="#3fb950" font-size="10">p1 →</text>
+    <line x1="50" y1="19" x2="68" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="68"  y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="93" y="24" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="118" y1="19" x2="136" y2="19" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#pa)"/>
+    <rect x="136" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="161" y="24" text-anchor="middle" fill="#56d364" font-weight="700">3</text>
+    <text x="340" y="24" fill="#3fb950" font-size="20" font-weight="700">✓</text>
+    <rect x="272" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+    <text x="297" y="24" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <text x="297" y="-4" text-anchor="middle" fill="#3fb950" font-size="10">← p2</text>
+    <line x1="270" y1="19" x2="252" y2="19" stroke="#f0883e" stroke-width="1.5" marker-end="url(#pb)"/>
+    <rect x="202" y="4" width="50" height="30" rx="4" fill="#1c2128" stroke="#30363d"/>
+    <text x="227" y="24" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="200" y1="19" x2="188" y2="19" stroke="#f0883e" stroke-width="1.5" marker-end="url(#pb)"/>
+  </g>
+</svg>
+  </div>
+</div>
+
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">palindrome.go</span>
+  </div>
+<pre><span class="cm">// IsPalindrome kiểm tra linked list có phải palindrome không.
+// Time: O(n) | Space: O(1) — không dùng stack hay mảng.</span>
+<span class="kw">func</span> <span class="fn">IsPalindrome</span>(<span class="var">head</span> *<span class="tp">ListNode</span>) <span class="tp">bool</span> {
+    <span class="kw">if</span> <span class="var">head</span> == <span class="kw">nil</span> || <span class="var">head</span>.<span class="field">Next</span> == <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">true</span>
+    }
+
+    <span class="cm">// Pha 1: Tìm điểm giữa bằng slow/fast pointer</span>
+    <span class="var">slow</span>, <span class="var">fast</span> := <span class="var">head</span>, <span class="var">head</span>
+    <span class="kw">for</span> <span class="var">fast</span> != <span class="kw">nil</span> && <span class="var">fast</span>.<span class="field">Next</span> != <span class="kw">nil</span> {
+        <span class="var">slow</span> = <span class="var">slow</span>.<span class="field">Next</span>
+        <span class="var">fast</span> = <span class="var">fast</span>.<span class="field">Next</span>.<span class="field">Next</span>
+    }
+
+    <span class="cm">// Pha 2: Đảo ngược nửa sau (bắt đầu từ slow)</span>
+    <span class="var">secondHalf</span> := <span class="fn">reverseList</span>(<span class="var">slow</span>)
+    <span class="var">savedTail</span> := <span class="var">secondHalf</span> <span class="cm">// lưu lại để restore sau</span>
+
+    <span class="cm">// Pha 3: So sánh hai nửa</span>
+    <span class="var">p1</span>, <span class="var">p2</span> := <span class="var">head</span>, <span class="var">secondHalf</span>
+    <span class="var">result</span> := <span class="kw">true</span>
+    <span class="kw">for</span> <span class="var">p2</span> != <span class="kw">nil</span> {
+        <span class="kw">if</span> <span class="var">p1</span>.<span class="field">Val</span> != <span class="var">p2</span>.<span class="field">Val</span> {
+            <span class="var">result</span> = <span class="kw">false</span>
+            <span class="kw">break</span>
+        }
+        <span class="var">p1</span>, <span class="var">p2</span> = <span class="var">p1</span>.<span class="field">Next</span>, <span class="var">p2</span>.<span class="field">Next</span>
+    }
+
+    <span class="cm">// Pha 4: Khôi phục list về trạng thái ban đầu (best practice)</span>
+    <span class="fn">reverseList</span>(<span class="var">savedTail</span>)
+    <span class="kw">return</span> <span class="var">result</span>
+}
+
+<span class="kw">func</span> <span class="fn">reverseList</span>(<span class="var">head</span> *<span class="tp">ListNode</span>) *<span class="tp">ListNode</span> {
+    <span class="kw">var</span> <span class="var">prev</span> *<span class="tp">ListNode</span>
+    <span class="kw">for</span> <span class="var">head</span> != <span class="kw">nil</span> {
+        <span class="var">next</span> := <span class="var">head</span>.<span class="field">Next</span>
+        <span class="var">head</span>.<span class="field">Next</span> = <span class="var">prev</span>
+        <span class="var">prev</span> = <span class="var">head</span>
+        <span class="var">head</span> = <span class="var">next</span>
+    }
+    <span class="kw">return</span> <span class="var">prev</span>
+}
+
+<span class="cm">// IsPalindromeWithStack — giải pháp O(n) space, rõ ràng hơn cho người đọc</span>
+<span class="kw">func</span> <span class="fn">IsPalindromeWithStack</span>(<span class="var">head</span> *<span class="tp">ListNode</span>) <span class="tp">bool</span> {
+    <span class="kw">var</span> <span class="var">stack</span> []<span class="tp">int</span>
+    <span class="kw">for</span> <span class="var">cur</span> := <span class="var">head</span>; <span class="var">cur</span> != <span class="kw">nil</span>; <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span> {
+        <span class="var">stack</span> = <span class="fn">append</span>(<span class="var">stack</span>, <span class="var">cur</span>.<span class="field">Val</span>)
+    }
+    <span class="var">cur</span> := <span class="var">head</span>
+    <span class="kw">for</span> <span class="var">i</span> := <span class="fn">len</span>(<span class="var">stack</span>) - <span class="num">1</span>; <span class="var">i</span> >= <span class="fn">len</span>(<span class="var">stack</span>)/<span class="num">2</span>; <span class="var">i</span>-- {
+        <span class="kw">if</span> <span class="var">cur</span>.<span class="field">Val</span> != <span class="var">stack</span>[<span class="var">i</span>] { <span class="kw">return</span> <span class="kw">false</span> }
+        <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span>
+    }
+    <span class="kw">return</span> <span class="kw">true</span>
+}</pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ 06 FLATTEN ══════════ -->
+<section id="s06">
+<div class="section-badge">📝 Chủ đề 06</div>
+<div class="section-title">
+  <div class="section-num">06</div>
+  Flatten Multilevel — Phẳng Hóa Danh Sách Đa Cấp
+  <span class="tag-expert">Expert</span>
+</div>
+<div class="lead">
+  Mỗi node ngoài <code>Next</code> còn có con trỏ <code>Child</code> trỏ đến một danh sách con.
+  Nhiệm vụ: nối tất cả level vào một danh sách phẳng theo thứ tự DFS (depth-first).
+  Kỹ thuật: khi gặp <code>Child</code>, chèn danh sách con giữa node hiện tại và <code>Next</code>.
+</div>
+
+<div class="diagram-wrap">
+  <div class="diagram-title">Cấu trúc Multilevel và kết quả sau flatten</div>
+  <div class="diagram-body">
+<svg viewBox="0 0 640 230" width="600" height="230" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono,monospace" font-size="11">
+  <defs>
+    <marker id="fa" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#39d0d8"/>
+    </marker>
+    <marker id="fc" markerWidth="7" markerHeight="7" refX="5" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L7,3 z" fill="#bc8cff"/>
+    </marker>
+  </defs>
+
+  <!-- Level 1 -->
+  <text x="10" y="14" fill="#8b949e" font-size="10" letter-spacing="1">TRƯỚC: cấu trúc đa cấp</text>
+  <g transform="translate(10,22)">
+    <rect x="0"  y="0" width="52" height="32" rx="4" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+    <text x="26" y="20" text-anchor="middle" fill="#56d364" font-weight="700">1</text>
+    <line x1="52" y1="16" x2="72" y2="16" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="72" y="0" width="52" height="32" rx="4" fill="#1c2128" stroke="#39d0d8" stroke-width="2"/>
+    <text x="98" y="20" text-anchor="middle" fill="#56d364" font-weight="700">2</text>
+    <line x1="124" y1="16" x2="144" y2="16" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="144" y="0" width="52" height="32" rx="4" fill="#1c2128" stroke="#f0883e" stroke-width="2"/>
+    <text x="170" y="20" text-anchor="middle" fill="#f0883e" font-weight="700">3</text>
+    <line x1="196" y1="16" x2="216" y2="16" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="216" y="0" width="52" height="32" rx="4" fill="#1c2128" stroke="#39d0d8"/>
+    <text x="242" y="20" text-anchor="middle" fill="#56d364" font-weight="700">4</text>
+
+    <!-- child arrow from node 3 (Level 1 → Level 2) -->
+    <line x1="170" y1="32" x2="170" y2="52" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fc)"/>
+    <text x="178" y="48" fill="#bc8cff" font-size="10">child</text>
+
+    <!-- Level 2 -->
+    <rect x="144" y="52" width="52" height="32" rx="4" fill="#1c2128" stroke="#bc8cff" stroke-width="2"/>
+    <text x="170" y="72" text-anchor="middle" fill="#56d364" font-weight="700">5</text>
+    <line x1="196" y1="68" x2="216" y2="68" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="216" y="52" width="52" height="32" rx="4" fill="#1c2128" stroke="#f0883e" stroke-width="2"/>
+    <text x="242" y="72" text-anchor="middle" fill="#f0883e" font-weight="700">6</text>
+    <line x1="268" y1="68" x2="288" y2="68" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="288" y="52" width="52" height="32" rx="4" fill="#1c2128" stroke="#39d0d8"/>
+    <text x="314" y="72" text-anchor="middle" fill="#56d364" font-weight="700">7</text>
+
+    <!-- child from node 6 (Level 2 → Level 3) -->
+    <line x1="242" y1="84" x2="242" y2="104" stroke="#bc8cff" stroke-width="1.5" marker-end="url(#fc)"/>
+
+    <!-- Level 3 -->
+    <rect x="216" y="104" width="52" height="32" rx="4" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+    <text x="242" y="124" text-anchor="middle" fill="#56d364" font-weight="700">8</text>
+    <line x1="268" y1="120" x2="288" y2="120" stroke="#39d0d8" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="288" y="104" width="52" height="32" rx="4" fill="#1c2128" stroke="#3fb950" stroke-width="2"/>
+    <text x="314" y="124" text-anchor="middle" fill="#56d364" font-weight="700">9</text>
+  </g>
+
+  <!-- After flatten -->
+  <text x="10" y="176" fill="#3fb950" font-size="10" font-weight="700" letter-spacing="1">SAU FLATTEN: 1 → 2 → 3 → 5 → 6 → 8 → 9 → 7 → 4</text>
+  <g transform="translate(10,184)">
+    <rect x="0"   y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#39d0d8"/>
+    <text x="21" y="18" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">1</text>
+    <line x1="42" y1="14" x2="54" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="54"  y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#39d0d8"/>
+    <text x="75" y="18" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">2</text>
+    <line x1="96" y1="14" x2="108" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="108" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#f0883e"/>
+    <text x="129" y="18" text-anchor="middle" fill="#f0883e" font-size="11" font-weight="700">3</text>
+    <line x1="150" y1="14" x2="162" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="162" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#bc8cff"/>
+    <text x="183" y="18" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="700">5</text>
+    <line x1="204" y1="14" x2="216" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="216" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#f0883e"/>
+    <text x="237" y="18" text-anchor="middle" fill="#f0883e" font-size="11" font-weight="700">6</text>
+    <line x1="258" y1="14" x2="270" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="270" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#3fb950"/>
+    <text x="291" y="18" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">8</text>
+    <line x1="312" y1="14" x2="324" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="324" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#3fb950"/>
+    <text x="345" y="18" text-anchor="middle" fill="#3fb950" font-size="11" font-weight="700">9</text>
+    <line x1="366" y1="14" x2="378" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="378" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#bc8cff"/>
+    <text x="399" y="18" text-anchor="middle" fill="#bc8cff" font-size="11" font-weight="700">7</text>
+    <line x1="420" y1="14" x2="432" y2="14" stroke="#3fb950" stroke-width="1.5" marker-end="url(#fa)"/>
+    <rect x="432" y="0" width="42" height="28" rx="4" fill="#1c2128" stroke="#39d0d8"/>
+    <text x="453" y="18" text-anchor="middle" fill="#56d364" font-size="11" font-weight="700">4</text>
+  </g>
+</svg>
+  </div>
+</div>
+
+<div class="code-wrap">
+  <div class="code-header">
+    <span class="code-lang">GO</span>
+    <span class="code-filename">flatten.go — LeetCode 430</span>
+  </div>
+<pre><span class="cm">// MultilevelNode — node đặc biệt có cả Next và Child</span>
+<span class="kw">type</span> <span class="tp">MultilevelNode</span> <span class="kw">struct</span> {
+    <span class="field">Val</span>        <span class="tp">int</span>
+    <span class="field">Prev</span>, <span class="field">Next</span> *<span class="tp">MultilevelNode</span>
+    <span class="field">Child</span>      *<span class="tp">MultilevelNode</span>
+}
+
+<span class="cm">// Flatten phẳng hóa doubly linked list đa cấp.
+// Thuật toán: với mỗi node có Child, chèn chuỗi child vào giữa node và Next.
+// Time: O(n) mỗi node được duyệt đúng 1 lần | Space: O(1)</span>
+<span class="kw">func</span> <span class="fn">Flatten</span>(<span class="var">root</span> *<span class="tp">MultilevelNode</span>) *<span class="tp">MultilevelNode</span> {
+    <span class="kw">if</span> <span class="var">root</span> == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+
+    <span class="var">cur</span> := <span class="var">root</span>
+    <span class="kw">for</span> <span class="var">cur</span> != <span class="kw">nil</span> {
+        <span class="kw">if</span> <span class="var">cur</span>.<span class="field">Child</span> == <span class="kw">nil</span> {
+            <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span>
+            <span class="kw">continue</span>
+        }
+
+        <span class="cm">// có child: chèn child list vào giữa cur và cur.Next</span>
+        <span class="var">child</span> := <span class="var">cur</span>.<span class="field">Child</span>
+        <span class="var">childTail</span> := <span class="fn">findTail</span>(<span class="var">child</span>) <span class="cm">// tìm đuôi của child list</span>
+
+        <span class="cm">// nối childTail → cur.Next</span>
+        <span class="kw">if</span> <span class="var">cur</span>.<span class="field">Next</span> != <span class="kw">nil</span> {
+            <span class="var">childTail</span>.<span class="field">Next</span> = <span class="var">cur</span>.<span class="field">Next</span>
+            <span class="var">cur</span>.<span class="field">Next</span>.<span class="field">Prev</span> = <span class="var">childTail</span>
+        }
+        <span class="cm">// nối cur → child (đầu child list)</span>
+        <span class="var">cur</span>.<span class="field">Next</span> = <span class="var">child</span>
+        <span class="var">child</span>.<span class="field">Prev</span> = <span class="var">cur</span>
+        <span class="var">cur</span>.<span class="field">Child</span> = <span class="kw">nil</span> <span class="cm">// xóa child pointer</span>
+
+        <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span>
+    }
+    <span class="kw">return</span> <span class="var">root</span>
+}
+
+<span class="kw">func</span> <span class="fn">findTail</span>(<span class="var">node</span> *<span class="tp">MultilevelNode</span>) *<span class="tp">MultilevelNode</span> {
+    <span class="kw">for</span> <span class="var">node</span>.<span class="field">Next</span> != <span class="kw">nil</span> { <span class="var">node</span> = <span class="var">node</span>.<span class="field">Next</span> }
+    <span class="kw">return</span> <span class="var">node</span>
+}
+
+<span class="cm">// FlattenRecursive — giải pháp đệ quy cho từng node
+// Mỗi lần gặp child, flatten nó, nối vào, tiếp tục.
+// Space: O(depth) call stack</span>
+<span class="kw">func</span> <span class="fn">FlattenRecursive</span>(<span class="var">root</span> *<span class="tp">MultilevelNode</span>) *<span class="tp">MultilevelNode</span> {
+    <span class="kw">var</span> <span class="fn">dfs</span> <span class="kw">func</span>(<span class="var">head</span> *<span class="tp">MultilevelNode</span>) (*<span class="tp">MultilevelNode</span>, *<span class="tp">MultilevelNode</span>)
+    <span class="fn">dfs</span> = <span class="kw">func</span>(<span class="var">head</span> *<span class="tp">MultilevelNode</span>) (*<span class="tp">MultilevelNode</span>, *<span class="tp">MultilevelNode</span>) {
+        <span class="var">cur</span> := <span class="var">head</span>
+        <span class="kw">var</span> <span class="var">tail</span> *<span class="tp">MultilevelNode</span>
+        <span class="kw">for</span> <span class="var">cur</span> != <span class="kw">nil</span> {
+            <span class="var">tail</span> = <span class="var">cur</span>
+            <span class="kw">if</span> <span class="var">cur</span>.<span class="field">Child</span> != <span class="kw">nil</span> {
+                <span class="var">childHead</span>, <span class="var">childTail</span> := <span class="fn">dfs</span>(<span class="var">cur</span>.<span class="field">Child</span>)
+                <span class="var">savedNext</span> := <span class="var">cur</span>.<span class="field">Next</span>
+                <span class="var">cur</span>.<span class="field">Next</span> = <span class="var">childHead</span>; <span class="var">childHead</span>.<span class="field">Prev</span> = <span class="var">cur</span>
+                <span class="kw">if</span> <span class="var">savedNext</span> != <span class="kw">nil</span> {
+                    <span class="var">childTail</span>.<span class="field">Next</span> = <span class="var">savedNext</span>; <span class="var">savedNext</span>.<span class="field">Prev</span> = <span class="var">childTail</span>
+                }
+                <span class="var">cur</span>.<span class="field">Child</span> = <span class="kw">nil</span>
+                <span class="var">tail</span> = <span class="var">childTail</span>
+                <span class="var">cur</span> = <span class="var">savedNext</span>
+            } <span class="kw">else</span> {
+                <span class="var">cur</span> = <span class="var">cur</span>.<span class="field">Next</span>
+            }
+        }
+        <span class="kw">return</span> <span class="var">head</span>, <span class="var">tail</span>
+    }
+    <span class="kw">if</span> <span class="var">root</span> == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+    <span class="var">result</span>, _ := <span class="fn">dfs</span>(<span class="var">root</span>)
+    <span class="kw">return</span> <span class="var">result</span>
+}</pre>
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ COMPLEXITY TABLE ══════════ -->
+<section id="complexity">
+<div class="section-title" style="font-size:20px">
+  <div class="section-num" style="background:var(--purple2);font-size:11px">ALL</div>
+  Bảng Tổng Hợp Độ Phức Tạp
+</div>
+
+<div class="concept-box">
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Chủ đề</th>
+      <th>Kỹ thuật</th>
+      <th>Time</th>
+      <th>Space</th>
+      <th>Mức độ</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>01</td>
+      <td>Reversal (Iterative)</td>
+      <td>3-pointer rewire</td>
+      <td class="complexity-o">O(n)</td>
+      <td class="complexity-o">O(1)</td>
+      <td><span class="tag-advanced" style="font-size:10px">Advanced</span></td>
+    </tr>
+    <tr>
+      <td>01b</td>
+      <td>Reversal (Recursive)</td>
+      <td>Đệ quy</td>
+      <td class="complexity-o">O(n)</td>
+      <td class="complexity-on">O(n)</td>
+      <td><span class="tag-advanced" style="font-size:10px">Advanced</span></td>
+    </tr>
+    <tr>
+      <td>01c</td>
+      <td>Reverse K-Group</td>
+      <td>Group reversal</td>
+      <td class="complexity-o">O(n)</td>
+      <td class="complexity-o">O(1)</td>
+      <td><span class="tag-expert" style="font-size:10px">Expert</span></td>
+    </tr>
+    <tr>
+      <td>02</td>
+      <td>Remove Kth Last</td>
+      <td>Two pointers</td>
+      <td class="complexity-o">O(n)</td>
+      <td class="complexity-o">O(1)</td>
+      <td><span class="tag-advanced" style="font-size:10px">Advanced</span></td>
+    </tr>
+    <tr>
+      <td>03</td>
+      <td>Intersection</td>
+      <td>Cross-walk pointers</td>
+      <td class="complexity-o">O(m+n)</td>
+      <td class="complexity-o">O(1)</td>
+      <td><span class="tag-advanced" style="font-size:10px">Advanced</span></td>
+    </tr>
+    <tr>
+      <td>04</td>
+      <td>LRU Cache (Get/Put)</td>
+      <td>HashMap + DLL</td>
+      <td class="complexity-o">O(1)</td>
+      <td class="complexity-on">O(n)</td>
+      <td><span class="tag-expert" style="font-size:10px">Expert</span></td>
+    </tr>
+    <tr>
+      <td>05</td>
+      <td>Palindrome</td>
+      <td>Slow/Fast + Reverse</td>
+      <td class="complexity-o">O(n)</td>
+      <td class="complexity-o">O(1)</td>
+      <td><span class="tag-advanced" style="font-size:10px">Advanced</span></td>
+    </tr>
+    <tr>
+      <td>06</td>
+      <td>Flatten Multilevel</td>
+      <td>DFS / Pointer splice</td>
+      <td class="complexity-o">O(n)</td>
+      <td class="complexity-o">O(1)</td>
+      <td><span class="tag-expert" style="font-size:10px">Expert</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="warn-box">
+  <span class="box-label">⚠️ Lưu ý quan trọng:</span> Tất cả O(1) space ở đây giả định không tính call stack của đệ quy.
+  Với giải pháp đệ quy, space thực sự là O(depth). Trong phỏng vấn, luôn nêu rõ điều này để ghi điểm.
+</div>
+</section>
+
+<div class="divider"></div>
+
+<!-- ══════════ REFS ══════════ -->
+<section id="refs">
+<div class="section-title" style="font-size:20px">
+  <div class="section-num" style="background:var(--orange2);font-size:11px">REF</div>
+  Tài Liệu Tham Khảo &amp; Nguồn Uy Tín
+</div>
+<p class="body">Các tài nguyên dưới đây được cộng đồng Go/DSA đánh giá cao nhất, giúp bạn đào sâu và thực hành thêm.</p>
+
+<div class="ref-grid">
+  <a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+    <div class="ref-title">⭐ LeetCode-Go (halfrost)</div>
+    <div class="ref-sub">29k+ stars — Tất cả LeetCode solutions bằng Go, có giải thích chi tiết</div>
+    <span class="ref-tag">GitHub ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
+    <div class="ref-title">labuladong/fucking-algorithm</div>
+    <div class="ref-sub">110k+ stars — Framework tư duy cho mọi pattern DSA, có Go examples</div>
+    <span class="ref-tag">GitHub ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://github.com/greyireland/algorithm-pattern" target="_blank">
+    <div class="ref-title">algorithm-pattern (Go)</div>
+    <div class="ref-sub">26k+ stars — Pattern-based learning cho Go developers, có linked list section</div>
+    <span class="ref-tag">GitHub ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://leetcode.com/tag/linked-list/" target="_blank">
+    <div class="ref-title">LeetCode — Linked List Problems</div>
+    <div class="ref-sub">Tập hợp 200+ bài tập phân loại theo độ khó, có discussion và editorial</div>
+    <span class="ref-tag">Platform ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://go.dev/doc/effective_go" target="_blank">
+    <div class="ref-title">Effective Go (Official)</div>
+    <div class="ref-sub">Tài liệu chính thức về idiomatic Go, bao gồm pointers và data structures</div>
+    <span class="ref-tag">Official ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+    <div class="ref-title">TheAlgorithms/Go</div>
+    <div class="ref-sub">10k+ stars — Thư viện thuật toán chuẩn viết bằng Go, có test coverage đầy đủ</div>
+    <span class="ref-tag">GitHub ★★★★☆</span>
+  </a>
+  <a class="ref-card" href="https://pkg.go.dev/container/list" target="_blank">
+    <div class="ref-title">Go stdlib: container/list</div>
+    <div class="ref-sub">Doubly linked list chính thức trong Go standard library — dùng trong production</div>
+    <span class="ref-tag">stdlib ★★★★☆</span>
+  </a>
+  <a class="ref-card" href="https://neetcode.io/" target="_blank">
+    <div class="ref-title">NeetCode.io</div>
+    <div class="ref-sub">Video giải thích visual cho các bài LeetCode, có Go code, cực kỳ rõ ràng</div>
+    <span class="ref-tag">Learning ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://github.com/youngyangyang04/leetcode-master" target="_blank">
+    <div class="ref-title">leetcode-master (Carl)</div>
+    <div class="ref-sub">52k+ stars — Lộ trình học DSA có hệ thống, linked list chapter rất chất lượng</div>
+    <span class="ref-tag">GitHub ★★★★★</span>
+  </a>
+  <a class="ref-card" href="https://gobyexample.com/" target="_blank">
+    <div class="ref-title">Go by Example</div>
+    <div class="ref-sub">Học Go nhanh qua ví dụ thực tế — bao gồm pointers, structs, goroutines</div>
+    <span class="ref-tag">Tutorial ★★★★★</span>
+  </a>
+</div>
+
+<div class="info-box" style="margin-top:28px">
+  <span class="box-label">📚 Lộ trình học đề xuất:</span>
+  Bắt đầu với <strong>Reversal</strong> (nắm vững pointer rewiring) → <strong>Two Pointers</strong> (Kth Last) → <strong>Intersection</strong> (math insight) → <strong>Palindrome</strong> (kết hợp kỹ thuật) → <strong>LRU Cache</strong> (thiết kế cấu trúc) → <strong>Flatten</strong> (recursive thinking).
+  Mỗi topic nên giải ít nhất 3 bài LeetCode liên quan trước khi chuyển sang topic tiếp theo.
+</div>
+</section>
+
+<div style="height:60px"></div>
+
+</main>
+</div>
+
+<script>
+// Sidebar active link on scroll
+const sections = [];
+document.querySelectorAll('.sidebar-link').forEach(link => {
+  const href = link.getAttribute('href');
+  if (href && href.startsWith('#')) {
+    try {
+      const el = document.querySelector(href);
+      if (el) sections.push(el);
+    } catch(e) {}
+  }
+});
+
+const links = document.querySelectorAll('.sidebar-link');
+const topLinks = document.querySelectorAll('.topnav a');
+
+function updateActive() {
+  let cur = '';
+  sections.forEach(s => {
+    if (window.scrollY >= s.offsetTop - 120) cur = s.id;
+  });
+  links.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#'+cur);
+  });
+  topLinks.forEach(l => {
+    l.classList.toggle('active', l.getAttribute('href') === '#'+cur);
+  });
+}
+window.addEventListener('scroll', updateActive, {passive:true});
+updateActive();
+
+// smooth scroll for nav links
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    const href = a.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#/')) return;
+    try {
+      const el = document.querySelector(href);
+      if (el) {
+        e.preventDefault();
+        el.scrollIntoView({behavior:'smooth', block:'start'});
+      }
+    } catch(err) {}
+  });
+});
+</script>
+</body>
+</html>

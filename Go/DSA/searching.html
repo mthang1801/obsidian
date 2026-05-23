@@ -1,0 +1,2641 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Go Searching Algorithms — Tài liệu kỹ thuật</title>
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--bg-primary: #090d13;
+				--bg-secondary: #0d1117;
+				--bg-card: #161c25;
+				--bg-code: #0d1117;
+				--sidebar-bg: #0d1117;
+				--nav-bg: #090d13;
+				--border: #1e2a3a;
+				--border-light: #2a3a50;
+				--text-primary: #e2eaf5;
+				--text-secondary: #7a90a8;
+				--text-muted: #4a5a70;
+				--accent-green: #00ff9d;
+				--accent-blue: #4da6ff;
+				--accent-cyan: #00d4ff;
+				--accent-purple: #a78bfa;
+				--accent-orange: #fb923c;
+				--accent-yellow: #fbbf24;
+				--accent-pink: #f472b6;
+				--accent-red: #ff6b6b;
+				--tag-expert: #7c3aed;
+				--tag-advanced: #0ea5e9;
+				--tag-basic: #10b981;
+				--code-keyword: #ff7b93;
+				--code-string: #9ce768;
+				--code-number: #f7c97e;
+				--code-comment: #546e7a;
+				--code-func: #82aaff;
+				--code-type: #c792ea;
+				--code-builtin: #addb67;
+				--code-var: #eeffff;
+				--code-op: #89ddff;
+			}
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			html {
+				scroll-behavior: smooth;
+			}
+			body {
+				font-family: "Space Grotesk", sans-serif;
+				background: var(--bg-primary);
+				color: var(--text-primary);
+				display: flex;
+				flex-direction: column;
+				min-height: 100vh;
+				font-size: 14px;
+				line-height: 1.7;
+			}
+
+			/* ─── TOP NAV ─── */
+			.topnav {
+				position: fixed;
+				top: 0;
+				left: 0;
+				right: 0;
+				z-index: 100;
+				background: var(--nav-bg);
+				border-bottom: 1px solid var(--border);
+				height: 52px;
+				display: flex;
+				align-items: center;
+				padding: 0 24px;
+				gap: 0;
+			}
+			.topnav-brand {
+				font-weight: 700;
+				font-size: 16px;
+				color: var(--text-primary);
+				margin-right: 32px;
+				white-space: nowrap;
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+			.topnav-brand .go {
+				color: var(--accent-cyan);
+			}
+			.topnav-brand .algo {
+				color: var(--accent-green);
+			}
+			.topnav-links {
+				display: flex;
+				gap: 4px;
+				overflow-x: auto;
+			}
+			.topnav-links a {
+				color: var(--text-secondary);
+				text-decoration: none;
+				font-size: 13px;
+				padding: 6px 14px;
+				border-radius: 6px;
+				white-space: nowrap;
+				transition: all 0.2s;
+			}
+			.topnav-links a:hover {
+				color: var(--text-primary);
+				background: var(--border);
+			}
+			.topnav-links a.active {
+				color: var(--accent-green);
+			}
+
+			/* ─── LAYOUT ─── */
+			.layout {
+				display: flex;
+				margin-top: 52px;
+				min-height: calc(100vh - 52px);
+			}
+
+			/* ─── SIDEBAR ─── */
+			.sidebar {
+				width: 260px;
+				min-width: 260px;
+				background: var(--sidebar-bg);
+				border-right: 1px solid var(--border);
+				position: fixed;
+				top: 52px;
+				left: 0;
+				bottom: 0;
+				overflow-y: auto;
+				padding: 20px 0;
+			}
+			.sidebar::-webkit-scrollbar {
+				width: 4px;
+			}
+			.sidebar::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			.sidebar::-webkit-scrollbar-thumb {
+				background: var(--border);
+				border-radius: 2px;
+			}
+			.sidebar-section {
+				margin-bottom: 20px;
+			}
+			.sidebar-label {
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 1.2px;
+				color: var(--text-muted);
+				text-transform: uppercase;
+				padding: 0 20px 8px;
+			}
+			.sidebar-item {
+				display: block;
+				padding: 7px 20px;
+				color: var(--text-secondary);
+				text-decoration: none;
+				font-size: 13px;
+				border-left: 2px solid transparent;
+				transition: all 0.15s;
+			}
+			.sidebar-item:hover {
+				color: var(--text-primary);
+				background: rgba(255, 255, 255, 0.03);
+			}
+			.sidebar-item.active {
+				color: var(--accent-green);
+				border-left-color: var(--accent-green);
+				background: rgba(0, 255, 157, 0.05);
+			}
+			.sidebar-item .num {
+				display: inline-block;
+				width: 20px;
+				height: 20px;
+				line-height: 20px;
+				background: var(--border);
+				border-radius: 4px;
+				text-align: center;
+				font-size: 10px;
+				font-weight: 700;
+				margin-right: 8px;
+				color: var(--text-secondary);
+			}
+			.sidebar-item.active .num {
+				background: var(--accent-green);
+				color: #000;
+			}
+
+			/* ─── MAIN CONTENT ─── */
+			.main {
+				margin-left: 260px;
+				flex: 1;
+				padding: 0;
+				min-width: 0;
+			}
+			.content {
+				max-width: 960px;
+				margin: 0 auto;
+				padding: 40px 48px 80px;
+			}
+
+			/* ─── PAGE HEADER ─── */
+			.page-header {
+				background: linear-gradient(135deg, #0a1628 0%, #0d1f3c 50%, #091525 100%);
+				border: 1px solid var(--border);
+				border-radius: 16px;
+				padding: 40px;
+				margin-bottom: 48px;
+				position: relative;
+				overflow: hidden;
+			}
+			.page-header::before {
+				content: "";
+				position: absolute;
+				top: -50%;
+				right: -10%;
+				width: 400px;
+				height: 400px;
+				background: radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, transparent 70%);
+				pointer-events: none;
+			}
+			.page-header-badge {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				background: rgba(0, 255, 157, 0.1);
+				border: 1px solid rgba(0, 255, 157, 0.3);
+				color: var(--accent-green);
+				font-size: 11px;
+				font-weight: 600;
+				padding: 4px 12px;
+				border-radius: 20px;
+				margin-bottom: 16px;
+				font-family: "JetBrains Mono", monospace;
+				letter-spacing: 0.5px;
+			}
+			.page-header h1 {
+				font-size: 32px;
+				font-weight: 700;
+				line-height: 1.2;
+				margin-bottom: 16px;
+				color: var(--text-primary);
+			}
+			.page-header h1 span {
+				color: var(--accent-cyan);
+			}
+			.page-header p {
+				color: var(--text-secondary);
+				font-size: 15px;
+				max-width: 640px;
+			}
+			.header-meta {
+				display: flex;
+				gap: 24px;
+				margin-top: 24px;
+				flex-wrap: wrap;
+			}
+			.header-meta-item {
+				display: flex;
+				align-items: center;
+				gap: 8px;
+				color: var(--text-secondary);
+				font-size: 12px;
+			}
+			.header-meta-item .dot {
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--accent-green);
+			}
+
+			/* ─── SECTION ─── */
+			.section {
+				margin-bottom: 64px;
+				scroll-margin-top: 72px;
+			}
+			.section-header {
+				display: flex;
+				align-items: center;
+				gap: 16px;
+				margin-bottom: 24px;
+				padding-bottom: 16px;
+				border-bottom: 1px solid var(--border);
+			}
+			.section-num {
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				width: 40px;
+				height: 40px;
+				border-radius: 10px;
+				background: linear-gradient(135deg, #0d2040, #1a3a5c);
+				border: 1px solid var(--accent-blue);
+				font-size: 14px;
+				font-weight: 700;
+				color: var(--accent-blue);
+				font-family: "JetBrains Mono", monospace;
+				flex-shrink: 0;
+			}
+			.section-title-wrap {
+				flex: 1;
+			}
+			.section-title {
+				font-size: 22px;
+				font-weight: 700;
+				color: var(--text-primary);
+				line-height: 1.2;
+			}
+			.section-subtitle {
+				color: var(--text-secondary);
+				font-size: 13px;
+				margin-top: 4px;
+			}
+			.tag {
+				display: inline-flex;
+				align-items: center;
+				gap: 4px;
+				padding: 4px 10px;
+				border-radius: 6px;
+				font-size: 11px;
+				font-weight: 600;
+				font-family: "JetBrains Mono", monospace;
+			}
+			.tag-expert {
+				background: rgba(124, 58, 237, 0.15);
+				border: 1px solid rgba(124, 58, 237, 0.4);
+				color: #a78bfa;
+			}
+			.tag-advanced {
+				background: rgba(14, 165, 233, 0.15);
+				border: 1px solid rgba(14, 165, 233, 0.4);
+				color: #38bdf8;
+			}
+			.tag-basic {
+				background: rgba(16, 185, 129, 0.15);
+				border: 1px solid rgba(16, 185, 129, 0.4);
+				color: #34d399;
+			}
+			.tag-warning {
+				background: rgba(251, 191, 36, 0.1);
+				border: 1px solid rgba(251, 191, 36, 0.3);
+				color: #fbbf24;
+			}
+
+			/* ─── DEFINITION BOX ─── */
+			.def-box {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-left: 3px solid var(--accent-cyan);
+				border-radius: 10px;
+				padding: 20px 24px;
+				margin-bottom: 24px;
+			}
+			.def-box .def-label {
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 1px;
+				color: var(--accent-cyan);
+				text-transform: uppercase;
+				margin-bottom: 8px;
+			}
+			.def-box p {
+				color: var(--text-secondary);
+				line-height: 1.8;
+			}
+			.def-box p strong {
+				color: var(--text-primary);
+			}
+
+			/* ─── INFO GRID ─── */
+			.info-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+				gap: 12px;
+				margin-bottom: 24px;
+			}
+			.info-card {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 16px;
+			}
+			.info-card .label {
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 1px;
+				color: var(--text-muted);
+				text-transform: uppercase;
+				margin-bottom: 8px;
+			}
+			.info-card .value {
+				font-size: 20px;
+				font-weight: 700;
+				font-family: "JetBrains Mono", monospace;
+			}
+			.info-card .desc {
+				font-size: 11px;
+				color: var(--text-muted);
+				margin-top: 4px;
+			}
+			.green {
+				color: var(--accent-green);
+			}
+			.blue {
+				color: var(--accent-blue);
+			}
+			.cyan {
+				color: var(--accent-cyan);
+			}
+			.orange {
+				color: var(--accent-orange);
+			}
+			.red {
+				color: var(--accent-red);
+			}
+			.yellow {
+				color: var(--accent-yellow);
+			}
+			.purple {
+				color: var(--accent-purple);
+			}
+
+			/* ─── CODE BLOCK ─── */
+			.code-block {
+				background: var(--bg-code);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				overflow: hidden;
+				margin-bottom: 24px;
+				font-family: "JetBrains Mono", monospace;
+			}
+			.code-header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				padding: 10px 16px;
+				background: #0a0f1e;
+				border-bottom: 1px solid var(--border);
+			}
+			.code-lang {
+				font-size: 11px;
+				font-weight: 600;
+				color: var(--accent-cyan);
+				background: rgba(0, 212, 255, 0.1);
+				padding: 3px 10px;
+				border-radius: 4px;
+				letter-spacing: 0.5px;
+			}
+			.code-file {
+				font-size: 11px;
+				color: var(--text-muted);
+				display: flex;
+				align-items: center;
+				gap: 6px;
+			}
+			.code-file::before {
+				content: "";
+				width: 8px;
+				height: 8px;
+				border-radius: 50%;
+				background: var(--accent-green);
+				display: inline-block;
+			}
+			.code-body {
+				padding: 20px;
+				overflow-x: auto;
+				font-size: 13px;
+				line-height: 1.8;
+			}
+			.code-body::-webkit-scrollbar {
+				height: 4px;
+			}
+			.code-body::-webkit-scrollbar-track {
+				background: transparent;
+			}
+			.code-body::-webkit-scrollbar-thumb {
+				background: var(--border);
+			}
+			pre {
+				white-space: pre;
+			}
+			.kw {
+				color: var(--code-keyword);
+			}
+			.str {
+				color: var(--code-string);
+			}
+			.num {
+				color: var(--code-number);
+			}
+			.cmt {
+				color: var(--code-comment);
+				font-style: italic;
+			}
+			.fn {
+				color: var(--code-func);
+			}
+			.tp {
+				color: var(--code-type);
+			}
+			.bi {
+				color: var(--code-builtin);
+			}
+			.op {
+				color: var(--code-op);
+			}
+			.va {
+				color: var(--code-var);
+			}
+
+			/* ─── DIAGRAM / SVG ─── */
+			.diagram-box {
+				background: #080d1c;
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 24px;
+				margin-bottom: 24px;
+				overflow-x: auto;
+			}
+			.diagram-title {
+				text-align: center;
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 1.5px;
+				color: var(--text-muted);
+				text-transform: uppercase;
+				margin-bottom: 20px;
+			}
+
+			/* ─── STEPS ─── */
+			.steps {
+				display: flex;
+				flex-direction: column;
+				gap: 12px;
+				margin-bottom: 24px;
+			}
+			.step {
+				display: flex;
+				gap: 16px;
+				align-items: flex-start;
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 16px;
+			}
+			.step-num {
+				width: 28px;
+				height: 28px;
+				border-radius: 8px;
+				background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 12px;
+				font-weight: 700;
+				color: #000;
+				flex-shrink: 0;
+				font-family: "JetBrains Mono", monospace;
+			}
+			.step-content .step-title {
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 4px;
+			}
+			.step-content p {
+				color: var(--text-secondary);
+				font-size: 13px;
+			}
+
+			/* ─── COMPARISON TABLE ─── */
+			.table-wrap {
+				overflow-x: auto;
+				margin-bottom: 24px;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+			}
+			th {
+				background: #0d1628;
+				color: var(--text-secondary);
+				font-size: 11px;
+				font-weight: 700;
+				letter-spacing: 0.8px;
+				text-transform: uppercase;
+				padding: 12px 16px;
+				border-bottom: 1px solid var(--border);
+				text-align: left;
+			}
+			td {
+				padding: 12px 16px;
+				border-bottom: 1px solid rgba(30, 45, 74, 0.5);
+				color: var(--text-secondary);
+				font-size: 13px;
+			}
+			td:first-child {
+				color: var(--text-primary);
+				font-weight: 600;
+			}
+			tr:hover td {
+				background: rgba(255, 255, 255, 0.02);
+			}
+			.mono {
+				font-family: "JetBrains Mono", monospace;
+			}
+
+			/* ─── CALLOUT ─── */
+			.callout {
+				display: flex;
+				gap: 12px;
+				align-items: flex-start;
+				border-radius: 10px;
+				padding: 16px;
+				margin-bottom: 20px;
+			}
+			.callout-tip {
+				background: rgba(0, 255, 157, 0.05);
+				border: 1px solid rgba(0, 255, 157, 0.2);
+			}
+			.callout-warn {
+				background: rgba(251, 191, 36, 0.05);
+				border: 1px solid rgba(251, 191, 36, 0.2);
+			}
+			.callout-info {
+				background: rgba(77, 166, 255, 0.05);
+				border: 1px solid rgba(77, 166, 255, 0.2);
+			}
+			.callout-danger {
+				background: rgba(255, 107, 107, 0.05);
+				border: 1px solid rgba(255, 107, 107, 0.2);
+			}
+			.callout-icon {
+				font-size: 18px;
+				flex-shrink: 0;
+			}
+			.callout-body .callout-title {
+				font-weight: 600;
+				margin-bottom: 4px;
+				font-size: 13px;
+			}
+			.callout-tip .callout-title {
+				color: var(--accent-green);
+			}
+			.callout-warn .callout-title {
+				color: var(--accent-yellow);
+			}
+			.callout-info .callout-title {
+				color: var(--accent-blue);
+			}
+			.callout-danger .callout-title {
+				color: var(--accent-red);
+			}
+			.callout-body p {
+				color: var(--text-secondary);
+				font-size: 13px;
+				line-height: 1.6;
+			}
+
+			/* ─── SUBSECTION HEADER ─── */
+			.sub-header {
+				display: flex;
+				align-items: center;
+				gap: 10px;
+				margin-bottom: 12px;
+				margin-top: 32px;
+			}
+			.sub-header h3 {
+				font-size: 15px;
+				font-weight: 600;
+				color: var(--text-primary);
+			}
+			.sub-line {
+				flex: 1;
+				height: 1px;
+				background: var(--border);
+			}
+
+			/* ─── REFERENCES ─── */
+			.ref-grid {
+				display: grid;
+				grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+				gap: 12px;
+			}
+			.ref-card {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 16px;
+				text-decoration: none;
+				transition: all 0.2s;
+				display: block;
+			}
+			.ref-card:hover {
+				border-color: var(--accent-blue);
+				transform: translateY(-2px);
+			}
+			.ref-card .ref-source {
+				font-size: 10px;
+				font-weight: 700;
+				letter-spacing: 1px;
+				color: var(--text-muted);
+				text-transform: uppercase;
+				margin-bottom: 8px;
+			}
+			.ref-card .ref-title {
+				font-size: 14px;
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 6px;
+			}
+			.ref-card .ref-desc {
+				font-size: 12px;
+				color: var(--text-secondary);
+				line-height: 1.5;
+			}
+			.ref-card .ref-stars {
+				margin-top: 10px;
+				font-size: 11px;
+				color: var(--accent-yellow);
+				display: flex;
+				align-items: center;
+				gap: 4px;
+			}
+
+			/* ─── SEPARATOR ─── */
+			.sep {
+				height: 1px;
+				background: var(--border);
+				margin: 40px 0;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- TOP NAV -->
+		<nav class="topnav">
+			<div class="topnav-brand"><span class="go">Go</span><span class="algo"> Searching Algorithms</span></div>
+			<div class="topnav-links">
+				<a href="#intro" class="active">Giới thiệu</a>
+				<a href="#linear">Linear</a>
+				<a href="#binary">Binary</a>
+				<a href="#jump">Jump</a>
+				<a href="#interpolation">Interpolation</a>
+				<a href="#exponential">Exponential</a>
+				<a href="#compare">So sánh</a>
+				<a href="#refs">References</a>
+			</div>
+		</nav>
+
+		<div class="layout">
+			<!-- SIDEBAR -->
+			<aside class="sidebar">
+				<div class="sidebar-section">
+					<div class="sidebar-label">Giới thiệu</div>
+					<a href="#intro" class="sidebar-item active">Tổng quan</a>
+					<a href="#overview-table" class="sidebar-item">Bảng so sánh</a>
+				</div>
+				<div class="sidebar-section">
+					<div class="sidebar-label">Thuật toán</div>
+					<a href="#linear" class="sidebar-item"><span class="num">01</span>Linear Search</a>
+					<a href="#binary" class="sidebar-item"><span class="num">02</span>Binary Search</a>
+					<a href="#jump" class="sidebar-item"><span class="num">03</span>Jump Search</a>
+					<a href="#interpolation" class="sidebar-item"><span class="num">04</span>Interpolation Search</a>
+					<a href="#exponential" class="sidebar-item"><span class="num">05</span>Exponential Search</a>
+				</div>
+				<div class="sidebar-section">
+					<div class="sidebar-label">Nâng cao</div>
+					<a href="#generic" class="sidebar-item">Generic Search (Go 1.21+)</a>
+					<a href="#benchmark" class="sidebar-item">Benchmark & Testing</a>
+					<a href="#compare" class="sidebar-item">So sánh hiệu năng</a>
+				</div>
+				<div class="sidebar-section">
+					<div class="sidebar-label">Tham khảo</div>
+					<a href="#refs" class="sidebar-item">References</a>
+				</div>
+			</aside>
+
+			<!-- MAIN -->
+			<main class="main">
+				<div class="content">
+					<!-- PAGE HEADER -->
+					<div id="intro" class="page-header">
+						<div class="page-header-badge">📚 DSA · Go 1.21+</div>
+						<h1>Searching Algorithms<br /><span>trong Golang</span></h1>
+						<p>
+							Tài liệu toàn diện về 5 thuật toán tìm kiếm cốt lõi — từ khái niệm, trực quan hóa, đến implementation production-grade với Go generics,
+							benchmarks và test coverage đầy đủ.
+						</p>
+						<div class="header-meta">
+							<div class="header-meta-item"><span class="dot"></span>5 Algorithms</div>
+							<div class="header-meta-item"><span class="dot" style="background: var(--accent-blue)"></span>Go 1.21+</div>
+							<div class="header-meta-item"><span class="dot" style="background: var(--accent-purple)"></span>Generics Support</div>
+							<div class="header-meta-item"><span class="dot" style="background: var(--accent-orange)"></span>Benchmark Included</div>
+						</div>
+					</div>
+
+					<!-- Hero Illustration -->
+					<div class="concept-img-wrapper" style="margin: 32px 0; text-align: center">
+						<div
+							style="
+								display: inline-block;
+								padding: 8px;
+								background: var(--bg-card, #161c25);
+								border: 1px solid var(--border, #1e2a3a);
+								border-radius: 16px;
+								box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+								max-width: 100%;
+								overflow: hidden;
+							"
+						>
+							<img
+								src="../../public/images/searching.png"
+								alt="Binary Search Illustration"
+								style="display: block; width: 100%; max-width: 760px; height: auto; border-radius: 12px; transition: transform 0.3s ease"
+								onmouseover="this.style.transform = 'scale(1.02)'"
+								onmouseout="this.style.transform = 'scale(1)'"
+							/>
+						</div>
+						<div
+							style="
+								margin-top: 12px;
+								font-size: 11px;
+								color: var(--text-secondary, #7a90a8);
+								font-family: &quot;JetBrains Mono&quot;, monospace;
+								letter-spacing: 0.5px;
+								text-transform: uppercase;
+							"
+						>
+							Hình 1: Trực quan hóa thuật toán Tìm kiếm Nhị phân (Binary Search)
+						</div>
+					</div>
+
+					<!-- OVERVIEW TABLE -->
+					<div id="overview-table" class="section">
+						<div class="section-header">
+							<div class="section-num">📊</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Tổng quan các thuật toán</div>
+								<div class="section-subtitle">So sánh nhanh time complexity và use case phù hợp</div>
+							</div>
+						</div>
+						<div class="table-wrap">
+							<table>
+								<thead>
+									<tr>
+										<th>#</th>
+										<th>Thuật toán</th>
+										<th>Best</th>
+										<th>Average</th>
+										<th>Worst</th>
+										<th>Space</th>
+										<th>Yêu cầu</th>
+										<th>Phù hợp nhất</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>01</td>
+										<td>Linear Search</td>
+										<td class="mono green">O(1)</td>
+										<td class="mono yellow">O(n)</td>
+										<td class="mono red">O(n)</td>
+										<td class="mono green">O(1)</td>
+										<td>Không</td>
+										<td>Dataset nhỏ, unsorted</td>
+									</tr>
+									<tr>
+										<td>02</td>
+										<td>Binary Search</td>
+										<td class="mono green">O(1)</td>
+										<td class="mono green">O(log n)</td>
+										<td class="mono green">O(log n)</td>
+										<td class="mono green">O(1)</td>
+										<td>Sorted array</td>
+										<td>Dataset lớn, static sorted</td>
+									</tr>
+									<tr>
+										<td>03</td>
+										<td>Jump Search</td>
+										<td class="mono green">O(1)</td>
+										<td class="mono cyan">O(√n)</td>
+										<td class="mono cyan">O(√n)</td>
+										<td class="mono green">O(1)</td>
+										<td>Sorted array</td>
+										<td>Backward jump costly</td>
+									</tr>
+									<tr>
+										<td>04</td>
+										<td>Interpolation Search</td>
+										<td class="mono green">O(1)</td>
+										<td class="mono green">O(log log n)</td>
+										<td class="mono red">O(n)</td>
+										<td class="mono green">O(1)</td>
+										<td>Sorted, uniform dist.</td>
+										<td>Data phân bố đều</td>
+									</tr>
+									<tr>
+										<td>05</td>
+										<td>Exponential Search</td>
+										<td class="mono green">O(1)</td>
+										<td class="mono green">O(log n)</td>
+										<td class="mono green">O(log n)</td>
+										<td class="mono green">O(1)</td>
+										<td>Sorted array</td>
+										<td>Unbounded / infinite array</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+					</div>
+
+					<!-- ═══════════════════════════════════════════════════════════
+           01 LINEAR SEARCH
+      ═══════════════════════════════════════════════════════════════ -->
+					<div id="linear" class="section">
+						<div class="section-header">
+							<div class="section-num">01</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Linear Search — Tìm kiếm tuyến tính</div>
+								<div class="section-subtitle">Thuật toán đơn giản nhất: duyệt tuần tự từng phần tử</div>
+							</div>
+							<span class="tag tag-basic">Basic</span>
+						</div>
+
+						<div class="def-box">
+							<div class="def-label">📖 Định nghĩa</div>
+							<p>
+								<strong>Linear Search</strong> (hay Sequential Search) là thuật toán tìm kiếm đơn giản nhất. Nó duyệt qua từng phần tử trong
+								collection <strong>theo thứ tự</strong>, so sánh mỗi phần tử với giá trị cần tìm cho đến khi tìm thấy hoặc đã duyệt hết mảng. Không
+								cần data được sorted. Time complexity là <strong>O(n)</strong> trong worst case.
+							</p>
+						</div>
+
+						<div class="info-grid">
+							<div class="info-card">
+								<div class="label">Best Case</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Phần tử ở đầu mảng</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Average Case</div>
+								<div class="value yellow">O(n/2)</div>
+								<div class="desc">Phần tử ở giữa mảng</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Worst Case</div>
+								<div class="value red">O(n)</div>
+								<div class="desc">Phần tử cuối hoặc không tồn tại</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Space</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Không cần extra memory</div>
+							</div>
+						</div>
+
+						<!-- DIAGRAM: Linear Search -->
+						<div class="diagram-box">
+							<div class="diagram-title">Linear Search — Visualization (target = 7)</div>
+							<svg viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 820px; display: block; margin: 0 auto">
+								<defs>
+									<marker id="arr1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+										<path d="M0,0 L0,6 L8,3 z" fill="#4da6ff" />
+									</marker>
+								</defs>
+								<!-- Array boxes -->
+								<g id="cells">
+									<!-- i=0: value=3, mismatch -->
+									<rect x="20" y="60" width="72" height="52" rx="6" fill="#0d1628" stroke="#ff6b6b" stroke-width="1.5" />
+									<text x="56" y="91" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono" font-size="18" font-weight="700">3</text>
+									<text x="56" y="128" text-anchor="middle" fill="#546e7a" font-family="JetBrains Mono" font-size="11">[0]</text>
+									<!-- i=1: value=1, mismatch -->
+									<rect x="104" y="60" width="72" height="52" rx="6" fill="#0d1628" stroke="#ff6b6b" stroke-width="1.5" />
+									<text x="140" y="91" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono" font-size="18" font-weight="700">1</text>
+									<text x="140" y="128" text-anchor="middle" fill="#546e7a" font-family="JetBrains Mono" font-size="11">[1]</text>
+									<!-- i=2: value=9, mismatch -->
+									<rect x="188" y="60" width="72" height="52" rx="6" fill="#0d1628" stroke="#ff6b6b" stroke-width="1.5" />
+									<text x="224" y="91" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono" font-size="18" font-weight="700">9</text>
+									<text x="224" y="128" text-anchor="middle" fill="#546e7a" font-family="JetBrains Mono" font-size="11">[2]</text>
+									<!-- i=3: value=7, MATCH -->
+									<rect x="272" y="54" width="80" height="64" rx="8" fill="rgba(0,255,157,0.08)" stroke="#00ff9d" stroke-width="2" />
+									<text x="312" y="91" text-anchor="middle" fill="#00ff9d" font-family="JetBrains Mono" font-size="22" font-weight="700">7</text>
+									<text x="312" y="130" text-anchor="middle" fill="#00ff9d" font-family="JetBrains Mono" font-size="11">[3] ✓</text>
+									<!-- i=4: value=5, not checked -->
+									<rect x="364" y="60" width="72" height="52" rx="6" fill="#0a0e1a" stroke="#1e2d4a" stroke-width="1" />
+									<text x="400" y="91" text-anchor="middle" fill="#2a3a5a" font-family="JetBrains Mono" font-size="18" font-weight="700">5</text>
+									<text x="400" y="128" text-anchor="middle" fill="#2a3a5a" font-family="JetBrains Mono" font-size="11">[4]</text>
+									<!-- i=5: value=2 -->
+									<rect x="448" y="60" width="72" height="52" rx="6" fill="#0a0e1a" stroke="#1e2d4a" stroke-width="1" />
+									<text x="484" y="91" text-anchor="middle" fill="#2a3a5a" font-family="JetBrains Mono" font-size="18" font-weight="700">2</text>
+									<text x="484" y="128" text-anchor="middle" fill="#2a3a5a" font-family="JetBrains Mono" font-size="11">[5]</text>
+								</g>
+								<!-- Arrow from pointer -->
+								<line x1="312" y1="30" x2="312" y2="50" stroke="#00ff9d" stroke-width="2" marker-end="url(#arr1)" />
+								<text x="312" y="22" text-anchor="middle" fill="#00ff9d" font-family="JetBrains Mono" font-size="12">i</text>
+								<!-- Legend -->
+								<rect x="560" y="60" width="14" height="14" rx="3" fill="none" stroke="#ff6b6b" stroke-width="1.5" />
+								<text x="580" y="72" fill="#8899bb" font-family="Space Grotesk" font-size="12">Không khớp</text>
+								<rect x="560" y="82" width="14" height="14" rx="3" fill="rgba(0,255,157,0.08)" stroke="#00ff9d" stroke-width="2" />
+								<text x="580" y="94" fill="#8899bb" font-family="Space Grotesk" font-size="12">Tìm thấy (match)</text>
+								<rect x="560" y="104" width="14" height="14" rx="3" fill="#0a0e1a" stroke="#1e2d4a" />
+								<text x="580" y="116" fill="#8899bb" font-family="Space Grotesk" font-size="12">Chưa kiểm tra</text>
+								<!-- Scan arrows -->
+								<line x1="56" y1="150" x2="296" y2="150" stroke="#4da6ff" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr1)" />
+								<text x="170" y="168" text-anchor="middle" fill="#4da6ff" font-family="Space Grotesk" font-size="11">Duyệt tuần tự →</text>
+							</svg>
+						</div>
+
+						<!-- Flowchart -->
+						<div class="diagram-box">
+							<div class="diagram-title">Linear Search — Flowchart</div>
+							<svg viewBox="0 0 520 320" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 520px; display: block; margin: 0 auto">
+								<defs>
+									<marker id="a2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+										<path d="M0,0 L0,6 L8,3 z" fill="#8899bb" />
+									</marker>
+								</defs>
+								<!-- Start -->
+								<rect x="185" y="10" width="150" height="38" rx="19" fill="#0d2040" stroke="#4da6ff" stroke-width="1.5" />
+								<text x="260" y="34" text-anchor="middle" fill="#4da6ff" font-family="Space Grotesk" font-size="13" font-weight="600">Bắt đầu</text>
+								<!-- Init i=0 -->
+								<rect x="170" y="68" width="180" height="38" rx="6" fill="#0d1628" stroke="#1e2d4a" stroke-width="1" />
+								<text x="260" y="92" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="12">i := 0</text>
+								<!-- Condition: i < len -->
+								<polygon points="260,126 360,152 260,178 160,152" fill="#0a1a30" stroke="#fbbf24" stroke-width="1.5" />
+								<text x="260" y="149" text-anchor="middle" fill="#fbbf24" font-family="JetBrains Mono" font-size="11">i &lt; len(arr)?</text>
+								<text x="260" y="163" text-anchor="middle" fill="#fbbf24" font-family="JetBrains Mono" font-size="11"></text>
+								<!-- NO → Not found -->
+								<rect x="360" y="136" width="130" height="38" rx="6" fill="#1a0d0d" stroke="#ff6b6b" stroke-width="1" />
+								<text x="425" y="160" text-anchor="middle" fill="#ff6b6b" font-family="Space Grotesk" font-size="12">Không tìm thấy</text>
+								<!-- YES → Check arr[i]==target -->
+								<polygon points="260,200 370,224 260,248 150,224" fill="#0a1a30" stroke="#a78bfa" stroke-width="1.5" />
+								<text x="260" y="221" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="11">arr[i]==target?</text>
+								<!-- YES → Return i -->
+								<rect x="360" y="208" width="130" height="38" rx="6" fill="#0a2010" stroke="#00ff9d" stroke-width="1.5" />
+								<text x="425" y="232" text-anchor="middle" fill="#00ff9d" font-family="Space Grotesk" font-size="12">Trả về index i</text>
+								<!-- NO → i++ -->
+								<rect x="185" y="266" width="150" height="38" rx="6" fill="#0d1628" stroke="#1e2d4a" />
+								<text x="260" y="290" text-anchor="middle" fill="#e2e8f0" font-family="JetBrains Mono" font-size="12">i++</text>
+								<!-- Arrows -->
+								<line x1="260" y1="48" x2="260" y2="68" stroke="#8899bb" stroke-width="1.5" marker-end="url(#a2)" />
+								<line x1="260" y1="106" x2="260" y2="126" stroke="#8899bb" stroke-width="1.5" marker-end="url(#a2)" />
+								<line x1="360" y1="152" x2="490" y2="152" stroke="#ff6b6b" stroke-width="1.5" />
+								<line x1="490" y1="152" x2="490" y2="155" stroke="#ff6b6b" stroke-width="1" marker-end="url(#a2)" />
+								<text x="382" y="146" fill="#ff6b6b" font-family="Space Grotesk" font-size="11">Không</text>
+								<line x1="260" y1="178" x2="260" y2="200" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#a2)" />
+								<text x="268" y="195" fill="#fbbf24" font-family="Space Grotesk" font-size="11">Có</text>
+								<line x1="370" y1="224" x2="490" y2="224" stroke="#00ff9d" stroke-width="1.5" />
+								<text x="382" y="218" fill="#00ff9d" font-family="Space Grotesk" font-size="11">Có</text>
+								<line x1="490" y1="224" x2="490" y2="227" stroke="#00ff9d" stroke-width="1" marker-end="url(#a2)" />
+								<line x1="150" y1="224" x2="50" y2="224" stroke="#8899bb" stroke-width="1.5" />
+								<text x="85" y="218" fill="#8899bb" font-family="Space Grotesk" font-size="11">Không</text>
+								<line x1="50" y1="224" x2="50" y2="285" stroke="#8899bb" stroke-width="1.5" />
+								<line x1="50" y1="285" x2="185" y2="285" stroke="#8899bb" stroke-width="1.5" marker-end="url(#a2)" />
+								<line x1="260" y1="248" x2="260" y2="266" stroke="#8899bb" stroke-width="1.5" marker-end="url(#a2)" />
+								<line x1="260" y1="304" x2="260" y2="314" stroke="#8899bb" stroke-width="1" />
+								<line x1="260" y1="314" x2="430" y2="314" stroke="#8899bb" stroke-width="1" />
+								<line x1="430" y1="314" x2="430" y2="152" stroke="#8899bb" stroke-width="1" />
+								<line x1="430" y1="152" x2="360" y2="152" stroke="#8899bb" stroke-width="1" marker-end="url(#a2)" />
+							</svg>
+						</div>
+
+						<!-- Code: Basic -->
+						<div class="sub-header">
+							<h3>🔹 Implementation — Cơ bản</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-basic">Basic</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span>
+								<span class="code-file">linear_search.go</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="cmt">// Package search cung cấp các thuật toán tìm kiếm</span>
+<span class="kw">package</span> <span class="va">search</span>
+
+<span class="cmt">// LinearSearch tìm kiếm target trong slice, trả về index đầu tiên tìm thấy.</span>
+<span class="cmt">// Trả về -1 nếu không tìm thấy. Time: O(n), Space: O(1)</span>
+<span class="kw">func</span> <span class="fn">LinearSearch</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">for</span> <span class="va">i</span>, <span class="va">v</span> := <span class="kw">range</span> <span class="va">arr</span> {
+        <span class="kw">if</span> <span class="va">v</span> == <span class="va">target</span> {
+            <span class="kw">return</span> <span class="va">i</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}
+
+<span class="cmt">// LinearSearchAll tìm TẤT CẢ indices chứa target (multi-match)</span>
+<span class="kw">func</span> <span class="fn">LinearSearchAll</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="va">result</span> := <span class="bi">make</span>([]<span class="tp">int</span>, <span class="num">0</span>)
+    <span class="kw">for</span> <span class="va">i</span>, <span class="va">v</span> := <span class="kw">range</span> <span class="va">arr</span> {
+        <span class="kw">if</span> <span class="va">v</span> == <span class="va">target</span> {
+            <span class="va">result</span> = <span class="bi">append</span>(<span class="va">result</span>, <span class="va">i</span>)
+        }
+    }
+    <span class="kw">return</span> <span class="va">result</span>
+}
+
+<span class="cmt">// Example usage</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="va">data</span> := []<span class="tp">int</span>{<span class="num">3</span>, <span class="num">1</span>, <span class="num">9</span>, <span class="num">7</span>, <span class="num">5</span>, <span class="num">2</span>, <span class="num">7</span>, <span class="num">8</span>}
+    <span class="va">idx</span> := <span class="fn">LinearSearch</span>(<span class="va">data</span>, <span class="num">7</span>)       <span class="cmt">// → 3</span>
+    <span class="va">all</span> := <span class="fn">LinearSearchAll</span>(<span class="va">data</span>, <span class="num">7</span>)    <span class="cmt">// → [3, 6]</span>
+    <span class="va">_</span> = <span class="va">idx</span>; <span class="va">_</span> = <span class="va">all</span>
+}</pre>
+							</div>
+						</div>
+
+						<!-- Code: Advanced - Generic -->
+						<div class="sub-header">
+							<h3>🔸 Implementation — Generic (Go 1.21+)</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-advanced">Advanced</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span>
+								<span class="code-file">linear_generic.go — Generic với comparable constraint</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="kw">import</span> <span class="str">"cmp"</span>
+
+<span class="cmt">// LinearSearchFunc tìm kiếm theo custom predicate — linh hoạt nhất</span>
+<span class="cmt">// Time: O(n), dùng được với bất kỳ struct nào</span>
+<span class="kw">func</span> <span class="fn">LinearSearchFunc</span>[T <span class="tp">any</span>](<span class="va">arr</span> []T, <span class="va">predicate</span> <span class="kw">func</span>(T) <span class="tp">bool</span>) (<span class="va">T</span>, <span class="tp">int</span>, <span class="tp">bool</span>) {
+    <span class="kw">for</span> <span class="va">i</span>, <span class="va">v</span> := <span class="kw">range</span> <span class="va">arr</span> {
+        <span class="kw">if</span> <span class="fn">predicate</span>(<span class="va">v</span>) {
+            <span class="kw">return</span> <span class="va">v</span>, <span class="va">i</span>, <span class="tp">true</span>
+        }
+    }
+    <span class="kw">var</span> <span class="va">zero</span> T
+    <span class="kw">return</span> <span class="va">zero</span>, <span class="op">-</span><span class="num">1</span>, <span class="tp">false</span>
+}
+
+<span class="cmt">// LinearSearchOrdered dùng cmp.Ordered constraint — support int, float, string</span>
+<span class="kw">func</span> <span class="fn">LinearSearchOrdered</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T) <span class="tp">int</span> {
+    <span class="kw">for</span> <span class="va">i</span>, <span class="va">v</span> := <span class="kw">range</span> <span class="va">arr</span> {
+        <span class="kw">if</span> <span class="va">v</span> == <span class="va">target</span> {
+            <span class="kw">return</span> <span class="va">i</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}
+
+<span class="cmt">// ─── Ví dụ thực tế: tìm kiếm trong slice of struct ───</span>
+
+<span class="kw">type</span> <span class="tp">User</span> <span class="kw">struct</span> {
+    <span class="va">ID</span>    <span class="tp">int</span>
+    <span class="va">Name</span>  <span class="tp">string</span>
+    <span class="va">Email</span> <span class="tp">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">FindUserByEmail</span>(<span class="va">users</span> []<span class="tp">User</span>, <span class="va">email</span> <span class="tp">string</span>) (<span class="tp">User</span>, <span class="tp">bool</span>) {
+    <span class="va">u</span>, <span class="va">_</span>, <span class="va">found</span> := <span class="fn">LinearSearchFunc</span>(<span class="va">users</span>, <span class="kw">func</span>(<span class="va">u</span> <span class="tp">User</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> <span class="va">u</span>.<span class="va">Email</span> == <span class="va">email</span>
+    })
+    <span class="kw">return</span> <span class="va">u</span>, <span class="va">found</span>
+}
+
+<span class="cmt">// Usage:</span>
+<span class="cmt">// users := []User{{1, "Alice", "alice@ex.com"}, {2, "Bob", "bob@ex.com"}}</span>
+<span class="cmt">// user, found := FindUserByEmail(users, "bob@ex.com") // → {2, Bob, bob@ex.com}, true</span></pre>
+							</div>
+						</div>
+
+						<!-- Code: Expert - Concurrent -->
+						<div class="sub-header">
+							<h3>🔺 Implementation — Concurrent Linear Search</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span>
+								<span class="code-file">linear_concurrent.go — Parallel search với goroutines</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"runtime"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// ConcurrentLinearSearch chia array thành N chunks, tìm kiếm song song.</span>
+<span class="cmt">// Sử dụng context để cancel các goroutines khi đã tìm thấy kết quả.</span>
+<span class="cmt">// Hiệu quả với dataset rất lớn (>1M phần tử).</span>
+<span class="kw">func</span> <span class="fn">ConcurrentLinearSearch</span>[T <span class="va">comparable</span>](<span class="va">ctx</span> <span class="va">context</span>.<span class="tp">Context</span>, <span class="va">arr</span> []T, <span class="va">target</span> T) (<span class="tp">int</span>, <span class="tp">bool</span>) {
+    <span class="kw">if</span> <span class="bi">len</span>(<span class="va">arr</span>) == <span class="num">0</span> {
+        <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="tp">false</span>
+    }
+
+    <span class="va">numWorkers</span> := <span class="va">runtime</span>.<span class="fn">NumCPU</span>()
+    <span class="va">chunkSize</span> := (<span class="bi">len</span>(<span class="va">arr</span>) + <span class="va">numWorkers</span> <span class="op">-</span> <span class="num">1</span>) / <span class="va">numWorkers</span>
+
+    <span class="kw">type</span> <span class="tp">result</span> <span class="kw">struct</span> {
+        <span class="va">index</span> <span class="tp">int</span>
+        <span class="va">found</span> <span class="tp">bool</span>
+    }
+
+    <span class="va">ctx</span>, <span class="va">cancel</span> := <span class="va">context</span>.<span class="fn">WithCancel</span>(<span class="va">ctx</span>)
+    <span class="kw">defer</span> <span class="fn">cancel</span>() <span class="cmt">// đảm bảo cleanup</span>
+
+    <span class="va">resultCh</span> := <span class="bi">make</span>(<span class="kw">chan</span> <span class="tp">result</span>, <span class="va">numWorkers</span>)
+    <span class="kw">var</span> <span class="va">wg</span> <span class="va">sync</span>.<span class="tp">WaitGroup</span>
+
+    <span class="kw">for</span> <span class="va">w</span> := <span class="num">0</span>; <span class="va">w</span> &lt; <span class="va">numWorkers</span>; <span class="va">w</span>++ {
+        <span class="va">start</span> := <span class="va">w</span> * <span class="va">chunkSize</span>
+        <span class="va">end</span> := <span class="bi">min</span>(<span class="va">start</span>+<span class="va">chunkSize</span>, <span class="bi">len</span>(<span class="va">arr</span>))
+        <span class="kw">if</span> <span class="va">start</span> &gt;= <span class="bi">len</span>(<span class="va">arr</span>) {
+            <span class="kw">break</span>
+        }
+        <span class="va">wg</span>.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(<span class="va">chunk</span> []T, <span class="va">offset</span> <span class="tp">int</span>) {
+            <span class="kw">defer</span> <span class="va">wg</span>.<span class="fn">Done</span>()
+            <span class="kw">for</span> <span class="va">i</span>, <span class="va">v</span> := <span class="kw">range</span> <span class="va">chunk</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> &lt;<span class="op">-</span><span class="va">ctx</span>.<span class="fn">Done</span>():
+                    <span class="kw">return</span> <span class="cmt">// Đã có worker khác tìm thấy, dừng lại</span>
+                <span class="kw">default</span>:
+                    <span class="kw">if</span> <span class="va">v</span> == <span class="va">target</span> {
+                        <span class="fn">cancel</span>() <span class="cmt">// Thông báo cho tất cả workers dừng</span>
+                        <span class="va">resultCh</span> &lt;<span class="op">-</span> <span class="tp">result</span>{<span class="va">offset</span> + <span class="va">i</span>, <span class="tp">true</span>}
+                        <span class="kw">return</span>
+                    }
+                }
+            }
+        }(<span class="va">arr</span>[<span class="va">start</span>:<span class="va">end</span>], <span class="va">start</span>)
+    }
+
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="va">wg</span>.<span class="fn">Wait</span>()
+        <span class="bi">close</span>(<span class="va">resultCh</span>)
+    }()
+
+    <span class="kw">for</span> <span class="va">r</span> := <span class="kw">range</span> <span class="va">resultCh</span> {
+        <span class="kw">if</span> <span class="va">r</span>.<span class="va">found</span> {
+            <span class="kw">return</span> <span class="va">r</span>.<span class="va">index</span>, <span class="tp">true</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="tp">false</span>
+}
+
+<span class="cmt">// min là built-in từ Go 1.21</span></pre>
+							</div>
+						</div>
+					</div>
+
+					<!-- ═══════════════════════════════════════════════════════════
+           02 BINARY SEARCH
+      ═══════════════════════════════════════════════════════════════ -->
+					<div id="binary" class="section">
+						<div class="section-header">
+							<div class="section-num">02</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Binary Search — Tìm kiếm nhị phân</div>
+								<div class="section-subtitle">Divide & Conquer — chia đôi search space mỗi bước</div>
+							</div>
+							<span class="tag tag-advanced">Advanced</span>
+						</div>
+
+						<div class="def-box">
+							<div class="def-label">📖 Định nghĩa</div>
+							<p>
+								<strong>Binary Search</strong> là thuật toán tìm kiếm hiệu quả trên <strong>sorted array</strong>. Mỗi iteration, nó so sánh target
+								với phần tử ở giữa mảng, loại bỏ nửa không chứa target. Kỹ thuật <strong>Divide and Conquer</strong> này giảm search space từ
+								<strong>n → n/2 → n/4 → ... → 1</strong>, đạt time complexity <strong>O(log n)</strong>. Đây là một trong những thuật toán quan trọng
+								nhất trong Computer Science.
+							</p>
+						</div>
+
+						<div class="info-grid">
+							<div class="info-card">
+								<div class="label">Best Case</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Target ở mid ngay lần đầu</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Average / Worst</div>
+								<div class="value cyan">O(log n)</div>
+								<div class="desc">Mỗi bước giảm ½ search space</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Space (Iterative)</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Không dùng extra memory</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Space (Recursive)</div>
+								<div class="value yellow">O(log n)</div>
+								<div class="desc">Call stack depth = log n</div>
+							</div>
+						</div>
+
+						<!-- Visualization -->
+						<div class="diagram-box">
+							<div class="diagram-title">Binary Search — Visualization: arr=[1,3,5,7,9,11,13,15], target=11</div>
+							<svg viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 820px; display: block; margin: 0 auto">
+								<defs>
+									<marker id="a3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+										<path d="M0,0 L0,6 L8,3 z" fill="#8899bb" />
+									</marker>
+								</defs>
+								<!-- Labels -->
+								<text x="10" y="24" fill="#546e7a" font-family="JetBrains Mono" font-size="11">Bước 1: low=0, high=7, mid=3</text>
+								<!-- Row 1: arr -->
+								<g transform="translate(0,30)">
+									<!-- [0]=1 -->
+									<rect x="10" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="44" y="26" text-anchor="middle" fill="#4a6080" font-family="JetBrains Mono" font-size="16">1</text>
+									<!-- [1]=3 -->
+									<rect x="86" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="120" y="26" text-anchor="middle" fill="#4a6080" font-family="JetBrains Mono" font-size="16">3</text>
+									<!-- [2]=5 -->
+									<rect x="162" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="196" y="26" text-anchor="middle" fill="#4a6080" font-family="JetBrains Mono" font-size="16">5</text>
+									<!-- [3]=7 mid -->
+									<rect x="238" y="-4" width="76" height="48" rx="6" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="2" />
+									<text x="276" y="27" text-anchor="middle" fill="#fbbf24" font-family="JetBrains Mono" font-size="18" font-weight="700">7</text>
+									<text x="276" y="55" text-anchor="middle" fill="#fbbf24" font-family="JetBrains Mono" font-size="10">mid</text>
+									<!-- [4]=9 -->
+									<rect x="322" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="356" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">9</text>
+									<!-- [5]=11 -->
+									<rect x="398" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="432" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">11</text>
+									<!-- [6]=13 -->
+									<rect x="474" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="508" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">13</text>
+									<!-- [7]=15 -->
+									<rect x="550" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="584" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">15</text>
+									<!-- 7 < 11 → search right half -->
+									<text x="660" y="24" fill="#4da6ff" font-family="Space Grotesk" font-size="12">7 &lt; 11 →</text>
+									<text x="660" y="40" fill="#4da6ff" font-family="Space Grotesk" font-size="12">tìm nửa phải</text>
+								</g>
+								<!-- Row 2 -->
+								<text x="10" y="116" fill="#546e7a" font-family="JetBrains Mono" font-size="11">Bước 2: low=4, high=7, mid=5</text>
+								<g transform="translate(0,122)">
+									<rect x="10" y="0" width="68" height="40" rx="5" fill="#0a0e1a" stroke="#111827" />
+									<rect x="86" y="0" width="68" height="40" rx="5" fill="#0a0e1a" stroke="#111827" />
+									<rect x="162" y="0" width="68" height="40" rx="5" fill="#0a0e1a" stroke="#111827" />
+									<rect x="238" y="0" width="68" height="40" rx="5" fill="#0a0e1a" stroke="#111827" />
+									<rect x="322" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="356" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">9</text>
+									<rect x="398" y="-4" width="76" height="48" rx="6" fill="rgba(0,255,157,0.1)" stroke="#00ff9d" stroke-width="2" />
+									<text x="436" y="27" text-anchor="middle" fill="#00ff9d" font-family="JetBrains Mono" font-size="18" font-weight="700">11</text>
+									<text x="436" y="55" text-anchor="middle" fill="#00ff9d" font-family="JetBrains Mono" font-size="10">mid ✓</text>
+									<rect x="474" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="508" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">13</text>
+									<rect x="550" y="0" width="68" height="40" rx="5" fill="#0d1628" stroke="#1e2d4a" />
+									<text x="584" y="26" text-anchor="middle" fill="#8899bb" font-family="JetBrains Mono" font-size="16">15</text>
+									<text x="660" y="24" fill="#00ff9d" font-family="Space Grotesk" font-size="12">11 == 11 ✓</text>
+									<text x="660" y="40" fill="#00ff9d" font-family="Space Grotesk" font-size="12">Tìm thấy!</text>
+								</g>
+								<text x="10" y="216" fill="#546e7a" font-family="JetBrains Mono" font-size="11">→ Chỉ cần 2 bước thay vì 6 bước (Linear Search)</text>
+							</svg>
+						</div>
+
+						<div class="sub-header">
+							<h3>🔹 Implementation — Iterative</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-advanced">Advanced</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span><span class="code-file">binary_search.go — Iterative (production-grade)</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="cmt">// BinarySearch tìm kiếm target trong sorted slice (ascending).</span>
+<span class="cmt">// Trả về index và bool. Time: O(log n), Space: O(1)</span>
+<span class="cmt">// QUAN TRỌNG: arr phải được sorted trước khi gọi hàm này.</span>
+<span class="kw">func</span> <span class="fn">BinarySearch</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) (<span class="tp">int</span>, <span class="tp">bool</span>) {
+    <span class="va">low</span>, <span class="va">high</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>
+
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> {
+        <span class="cmt">// Tránh integer overflow: dùng low + (high-low)/2 thay vì (low+high)/2</span>
+        <span class="va">mid</span> := <span class="va">low</span> + (<span class="va">high</span><span class="op">-</span><span class="va">low</span>)/<span class="num">2</span>
+
+        <span class="kw">switch</span> {
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">mid</span>] == <span class="va">target</span>:
+            <span class="kw">return</span> <span class="va">mid</span>, <span class="tp">true</span>
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">mid</span>] &lt; <span class="va">target</span>:
+            <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span> <span class="cmt">// Target ở nửa phải</span>
+        <span class="kw">default</span>:
+            <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span> <span class="cmt">// Target ở nửa trái</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="tp">false</span>
+}
+
+<span class="cmt">// BinarySearchFirst tìm FIRST occurrence (quan trọng với duplicate values)</span>
+<span class="kw">func</span> <span class="fn">BinarySearchFirst</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">low</span>, <span class="va">high</span>, <span class="va">result</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>, <span class="op">-</span><span class="num">1</span>
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> {
+        <span class="va">mid</span> := <span class="va">low</span> + (<span class="va">high</span><span class="op">-</span><span class="va">low</span>)/<span class="num">2</span>
+        <span class="kw">if</span> <span class="va">arr</span>[<span class="va">mid</span>] == <span class="va">target</span> {
+            <span class="va">result</span> = <span class="va">mid</span>
+            <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span> <span class="cmt">// Tiếp tục tìm bên trái</span>
+        } <span class="kw">else if</span> <span class="va">arr</span>[<span class="va">mid</span>] &lt; <span class="va">target</span> {
+            <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span>
+        } <span class="kw">else</span> {
+            <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="va">result</span>
+}
+
+<span class="cmt">// BinarySearchLast tìm LAST occurrence</span>
+<span class="kw">func</span> <span class="fn">BinarySearchLast</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">low</span>, <span class="va">high</span>, <span class="va">result</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>, <span class="op">-</span><span class="num">1</span>
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> {
+        <span class="va">mid</span> := <span class="va">low</span> + (<span class="va">high</span><span class="op">-</span><span class="va">low</span>)/<span class="num">2</span>
+        <span class="kw">if</span> <span class="va">arr</span>[<span class="va">mid</span>] == <span class="va">target</span> {
+            <span class="va">result</span> = <span class="va">mid</span>
+            <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span> <span class="cmt">// Tiếp tục tìm bên phải</span>
+        } <span class="kw">else if</span> <span class="va">arr</span>[<span class="va">mid</span>] &lt; <span class="va">target</span> {
+            <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span>
+        } <span class="kw">else</span> {
+            <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="va">result</span>
+}</pre>
+							</div>
+						</div>
+
+						<div class="sub-header">
+							<h3>🔺 Implementation — Generic + sort.Search integration</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span><span class="code-file">binary_expert.go — stdlib integration + Lower/UpperBound</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="kw">import</span> (
+    <span class="str">"cmp"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="cmt">// BinarySearchGeneric — generic binary search với cmp.Ordered constraint</span>
+<span class="kw">func</span> <span class="fn">BinarySearchGeneric</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T) (<span class="tp">int</span>, <span class="tp">bool</span>) {
+    <span class="va">low</span>, <span class="va">high</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> {
+        <span class="va">mid</span> := <span class="va">low</span> + (<span class="va">high</span><span class="op">-</span><span class="va">low</span>)/<span class="num">2</span>
+        <span class="kw">switch</span> <span class="va">cmp</span>.<span class="fn">Compare</span>(<span class="va">arr</span>[<span class="va">mid</span>], <span class="va">target</span>) {
+        <span class="kw">case</span> <span class="num">0</span>:  <span class="kw">return</span> <span class="va">mid</span>, <span class="tp">true</span>
+        <span class="kw">case</span> <span class="op">-</span><span class="num">1</span>: <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span>
+        <span class="kw">case</span> <span class="num">1</span>:  <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="tp">false</span>
+}
+
+<span class="cmt">// LowerBound: tìm index nhỏ nhất i sao cho arr[i] >= target (C++ lower_bound)</span>
+<span class="kw">func</span> <span class="fn">LowerBound</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T) <span class="tp">int</span> {
+    <span class="kw">return</span> <span class="va">sort</span>.<span class="fn">Search</span>(<span class="bi">len</span>(<span class="va">arr</span>), <span class="kw">func</span>(<span class="va">i</span> <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> <span class="va">cmp</span>.<span class="fn">Compare</span>(<span class="va">arr</span>[<span class="va">i</span>], <span class="va">target</span>) &gt;= <span class="num">0</span>
+    })
+}
+
+<span class="cmt">// UpperBound: tìm index nhỏ nhất i sao cho arr[i] > target (C++ upper_bound)</span>
+<span class="kw">func</span> <span class="fn">UpperBound</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T) <span class="tp">int</span> {
+    <span class="kw">return</span> <span class="va">sort</span>.<span class="fn">Search</span>(<span class="bi">len</span>(<span class="va">arr</span>), <span class="kw">func</span>(<span class="va">i</span> <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> <span class="va">cmp</span>.<span class="fn">Compare</span>(<span class="va">arr</span>[<span class="va">i</span>], <span class="va">target</span>) > <span class="num">0</span>
+    })
+}
+
+<span class="cmt">// EqualRange: trả về [lo, hi) range chứa tất cả elements == target</span>
+<span class="kw">func</span> <span class="fn">EqualRange</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T) (<span class="tp">int</span>, <span class="tp">int</span>) {
+    <span class="kw">return</span> <span class="fn">LowerBound</span>(<span class="va">arr</span>, <span class="va">target</span>), <span class="fn">UpperBound</span>(<span class="va">arr</span>, <span class="va">target</span>)
+}
+
+<span class="cmt">// ─── Ví dụ thực tế: Binary Search trên sorted struct slice ───</span>
+
+<span class="kw">type</span> <span class="tp">Product</span> <span class="kw">struct</span> {
+    <span class="va">ID</span>    <span class="tp">int</span>
+    <span class="va">Price</span> <span class="tp">float64</span>
+    <span class="va">Name</span>  <span class="tp">string</span>
+}
+
+<span class="cmt">// FindProductByID tìm product trong sorted-by-ID slice bằng binary search</span>
+<span class="kw">func</span> <span class="fn">FindProductByID</span>(<span class="va">products</span> []<span class="tp">Product</span>, <span class="va">id</span> <span class="tp">int</span>) (<span class="tp">Product</span>, <span class="tp">bool</span>) {
+    <span class="va">i</span> := <span class="va">sort</span>.<span class="fn">Search</span>(<span class="bi">len</span>(<span class="va">products</span>), <span class="kw">func</span>(<span class="va">j</span> <span class="tp">int</span>) <span class="tp">bool</span> {
+        <span class="kw">return</span> <span class="va">products</span>[<span class="va">j</span>].<span class="va">ID</span> &gt;= <span class="va">id</span>
+    })
+    <span class="kw">if</span> <span class="va">i</span> &lt; <span class="bi">len</span>(<span class="va">products</span>) && <span class="va">products</span>[<span class="va">i</span>].<span class="va">ID</span> == <span class="va">id</span> {
+        <span class="kw">return</span> <span class="va">products</span>[<span class="va">i</span>], <span class="tp">true</span>
+    }
+    <span class="kw">return</span> <span class="tp">Product</span>{}, <span class="tp">false</span>
+}
+
+<span class="cmt">// Usage:</span>
+<span class="cmt">// lo, hi := EqualRange([]int{1,2,2,2,3,4}, 2) → lo=1, hi=4</span>
+<span class="cmt">// Tức là arr[1:4] = [2,2,2] chứa tất cả giá trị 2</span></pre>
+							</div>
+						</div>
+
+						<div class="callout callout-warn">
+							<span class="callout-icon">⚠️</span>
+							<div class="callout-body">
+								<div class="callout-title">Integer Overflow Bug — Pitfall phổ biến</div>
+								<p>
+									Công thức <code style="color: #fbbf24">mid = (low + high) / 2</code> có thể gây <strong>integer overflow</strong> khi
+									<code>low + high</code> vượt quá <code>math.MaxInt</code>. Luôn dùng
+									<code style="color: #00ff9d">mid = low + (high - low) / 2</code>. Đây là bug kinh điển từng xuất hiện trong JDK binary search suốt 9
+									năm (Joshua Bloch, 2006).
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- ═══════════════════════════════════════════════════════════
+           03 JUMP SEARCH
+      ═══════════════════════════════════════════════════════════════ -->
+					<div id="jump" class="section">
+						<div class="section-header">
+							<div class="section-num">03</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Jump Search — Tìm kiếm nhảy bước</div>
+								<div class="section-subtitle">Nhảy theo block √n rồi linear search trong block tìm được</div>
+							</div>
+							<span class="tag tag-advanced">Advanced</span>
+						</div>
+
+						<div class="def-box">
+							<div class="def-label">📖 Định nghĩa</div>
+							<p>
+								<strong>Jump Search</strong> hoạt động trên <strong>sorted array</strong> bằng cách nhảy theo từng block có kích thước
+								<strong>√n</strong>. Khi tìm được block có thể chứa target (arr[jump] >= target), thực hiện
+								<strong>linear search ngược lại</strong> trong block đó. Ý tưởng: tối ưu kích thước block để minimize tổng số so sánh — block_size =
+								<strong>√n</strong> cho tổng số bước ít nhất.
+							</p>
+						</div>
+
+						<div class="info-grid">
+							<div class="info-card">
+								<div class="label">Best Case</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Target ở block đầu tiên</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Average / Worst</div>
+								<div class="value cyan">O(√n)</div>
+								<div class="desc">Block jumps + linear scan</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Space</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Constant extra space</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Optimal block</div>
+								<div class="value yellow">√n</div>
+								<div class="desc">math.Sqrt(float64(n))</div>
+							</div>
+						</div>
+
+						<!-- Diagram Jump Search -->
+						<div class="diagram-box">
+							<div class="diagram-title">Jump Search — Block jumping visualization (n=16, √16=4, target=14)</div>
+							<svg viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 820px; display: block; margin: 0 auto">
+								<defs>
+									<marker id="jmp" markerWidth="10" markerHeight="8" refX="8" refY="4" orient="auto">
+										<path d="M0,0 L0,8 L10,4 z" fill="#a78bfa" />
+									</marker>
+									<marker id="lin" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+										<path d="M0,0 L0,6 L8,3 z" fill="#fb923c" />
+									</marker>
+								</defs>
+								<!-- 16 cells -->
+								<g>
+									<!-- Block 0: [0-3] -->
+									<rect
+										x="2"
+										y="70"
+										width="190"
+										height="44"
+										rx="6"
+										fill="rgba(74,96,128,0.1)"
+										stroke="#2a3a5a"
+										stroke-width="1"
+										stroke-dasharray="4,3"
+									/>
+									<text x="97" y="64" text-anchor="middle" fill="#4a6080" font-family="JetBrains Mono" font-size="10">Block 0 [0..3]</text>
+									<!-- Block 1: [4-7] -->
+									<rect
+										x="202"
+										y="70"
+										width="190"
+										height="44"
+										rx="6"
+										fill="rgba(74,96,128,0.1)"
+										stroke="#2a3a5a"
+										stroke-width="1"
+										stroke-dasharray="4,3"
+									/>
+									<text x="297" y="64" text-anchor="middle" fill="#4a6080" font-family="JetBrains Mono" font-size="10">Block 1 [4..7]</text>
+									<!-- Block 2: [8-11] -->
+									<rect
+										x="402"
+										y="70"
+										width="190"
+										height="44"
+										rx="6"
+										fill="rgba(74,96,128,0.1)"
+										stroke="#2a3a5a"
+										stroke-width="1"
+										stroke-dasharray="4,3"
+									/>
+									<text x="497" y="64" text-anchor="middle" fill="#4a6080" font-family="JetBrains Mono" font-size="10">Block 2 [8..11]</text>
+									<!-- Block 3: [12-15] — active -->
+									<rect
+										x="602"
+										y="66"
+										width="200"
+										height="52"
+										rx="8"
+										fill="rgba(167,139,250,0.08)"
+										stroke="#a78bfa"
+										stroke-width="2"
+										stroke-dasharray="5,3"
+									/>
+									<text x="702" y="62" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="10">
+										Block 3 [12..15] ← linear scan
+									</text>
+								</g>
+								<!-- Cells -->
+								<g font-family="JetBrains Mono" font-size="13" text-anchor="middle">
+									<g>
+										<rect x="5" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="27" y="97" fill="#8899bb">2</text>
+										<rect x="53" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="75" y="97" fill="#8899bb">5</text>
+										<rect x="101" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="123" y="97" fill="#8899bb">8</text>
+										<rect x="149" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#4a6080" stroke-width="2" />
+										<text x="171" y="97" fill="#fbbf24">10</text>
+									</g>
+									<g>
+										<rect x="205" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="227" y="97" fill="#8899bb">12</text>
+										<rect x="253" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="275" y="97" fill="#8899bb">13</text>
+										<rect x="301" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="323" y="97" fill="#8899bb">14</text>
+										<rect x="349" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#4a6080" stroke-width="2" />
+										<text x="371" y="97" fill="#fbbf24">16</text>
+									</g>
+									<g>
+										<rect x="405" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="427" y="97" fill="#8899bb">18</text>
+										<rect x="453" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="475" y="97" fill="#8899bb">20</text>
+										<rect x="501" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="523" y="97" fill="#8899bb">22</text>
+										<rect x="549" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#4a6080" stroke-width="2" />
+										<text x="571" y="97" fill="#fbbf24">24</text>
+									</g>
+									<g>
+										<rect x="605" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="627" y="97" fill="#8899bb">26</text>
+										<rect x="653" y="75" width="44" height="34" rx="4" fill="rgba(0,255,157,0.1)" stroke="#00ff9d" stroke-width="2" />
+										<text x="675" y="97" fill="#00ff9d">28</text>
+										<rect x="701" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#1e2d4a" />
+										<text x="723" y="97" fill="#8899bb">30</text>
+										<rect x="749" y="75" width="44" height="34" rx="4" fill="#0d1628" stroke="#4a6080" stroke-width="2" />
+										<text x="771" y="97" fill="#fbbf24">32</text>
+									</g>
+								</g>
+								<!-- Jump arrows above -->
+								<path d="M171,70 Q234,30 371,70" stroke="#a78bfa" stroke-width="2" fill="none" marker-end="url(#jmp)" />
+								<text x="260" y="26" text-anchor="middle" fill="#a78bfa" font-family="Space Grotesk" font-size="11">Jump +4</text>
+								<path d="M371,70 Q434,30 571,70" stroke="#a78bfa" stroke-width="2" fill="none" marker-end="url(#jmp)" />
+								<text x="460" y="26" text-anchor="middle" fill="#a78bfa" font-family="Space Grotesk" font-size="11">Jump +4</text>
+								<path d="M571,70 Q634,30 771,70" stroke="#a78bfa" stroke-width="2" fill="none" marker-end="url(#jmp)" />
+								<text x="660" y="26" text-anchor="middle" fill="#a78bfa" font-family="Space Grotesk" font-size="11">Jump +4, 32>28 → scan back</text>
+								<!-- Linear scan arrows -->
+								<line x1="749" y1="120" x2="700" y2="120" stroke="#fb923c" stroke-width="1.5" marker-end="url(#lin)" />
+								<line x1="700" y1="130" x2="660" y2="130" stroke="#00ff9d" stroke-width="2" marker-end="url(#lin)" />
+								<text x="630" y="158" fill="#00ff9d" font-family="Space Grotesk" font-size="11">Found: 28 ✓</text>
+							</svg>
+						</div>
+
+						<div class="sub-header">
+							<h3>🔸 Implementation</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-advanced">Advanced</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header"><span class="code-lang">GO</span><span class="code-file">jump_search.go</span></div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="kw">import</span> <span class="str">"math"</span>
+
+<span class="cmt">// JumpSearch tìm kiếm trong sorted slice bằng cách nhảy theo block √n.</span>
+<span class="cmt">// Time: O(√n), Space: O(1). Phù hợp khi backward jumps có chi phí cao.</span>
+<span class="kw">func</span> <span class="fn">JumpSearch</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">n</span> := <span class="bi">len</span>(<span class="va">arr</span>)
+    <span class="kw">if</span> <span class="va">n</span> == <span class="num">0</span> {
+        <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+    }
+
+    <span class="va">step</span> := <span class="tp">int</span>(<span class="va">math</span>.<span class="fn">Sqrt</span>(<span class="tp">float64</span>(<span class="va">n</span>)))
+    <span class="va">prev</span> := <span class="num">0</span>
+
+    <span class="cmt">// Phase 1: Jump forward theo block size √n</span>
+    <span class="kw">for</span> <span class="va">prev</span> &lt; <span class="va">n</span> && <span class="va">arr</span>[<span class="bi">min</span>(<span class="va">step</span>, <span class="va">n</span>)<span class="op">-</span><span class="num">1</span>] &lt; <span class="va">target</span> {
+        <span class="va">prev</span> = <span class="va">step</span>
+        <span class="va">step</span> += <span class="tp">int</span>(<span class="va">math</span>.<span class="fn">Sqrt</span>(<span class="tp">float64</span>(<span class="va">n</span>)))
+        <span class="kw">if</span> <span class="va">prev</span> &gt;= <span class="va">n</span> {
+            <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+        }
+    }
+
+    <span class="cmt">// Phase 2: Linear search trong block [prev, min(step, n))</span>
+    <span class="va">limit</span> := <span class="bi">min</span>(<span class="va">step</span>, <span class="va">n</span>)
+    <span class="kw">for</span> <span class="va">i</span> := <span class="va">prev</span>; <span class="va">i</span> &lt; <span class="va">limit</span>; <span class="va">i</span>++ {
+        <span class="kw">if</span> <span class="va">arr</span>[<span class="va">i</span>] == <span class="va">target</span> {
+            <span class="kw">return</span> <span class="va">i</span>
+        }
+        <span class="kw">if</span> <span class="va">arr</span>[<span class="va">i</span>] > <span class="va">target</span> {
+            <span class="kw">return</span> <span class="op">-</span><span class="num">1</span> <span class="cmt">// Sorted array → target không tồn tại</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}
+
+<span class="cmt">// JumpSearchCustomStep cho phép chỉ định custom block size</span>
+<span class="kw">func</span> <span class="fn">JumpSearchCustomStep</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span>, <span class="va">blockSize</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">n</span> := <span class="bi">len</span>(<span class="va">arr</span>)
+    <span class="kw">if</span> <span class="va">n</span> == <span class="num">0</span> || <span class="va">blockSize</span> &lt;= <span class="num">0</span> {
+        <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+    }
+    <span class="va">prev</span>, <span class="va">step</span> := <span class="num">0</span>, <span class="va">blockSize</span>
+    <span class="kw">for</span> <span class="va">prev</span> &lt; <span class="va">n</span> && <span class="va">arr</span>[<span class="bi">min</span>(<span class="va">step</span>, <span class="va">n</span>)<span class="op">-</span><span class="num">1</span>] &lt; <span class="va">target</span> {
+        <span class="va">prev</span> = <span class="va">step</span>
+        <span class="va">step</span> += <span class="va">blockSize</span>
+        <span class="kw">if</span> <span class="va">prev</span> &gt;= <span class="va">n</span> { <span class="kw">return</span> <span class="op">-</span><span class="num">1</span> }
+    }
+    <span class="kw">for</span> <span class="va">i</span> := <span class="va">prev</span>; <span class="va">i</span> &lt; <span class="bi">min</span>(<span class="va">step</span>, <span class="va">n</span>); <span class="va">i</span>++ {
+        <span class="kw">if</span> <span class="va">arr</span>[<span class="va">i</span>] == <span class="va">target</span> { <span class="kw">return</span> <span class="va">i</span> }
+        <span class="kw">if</span> <span class="va">arr</span>[<span class="va">i</span>] > <span class="va">target</span>  { <span class="kw">return</span> <span class="op">-</span><span class="num">1</span> }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}</pre>
+							</div>
+						</div>
+					</div>
+
+					<!-- ═══════════════════════════════════════════════════════════
+           04 INTERPOLATION SEARCH
+      ═══════════════════════════════════════════════════════════════ -->
+					<div id="interpolation" class="section">
+						<div class="section-header">
+							<div class="section-num">04</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Interpolation Search — Tìm kiếm nội suy</div>
+								<div class="section-subtitle">Ước tính vị trí target dựa trên phân phối giá trị</div>
+							</div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+
+						<div class="def-box">
+							<div class="def-label">📖 Định nghĩa</div>
+							<p>
+								<strong>Interpolation Search</strong> là phiên bản cải tiến của Binary Search dành cho data
+								<strong>phân bố đều (uniformly distributed)</strong>. Thay vì luôn chọn midpoint, nó <strong>ước tính vị trí</strong> của target theo
+								công thức nội suy tuyến tính:
+								<code style="color: #00ff9d">pos = low + (target - arr[low]) * (high - low) / (arr[high] - arr[low])</code>. Tương tự như cách ta tìm
+								số trang trong sách — ta ước lượng trang cần mở dựa trên giá trị bảng chữ cái.
+							</p>
+						</div>
+
+						<div class="info-grid">
+							<div class="info-card">
+								<div class="label">Best Case</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Target ước lượng đúng ngay lần đầu</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Average (uniform)</div>
+								<div class="value green">O(log log n)</div>
+								<div class="desc">Tốt hơn Binary Search!</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Worst Case</div>
+								<div class="value red">O(n)</div>
+								<div class="desc">Data không đều (skewed)</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Space</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Constant space</div>
+							</div>
+						</div>
+
+						<!-- Formula diagram -->
+						<div class="diagram-box">
+							<div class="diagram-title">Interpolation Formula — So sánh với Binary Search</div>
+							<svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 780px; display: block; margin: 0 auto">
+								<!-- Binary Search box -->
+								<rect x="10" y="20" width="350" height="100" rx="10" fill="#0d1628" stroke="#4da6ff" stroke-width="1.5" />
+								<text x="185" y="44" text-anchor="middle" fill="#4da6ff" font-family="Space Grotesk" font-size="13" font-weight="600">
+									Binary Search
+								</text>
+								<text x="185" y="70" text-anchor="middle" fill="#fbbf24" font-family="JetBrains Mono" font-size="14">
+									mid = low + (high - low) / 2
+								</text>
+								<text x="185" y="92" text-anchor="middle" fill="#546e7a" font-family="Space Grotesk" font-size="12">Luôn chọn điểm GIỮA</text>
+								<text x="185" y="110" text-anchor="middle" fill="#546e7a" font-family="Space Grotesk" font-size="12">
+									Không quan tâm giá trị thực
+								</text>
+								<!-- Interpolation Search box -->
+								<rect x="390" y="10" width="380" height="120" rx="10" fill="#0a1a10" stroke="#00ff9d" stroke-width="1.5" />
+								<text x="580" y="34" text-anchor="middle" fill="#00ff9d" font-family="Space Grotesk" font-size="13" font-weight="600">
+									Interpolation Search
+								</text>
+								<text x="580" y="60" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="12">pos = low +</text>
+								<text x="580" y="78" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="12">
+									(target - arr[low]) * (high - low)
+								</text>
+								<text x="580" y="96" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="12">
+									────────────────────────────
+								</text>
+								<text x="580" y="114" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="12">(arr[high] - arr[low])</text>
+								<!-- Compare arrow -->
+								<text x="175" y="150" text-anchor="middle" fill="#8899bb" font-family="Space Grotesk" font-size="12">O(log n) average</text>
+								<text x="175" y="168" text-anchor="middle" fill="#546e7a" font-family="Space Grotesk" font-size="11">Uniform: O(log n)</text>
+								<text x="580" y="150" text-anchor="middle" fill="#00ff9d" font-family="Space Grotesk" font-size="12">
+									O(log log n) average (uniform)
+								</text>
+								<text x="580" y="168" text-anchor="middle" fill="#ff6b6b" font-family="Space Grotesk" font-size="11">Non-uniform: O(n) worst!</text>
+								<text x="385" y="100" text-anchor="middle" fill="#fbbf24" font-family="Space Grotesk" font-size="18">VS</text>
+							</svg>
+						</div>
+
+						<div class="sub-header">
+							<h3>🔺 Implementation — Full</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header"><span class="code-lang">GO</span><span class="code-file">interpolation_search.go</span></div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="cmt">// InterpolationSearch tìm kiếm trong sorted slice với data phân bố đều.</span>
+<span class="cmt">// Time: O(log log n) average cho uniform data, O(n) worst case.</span>
+<span class="cmt">// QUAN TRỌNG: Chỉ hiệu quả khi data phân bố đều (uniform distribution).</span>
+<span class="kw">func</span> <span class="fn">InterpolationSearch</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">low</span>, <span class="va">high</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>
+
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> && <span class="va">target</span> &gt;= <span class="va">arr</span>[<span class="va">low</span>] && <span class="va">target</span> &lt;= <span class="va">arr</span>[<span class="va">high</span>] {
+        <span class="kw">if</span> <span class="va">low</span> == <span class="va">high</span> {
+            <span class="kw">if</span> <span class="va">arr</span>[<span class="va">low</span>] == <span class="va">target</span> { <span class="kw">return</span> <span class="va">low</span> }
+            <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+        }
+
+        <span class="cmt">// Công thức nội suy: ước tính vị trí dựa trên tỉ lệ giá trị</span>
+        <span class="cmt">// Tránh division by zero khi arr[high] == arr[low]</span>
+        <span class="va">rangeDiff</span> := <span class="va">arr</span>[<span class="va">high</span>] <span class="op">-</span> <span class="va">arr</span>[<span class="va">low</span>]
+        <span class="kw">if</span> <span class="va">rangeDiff</span> == <span class="num">0</span> {
+            <span class="kw">if</span> <span class="va">arr</span>[<span class="va">low</span>] == <span class="va">target</span> { <span class="kw">return</span> <span class="va">low</span> }
+            <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+        }
+
+        <span class="va">pos</span> := <span class="va">low</span> + (<span class="va">target</span><span class="op">-</span><span class="va">arr</span>[<span class="va">low</span>])*(<span class="va">high</span><span class="op">-</span><span class="va">low</span>) / <span class="va">rangeDiff</span>
+
+        <span class="cmt">// Clamp pos trong [low, high] để tránh out-of-bounds</span>
+        <span class="kw">if</span> <span class="va">pos</span> &lt; <span class="va">low</span> { <span class="va">pos</span> = <span class="va">low</span> }
+        <span class="kw">if</span> <span class="va">pos</span> > <span class="va">high</span> { <span class="va">pos</span> = <span class="va">high</span> }
+
+        <span class="kw">switch</span> {
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">pos</span>] == <span class="va">target</span>:
+            <span class="kw">return</span> <span class="va">pos</span>
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">pos</span>] &lt; <span class="va">target</span>:
+            <span class="va">low</span> = <span class="va">pos</span> + <span class="num">1</span>
+        <span class="kw">default</span>:
+            <span class="va">high</span> = <span class="va">pos</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}
+
+<span class="cmt">// InterpolationSearchFloat64 cho float64 data (cần xử lý floating point)</span>
+<span class="kw">func</span> <span class="fn">InterpolationSearchFloat64</span>(<span class="va">arr</span> []<span class="tp">float64</span>, <span class="va">target</span> <span class="tp">float64</span>) <span class="tp">int</span> {
+    <span class="va">low</span>, <span class="va">high</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>
+
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> && <span class="va">target</span> &gt;= <span class="va">arr</span>[<span class="va">low</span>] && <span class="va">target</span> &lt;= <span class="va">arr</span>[<span class="va">high</span>] {
+        <span class="kw">if</span> <span class="va">low</span> == <span class="va">high</span> {
+            <span class="kw">if</span> <span class="va">arr</span>[<span class="va">low</span>] == <span class="va">target</span> { <span class="kw">return</span> <span class="va">low</span> }
+            <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+        }
+        <span class="va">rangeDiff</span> := <span class="va">arr</span>[<span class="va">high</span>] <span class="op">-</span> <span class="va">arr</span>[<span class="va">low</span>]
+        <span class="kw">if</span> <span class="va">rangeDiff</span> == <span class="num">0</span> { <span class="kw">break</span> }
+
+        <span class="va">ratio</span> := (<span class="va">target</span> <span class="op">-</span> <span class="va">arr</span>[<span class="va">low</span>]) / <span class="va">rangeDiff</span>
+        <span class="va">pos</span> := <span class="va">low</span> + <span class="tp">int</span>(<span class="va">ratio</span>*<span class="tp">float64</span>(<span class="va">high</span><span class="op">-</span><span class="va">low</span>))
+
+        <span class="kw">if</span> <span class="va">pos</span> &lt; <span class="va">low</span> { <span class="va">pos</span> = <span class="va">low</span> }
+        <span class="kw">if</span> <span class="va">pos</span> > <span class="va">high</span> { <span class="va">pos</span> = <span class="va">high</span> }
+
+        <span class="kw">switch</span> {
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">pos</span>] == <span class="va">target</span>: <span class="kw">return</span> <span class="va">pos</span>
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">pos</span>] &lt; <span class="va">target</span>:  <span class="va">low</span> = <span class="va">pos</span> + <span class="num">1</span>
+        <span class="kw">default</span>:                 <span class="va">high</span> = <span class="va">pos</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}</pre>
+							</div>
+						</div>
+
+						<div class="callout callout-danger">
+							<span class="callout-icon">🚫</span>
+							<div class="callout-body">
+								<div class="callout-title">Khi nào KHÔNG dùng Interpolation Search</div>
+								<p>
+									Nếu data <strong>không phân bố đều</strong> (ví dụ: exponential growth, Zipf distribution, highly skewed), Interpolation Search có
+									thể hoạt động tệ hơn Binary Search với O(n) trong worst case. Hãy luôn <strong>profile data trước</strong> khi chọn thuật toán này.
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- ═══════════════════════════════════════════════════════════
+           05 EXPONENTIAL SEARCH
+      ═══════════════════════════════════════════════════════════════ -->
+					<div id="exponential" class="section">
+						<div class="section-header">
+							<div class="section-num">05</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Exponential Search — Tìm kiếm hàm mũ</div>
+								<div class="section-subtitle">Tìm bound theo lũy thừa 2, rồi Binary Search trong range đó</div>
+							</div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+
+						<div class="def-box">
+							<div class="def-label">📖 Định nghĩa</div>
+							<p>
+								<strong>Exponential Search</strong> gồm 2 phase: <strong>Phase 1</strong> — tìm range [2^(k-1), 2^k] chứa target bằng cách nhân đôi
+								index (1 → 2 → 4 → 8 → 16 → ...) cho đến khi <code>arr[i] >= target</code>. <strong>Phase 2</strong> — thực hiện Binary Search trong
+								range tìm được. Đặc biệt hữu ích với <strong>unbounded arrays</strong> hoặc khi target nằm <strong>gần đầu mảng</strong>. Cũng là nền
+								tảng của nhiều <strong>search engine</strong> và <strong>index structure</strong>.
+							</p>
+						</div>
+
+						<div class="info-grid">
+							<div class="info-card">
+								<div class="label">Best Case</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Target ở index đầu tiên</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Average / Worst</div>
+								<div class="value green">O(log n)</div>
+								<div class="desc">Phase1: O(log n) + Phase2: O(log n)</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Space</div>
+								<div class="value green">O(1)</div>
+								<div class="desc">Iterative binary search</div>
+							</div>
+							<div class="info-card">
+								<div class="label">Bounded range</div>
+								<div class="value cyan">2·log(pos)</div>
+								<div class="desc">Chỉ search đến vị trí target</div>
+							</div>
+						</div>
+
+						<!-- Diagram -->
+						<div class="diagram-box">
+							<div class="diagram-title">Exponential Search — 2-Phase Process (target = arr[13])</div>
+							<svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 780px; display: block; margin: 0 auto">
+								<defs>
+									<marker id="e1" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+										<path d="M0,0 L0,6 L8,3 z" fill="#fb923c" />
+									</marker>
+									<marker id="e2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+										<path d="M0,0 L0,6 L8,3 z" fill="#4da6ff" />
+									</marker>
+								</defs>
+								<!-- Phase labels -->
+								<text x="10" y="18" fill="#fb923c" font-family="Space Grotesk" font-size="12" font-weight="700">Phase 1: Exponential Expansion</text>
+								<!-- Axis -->
+								<line x1="10" y1="90" x2="750" y2="90" stroke="#1e2d4a" stroke-width="1" />
+								<!-- Index markers -->
+								<g font-family="JetBrains Mono" font-size="10" text-anchor="middle" fill="#546e7a">
+									<text x="20" y="105">0</text>
+									<text x="66" y="105">1</text>
+									<text x="112" y="105">2</text>
+									<text x="196" y="105">4</text>
+									<text x="362" y="105">8</text>
+									<text x="692" y="105">16</text>
+								</g>
+								<!-- Exponential jumps -->
+								<path d="M20,85 Q43,50 66,85" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#e1)" />
+								<text x="43" y="44" text-anchor="middle" fill="#fb923c" font-family="JetBrains Mono" font-size="10">×2</text>
+								<path d="M66,85 Q89,40 112,85" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#e1)" />
+								<text x="89" y="36" text-anchor="middle" fill="#fb923c" font-family="JetBrains Mono" font-size="10">×2</text>
+								<path d="M112,85 Q154,30 196,85" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#e1)" />
+								<text x="154" y="26" text-anchor="middle" fill="#fb923c" font-family="JetBrains Mono" font-size="10">×2</text>
+								<path d="M196,85 Q279,20 362,85" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#e1)" />
+								<text x="279" y="16" text-anchor="middle" fill="#fb923c" font-family="JetBrains Mono" font-size="10">×2 → arr[8] &lt; target</text>
+								<path d="M362,85 Q527,20 692,85" stroke="#fb923c" stroke-width="2" fill="none" marker-end="url(#e1)" />
+								<text x="527" y="16" text-anchor="middle" fill="#fb923c" font-family="JetBrains Mono" font-size="10">
+									×2 → arr[16] &gt; target → STOP
+								</text>
+								<!-- Dots on axis -->
+								<circle cx="20" cy="90" r="4" fill="#546e7a" />
+								<circle cx="66" cy="90" r="4" fill="#546e7a" />
+								<circle cx="112" cy="90" r="4" fill="#546e7a" />
+								<circle cx="196" cy="90" r="4" fill="#546e7a" />
+								<circle cx="362" cy="90" r="4" fill="#546e7a" />
+								<circle cx="692" cy="90" r="5" fill="#fb923c" />
+								<!-- Phase 2: Binary Search in [8, 16] -->
+								<text x="10" y="135" fill="#4da6ff" font-family="Space Grotesk" font-size="12" font-weight="700">
+									Phase 2: Binary Search trong range [8, 16]
+								</text>
+								<rect x="362" y="145" width="330" height="30" rx="6" fill="rgba(77,166,255,0.08)" stroke="#4da6ff" stroke-width="1.5" />
+								<text x="527" y="165" text-anchor="middle" fill="#4da6ff" font-family="Space Grotesk" font-size="12">
+									Binary Search → tìm thấy target tại index 13 ✓
+								</text>
+								<line x1="362" y1="90" x2="362" y2="145" stroke="#4da6ff" stroke-width="1.5" stroke-dasharray="4,3" />
+								<line x1="692" y1="90" x2="692" y2="145" stroke="#4da6ff" stroke-width="1.5" stroke-dasharray="4,3" />
+							</svg>
+						</div>
+
+						<div class="sub-header">
+							<h3>🔺 Implementation — Full + Unbounded Array</h3>
+							<div class="sub-line"></div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+						<div class="code-block">
+							<div class="code-header"><span class="code-lang">GO</span><span class="code-file">exponential_search.go</span></div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="cmt">// ExponentialSearch tìm kiếm trong sorted slice.</span>
+<span class="cmt">// Time: O(log n), Space: O(1).</span>
+<span class="cmt">// Đặc biệt hiệu quả khi target ở gần đầu hoặc với unbounded arrays.</span>
+<span class="kw">func</span> <span class="fn">ExponentialSearch</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">target</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">n</span> := <span class="bi">len</span>(<span class="va">arr</span>)
+    <span class="kw">if</span> <span class="va">n</span> == <span class="num">0</span> { <span class="kw">return</span> <span class="op">-</span><span class="num">1</span> }
+    <span class="kw">if</span> <span class="va">arr</span>[<span class="num">0</span>] == <span class="va">target</span> { <span class="kw">return</span> <span class="num">0</span> }
+
+    <span class="cmt">// Phase 1: Tìm range [bound/2, bound] chứa target</span>
+    <span class="va">bound</span> := <span class="num">1</span>
+    <span class="kw">for</span> <span class="va">bound</span> &lt; <span class="va">n</span> && <span class="va">arr</span>[<span class="va">bound</span>] &lt; <span class="va">target</span> {
+        <span class="va">bound</span> *= <span class="num">2</span> <span class="cmt">// Mũ hóa: 1, 2, 4, 8, 16, ...</span>
+    }
+
+    <span class="cmt">// Phase 2: Binary search trong [bound/2, min(bound, n-1)]</span>
+    <span class="va">low</span>  := <span class="va">bound</span> / <span class="num">2</span>
+    <span class="va">high</span> := <span class="bi">min</span>(<span class="va">bound</span>, <span class="va">n</span><span class="op">-</span><span class="num">1</span>)
+    <span class="va">idx</span>, <span class="va">_</span> := <span class="fn">binarySearchRange</span>(<span class="va">arr</span>, <span class="va">low</span>, <span class="va">high</span>, <span class="va">target</span>)
+    <span class="kw">return</span> <span class="va">idx</span>
+}
+
+<span class="cmt">// binarySearchRange là binary search trong range [low, high]</span>
+<span class="kw">func</span> <span class="fn">binarySearchRange</span>(<span class="va">arr</span> []<span class="tp">int</span>, <span class="va">low</span>, <span class="va">high</span>, <span class="va">target</span> <span class="tp">int</span>) (<span class="tp">int</span>, <span class="tp">bool</span>) {
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> {
+        <span class="va">mid</span> := <span class="va">low</span> + (<span class="va">high</span><span class="op">-</span><span class="va">low</span>)/<span class="num">2</span>
+        <span class="kw">switch</span> {
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">mid</span>] == <span class="va">target</span>: <span class="kw">return</span> <span class="va">mid</span>, <span class="tp">true</span>
+        <span class="kw">case</span> <span class="va">arr</span>[<span class="va">mid</span>] &lt; <span class="va">target</span>:  <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span>
+        <span class="kw">default</span>:                 <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="tp">false</span>
+}
+
+<span class="cmt">// ─── Unbounded Array: dành cho streaming / infinite data sources ───</span>
+
+<span class="cmt">// ArrayAccessor là abstraction cho unbounded data source (database cursor, stream...)</span>
+<span class="kw">type</span> <span class="tp">ArrayAccessor</span>[T <span class="tp">any</span>] <span class="kw">interface</span> {
+    <span class="fn">Get</span>(<span class="va">index</span> <span class="tp">int</span>) (T, <span class="tp">error</span>)  <span class="cmt">// Returns error nếu index out of range</span>
+    <span class="fn">Size</span>() <span class="tp">int</span>               <span class="cmt">// -1 nếu unknown (infinite)</span>
+}
+
+<span class="cmt">// ExponentialSearchUnbounded hoạt động với data source không biết kích thước</span>
+<span class="kw">func</span> <span class="fn">ExponentialSearchUnbounded</span>(<span class="va">src</span> <span class="tp">ArrayAccessor</span>[<span class="tp">int</span>], <span class="va">target</span> <span class="tp">int</span>) (<span class="tp">int</span>, <span class="tp">error</span>) {
+    <span class="cmt">// Kiểm tra phần tử đầu tiên</span>
+    <span class="va">first</span>, <span class="va">err</span> := <span class="va">src</span>.<span class="fn">Get</span>(<span class="num">0</span>)
+    <span class="kw">if</span> <span class="va">err</span> != <span class="tp">nil</span> { <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="va">err</span> }
+    <span class="kw">if</span> <span class="va">first</span> == <span class="va">target</span> { <span class="kw">return</span> <span class="num">0</span>, <span class="tp">nil</span> }
+
+    <span class="va">bound</span> := <span class="num">1</span>
+    <span class="kw">for</span> {
+        <span class="va">val</span>, <span class="va">err</span> := <span class="va">src</span>.<span class="fn">Get</span>(<span class="va">bound</span>)
+        <span class="kw">if</span> <span class="va">err</span> != <span class="tp">nil</span> {
+            <span class="cmt">// Đã vượt qua kích thước mảng → binary search trong [bound/2, bound-1]</span>
+            <span class="kw">break</span>
+        }
+        <span class="kw">if</span> <span class="va">val</span> &gt;= <span class="va">target</span> { <span class="kw">break</span> }
+        <span class="va">bound</span> *= <span class="num">2</span>
+    }
+
+    <span class="cmt">// Binary search trong [bound/2, bound) với safe access</span>
+    <span class="va">low</span>, <span class="va">high</span> := <span class="va">bound</span>/<span class="num">2</span>, <span class="va">bound</span><span class="op">-</span><span class="num">1</span>
+    <span class="kw">for</span> <span class="va">low</span> &lt;= <span class="va">high</span> {
+        <span class="va">mid</span> := <span class="va">low</span> + (<span class="va">high</span><span class="op">-</span><span class="va">low</span>)/<span class="num">2</span>
+        <span class="va">val</span>, <span class="va">err</span> := <span class="va">src</span>.<span class="fn">Get</span>(<span class="va">mid</span>)
+        <span class="kw">if</span> <span class="va">err</span> != <span class="tp">nil</span> { <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span>; <span class="kw">continue</span> }
+        <span class="kw">switch</span> {
+        <span class="kw">case</span> <span class="va">val</span> == <span class="va">target</span>: <span class="kw">return</span> <span class="va">mid</span>, <span class="tp">nil</span>
+        <span class="kw">case</span> <span class="va">val</span> &lt; <span class="va">target</span>:  <span class="va">low</span> = <span class="va">mid</span> + <span class="num">1</span>
+        <span class="kw">default</span>:            <span class="va">high</span> = <span class="va">mid</span> <span class="op">-</span> <span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>, <span class="tp">nil</span>
+}</pre>
+							</div>
+						</div>
+					</div>
+
+					<!-- ═══════════════════════════════════════════════════════════
+           GENERIC SEARCH ENGINE
+      ═══════════════════════════════════════════════════════════════ -->
+					<div id="generic" class="section">
+						<div class="section-header">
+							<div class="section-num">✦</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Generic Search Engine — Go 1.21+</div>
+								<div class="section-subtitle">Unified interface cho tất cả thuật toán tìm kiếm</div>
+							</div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span><span class="code-file">search_engine.go — Strategy Pattern + Generics</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search</span>
+
+<span class="kw">import</span> (
+    <span class="str">"cmp"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"math"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// Strategy enum cho các thuật toán tìm kiếm</span>
+<span class="kw">type</span> <span class="tp">Algorithm</span> <span class="tp">string</span>
+
+<span class="kw">const</span> (
+    <span class="va">AlgoLinear</span>        <span class="tp">Algorithm</span> = <span class="str">"linear"</span>
+    <span class="va">AlgoBinary</span>        <span class="tp">Algorithm</span> = <span class="str">"binary"</span>
+    <span class="va">AlgoJump</span>          <span class="tp">Algorithm</span> = <span class="str">"jump"</span>
+    <span class="va">AlgoInterpolation</span> <span class="tp">Algorithm</span> = <span class="str">"interpolation"</span>
+    <span class="va">AlgoExponential</span>   <span class="tp">Algorithm</span> = <span class="str">"exponential"</span>
+)
+
+<span class="cmt">// SearchResult chứa kết quả và metadata</span>
+<span class="kw">type</span> <span class="tp">SearchResult</span>[T <span class="tp">any</span>] <span class="kw">struct</span> {
+    <span class="va">Index</span>       <span class="tp">int</span>
+    <span class="va">Value</span>       T
+    <span class="va">Found</span>       <span class="tp">bool</span>
+    <span class="va">Algorithm</span>   <span class="tp">Algorithm</span>
+    <span class="va">Comparisons</span> <span class="tp">int</span>
+    <span class="va">Duration</span>    <span class="va">time</span>.<span class="tp">Duration</span>
+}
+
+<span class="kw">func</span> (<span class="va">r</span> <span class="tp">SearchResult</span>[T]) <span class="fn">String</span>() <span class="tp">string</span> {
+    <span class="kw">if</span> !<span class="va">r</span>.<span class="va">Found</span> {
+        <span class="kw">return</span> <span class="va">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"[%s] Not found | comparisons=%d | time=%v"</span>,
+            <span class="va">r</span>.<span class="va">Algorithm</span>, <span class="va">r</span>.<span class="va">Comparisons</span>, <span class="va">r</span>.<span class="va">Duration</span>)
+    }
+    <span class="kw">return</span> <span class="va">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"[%s] Found at index=%d | comparisons=%d | time=%v"</span>,
+        <span class="va">r</span>.<span class="va">Algorithm</span>, <span class="va">r</span>.<span class="va">Index</span>, <span class="va">r</span>.<span class="va">Comparisons</span>, <span class="va">r</span>.<span class="va">Duration</span>)
+}
+
+<span class="cmt">// SearchEngine — unified interface cho tất cả algorithms</span>
+<span class="kw">type</span> <span class="tp">SearchEngine</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>] <span class="kw">struct</span> {
+    <span class="va">algo</span> <span class="tp">Algorithm</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewSearchEngine</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">algo</span> <span class="tp">Algorithm</span>) *<span class="tp">SearchEngine</span>[T] {
+    <span class="kw">return</span> &<span class="tp">SearchEngine</span>[T]{<span class="va">algo</span>: <span class="va">algo</span>}
+}
+
+<span class="cmt">// Search thực hiện tìm kiếm và trả về SearchResult với metadata</span>
+<span class="kw">func</span> (<span class="va">e</span> *<span class="tp">SearchEngine</span>[T]) <span class="fn">Search</span>(<span class="va">arr</span> []T, <span class="va">target</span> T) <span class="tp">SearchResult</span>[T] {
+    <span class="va">start</span> := <span class="va">time</span>.<span class="fn">Now</span>()
+    <span class="va">comparisons</span> := <span class="num">0</span>
+
+    <span class="kw">var</span> <span class="va">idx</span> <span class="tp">int</span>
+    <span class="kw">switch</span> <span class="va">e</span>.<span class="va">algo</span> {
+    <span class="kw">case</span> <span class="va">AlgoLinear</span>:
+        <span class="va">idx</span> = <span class="fn">linearWithCount</span>(<span class="va">arr</span>, <span class="va">target</span>, &<span class="va">comparisons</span>)
+    <span class="kw">case</span> <span class="va">AlgoBinary</span>:
+        <span class="va">idx</span> = <span class="fn">binaryWithCount</span>(<span class="va">arr</span>, <span class="va">target</span>, &<span class="va">comparisons</span>)
+    <span class="kw">case</span> <span class="va">AlgoExponential</span>:
+        <span class="va">idx</span> = <span class="fn">exponentialWithCount</span>(<span class="va">arr</span>, <span class="va">target</span>, &<span class="va">comparisons</span>)
+    <span class="kw">default</span>:
+        <span class="va">idx</span> = <span class="fn">binaryWithCount</span>(<span class="va">arr</span>, <span class="va">target</span>, &<span class="va">comparisons</span>)
+    }
+
+    <span class="va">result</span> := <span class="tp">SearchResult</span>[T]{
+        <span class="va">Index</span>:       <span class="va">idx</span>,
+        <span class="va">Found</span>:       <span class="va">idx</span> != <span class="op">-</span><span class="num">1</span>,
+        <span class="va">Algorithm</span>:   <span class="va">e</span>.<span class="va">algo</span>,
+        <span class="va">Comparisons</span>: <span class="va">comparisons</span>,
+        <span class="va">Duration</span>:    <span class="va">time</span>.<span class="fn">Since</span>(<span class="va">start</span>),
+    }
+    <span class="kw">if</span> <span class="va">result</span>.<span class="va">Found</span> {
+        <span class="va">result</span>.<span class="va">Value</span> = <span class="va">arr</span>[<span class="va">idx</span>]
+    }
+    <span class="kw">return</span> <span class="va">result</span>
+}
+
+<span class="kw">func</span> <span class="fn">linearWithCount</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T, <span class="va">c</span> *<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">for</span> <span class="va">i</span>, <span class="va">v</span> := <span class="kw">range</span> <span class="va">arr</span> {
+        *<span class="va">c</span>++
+        <span class="kw">if</span> <span class="va">v</span> == <span class="va">target</span> { <span class="kw">return</span> <span class="va">i</span> }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}
+
+<span class="kw">func</span> <span class="fn">binaryWithCount</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T, <span class="va">c</span> *<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">lo</span>, <span class="va">hi</span> := <span class="num">0</span>, <span class="bi">len</span>(<span class="va">arr</span>)<span class="op">-</span><span class="num">1</span>
+    <span class="kw">for</span> <span class="va">lo</span> &lt;= <span class="va">hi</span> {
+        *<span class="va">c</span>++
+        <span class="va">mid</span> := <span class="va">lo</span> + (<span class="va">hi</span><span class="op">-</span><span class="va">lo</span>)/<span class="num">2</span>
+        <span class="kw">switch</span> <span class="va">cmp</span>.<span class="fn">Compare</span>(<span class="va">arr</span>[<span class="va">mid</span>], <span class="va">target</span>) {
+        <span class="kw">case</span> <span class="num">0</span>:  <span class="kw">return</span> <span class="va">mid</span>
+        <span class="kw">case</span> <span class="op">-</span><span class="num">1</span>: <span class="va">lo</span> = <span class="va">mid</span>+<span class="num">1</span>
+        <span class="kw">case</span> <span class="num">1</span>:  <span class="va">hi</span> = <span class="va">mid</span><span class="op">-</span><span class="num">1</span>
+        }
+    }
+    <span class="kw">return</span> <span class="op">-</span><span class="num">1</span>
+}
+
+<span class="kw">func</span> <span class="fn">exponentialWithCount</span>[T <span class="va">cmp</span>.<span class="tp">Ordered</span>](<span class="va">arr</span> []T, <span class="va">target</span> T, <span class="va">c</span> *<span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="va">n</span> := <span class="bi">len</span>(<span class="va">arr</span>)
+    <span class="kw">if</span> <span class="va">n</span> == <span class="num">0</span> { <span class="kw">return</span> <span class="op">-</span><span class="num">1</span> }
+    *<span class="va">c</span>++
+    <span class="kw">if</span> <span class="va">arr</span>[<span class="num">0</span>] == <span class="va">target</span> { <span class="kw">return</span> <span class="num">0</span> }
+    <span class="va">bound</span> := <span class="num">1</span>
+    <span class="kw">for</span> <span class="va">bound</span> &lt; <span class="va">n</span> {
+        *<span class="va">c</span>++
+        <span class="kw">if</span> <span class="va">cmp</span>.<span class="fn">Compare</span>(<span class="va">arr</span>[<span class="va">bound</span>], <span class="va">target</span>) >= <span class="num">0</span> { <span class="kw">break</span> }
+        <span class="va">bound</span> *= <span class="num">2</span>
+    }
+    <span class="kw">return</span> <span class="fn">binaryWithCount</span>(<span class="va">arr</span>[<span class="va">bound</span>/<span class="num">2</span>:<span class="bi">min</span>(<span class="va">bound</span>+<span class="num">1</span>,<span class="va">n</span>)], <span class="va">target</span>, <span class="va">c</span>)
+}
+
+<span class="cmt">// OptimalStep tính block size tối ưu cho Jump Search</span>
+<span class="kw">func</span> <span class="fn">OptimalStep</span>(<span class="va">n</span> <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">return</span> <span class="tp">int</span>(<span class="va">math</span>.<span class="fn">Sqrt</span>(<span class="tp">float64</span>(<span class="va">n</span>)))
+}</pre>
+							</div>
+						</div>
+					</div>
+
+					<!-- BENCHMARK -->
+					<div id="benchmark" class="section">
+						<div class="section-header">
+							<div class="section-num">⚡</div>
+							<div class="section-title-wrap">
+								<div class="section-title">Benchmark & Testing</div>
+								<div class="section-subtitle">Table-driven tests + Go benchmarks chuẩn production</div>
+							</div>
+							<span class="tag tag-expert">Expert</span>
+						</div>
+
+						<div class="code-block">
+							<div class="code-header">
+								<span class="code-lang">GO</span><span class="code-file">search_test.go — Table-driven tests + Benchmarks</span>
+							</div>
+							<div class="code-body">
+								<pre><span class="kw">package</span> <span class="va">search_test</span>
+
+<span class="kw">import</span> (
+    <span class="str">"math/rand"</span>
+    <span class="str">"sort"</span>
+    <span class="str">"testing"</span>
+    <span class="str">"search"</span>
+)
+
+<span class="cmt">// ─── Table-driven Tests ───</span>
+
+<span class="kw">func</span> <span class="fn">TestAllSearchAlgorithms</span>(<span class="va">t</span> *<span class="va">testing</span>.<span class="tp">T</span>) {
+    <span class="kw">type</span> <span class="tp">testCase</span> <span class="kw">struct</span> {
+        <span class="va">name</span>     <span class="tp">string</span>
+        <span class="va">arr</span>      []<span class="tp">int</span>
+        <span class="va">target</span>   <span class="tp">int</span>
+        <span class="va">wantIdx</span>  <span class="tp">int</span>
+    }
+
+    <span class="va">tests</span> := []<span class="tp">testCase</span>{
+        {<span class="str">"empty array"</span>,        []<span class="tp">int</span>{},          <span class="num">1</span>,  <span class="op">-</span><span class="num">1</span>},
+        {<span class="str">"single element hit"</span>, []<span class="tp">int</span>{<span class="num">42</span>},        <span class="num">42</span>, <span class="num">0</span>},
+        {<span class="str">"single element miss"</span>,[]<span class="tp">int</span>{<span class="num">42</span>},        <span class="num">1</span>,  <span class="op">-</span><span class="num">1</span>},
+        {<span class="str">"first element"</span>,      []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>},  <span class="num">1</span>,  <span class="num">0</span>},
+        {<span class="str">"last element"</span>,       []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>},  <span class="num">7</span>,  <span class="num">3</span>},
+        {<span class="str">"middle element"</span>,     []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>},  <span class="num">3</span>,  <span class="num">1</span>},
+        {<span class="str">"not found"</span>,          []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>},  <span class="num">4</span>,  <span class="op">-</span><span class="num">1</span>},
+        {<span class="str">"large sorted"</span>, <span class="fn">generateSorted</span>(<span class="num">10000</span>), <span class="num">7777</span>, <span class="num">3888</span>},
+    }
+
+    <span class="va">algorithms</span> := []<span class="kw">struct</span>{
+        <span class="va">name</span> <span class="tp">string</span>
+        <span class="va">fn</span>   <span class="kw">func</span>([]<span class="tp">int</span>, <span class="tp">int</span>) <span class="tp">int</span>
+    }{
+        {<span class="str">"Linear"</span>,        <span class="va">search</span>.<span class="fn">LinearSearch</span>},
+        {<span class="str">"Binary"</span>,        <span class="kw">func</span>(<span class="va">a</span> []<span class="tp">int</span>, <span class="va">t</span> <span class="tp">int</span>) <span class="tp">int</span> { <span class="va">i</span>, <span class="va">_</span> := <span class="va">search</span>.<span class="fn">BinarySearch</span>(<span class="va">a</span>, <span class="va">t</span>); <span class="kw">return</span> <span class="va">i</span> }},
+        {<span class="str">"Jump"</span>,          <span class="va">search</span>.<span class="fn">JumpSearch</span>},
+        {<span class="str">"Interpolation"</span>, <span class="va">search</span>.<span class="fn">InterpolationSearch</span>},
+        {<span class="str">"Exponential"</span>,   <span class="va">search</span>.<span class="fn">ExponentialSearch</span>},
+    }
+
+    <span class="kw">for</span> <span class="va">_</span>, <span class="va">algo</span> := <span class="kw">range</span> <span class="va">algorithms</span> {
+        <span class="kw">for</span> <span class="va">_</span>, <span class="va">tc</span> := <span class="kw">range</span> <span class="va">tests</span> {
+            <span class="va">t</span>.<span class="fn">Run</span>(<span class="va">algo</span>.<span class="va">name</span>+<span class="str">"/"</span>+<span class="va">tc</span>.<span class="va">name</span>, <span class="kw">func</span>(<span class="va">t</span> *<span class="va">testing</span>.<span class="tp">T</span>) {
+                <span class="va">got</span> := <span class="va">algo</span>.<span class="fn">fn</span>(<span class="va">tc</span>.<span class="va">arr</span>, <span class="va">tc</span>.<span class="va">target</span>)
+                <span class="kw">if</span> <span class="va">got</span> != <span class="va">tc</span>.<span class="va">wantIdx</span> {
+                    <span class="va">t</span>.<span class="fn">Errorf</span>(<span class="str">"got=%d, want=%d"</span>, <span class="va">got</span>, <span class="va">tc</span>.<span class="va">wantIdx</span>)
+                }
+            })
+        }
+    }
+}
+
+<span class="cmt">// ─── Benchmarks ───</span>
+
+<span class="kw">var</span> <span class="va">sortedData</span> = <span class="fn">generateSorted</span>(<span class="num">1_000_000</span>)
+<span class="kw">var</span> <span class="va">target</span>     = <span class="va">sortedData</span>[<span class="num">500_000</span>] <span class="cmt">// Middle element (worst case for Binary)</span>
+
+<span class="kw">func</span> <span class="fn">BenchmarkLinearSearch</span>(<span class="va">b</span> *<span class="va">testing</span>.<span class="tp">B</span>) {
+    <span class="va">b</span>.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> <span class="va">i</span> := <span class="num">0</span>; <span class="va">i</span> &lt; <span class="va">b</span>.<span class="va">N</span>; <span class="va">i</span>++ {
+        <span class="va">search</span>.<span class="fn">LinearSearch</span>(<span class="va">sortedData</span>, <span class="va">target</span>)
+    }
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkBinarySearch</span>(<span class="va">b</span> *<span class="va">testing</span>.<span class="tp">B</span>) {
+    <span class="va">b</span>.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> <span class="va">i</span> := <span class="num">0</span>; <span class="va">i</span> &lt; <span class="va">b</span>.<span class="va">N</span>; <span class="va">i</span>++ {
+        <span class="va">search</span>.<span class="fn">BinarySearch</span>(<span class="va">sortedData</span>, <span class="va">target</span>)
+    }
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkJumpSearch</span>(<span class="va">b</span> *<span class="va">testing</span>.<span class="tp">B</span>) {
+    <span class="va">b</span>.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> <span class="va">i</span> := <span class="num">0</span>; <span class="va">i</span> &lt; <span class="va">b</span>.<span class="va">N</span>; <span class="va">i</span>++ {
+        <span class="va">search</span>.<span class="fn">JumpSearch</span>(<span class="va">sortedData</span>, <span class="va">target</span>)
+    }
+}
+
+<span class="kw">func</span> <span class="fn">BenchmarkExponentialSearch</span>(<span class="va">b</span> *<span class="va">testing</span>.<span class="tp">B</span>) {
+    <span class="va">b</span>.<span class="fn">ResetTimer</span>()
+    <span class="kw">for</span> <span class="va">i</span> := <span class="num">0</span>; <span class="va">i</span> &lt; <span class="va">b</span>.<span class="va">N</span>; <span class="va">i</span>++ {
+        <span class="va">search</span>.<span class="fn">ExponentialSearch</span>(<span class="va">sortedData</span>, <span class="va">target</span>)
+    }
+}
+
+<span class="cmt">// run: go test -bench=. -benchmem -count=3 -benchtime=3s</span>
+
+<span class="kw">func</span> <span class="fn">generateSorted</span>(<span class="va">n</span> <span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="va">data</span> := <span class="bi">make</span>([]<span class="tp">int</span>, <span class="va">n</span>)
+    <span class="kw">for</span> <span class="va">i</span> := <span class="kw">range</span> <span class="va">data</span> { <span class="va">data</span>[<span class="va">i</span>] = <span class="va">rand</span>.<span class="fn">Intn</span>(<span class="va">n</span> * <span class="num">2</span>) }
+    <span class="va">sort</span>.<span class="fn">Ints</span>(<span class="va">data</span>)
+    <span class="kw">return</span> <span class="va">data</span>
+}</pre>
+							</div>
+						</div>
+					</div>
+
+					<!-- COMPARE SECTION -->
+					<div id="compare" class="section">
+						<div class="section-header">
+							<div class="section-num">📈</div>
+							<div class="section-title-wrap">
+								<div class="section-title">So sánh hiệu năng thực tế</div>
+								<div class="section-subtitle">Benchmark results và khi nào nên dùng thuật toán nào</div>
+							</div>
+						</div>
+
+						<!-- Performance bars -->
+						<div class="diagram-box">
+							<div class="diagram-title">Số lượng comparisons — n=1,000,000, target=middle element</div>
+							<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" style="width: 100%; max-width: 720px; display: block; margin: 0 auto">
+								<!-- Background grid -->
+								<line x1="160" y1="20" x2="160" y2="260" stroke="#1e2d4a" stroke-width="1" />
+								<line x1="160" y1="260" x2="700" y2="260" stroke="#1e2d4a" stroke-width="1" />
+								<!-- Grid lines -->
+								<line x1="160" y1="20" x2="700" y2="20" stroke="#0f1628" stroke-width="1" />
+								<line x1="160" y1="85" x2="700" y2="85" stroke="#0f1628" stroke-width="1" />
+								<line x1="160" y1="150" x2="700" y2="150" stroke="#0f1628" stroke-width="1" />
+								<line x1="160" y1="215" x2="700" y2="215" stroke="#0f1628" stroke-width="1" />
+								<!-- Y labels -->
+								<text x="145" y="264" text-anchor="end" fill="#546e7a" font-family="JetBrains Mono" font-size="10">0</text>
+								<text x="145" y="219" text-anchor="end" fill="#546e7a" font-family="JetBrains Mono" font-size="10">250K</text>
+								<text x="145" y="154" text-anchor="end" fill="#546e7a" font-family="JetBrains Mono" font-size="10">500K</text>
+								<text x="145" y="89" text-anchor="end" fill="#546e7a" font-family="JetBrains Mono" font-size="10">750K</text>
+								<text x="145" y="24" text-anchor="end" fill="#546e7a" font-family="JetBrains Mono" font-size="10">1M</text>
+								<!-- Bars: n=1M, scale: 240px = 1M comps -->
+								<!-- Linear: ~500K comps → 120px -->
+								<rect x="180" y="140" width="80" height="120" rx="4" fill="#ff6b6b" opacity="0.8" />
+								<text x="220" y="135" text-anchor="middle" fill="#ff6b6b" font-family="JetBrains Mono" font-size="11">500K</text>
+								<text x="220" y="275" text-anchor="middle" fill="#8899bb" font-family="Space Grotesk" font-size="11">Linear</text>
+								<!-- Binary: ~20 comps → 4.8px (show min bar) -->
+								<rect x="300" y="254" width="80" height="6" rx="4" fill="#4da6ff" opacity="0.8" />
+								<text x="340" y="249" text-anchor="middle" fill="#4da6ff" font-family="JetBrains Mono" font-size="11">~20</text>
+								<text x="340" y="275" text-anchor="middle" fill="#8899bb" font-family="Space Grotesk" font-size="11">Binary</text>
+								<!-- Jump: √1M = 1000 comps → 0.24px → min bar -->
+								<rect x="420" y="250" width="80" height="10" rx="4" fill="#a78bfa" opacity="0.8" />
+								<text x="460" y="245" text-anchor="middle" fill="#a78bfa" font-family="JetBrains Mono" font-size="11">~1K</text>
+								<text x="460" y="275" text-anchor="middle" fill="#8899bb" font-family="Space Grotesk" font-size="11">Jump</text>
+								<!-- Interpolation: ~4 comps uniform → min bar -->
+								<rect x="540" y="256" width="80" height="4" rx="4" fill="#00ff9d" opacity="0.8" />
+								<text x="580" y="251" text-anchor="middle" fill="#00ff9d" font-family="JetBrains Mono" font-size="11">~4</text>
+								<text x="580" y="275" text-anchor="middle" fill="#8899bb" font-family="Space Grotesk" font-size="11">Interpolation</text>
+								<!-- Exponential: ~20 comps → same as binary -->
+								<rect x="650" y="254" width="36" height="6" rx="4" fill="#fb923c" opacity="0.8" />
+								<text x="668" y="249" text-anchor="middle" fill="#fb923c" font-family="JetBrains Mono" font-size="11">~20</text>
+								<text x="668" y="275" text-anchor="middle" fill="#8899bb" font-family="Space Grotesk" font-size="11">Exp.</text>
+								<!-- Note -->
+								<text x="400" y="295" text-anchor="middle" fill="#546e7a" font-family="Space Grotesk" font-size="10">
+									* Interpolation giả định uniform distribution. Các bars Binary/Interpolation/Exp. được phóng đại để hiển thị rõ.
+								</text>
+							</svg>
+						</div>
+
+						<div class="table-wrap">
+							<table>
+								<thead>
+									<tr>
+										<th>Tình huống</th>
+										<th>Thuật toán được đề xuất</th>
+										<th>Lý do</th>
+									</tr>
+								</thead>
+								<tbody>
+									<tr>
+										<td>Array nhỏ (&lt;100 phần tử)</td>
+										<td class="green">Linear Search</td>
+										<td>Overhead thấp, cache-friendly, không cần sorted</td>
+									</tr>
+									<tr>
+										<td>Sorted array, general case</td>
+										<td class="cyan">Binary Search</td>
+										<td>O(log n) đáng tin cậy, không có worst case bad</td>
+									</tr>
+									<tr>
+										<td>Data phân bố đều, sorted</td>
+										<td class="green">Interpolation Search</td>
+										<td>O(log log n) average — nhanh nhất trong điều kiện lý tưởng</td>
+									</tr>
+									<tr>
+										<td>Target thường ở gần đầu</td>
+										<td class="orange">Exponential Search</td>
+										<td>Phase 1 nhanh khi bound nhỏ, ideal cho unbounded</td>
+									</tr>
+									<tr>
+										<td>Backward jump tốn kém (tape)</td>
+										<td class="purple">Jump Search</td>
+										<td>Minimize backward operations với O(√n)</td>
+									</tr>
+									<tr>
+										<td>Unsorted, single search</td>
+										<td class="red">Linear Search</td>
+										<td>Sort + Binary Search = O(n log n) > O(n)</td>
+									</tr>
+									<tr>
+										<td>Unsorted, nhiều queries</td>
+										<td class="cyan">Sort + Binary Search</td>
+										<td>Sort một lần O(n log n), sau đó O(log n)/query</td>
+									</tr>
+								</tbody>
+							</table>
+						</div>
+
+						<div class="callout callout-tip">
+							<span class="callout-icon">💡</span>
+							<div class="callout-body">
+								<div class="callout-title">Thực tế trong Go — Dùng stdlib khi có thể</div>
+								<p>
+									Go stdlib đã có <code style="color: #00ff9d">sort.Search()</code> (binary search),
+									<code style="color: #00ff9d">slices.BinarySearch()</code> (Go 1.21+), và <code style="color: #00ff9d">slices.Contains()</code>. Chỉ
+									tự implement khi cần tối ưu đặc biệt (custom comparator, multi-search, concurrent, hoặc non-standard data structures). Nguyên tắc:
+									<strong>không reinvent the wheel mà không có lý do</strong>.
+								</p>
+							</div>
+						</div>
+					</div>
+
+					<!-- REFERENCES -->
+					<div id="refs" class="section">
+						<div class="section-header">
+							<div class="section-num">📚</div>
+							<div class="section-title-wrap">
+								<div class="section-title">References & Tài liệu tham khảo</div>
+								<div class="section-subtitle">Nguồn tài liệu chất lượng cao, được cộng đồng đánh giá cao</div>
+							</div>
+						</div>
+
+						<div class="ref-grid">
+							<a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+								<div class="ref-source">⭐ GitHub · TheAlgorithms</div>
+								<div class="ref-title">TheAlgorithms / Go</div>
+								<div class="ref-desc">
+									Repository chuẩn mực về tất cả algorithms trong Go. Có đầy đủ Linear, Binary, Jump, Interpolation, Exponential Search với test
+									cases.
+								</div>
+								<div class="ref-stars">⭐ 16k+ stars &nbsp;|&nbsp; Go</div>
+							</a>
+							<a class="ref-card" href="https://pkg.go.dev/sort#Search" target="_blank">
+								<div class="ref-source">📦 pkg.go.dev · Official</div>
+								<div class="ref-title">Go Standard Library — sort.Search</div>
+								<div class="ref-desc">
+									Official documentation của sort.Search và sort.SearchInts. Đây là Binary Search chuẩn được dùng trong production Go code.
+								</div>
+								<div class="ref-stars">✅ Official · Verified</div>
+							</a>
+							<a class="ref-card" href="https://pkg.go.dev/slices#BinarySearch" target="_blank">
+								<div class="ref-source">📦 pkg.go.dev · Go 1.21+</div>
+								<div class="ref-title">slices.BinarySearch (Go 1.21+)</div>
+								<div class="ref-desc">
+									Generic Binary Search mới nhất của Go stdlib, sử dụng cmp.Ordered constraint. Đây là cách idiomatic nhất để dùng binary search trong
+									Go hiện đại.
+								</div>
+								<div class="ref-stars">✅ Go 1.21+ Built-in</div>
+							</a>
+							<a class="ref-card" href="https://github.com/emirpasic/gods" target="_blank">
+								<div class="ref-source">⭐ GitHub · emirpasic</div>
+								<div class="ref-title">emirpasic / gods</div>
+								<div class="ref-desc">
+									GoDS (Go Data Structures) — thư viện data structures và algorithms hoàn chỉnh nhất cho Go. Bao gồm nhiều search implementations.
+								</div>
+								<div class="ref-stars">⭐ 15k+ stars</div>
+							</a>
+							<a class="ref-card" href="https://www.geeksforgeeks.org/searching-algorithms/" target="_blank">
+								<div class="ref-source">🌐 GeeksForGeeks</div>
+								<div class="ref-title">Searching Algorithms — GFG</div>
+								<div class="ref-desc">
+									Tài liệu giải thích chi tiết từng thuật toán tìm kiếm với visualizations, complexity analysis, và implementations đa ngôn ngữ.
+								</div>
+								<div class="ref-stars">⭐ Highly Rated Resource</div>
+							</a>
+							<a
+								class="ref-card"
+								href="https://research.google/blog/extra-extra-read-all-about-it-nearly-all-binary-searches-and-mergesorts-are-broken/"
+								target="_blank"
+							>
+								<div class="ref-source">📖 Google Research Blog</div>
+								<div class="ref-title">Nearly All Binary Searches Are Broken</div>
+								<div class="ref-desc">
+									Bài viết kinh điển của Joshua Bloch (2006) về integer overflow bug trong binary search. Must-read cho mọi developer.
+								</div>
+								<div class="ref-stars">📌 Classic Paper</div>
+							</a>
+							<a class="ref-card" href="https://github.com/google/btree" target="_blank">
+								<div class="ref-source">⭐ GitHub · Google</div>
+								<div class="ref-title">google/btree — B-Tree Go</div>
+								<div class="ref-desc">
+									Google's B-Tree implementation in Go. Production-grade example của binary search ứng dụng trong cấu trúc cây, phù hợp học advanced
+									use cases.
+								</div>
+								<div class="ref-stars">⭐ 3.5k+ stars</div>
+							</a>
+							<a class="ref-card" href="https://pkg.go.dev/cmp" target="_blank">
+								<div class="ref-source">📦 pkg.go.dev · Go 1.21+</div>
+								<div class="ref-title">cmp package — Ordered Constraint</div>
+								<div class="ref-desc">
+									Package cmp cung cấp Compare và Ordered constraint cho generic algorithms. Nền tảng để viết generic search algorithms trong Go
+									1.21+.
+								</div>
+								<div class="ref-stars">✅ Go 1.21+ Standard</div>
+							</a>
+						</div>
+
+						<div style="margin-top: 32px" class="callout callout-info">
+							<span class="callout-icon">🔗</span>
+							<div class="callout-body">
+								<div class="callout-title">Lệnh benchmark hữu ích</div>
+								<p>
+									<code style="color: #00ff9d">go test -bench=. -benchmem -count=3 -benchtime=3s -run=^$</code> — chạy tất cả benchmarks<br />
+									<code style="color: #00ff9d">go test -v -race ./...</code> — chạy tests với race detector<br />
+									<code style="color: #00ff9d">go test -coverprofile=coverage.out && go tool cover -html=coverage.out</code> — xem coverage
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- /content -->
+			</main>
+		</div>
+
+		<script>
+			// Active sidebar tracking
+			const sections = document.querySelectorAll(".section, .page-header");
+			const sidebarItems = document.querySelectorAll(".sidebar-item");
+			const observer = new IntersectionObserver(
+				(entries) => {
+					entries.forEach((entry) => {
+						if (entry.isIntersecting) {
+							sidebarItems.forEach((item) => {
+								item.classList.remove("active");
+								if (item.getAttribute("href") === "#" + entry.target.id) {
+									item.classList.add("active");
+								}
+							});
+						}
+					});
+				},
+				{ rootMargin: "-20% 0px -75% 0px" }
+			);
+			sections.forEach((s) => observer.observe(s));
+
+			// Smooth scroll for nav links
+			document.querySelectorAll('a[href^="#"]').forEach((a) => {
+				a.addEventListener("click", (e) => {
+					e.preventDefault();
+					const id = a.getAttribute("href").slice(1);
+					const el = document.getElementById(id);
+					if (el) el.scrollIntoView({ behavior: "smooth" });
+				});
+			});
+		</script>
+	</body>
+</html>

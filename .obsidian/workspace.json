@@ -13,10 +13,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "Go/Data structure & Algorithms/go-tree-algorithms.html"
+                "file": "Go/Concurrency/wait-group.html"
               },
               "icon": "lucide-file",
-              "title": "go-tree-algorithms"
+              "title": "wait-group"
             }
           }
         ]
@@ -178,7 +178,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -194,28 +195,31 @@
   },
   "active": "2d4a11c20cfa0381",
   "lastOpenFiles": [
-    "Go/Data structure & Algorithms/sorting.html",
-    "Go/Data structure & Algorithms/go-tree-algorithms.html",
-    "public/images/go-dutch-flag.png",
-    "public/images/go-quick-sort.png",
-    "public/images/go-merge-sort.png",
-    "public/images/go-bubble-sort.png",
-    "public/images/go-sorting-overview.png",
-    "public/images/go-advanced-trees.png",
-    "public/images/go-segment-tree.png",
-    "public/images/go-heap-structure.png",
-    "public/images/go-bst-operations.png",
-    "public/images/go-tree-traversal.png",
+    "Go/Concurrency/tunny-worker-pool.html",
+    "Go/Concurrency/tee-channel-go-pattern.html",
+    "Go/Concurrency/sync-pool.html",
+    "Go/Concurrency/fan-out-fan-in-go.html",
+    "Go/Concurrency/errgroup-guide.html",
+    "Go/Concurrency/context.html",
+    "Go/Concurrency/buffered-unbuffered-channels.html",
     "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
-    "Go/Data structure & Algorithms/Tree algorithms",
-    "Go/Data structure & Algorithms",
-    "Go/DSA",
+    "Go/Concurrency/goroutines-guide.html",
     "Go/Concurrency/bounded-parallelism-errgroup.html",
-    "Go/Concurrency/go-semaphore-guide.html",
-    "Go/Concurrency/rate-limiting-go.html",
-    "Go/Concurrency/go-resource-manager.html",
-    "Go/Concurrency/go-worker-pool.html",
+    "Go/DSA/dsa-patterns-go.html",
+    "Go/Concurrency/semaphore-guide.html",
+    "public/images/tree.png",
+    "public/images/string.png",
+    "public/images/searching.png",
+    "public/images/linked_lists.png",
+    "public/images/import_algorithms.png",
+    "public/images/graph.png",
+    "public/images/dynamic_programing.png",
+    "Go/Data structure & Algorithms/images/graph.png",
+    "Go/Data structure & Algorithms/images/linked_lists.png",
+    "Go/DSA/images/tree.png",
     "Glosarry/AI glossary.md",
+    "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",
+    "Diagram/Flowchart/Pattern 1 — Business Logic Flow (Pro).md",
     "2026-05-22.md",
     "Untitled.canvas",
     "LENDING/2026-04-24.md",
@@ -226,8 +230,6 @@
     "Go/Artifacts/Untitled 1.md",
     "Diagram/Flowchart/Pattern 5 — CQRS Command Flow sử dụng Event Sourcing (Expert).md",
     "Diagram/Flowchart/Pattern 3 — Circuit Breaker + Fallback (Advanced).md",
-    "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",
-    "Diagram/Flowchart/Pattern 1 — Business Logic Flow (Pro).md",
     "mAIvt/Untitled.canvas",
     "mAIvt/2026-04-24.md",
     "Test mermaid.md",

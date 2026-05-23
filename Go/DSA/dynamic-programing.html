@@ -1,0 +1,2152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dynamic Programming in Go — Hướng dẫn toàn diện</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@400;600;700;800&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #090d13;
+    --bg2: #0d1117;
+    --bg3: #161c25;
+    --border: #1e2a3a;
+    --text: #e2eaf5;
+    --muted: #7a90a8;
+    --green: #3ddc84;
+    --cyan: #38bdf8;
+    --purple: #a78bfa;
+    --orange: #fb923c;
+    --yellow: #fbbf24;
+    --red: #f87171;
+    --pink: #f472b6;
+    --sidebar-w: 260px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ===== SIDEBAR ===== */
+  #sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    background: var(--bg2);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    overflow-y: auto;
+    z-index: 100;
+    padding-bottom: 40px;
+  }
+
+  .sidebar-brand {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
+  }
+  .sidebar-brand .go-label {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--cyan);
+    letter-spacing: -0.02em;
+  }
+  .sidebar-brand .go-label span { color: var(--green); }
+  .sidebar-brand p {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 2px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .sidebar-section {
+    padding: 10px 18px 4px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  #sidebar a {
+    display: block;
+    padding: 6px 18px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.82rem;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  #sidebar a:hover { color: var(--text); border-color: var(--cyan); background: rgba(0,180,216,0.05); }
+  #sidebar a.active { color: var(--cyan); border-color: var(--cyan); background: rgba(0,180,216,0.08); }
+
+  /* ===== TOPBAR ===== */
+  #topbar {
+    position: fixed;
+    top: 0;
+    left: var(--sidebar-w);
+    right: 0;
+    height: 52px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    padding: 0 28px;
+    gap: 6px;
+    z-index: 90;
+    overflow-x: auto;
+  }
+
+  .top-tab {
+    padding: 5px 14px;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    color: var(--muted);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .top-tab:hover { color: var(--text); border-color: var(--border); }
+  .top-tab.active { color: var(--cyan); background: rgba(0,180,216,0.1); border-color: rgba(0,180,216,0.3); }
+
+  /* ===== MAIN ===== */
+  #main {
+    margin-left: var(--sidebar-w);
+    margin-top: 52px;
+    flex: 1;
+    min-height: calc(100vh - 52px);
+    padding: 40px 48px;
+    max-width: calc(100% - var(--sidebar-w));
+  }
+
+  /* ===== SECTIONS ===== */
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* ===== TOPIC HEADER ===== */
+  .topic-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+  .topic-number {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: #000;
+    flex-shrink: 0;
+  }
+  .topic-title {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 1.8rem;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .badge-expert { background: rgba(168,85,247,0.15); color: var(--purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced { background: rgba(249,115,22,0.15); color: var(--orange); border: 1px solid rgba(249,115,22,0.3); }
+  .badge-intermediate { background: rgba(234,179,8,0.15); color: var(--yellow); border: 1px solid rgba(234,179,8,0.3); }
+
+  /* ===== CONCEPT BOX ===== */
+  .concept-box {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 26px;
+    margin-bottom: 24px;
+  }
+  .concept-box h3 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--cyan);
+    margin-bottom: 10px;
+  }
+  .concept-box p { font-size: 0.88rem; color: #c9d1d9; }
+
+  /* ===== INFO GRID ===== */
+  .info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .info-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .info-card .label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 6px; }
+  .info-card .value { font-family: 'JetBrains Mono', monospace; font-size: 0.9rem; color: var(--green); font-weight: 700; }
+  .info-card .desc { font-size: 0.78rem; color: var(--muted); margin-top: 4px; }
+
+  /* ===== CODE BLOCK ===== */
+  .code-wrap {
+    background: #0a0e13;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    position: relative;
+  }
+  .code-header {
+    background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .code-header .lang-tag {
+    background: rgba(0,180,216,0.2);
+    color: var(--cyan);
+    border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.65rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .code-header .file-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+  }
+  .code-header .level-tag {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .level-basic { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .level-advanced { background: rgba(249,115,22,0.15); color: var(--orange); }
+  .level-expert { background: rgba(168,85,247,0.15); color: var(--purple); }
+
+  pre {
+    padding: 20px;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    color: #e6edf3;
+  }
+
+  /* Syntax highlighting */
+  .kw { color: #ff7b72; } /* keywords */
+  .fn { color: #d2a8ff; } /* functions */
+  .str { color: #a5d6ff; } /* strings */
+  .num { color: #79c0ff; } /* numbers */
+  .cm { color: #8b949e; font-style: italic; } /* comments */
+  .ty { color: #ffa657; } /* types */
+  .pkg { color: #7ee787; } /* packages */
+
+  /* ===== DIAGRAM ===== */
+  .diagram-wrap {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 28px;
+    margin-bottom: 24px;
+    overflow-x: auto;
+    text-align: center;
+  }
+  .diagram-title {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 20px;
+  }
+
+  /* ===== TABLE ===== */
+  .dp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    margin-bottom: 20px;
+  }
+  .dp-table th {
+    background: var(--bg3);
+    color: var(--cyan);
+    padding: 10px 14px;
+    text-align: left;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    border-bottom: 2px solid var(--border);
+  }
+  .dp-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    color: #c9d1d9;
+  }
+  .dp-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ===== STEPS ===== */
+  .steps { margin-bottom: 24px; }
+  .step {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .step-num {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(0,180,216,0.15);
+    border: 1px solid rgba(0,180,216,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--cyan);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .step-content h4 { font-size: 0.88rem; font-weight: 600; margin-bottom: 4px; color: var(--text); }
+  .step-content p { font-size: 0.82rem; color: var(--muted); }
+
+  /* ===== ALERT BOX ===== */
+  .alert {
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 20px;
+    font-size: 0.84rem;
+    border-left: 3px solid;
+  }
+  .alert-info { background: rgba(0,180,216,0.08); border-color: var(--cyan); color: #c9d1d9; }
+  .alert-warn { background: rgba(234,179,8,0.08); border-color: var(--yellow); color: #c9d1d9; }
+  .alert-tip { background: rgba(0,208,132,0.08); border-color: var(--green); color: #c9d1d9; }
+  .alert strong { display: block; margin-bottom: 4px; }
+  .alert-info strong { color: var(--cyan); }
+  .alert-warn strong { color: var(--yellow); }
+  .alert-tip strong { color: var(--green); }
+
+  /* ===== SVG DIAGRAMS ===== */
+  svg text { font-family: 'JetBrains Mono', monospace; }
+
+  /* ===== REFERENCES ===== */
+  .ref-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .ref-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: all 0.2s;
+    border-top: 3px solid transparent;
+  }
+  .ref-card:hover { border-top-color: var(--cyan); transform: translateY(-2px); }
+  .ref-card .ref-source { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin-bottom: 8px; }
+  .ref-card h4 { font-size: 0.9rem; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+  .ref-card p { font-size: 0.78rem; color: var(--muted); }
+  .ref-card .stars { color: var(--yellow); font-size: 0.75rem; margin-top: 8px; }
+
+  /* ===== COMPLEXITY TABLE ===== */
+  .complex-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+  .complex-label { min-width: 80px; font-size: 0.78rem; color: var(--muted); }
+  .complex-bar { height: 20px; border-radius: 4px; display: flex; align-items: center; padding: 0 8px; font-size: 0.72rem; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .bar-good { background: rgba(0,208,132,0.2); color: var(--green); border: 1px solid rgba(0,208,132,0.3); }
+  .bar-ok { background: rgba(234,179,8,0.2); color: var(--yellow); border: 1px solid rgba(234,179,8,0.3); }
+  .bar-warn { background: rgba(249,115,22,0.2); color: var(--orange); border: 1px solid rgba(249,115,22,0.3); }
+
+  /* ===== DP TABLE VISUALIZATION ===== */
+  .dp-vis-table { border-collapse: collapse; margin: 0 auto; }
+  .dp-vis-table td {
+    width: 40px; height: 40px;
+    border: 1px solid var(--border);
+    text-align: center;
+    vertical-align: middle;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text);
+  }
+  .dp-vis-table td.header { background: var(--bg3); color: var(--muted); font-weight: 700; }
+  .dp-vis-table td.highlight { background: rgba(0,208,132,0.2); color: var(--green); font-weight: 700; }
+  .dp-vis-table td.path { background: rgba(0,180,216,0.15); color: var(--cyan); }
+  .dp-vis-table td.filled { background: rgba(168,85,247,0.1); color: var(--purple); }
+
+  /* ===== SCROLLBAR ===== */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  h2.section-h2 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--text);
+    margin: 28px 0 14px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  h2.section-h2:first-of-type { border-top: none; padding-top: 0; }
+
+  .tag-list { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 20px; }
+  .tag {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .intro-hero {
+    background: linear-gradient(135deg, rgba(0,180,216,0.08) 0%, rgba(168,85,247,0.08) 100%);
+    border: 1px solid rgba(0,180,216,0.2);
+    border-radius: 12px;
+    padding: 32px 36px;
+    margin-bottom: 32px;
+  }
+  .intro-hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800;
+    font-size: 2.2rem;
+    letter-spacing: -0.04em;
+    margin-bottom: 12px;
+    background: linear-gradient(135deg, var(--cyan), var(--green));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .intro-hero p { font-size: 0.9rem; color: #c9d1d9; max-width: 680px; }
+
+  .formula-box {
+    background: #0a0e13;
+    border: 1px solid rgba(0,180,216,0.3);
+    border-radius: 8px;
+    padding: 16px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--cyan);
+    margin: 16px 0;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  @media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-brand">
+    <div class="go-label">Go <span>DP</span> Pattern</div>
+    <p>Dynamic Programming Guide</p>
+  </div>
+
+  <div class="sidebar-section">Tổng quan</div>
+  <a href="#" onclick="showSection('intro')" id="nav-intro" class="active">Giới thiệu DP</a>
+  <a href="#" onclick="showSection('concepts')" id="nav-concepts">Khái niệm cốt lõi</a>
+  <a href="#" onclick="showSection('patterns')" id="nav-patterns">Các kỹ thuật DP</a>
+
+  <div class="sidebar-section">Các bài toán</div>
+  <a href="#" onclick="showSection('fib')" id="nav-fib">01 Fibonacci</a>
+  <a href="#" onclick="showSection('lcs')" id="nav-lcs">02 Longest Common Subsequence</a>
+  <a href="#" onclick="showSection('knapsack')" id="nav-knapsack">03 Knapsack</a>
+  <a href="#" onclick="showSection('matrix')" id="nav-matrix">04 Matrix Chain</a>
+  <a href="#" onclick="showSection('coin')" id="nav-coin">05 Coin Change</a>
+  <a href="#" onclick="showSection('robber')" id="nav-robber">06 House Robber</a>
+  <a href="#" onclick="showSection('palindrome')" id="nav-palindrome">07 Palindrome DP</a>
+  <a href="#" onclick="showSection('square')" id="nav-square">08 Largest Square</a>
+
+  <div class="sidebar-section">Tài liệu</div>
+  <a href="#" onclick="showSection('references')" id="nav-references">References</a>
+</nav>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="top-tab active" onclick="showSection('intro')">Giới thiệu</div>
+  <div class="top-tab" onclick="showSection('fib')">Fibonacci</div>
+  <div class="top-tab" onclick="showSection('lcs')">LCS</div>
+  <div class="top-tab" onclick="showSection('knapsack')">Knapsack</div>
+  <div class="top-tab" onclick="showSection('matrix')">Matrix Chain</div>
+  <div class="top-tab" onclick="showSection('coin')">Coin Change</div>
+  <div class="top-tab" onclick="showSection('robber')">House Robber</div>
+  <div class="top-tab" onclick="showSection('palindrome')">Palindrome</div>
+  <div class="top-tab" onclick="showSection('square')">Largest Square</div>
+  <div class="top-tab" onclick="showSection('references')">References</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+
+<!-- ===================== INTRO ===================== -->
+<section id="intro" class="section active">
+  <div class="intro-hero">
+    <h1>Dynamic Programming in Go</h1>
+    <p>Hướng dẫn toàn diện về Dynamic Programming — từ khái niệm nền tảng đến các kỹ thuật expert-level được implement bằng Go. Bao gồm State, Transition, và Reuse với đầy đủ ví dụ code, diagram minh họa và phân tích độ phức tạp.</p>
+
+    <!-- Hero Illustration -->
+    <div class="concept-img-wrapper" style="margin: 24px 0 0 0; text-align: center;">
+      <div style="display: inline-block; padding: 8px; background: rgba(22, 28, 37, 0.6); border: 1px solid var(--border, #1e2a3a); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.4); max-width: 100%; overflow: hidden; backdrop-filter: blur(12px);">
+        <img src="../../public/images/dynamic_programing.png" alt="Dynamic Programming Illustration" style="display: block; width: 100%; max-width: 760px; height: auto; border-radius: 12px; transition: transform 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+      </div>
+      <div style="margin-top: 12px; font-size: 11px; color: var(--muted, #7a90a8); font-family: 'JetBrains Mono', monospace; letter-spacing: 0.5px; text-transform: uppercase;">
+        Hình 1: Trực quan hóa Memoization Grid và Đường đi Quyết định Tối ưu
+      </div>
+    </div>
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="label">Ngôn ngữ</div>
+      <div class="value">Go 1.21+</div>
+      <div class="desc">Idiomatic Go, Generics support</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Số bài toán</div>
+      <div class="value">8 Topics</div>
+      <div class="desc">Fibonacci → Largest Square</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Cấp độ</div>
+      <div class="value">Advanced → Expert</div>
+      <div class="desc">Production-grade code</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Kỹ thuật</div>
+      <div class="value">Memoization + Tabulation</div>
+      <div class="desc">Top-down & Bottom-up</div>
+    </div>
+  </div>
+
+  <h2 class="section-h2">Dynamic Programming là gì?</h2>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Dynamic Programming (DP) là một kỹ thuật tối ưu hóa thuật toán dựa trên việc phân rã bài toán lớn thành các bài toán con nhỏ hơn, <strong>lưu trữ kết quả</strong> của chúng để tránh tính toán lại. DP áp dụng khi bài toán có hai tính chất: <strong>Optimal Substructure</strong> (cấu trúc con tối ưu) và <strong>Overlapping Subproblems</strong> (bài toán con lặp lại).</p>
+  </div>
+
+  <div class="two-col">
+    <div class="concept-box">
+      <h3>🏗️ Optimal Substructure</h3>
+      <p>Giải pháp tối ưu của bài toán chứa giải pháp tối ưu của các bài toán con. Ví dụ: Đường đi ngắn nhất từ A→C = Đường đi ngắn nhất A→B + B→C.</p>
+    </div>
+    <div class="concept-box">
+      <h3>🔁 Overlapping Subproblems</h3>
+      <p>Cùng một bài toán con được giải quyết nhiều lần. DP lưu kết quả (cache) để tái sử dụng thay vì tính lại → giảm độ phức tạp từ exponential xuống polynomial.</p>
+    </div>
+  </div>
+
+  <h2 class="section-h2">Ba trụ cột của DP</h2>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">DP Core Concepts</div>
+    <svg viewBox="0 0 700 200" width="100%" style="max-width:700px">
+      <!-- State -->
+      <rect x="30" y="60" width="160" height="80" rx="8" fill="rgba(0,180,216,0.12)" stroke="rgba(0,180,216,0.4)" stroke-width="1.5"/>
+      <text x="110" y="94" text-anchor="middle" fill="#00b4d8" font-size="14" font-weight="bold">STATE</text>
+      <text x="110" y="114" text-anchor="middle" fill="#7d8590" font-size="10">dp[i], dp[i][j]</text>
+      <text x="110" y="130" text-anchor="middle" fill="#7d8590" font-size="10">Biểu diễn trạng thái</text>
+
+      <!-- Arrow 1 -->
+      <path d="M190 100 L270 100" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+      <defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L8,3 z" fill="#30363d"/></marker></defs>
+
+      <!-- Transition -->
+      <rect x="270" y="60" width="160" height="80" rx="8" fill="rgba(0,208,132,0.12)" stroke="rgba(0,208,132,0.4)" stroke-width="1.5"/>
+      <text x="350" y="94" text-anchor="middle" fill="#00d084" font-size="14" font-weight="bold">TRANSITION</text>
+      <text x="350" y="114" text-anchor="middle" fill="#7d8590" font-size="10">dp[i] = f(dp[i-1])</text>
+      <text x="350" y="130" text-anchor="middle" fill="#7d8590" font-size="10">Công thức truy hồi</text>
+
+      <!-- Arrow 2 -->
+      <path d="M430 100 L510 100" stroke="#30363d" stroke-width="1.5" marker-end="url(#arr)"/>
+
+      <!-- Reuse -->
+      <rect x="510" y="60" width="160" height="80" rx="8" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+      <text x="590" y="94" text-anchor="middle" fill="#a855f7" font-size="14" font-weight="bold">REUSE</text>
+      <text x="590" y="114" text-anchor="middle" fill="#7d8590" font-size="10">Memo / Table</text>
+      <text x="590" y="130" text-anchor="middle" fill="#7d8590" font-size="10">Lưu & tái sử dụng</text>
+
+      <!-- Labels -->
+      <text x="350" y="20" text-anchor="middle" fill="#7d8590" font-size="11" font-style="italic">Bài toán con → Công thức → Kết quả được cache</text>
+    </svg>
+  </div>
+
+  <h2 class="section-h2">Hai phương pháp tiếp cận</h2>
+  <div class="two-col">
+    <div>
+      <div class="concept-box">
+        <h3>🔽 Top-Down (Memoization)</h3>
+        <p>Đệ quy + lưu kết quả vào cache (map hoặc array). Dễ implement, chỉ tính các bài toán con cần thiết. Phù hợp khi không gian trạng thái thưa.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="lang-tag">GO</span>
+          <span class="file-name">memoization.go</span>
+          <span class="code-header level-tag level-basic">Basic</span>
+        </div>
+        <pre><span class="cm">// Top-Down: Đệ quy + Memo cache</span>
+<span class="kw">func</span> <span class="fn">fibMemo</span>(n <span class="ty">int</span>, memo <span class="ty">map</span>[<span class="ty">int</span>]<span class="ty">int</span>) <span class="ty">int</span> {
+    <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> n }
+    <span class="kw">if</span> v, ok := memo[n]; ok {
+        <span class="kw">return</span> v <span class="cm">// Tái sử dụng kết quả</span>
+    }
+    memo[n] = <span class="fn">fibMemo</span>(n-<span class="num">1</span>, memo) +
+               <span class="fn">fibMemo</span>(n-<span class="num">2</span>, memo)
+    <span class="kw">return</span> memo[n]
+}</pre>
+      </div>
+    </div>
+    <div>
+      <div class="concept-box">
+        <h3>🔼 Bottom-Up (Tabulation)</h3>
+        <p>Lặp từ bài toán nhỏ nhất lên bài toán lớn, điền vào bảng DP. Hiệu năng tốt hơn (không có overhead đệ quy), phù hợp khi cần giải tất cả bài toán con.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-header">
+          <span class="lang-tag">GO</span>
+          <span class="file-name">tabulation.go</span>
+          <span class="code-header level-tag level-basic">Basic</span>
+        </div>
+        <pre><span class="cm">// Bottom-Up: Điền bảng từ dưới lên</span>
+<span class="kw">func</span> <span class="fn">fibTable</span>(n <span class="ty">int</span>) <span class="ty">int</span> {
+    <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> n }
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+    dp[<span class="num">0</span>], dp[<span class="num">1</span>] = <span class="num">0</span>, <span class="num">1</span>
+    <span class="kw">for</span> i := <span class="num">2</span>; i &lt;= n; i++ {
+        dp[i] = dp[i-<span class="num">1</span>] + dp[i-<span class="num">2</span>]
+        <span class="cm">// Điền bảng tuần tự</span>
+    }
+    <span class="kw">return</span> dp[n]
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert alert-tip">
+    <strong>💡 Khi nào dùng cái nào?</strong>
+    Top-Down khi không gian trạng thái thưa và không phải tính hết (lazy evaluation). Bottom-Up khi cần hiệu năng tối đa và tính tất cả trạng thái.
+  </div>
+</section>
+
+<!-- ===================== CONCEPTS ===================== -->
+<section id="concepts" class="section">
+  <div class="topic-header">
+    <div class="topic-number" style="background: linear-gradient(135deg, #a855f7, #ec4899)">∑</div>
+    <div>
+      <div class="topic-title">Khái niệm cốt lõi</div>
+    </div>
+  </div>
+
+  <h2 class="section-h2">Phân loại bài toán DP</h2>
+
+  <table class="dp-table">
+    <thead><tr><th>Loại</th><th>Đặc điểm</th><th>Ví dụ</th><th>State Dimension</th></tr></thead>
+    <tbody>
+      <tr><td>Linear DP</td><td>Trạng thái dạng mảng 1D</td><td>Fibonacci, Coin Change, House Robber</td><td>dp[i]</td></tr>
+      <tr><td>Interval DP</td><td>Trạng thái trên đoạn [i,j]</td><td>Matrix Chain, Palindrome DP</td><td>dp[i][j]</td></tr>
+      <tr><td>Knapsack DP</td><td>Chọn/bỏ item với ràng buộc</td><td>0/1 Knapsack, Unbounded</td><td>dp[i][w]</td></tr>
+      <tr><td>Sequence DP</td><td>Hai chuỗi song song</td><td>LCS, Edit Distance</td><td>dp[i][j]</td></tr>
+      <tr><td>Grid DP</td><td>Trạng thái trên lưới 2D</td><td>Largest Square, Unique Paths</td><td>dp[i][j]</td></tr>
+    </tbody>
+  </table>
+
+  <h2 class="section-h2">Generic DP Framework trong Go</h2>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">dp_framework.go</span>
+      <span class="code-header level-tag level-expert">Expert</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">dp</span>
+
+<span class="cm">// Generic Memoizer với Go Generics</span>
+<span class="kw">type</span> <span class="ty">Memoizer</span>[K <span class="ty">comparable</span>, V <span class="ty">any</span>] <span class="kw">struct</span> {
+    cache  <span class="ty">map</span>[K]V
+    solver <span class="kw">func</span>(K) V
+}
+
+<span class="kw">func</span> <span class="fn">NewMemoizer</span>[K <span class="ty">comparable</span>, V <span class="ty">any</span>](
+    solver <span class="kw">func</span>(K) V,
+) *<span class="ty">Memoizer</span>[K, V] {
+    m := &<span class="ty">Memoizer</span>[K, V]{
+        cache:  <span class="fn">make</span>(<span class="ty">map</span>[K]V),
+        solver: solver,
+    }
+    <span class="kw">return</span> m
+}
+
+<span class="kw">func</span> (m *<span class="ty">Memoizer</span>[K, V]) <span class="fn">Solve</span>(key K) V {
+    <span class="kw">if</span> v, ok := m.cache[key]; ok {
+        <span class="kw">return</span> v
+    }
+    result := m.solver(key)
+    m.cache[key] = result
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// Sử dụng với Fibonacci</span>
+<span class="kw">func</span> <span class="fn">ExampleGenericMemo</span>() {
+    <span class="kw">var</span> memo *<span class="ty">Memoizer</span>[<span class="ty">int</span>, <span class="ty">int</span>]
+    memo = <span class="fn">NewMemoizer</span>(func(n <span class="ty">int</span>) <span class="ty">int</span> {
+        <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> n }
+        <span class="kw">return</span> memo.<span class="fn">Solve</span>(n-<span class="num">1</span>) + memo.<span class="fn">Solve</span>(n-<span class="num">2</span>)
+    })
+    _ = memo.<span class="fn">Solve</span>(<span class="num">50</span>) <span class="cm">// fib(50) nhanh chóng</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== PATTERNS ===================== -->
+<section id="patterns" class="section">
+  <div class="topic-header">
+    <div class="topic-number" style="background: linear-gradient(135deg, #f97316, #eab308)">🔧</div>
+    <div><div class="topic-title">Các kỹ thuật DP nâng cao</div></div>
+  </div>
+
+  <h2 class="section-h2">Space Optimization</h2>
+  <div class="concept-box">
+    <h3>📐 Tối ưu không gian</h3>
+    <p>Nhiều bài toán DP chỉ cần trạng thái của layer trước, không cần toàn bộ bảng. Kỹ thuật rolling array giảm O(n²) space → O(n) hoặc O(1).</p>
+  </div>
+
+  <h2 class="section-h2">DP with Bitmask</h2>
+  <div class="concept-box">
+    <h3>🎭 Bitmask DP</h3>
+    <p>Dùng bitmask để biểu diễn tập hợp trạng thái. State: dp[mask][i] = optimal khi đã thăm các node trong mask và đang ở node i. Dùng cho bài toán TSP, assignment problem.</p>
+  </div>
+
+  <h2 class="section-h2">DP với Stack Monotone</h2>
+  <div class="concept-box">
+    <h3>📊 Monotone Stack/Queue Optimization</h3>
+    <p>Kết hợp DP với monotone queue để giảm độ phức tạp từ O(n²) → O(n) cho các bài toán sliding window maximum/minimum.</p>
+  </div>
+</section>
+
+<!-- ===================== FIBONACCI ===================== -->
+<section id="fib" class="section">
+  <div class="topic-header">
+    <div class="topic-number">01</div>
+    <div>
+      <div class="topic-title">Fibonacci</div>
+      <div style="margin-top:6px; display:flex; gap:8px">
+        <span class="badge badge-intermediate">⭐ Intermediate</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa & Ý nghĩa</h3>
+    <p>Fibonacci là bài toán DP kinh điển nhất: F(n) = F(n-1) + F(n-2), với F(0)=0, F(1)=1. Mặc dù đơn giản, nó thể hiện đầy đủ ba kỹ thuật DP: Naive Recursion → Memoization → Tabulation → Space Optimization → Matrix Exponentiation.</p>
+  </div>
+
+  <div class="formula-box">F(n) = F(n-1) + F(n-2) &nbsp;&nbsp;|&nbsp;&nbsp; F(0)=0, F(1)=1</div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="label">Naive Recursion</div>
+      <div class="value">O(2ⁿ) / O(n)</div>
+      <div class="desc">Exponential time</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Memoization</div>
+      <div class="value">O(n) / O(n)</div>
+      <div class="desc">Top-down DP</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Tabulation</div>
+      <div class="value">O(n) / O(n)</div>
+      <div class="desc">Bottom-up DP</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Space Optimized</div>
+      <div class="value">O(n) / O(1)</div>
+      <div class="desc">Constant space</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Matrix Exp</div>
+      <div class="value">O(log n) / O(1)</div>
+      <div class="desc">Expert level</div>
+    </div>
+  </div>
+
+  <h2 class="section-h2">Diagram: Cây đệ quy Fibonacci(5)</h2>
+  <div class="diagram-wrap">
+    <div class="diagram-title">Fibonacci Recursion Tree — Overlapping Subproblems</div>
+    <svg viewBox="0 0 700 280" width="100%" style="max-width:700px">
+      <!-- Root -->
+      <ellipse cx="350" cy="30" rx="28" ry="18" fill="rgba(0,180,216,0.2)" stroke="rgba(0,180,216,0.5)" stroke-width="1.5"/>
+      <text x="350" y="35" text-anchor="middle" fill="#00b4d8" font-size="11" font-weight="bold">F(5)</text>
+
+      <!-- Level 1 -->
+      <line x1="330" y1="45" x2="210" y2="85" stroke="#30363d" stroke-width="1"/>
+      <line x1="370" y1="45" x2="490" y2="85" stroke="#30363d" stroke-width="1"/>
+      <ellipse cx="200" cy="100" rx="28" ry="18" fill="rgba(0,180,216,0.15)" stroke="rgba(0,180,216,0.4)" stroke-width="1.5"/>
+      <text x="200" y="105" text-anchor="middle" fill="#00b4d8" font-size="11">F(4)</text>
+      <ellipse cx="500" cy="100" rx="28" ry="18" fill="rgba(0,208,132,0.15)" stroke="rgba(0,208,132,0.4)" stroke-width="1.5"/>
+      <text x="500" y="105" text-anchor="middle" fill="#00d084" font-size="11">F(3)</text>
+
+      <!-- Level 2 -->
+      <line x1="180" y1="115" x2="110" y2="155" stroke="#30363d" stroke-width="1"/>
+      <line x1="220" y1="115" x2="310" y2="155" stroke="#30363d" stroke-width="1"/>
+      <line x1="480" y1="115" x2="410" y2="155" stroke="#30363d" stroke-width="1"/>
+      <line x1="520" y1="115" x2="590" y2="155" stroke="#30363d" stroke-width="1"/>
+
+      <ellipse cx="100" cy="170" rx="28" ry="18" fill="rgba(0,180,216,0.1)" stroke="rgba(0,180,216,0.3)" stroke-width="1.5"/>
+      <text x="100" y="175" text-anchor="middle" fill="#00b4d8" font-size="11">F(3)</text>
+      <ellipse cx="310" cy="170" rx="28" ry="18" fill="rgba(249,115,22,0.2)" stroke="rgba(249,115,22,0.5)" stroke-width="1.5"/>
+      <text x="310" y="175" text-anchor="middle" fill="#f97316" font-size="11">F(2)</text>
+      <ellipse cx="410" cy="170" rx="28" ry="18" fill="rgba(249,115,22,0.2)" stroke="rgba(249,115,22,0.5)" stroke-width="1.5"/>
+      <text x="410" y="175" text-anchor="middle" fill="#f97316" font-size="11">F(2)</text>
+      <ellipse cx="590" cy="170" rx="28" ry="18" fill="rgba(0,208,132,0.1)" stroke="rgba(0,208,132,0.3)" stroke-width="1.5"/>
+      <text x="590" y="175" text-anchor="middle" fill="#00d084" font-size="11">F(1)</text>
+
+      <!-- Level 3 -->
+      <line x1="80" y1="185" x2="40" y2="225" stroke="#30363d" stroke-width="1"/>
+      <line x1="120" y1="185" x2="180" y2="225" stroke="#30363d" stroke-width="1"/>
+      <ellipse cx="35" cy="240" rx="24" ry="16" fill="rgba(0,180,216,0.08)" stroke="rgba(0,180,216,0.25)" stroke-width="1"/>
+      <text x="35" y="245" text-anchor="middle" fill="#7d8590" font-size="10">F(2)</text>
+      <ellipse cx="180" cy="240" rx="24" ry="16" fill="rgba(0,208,132,0.08)" stroke="rgba(0,208,132,0.25)" stroke-width="1"/>
+      <text x="180" y="245" text-anchor="middle" fill="#7d8590" font-size="10">F(1)</text>
+
+      <!-- Duplicate indicator -->
+      <path d="M310 188 Q360 240 410 188" fill="none" stroke="#f97316" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="360" y="250" text-anchor="middle" fill="#f97316" font-size="9">Duplicate!</text>
+
+      <text x="350" y="275" text-anchor="middle" fill="#7d8590" font-size="9" font-style="italic">Màu cam = bài toán con tính lại nhiều lần → Memoization giải quyết</text>
+    </svg>
+  </div>
+
+  <!-- Code 1: Basic -->
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">fibonacci_basic.go</span>
+      <span class="code-header level-tag level-basic">Basic — Memoization</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">fibonacci</span>
+
+<span class="kw">import</span> <span class="str">"sync"</span>
+
+<span class="cm">// === APPROACH 1: Top-Down Memoization (Thread-safe) ===</span>
+<span class="kw">type</span> <span class="ty">FibMemo</span> <span class="kw">struct</span> {
+    mu    sync.<span class="ty">RWMutex</span>
+    cache <span class="ty">map</span>[<span class="ty">int</span>]<span class="ty">uint64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewFibMemo</span>() *<span class="ty">FibMemo</span> {
+    <span class="kw">return</span> &<span class="ty">FibMemo</span>{
+        cache: <span class="ty">map</span>[<span class="ty">int</span>]<span class="ty">uint64</span>{<span class="num">0</span>: <span class="num">0</span>, <span class="num">1</span>: <span class="num">1</span>},
+    }
+}
+
+<span class="kw">func</span> (f *<span class="ty">FibMemo</span>) <span class="fn">Fib</span>(n <span class="ty">int</span>) <span class="ty">uint64</span> {
+    f.mu.<span class="fn">RLock</span>()
+    <span class="kw">if</span> v, ok := f.cache[n]; ok {
+        f.mu.<span class="fn">RUnlock</span>()
+        <span class="kw">return</span> v
+    }
+    f.mu.<span class="fn">RUnlock</span>()
+
+    result := f.<span class="fn">Fib</span>(n-<span class="num">1</span>) + f.<span class="fn">Fib</span>(n-<span class="num">2</span>)
+
+    f.mu.<span class="fn">Lock</span>()
+    f.cache[n] = result
+    f.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// === APPROACH 2: Bottom-Up Tabulation ===</span>
+<span class="kw">func</span> <span class="fn">FibTable</span>(n <span class="ty">int</span>) <span class="ty">uint64</span> {
+    <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> <span class="ty">uint64</span>(n) }
+    dp := <span class="fn">make</span>([]<span class="ty">uint64</span>, n+<span class="num">1</span>)
+    dp[<span class="num">0</span>], dp[<span class="num">1</span>] = <span class="num">0</span>, <span class="num">1</span>
+    <span class="kw">for</span> i := <span class="num">2</span>; i &lt;= n; i++ {
+        dp[i] = dp[i-<span class="num">1</span>] + dp[i-<span class="num">2</span>]
+    }
+    <span class="kw">return</span> dp[n]
+}
+
+<span class="cm">// === APPROACH 3: Space Optimized O(1) ===</span>
+<span class="kw">func</span> <span class="fn">FibOptimized</span>(n <span class="ty">int</span>) <span class="ty">uint64</span> {
+    <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> <span class="ty">uint64</span>(n) }
+    a, b := <span class="ty">uint64</span>(<span class="num">0</span>), <span class="ty">uint64</span>(<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">2</span>; i &lt;= n; i++ {
+        a, b = b, a+b
+    }
+    <span class="kw">return</span> b
+}</pre>
+  </div>
+
+  <!-- Code 2: Advanced -->
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">fibonacci_matrix.go</span>
+      <span class="code-header level-tag level-expert">Expert — Matrix Exponentiation O(log n)</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">fibonacci</span>
+
+<span class="cm">// Matrix Exponentiation: F(n) trong O(log n) time
+// Dựa trên: [[1,1],[1,0]]^n = [[F(n+1), F(n)],[F(n), F(n-1)]]</span>
+
+<span class="kw">type</span> <span class="ty">Matrix2x2</span> [<span class="num">2</span>][<span class="num">2</span>]<span class="ty">uint64</span>
+
+<span class="kw">func</span> <span class="fn">matMul</span>(a, b <span class="ty">Matrix2x2</span>) <span class="ty">Matrix2x2</span> {
+    <span class="kw">return</span> <span class="ty">Matrix2x2</span>{
+        {a[<span class="num">0</span>][<span class="num">0</span>]*b[<span class="num">0</span>][<span class="num">0</span>] + a[<span class="num">0</span>][<span class="num">1</span>]*b[<span class="num">1</span>][<span class="num">0</span>],
+         a[<span class="num">0</span>][<span class="num">0</span>]*b[<span class="num">0</span>][<span class="num">1</span>] + a[<span class="num">0</span>][<span class="num">1</span>]*b[<span class="num">1</span>][<span class="num">1</span>]},
+        {a[<span class="num">1</span>][<span class="num">0</span>]*b[<span class="num">0</span>][<span class="num">0</span>] + a[<span class="num">1</span>][<span class="num">1</span>]*b[<span class="num">1</span>][<span class="num">0</span>],
+         a[<span class="num">1</span>][<span class="num">0</span>]*b[<span class="num">0</span>][<span class="num">1</span>] + a[<span class="num">1</span>][<span class="num">1</span>]*b[<span class="num">1</span>][<span class="num">1</span>]},
+    }
+}
+
+<span class="kw">func</span> <span class="fn">matPow</span>(m <span class="ty">Matrix2x2</span>, n <span class="ty">int</span>) <span class="ty">Matrix2x2</span> {
+    result := <span class="ty">Matrix2x2</span>{{<span class="num">1</span>, <span class="num">0</span>}, {<span class="num">0</span>, <span class="num">1</span>}} <span class="cm">// Identity</span>
+    <span class="kw">for</span> n > <span class="num">0</span> {
+        <span class="kw">if</span> n%<span class="num">2</span> == <span class="num">1</span> {
+            result = <span class="fn">matMul</span>(result, m)
+        }
+        m = <span class="fn">matMul</span>(m, m) <span class="cm">// Square the matrix</span>
+        n /= <span class="num">2</span>
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// FibMatrix: O(log n) time, O(1) space — Expert level</span>
+<span class="kw">func</span> <span class="fn">FibMatrix</span>(n <span class="ty">int</span>) <span class="ty">uint64</span> {
+    <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> <span class="ty">uint64</span>(n) }
+    base := <span class="ty">Matrix2x2</span>{{<span class="num">1</span>, <span class="num">1</span>}, {<span class="num">1</span>, <span class="num">0</span>}}
+    result := <span class="fn">matPow</span>(base, n-<span class="num">1</span>)
+    <span class="kw">return</span> result[<span class="num">0</span>][<span class="num">0</span>]
+}
+
+<span class="cm">// Benchmark comparison test</span>
+<span class="kw">func</span> <span class="fn">BenchmarkFib</span>(n <span class="ty">int</span>) (<span class="ty">uint64</span>, <span class="ty">uint64</span>, <span class="ty">uint64</span>) {
+    <span class="kw">return</span> <span class="fn">FibTable</span>(n), <span class="fn">FibOptimized</span>(n), <span class="fn">FibMatrix</span>(n)
+}</pre>
+  </div>
+
+  <div class="alert alert-info">
+    <strong>🔑 Key Insight</strong>
+    Matrix Exponentiation giúp tính F(10^18) trong O(log n) = ~60 phép nhân ma trận, trong khi Bottom-Up cần 10^18 bước. Đây là kỹ thuật expert dùng trong competitive programming.
+  </div>
+</section>
+
+<!-- ===================== LCS ===================== -->
+<section id="lcs" class="section">
+  <div class="topic-header">
+    <div class="topic-number">02</div>
+    <div>
+      <div class="topic-title">Longest Common Subsequence</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-advanced">⭐⭐ Advanced</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>LCS tìm subsequence dài nhất xuất hiện trong cả hai chuỗi. <strong>Subsequence</strong> khác <strong>Substring</strong>: các ký tự không cần liên tiếp nhưng phải giữ thứ tự tương đối. Ứng dụng: diff tools (git diff), bioinformatics (DNA alignment), spell checker.</p>
+  </div>
+
+  <div class="formula-box">
+    dp[i][j] = dp[i-1][j-1] + 1 &nbsp;&nbsp;nếu s1[i] == s2[j]<br>
+    dp[i][j] = max(dp[i-1][j], dp[i][j-1]) &nbsp;&nbsp;nếu s1[i] ≠ s2[j]
+  </div>
+
+  <h2 class="section-h2">Visualization: DP Table cho LCS("ABCBDAB", "BDCAB")</h2>
+  <div class="diagram-wrap">
+    <div class="diagram-title">LCS DP Table</div>
+    <div style="overflow-x:auto">
+      <table class="dp-vis-table">
+        <tr>
+          <td class="header"></td>
+          <td class="header">""</td>
+          <td class="header">B</td><td class="header">D</td><td class="header">C</td><td class="header">A</td><td class="header">B</td>
+        </tr>
+        <tr>
+          <td class="header">""</td>
+          <td>0</td><td>0</td><td>0</td><td>0</td><td>0</td><td>0</td>
+        </tr>
+        <tr>
+          <td class="header">A</td>
+          <td>0</td><td>0</td><td>0</td><td>0</td><td class="path">1</td><td class="path">1</td>
+        </tr>
+        <tr>
+          <td class="header">B</td>
+          <td>0</td><td class="highlight">1</td><td>1</td><td>1</td><td>1</td><td class="highlight">2</td>
+        </tr>
+        <tr>
+          <td class="header">C</td>
+          <td>0</td><td>1</td><td>1</td><td class="highlight">2</td><td>2</td><td>2</td>
+        </tr>
+        <tr>
+          <td class="header">B</td>
+          <td>0</td><td>1</td><td>1</td><td>2</td><td>2</td><td class="highlight">3</td>
+        </tr>
+        <tr>
+          <td class="header">D</td>
+          <td>0</td><td>1</td><td class="path">2</td><td>2</td><td>2</td><td>3</td>
+        </tr>
+        <tr>
+          <td class="header">A</td>
+          <td>0</td><td>1</td><td>2</td><td>2</td><td class="highlight">3</td><td>3</td>
+        </tr>
+        <tr>
+          <td class="header">B</td>
+          <td>0</td><td>1</td><td>2</td><td>2</td><td>3</td><td class="highlight" style="background:rgba(0,208,132,0.4);color:#00d084;font-size:0.9rem">4</td>
+        </tr>
+      </table>
+    </div>
+    <p style="margin-top:12px;font-size:0.78rem;color:var(--muted)">LCS = "BCAB" hoặc "BDAB" (độ dài 4) | Xanh lá = match | Xanh dương = path</p>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">lcs.go</span>
+      <span class="code-header level-tag level-advanced">Advanced — Full LCS với Backtracking</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">lcs</span>
+
+<span class="cm">// LCSResult chứa cả độ dài và chuỗi LCS thực tế</span>
+<span class="kw">type</span> <span class="ty">LCSResult</span> <span class="kw">struct</span> {
+    Length <span class="ty">int</span>
+    Seq    <span class="ty">string</span>
+}
+
+<span class="cm">// LCS Bottom-Up với backtracking để tìm chuỗi thực</span>
+<span class="kw">func</span> <span class="fn">LCS</span>(s1, s2 <span class="ty">string</span>) <span class="ty">LCSResult</span> {
+    m, n := <span class="fn">len</span>(s1), <span class="fn">len</span>(s2)
+    <span class="cm">// Tạo bảng DP (m+1) x (n+1)</span>
+    dp := <span class="fn">make</span>([][]<span class="ty">int</span>, m+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp {
+        dp[i] = <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+    }
+
+    <span class="cm">// Điền bảng</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            <span class="kw">if</span> s1[i-<span class="num">1</span>] == s2[j-<span class="num">1</span>] {
+                dp[i][j] = dp[i-<span class="num">1</span>][j-<span class="num">1</span>] + <span class="num">1</span>
+            } <span class="kw">else</span> {
+                dp[i][j] = <span class="fn">max</span>(dp[i-<span class="num">1</span>][j], dp[i][j-<span class="num">1</span>])
+            }
+        }
+    }
+
+    <span class="cm">// Backtrack để tìm chuỗi LCS thực tế</span>
+    seq := <span class="fn">backtrack</span>(dp, s1, s2, m, n)
+    <span class="kw">return</span> <span class="ty">LCSResult</span>{Length: dp[m][n], Seq: seq}
+}
+
+<span class="kw">func</span> <span class="fn">backtrack</span>(dp [][]<span class="ty">int</span>, s1, s2 <span class="ty">string</span>, i, j <span class="ty">int</span>) <span class="ty">string</span> {
+    <span class="kw">if</span> i == <span class="num">0</span> || j == <span class="num">0</span> { <span class="kw">return</span> <span class="str">""</span> }
+    <span class="kw">if</span> s1[i-<span class="num">1</span>] == s2[j-<span class="num">1</span>] {
+        <span class="kw">return</span> <span class="fn">backtrack</span>(dp, s1, s2, i-<span class="num">1</span>, j-<span class="num">1</span>) +
+               <span class="ty">string</span>(s1[i-<span class="num">1</span>])
+    }
+    <span class="kw">if</span> dp[i-<span class="num">1</span>][j] > dp[i][j-<span class="num">1</span>] {
+        <span class="kw">return</span> <span class="fn">backtrack</span>(dp, s1, s2, i-<span class="num">1</span>, j)
+    }
+    <span class="kw">return</span> <span class="fn">backtrack</span>(dp, s1, s2, i, j-<span class="num">1</span>)
+}
+
+<span class="cm">// Space Optimized: O(min(m,n)) space</span>
+<span class="kw">func</span> <span class="fn">LCSSpaceOpt</span>(s1, s2 <span class="ty">string</span>) <span class="ty">int</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(s1) &lt; <span class="fn">len</span>(s2) {
+        s1, s2 = s2, s1 <span class="cm">// s2 là chuỗi ngắn hơn</span>
+    }
+    m, n := <span class="fn">len</span>(s1), <span class="fn">len</span>(s2)
+    prev := <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+    curr := <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            <span class="kw">if</span> s1[i-<span class="num">1</span>] == s2[j-<span class="num">1</span>] {
+                curr[j] = prev[j-<span class="num">1</span>] + <span class="num">1</span>
+            } <span class="kw">else</span> {
+                curr[j] = <span class="fn">max</span>(prev[j], curr[j-<span class="num">1</span>])
+            }
+        }
+        prev, curr = curr, prev
+    }
+    <span class="kw">return</span> prev[n]
+}</pre>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">lcs_expert.go</span>
+      <span class="code-header level-tag level-expert">Expert — Hunt-Szymanski Algorithm (Sparse LCS)</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">lcs</span>
+
+<span class="kw">import</span> <span class="str">"sort"</span>
+
+<span class="cm">// Hunt-Szymanski: Hiệu quả khi LCS thưa (sparse matches)
+// Dùng trong git diff, biological sequence alignment
+// Time: O((r+n) log n) trong đó r = số điểm match</span>
+
+<span class="kw">func</span> <span class="fn">HuntSzymanski</span>(s1, s2 <span class="ty">string</span>) <span class="ty">int</span> {
+    <span class="cm">// Bước 1: Build match positions map</span>
+    pos := <span class="fn">make</span>(<span class="ty">map</span>[<span class="ty">byte</span>][]<span class="ty">int</span>)
+    <span class="kw">for</span> j, c := <span class="kw">range</span> []<span class="ty">byte</span>(s2) {
+        pos[c] = <span class="fn">append</span>(pos[c], j+<span class="num">1</span>)
+    }
+
+    <span class="cm">// Bước 2: Collect all match pairs (i,j)</span>
+    <span class="kw">type</span> <span class="ty">pair</span> <span class="kw">struct</span>{ i, j <span class="ty">int</span> }
+    <span class="kw">var</span> matches []<span class="ty">pair</span>
+    <span class="kw">for</span> i, c := <span class="kw">range</span> []<span class="ty">byte</span>(s1) {
+        <span class="kw">for</span> _, j := <span class="kw">range</span> pos[c] {
+            matches = <span class="fn">append</span>(matches, <span class="ty">pair</span>{i + <span class="num">1</span>, j})
+        }
+    }
+    sort.<span class="fn">Slice</span>(matches, <span class="kw">func</span>(a, b <span class="ty">int</span>) <span class="ty">bool</span> {
+        <span class="kw">if</span> matches[a].i == matches[b].i {
+            <span class="kw">return</span> matches[a].j > matches[b].j
+        }
+        <span class="kw">return</span> matches[a].i &lt; matches[b].i
+    })
+
+    <span class="cm">// Bước 3: LIS on j coordinates (Patience sorting)</span>
+    tails := []<span class="ty">int</span>{}
+    <span class="kw">for</span> _, m := <span class="kw">range</span> matches {
+        pos := sort.<span class="fn">SearchInts</span>(tails, m.j)
+        <span class="kw">if</span> pos == <span class="fn">len</span>(tails) {
+            tails = <span class="fn">append</span>(tails, m.j)
+        } <span class="kw">else</span> {
+            tails[pos] = m.j
+        }
+    }
+    <span class="kw">return</span> <span class="fn">len</span>(tails)
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== KNAPSACK ===================== -->
+<section id="knapsack" class="section">
+  <div class="topic-header">
+    <div class="topic-number">03</div>
+    <div>
+      <div class="topic-title">Knapsack Problem</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-advanced">⭐⭐ Advanced</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Có n vật phẩm, mỗi vật có trọng lượng w[i] và giá trị v[i]. Túi có sức chứa W. Chọn các vật để tổng giá trị tối đa trong giới hạn trọng lượng. Biến thể: <strong>0/1 Knapsack</strong> (mỗi vật dùng tối đa 1 lần), <strong>Unbounded</strong> (dùng không giới hạn), <strong>Fractional</strong> (cắt được — Greedy).</p>
+  </div>
+
+  <div class="formula-box">
+    dp[i][w] = max(dp[i-1][w], dp[i-1][w-weight[i]] + value[i]) &nbsp;&nbsp;nếu w ≥ weight[i]<br>
+    dp[i][w] = dp[i-1][w] &nbsp;&nbsp;nếu w &lt; weight[i]
+  </div>
+
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="label">0/1 Knapsack</div>
+      <div class="value">O(nW) / O(nW)</div>
+      <div class="desc">Mỗi item dùng 0 hoặc 1 lần</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Space Optimized</div>
+      <div class="value">O(nW) / O(W)</div>
+      <div class="desc">Rolling 1D array</div>
+    </div>
+    <div class="info-card">
+      <div class="label">Unbounded</div>
+      <div class="value">O(nW) / O(W)</div>
+      <div class="desc">Item dùng nhiều lần</div>
+    </div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">knapsack.go</span>
+      <span class="code-header level-tag level-advanced">Advanced — 0/1 Knapsack đầy đủ</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">knapsack</span>
+
+<span class="kw">type</span> <span class="ty">Item</span> <span class="kw">struct</span> {
+    Name   <span class="ty">string</span>
+    Weight <span class="ty">int</span>
+    Value  <span class="ty">int</span>
+}
+
+<span class="kw">type</span> <span class="ty">KnapsackResult</span> <span class="kw">struct</span> {
+    MaxValue   <span class="ty">int</span>
+    SelectedItems []<span class="ty">Item</span>
+}
+
+<span class="cm">// Knapsack01: 0/1 Knapsack với item tracking</span>
+<span class="kw">func</span> <span class="fn">Knapsack01</span>(items []<span class="ty">Item</span>, capacity <span class="ty">int</span>) <span class="ty">KnapsackResult</span> {
+    n := <span class="fn">len</span>(items)
+    <span class="cm">// dp[i][w] = max value dùng i items đầu với capacity w</span>
+    dp := <span class="fn">make</span>([][]<span class="ty">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp {
+        dp[i] = <span class="fn">make</span>([]<span class="ty">int</span>, capacity+<span class="num">1</span>)
+    }
+
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= n; i++ {
+        item := items[i-<span class="num">1</span>]
+        <span class="kw">for</span> w := <span class="num">0</span>; w &lt;= capacity; w++ {
+            dp[i][w] = dp[i-<span class="num">1</span>][w] <span class="cm">// Không chọn item i</span>
+            <span class="kw">if</span> item.Weight &lt;= w {
+                take := dp[i-<span class="num">1</span>][w-item.Weight] + item.Value
+                <span class="kw">if</span> take > dp[i][w] {
+                    dp[i][w] = take <span class="cm">// Chọn item i</span>
+                }
+            }
+        }
+    }
+
+    <span class="cm">// Backtrack để tìm các item được chọn</span>
+    selected := <span class="fn">traceItems</span>(dp, items, n, capacity)
+    <span class="kw">return</span> <span class="ty">KnapsackResult</span>{
+        MaxValue:      dp[n][capacity],
+        SelectedItems: selected,
+    }
+}
+
+<span class="kw">func</span> <span class="fn">traceItems</span>(dp [][]<span class="ty">int</span>, items []<span class="ty">Item</span>, n, w <span class="ty">int</span>) []<span class="ty">Item</span> {
+    <span class="kw">var</span> selected []<span class="ty">Item</span>
+    <span class="kw">for</span> i := n; i > <span class="num">0</span>; i-- {
+        <span class="kw">if</span> dp[i][w] != dp[i-<span class="num">1</span>][w] {
+            selected = <span class="fn">append</span>(selected, items[i-<span class="num">1</span>])
+            w -= items[i-<span class="num">1</span>].Weight
+        }
+    }
+    <span class="kw">return</span> selected
+}
+
+<span class="cm">// Knapsack01Opt: Space O(W) — rolling array</span>
+<span class="kw">func</span> <span class="fn">Knapsack01Opt</span>(items []<span class="ty">Item</span>, capacity <span class="ty">int</span>) <span class="ty">int</span> {
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, capacity+<span class="num">1</span>)
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+        <span class="cm">// Duyệt NGƯỢC để tránh dùng item nhiều lần</span>
+        <span class="kw">for</span> w := capacity; w >= item.Weight; w-- {
+            dp[w] = <span class="fn">max</span>(dp[w], dp[w-item.Weight]+item.Value)
+        }
+    }
+    <span class="kw">return</span> dp[capacity]
+}
+
+<span class="cm">// UnboundedKnapsack: Item dùng được nhiều lần</span>
+<span class="kw">func</span> <span class="fn">UnboundedKnapsack</span>(items []<span class="ty">Item</span>, capacity <span class="ty">int</span>) <span class="ty">int</span> {
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, capacity+<span class="num">1</span>)
+    <span class="kw">for</span> w := <span class="num">1</span>; w &lt;= capacity; w++ {
+        <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+            <span class="kw">if</span> item.Weight &lt;= w {
+                <span class="cm">// Duyệt XUÔI: cho phép dùng nhiều lần</span>
+                dp[w] = <span class="fn">max</span>(dp[w], dp[w-item.Weight]+item.Value)
+            }
+        }
+    }
+    <span class="kw">return</span> dp[capacity]
+}</pre>
+  </div>
+
+  <div class="alert alert-warn">
+    <strong>⚠️ Điểm quan trọng</strong>
+    0/1 Knapsack duyệt ngược từ W→weight[i] để tránh dùng item nhiều lần. Unbounded Knapsack duyệt xuôi từ weight[i]→W để cho phép dùng lại. Đây là điểm phân biệt chính giữa hai biến thể!
+  </div>
+</section>
+
+<!-- ===================== MATRIX CHAIN ===================== -->
+<section id="matrix" class="section">
+  <div class="topic-header">
+    <div class="topic-number">04</div>
+    <div>
+      <div class="topic-title">Matrix Chain Multiplication</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-expert">⭐⭐⭐ Expert</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Cho n ma trận A₁, A₂, ..., Aₙ. Tìm thứ tự đặt ngoặc để tổng số phép nhân vô hướng là ít nhất. Ma trận Aᵢ có kích thước p[i-1] × p[i]. Đây là bài toán Interval DP kinh điển.</p>
+  </div>
+
+  <div class="formula-box">
+    dp[i][j] = min over k in [i, j-1] of: dp[i][k] + dp[k+1][j] + p[i-1]*p[k]*p[j]
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">matrix_chain.go</span>
+      <span class="code-header level-tag level-expert">Expert — Matrix Chain + Parenthesization Trace</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">matrixchain</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"math"</span>
+    <span class="str">"strings"</span>
+)
+
+<span class="kw">type</span> <span class="ty">MCMResult</span> <span class="kw">struct</span> {
+    MinOps       <span class="ty">int</span>
+    Parenthesis  <span class="ty">string</span>
+    SplitTable   [][]<span class="ty">int</span>
+}
+
+<span class="cm">// MatrixChain: O(n³) time, O(n²) space
+// dims: kích thước [p0, p1, ..., pn] với matrix i có dims[i-1]xdims[i]</span>
+<span class="kw">func</span> <span class="fn">MatrixChain</span>(dims []<span class="ty">int</span>) <span class="ty">MCMResult</span> {
+    n := <span class="fn">len</span>(dims) - <span class="num">1</span> <span class="cm">// số ma trận</span>
+    dp := <span class="fn">make</span>([][]<span class="ty">int</span>, n+<span class="num">1</span>)
+    split := <span class="fn">make</span>([][]<span class="ty">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp {
+        dp[i] = <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+        split[i] = <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+        <span class="kw">for</span> j := <span class="kw">range</span> dp[i] {
+            dp[i][j] = math.<span class="ty">MaxInt64</span>
+        }
+        dp[i][i] = <span class="num">0</span> <span class="cm">// 1 ma trận: 0 phép nhân</span>
+    }
+
+    <span class="cm">// len = chiều dài chuỗi đang xét</span>
+    <span class="kw">for</span> length := <span class="num">2</span>; length &lt;= n; length++ {
+        <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= n-length+<span class="num">1</span>; i++ {
+            j := i + length - <span class="num">1</span>
+            <span class="kw">for</span> k := i; k &lt; j; k++ {
+                <span class="cm">// Chi phí: nhân A[i..k] với A[k+1..j]</span>
+                cost := dp[i][k] + dp[k+<span class="num">1</span>][j] +
+                        dims[i-<span class="num">1</span>]*dims[k]*dims[j]
+                <span class="kw">if</span> cost &lt; dp[i][j] {
+                    dp[i][j] = cost
+                    split[i][j] = k
+                }
+            }
+        }
+    }
+
+    paren := <span class="fn">buildParen</span>(split, <span class="num">1</span>, n)
+    <span class="kw">return</span> <span class="ty">MCMResult</span>{
+        MinOps:      dp[<span class="num">1</span>][n],
+        Parenthesis: paren,
+        SplitTable:  split,
+    }
+}
+
+<span class="kw">func</span> <span class="fn">buildParen</span>(split [][]<span class="ty">int</span>, i, j <span class="ty">int</span>) <span class="ty">string</span> {
+    <span class="kw">if</span> i == j {
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"A%d"</span>, i)
+    }
+    k := split[i][j]
+    left := <span class="fn">buildParen</span>(split, i, k)
+    right := <span class="fn">buildParen</span>(split, k+<span class="num">1</span>, j)
+    <span class="kw">return</span> <span class="str">"("</span> + left + <span class="str">" × "</span> + right + <span class="str">")"</span>
+}
+
+<span class="cm">// MCM với Memo (Top-Down) — cho bài toán sparse</span>
+<span class="kw">func</span> <span class="fn">MCMMemo</span>(dims []<span class="ty">int</span>) <span class="ty">int</span> {
+    n := <span class="fn">len</span>(dims) - <span class="num">1</span>
+    memo := <span class="fn">make</span>([][]<span class="ty">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> memo {
+        memo[i] = <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>)
+        <span class="kw">for</span> j := <span class="kw">range</span> memo[i] { memo[i][j] = -<span class="num">1</span> }
+        memo[i][i] = <span class="num">0</span>
+    }
+    <span class="kw">var</span> solve <span class="kw">func</span>(i, j <span class="ty">int</span>) <span class="ty">int</span>
+    solve = <span class="kw">func</span>(i, j <span class="ty">int</span>) <span class="ty">int</span> {
+        <span class="kw">if</span> memo[i][j] != -<span class="num">1</span> { <span class="kw">return</span> memo[i][j] }
+        memo[i][j] = math.<span class="ty">MaxInt64</span>
+        <span class="kw">for</span> k := i; k &lt; j; k++ {
+            cost := <span class="fn">solve</span>(i, k) + <span class="fn">solve</span>(k+<span class="num">1</span>, j) +
+                    dims[i-<span class="num">1</span>]*dims[k]*dims[j]
+            <span class="kw">if</span> cost &lt; memo[i][j] { memo[i][j] = cost }
+        }
+        <span class="kw">return</span> memo[i][j]
+    }
+    _ = strings.<span class="fn">Builder</span>{}
+    <span class="kw">return</span> <span class="fn">solve</span>(<span class="num">1</span>, n)
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== COIN CHANGE ===================== -->
+<section id="coin" class="section">
+  <div class="topic-header">
+    <div class="topic-number">05</div>
+    <div>
+      <div class="topic-title">Coin Change</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-intermediate">⭐ Intermediate</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Cho một tập coin với các mệnh giá khác nhau và một số tiền amount. Tìm số coin ít nhất để tổng bằng amount (<strong>Coin Change I</strong>). Hoặc đếm tổng số cách đổi (<strong>Coin Change II</strong>). Đây là biến thể của Unbounded Knapsack.</p>
+  </div>
+
+  <div class="formula-box">
+    dp[i] = min(dp[i], dp[i - coin] + 1) &nbsp;&nbsp;với mỗi coin ≤ i
+  </div>
+
+  <div class="diagram-wrap">
+    <div class="diagram-title">Coin Change — DP Array cho amount=11, coins=[1,5,6,9]</div>
+    <div style="display:flex; gap:2px; justify-content:center; flex-wrap:wrap; margin-bottom:8px">
+      <div style="text-align:center; margin-right:4px">
+        <div style="width:36px; height:36px; background:var(--bg); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:0.65rem; color:var(--muted); margin-bottom:2px">idx</div>
+      </div>
+      <script>
+        // Will be rendered via inline style trick
+      </script>
+      <!-- Static visualization -->
+      <div style="display:flex; gap:2px">
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px; text-align:center">0</div>
+          <div style="width:36px;height:36px;background:rgba(0,208,132,0.2);border:1px solid rgba(0,208,132,0.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:#00d084;font-weight:700">0</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">1</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">1</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">2</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">2</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">3</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">3</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">4</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">4</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">5</div>
+          <div style="width:36px;height:36px;background:rgba(0,180,216,0.2);border:1px solid rgba(0,180,216,0.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--cyan);font-weight:700">1</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">6</div>
+          <div style="width:36px;height:36px;background:rgba(0,180,216,0.2);border:1px solid rgba(0,180,216,0.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--cyan);font-weight:700">1</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">7</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">2</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">8</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">2</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">9</div>
+          <div style="width:36px;height:36px;background:rgba(0,180,216,0.2);border:1px solid rgba(0,180,216,0.4);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--cyan);font-weight:700">1</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">10</div>
+          <div style="width:36px;height:36px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--text)">2</div>
+        </div>
+        <div style="text-align:center">
+          <div style="padding:2px 0; font-size:0.65rem; color:var(--muted); height:18px">11</div>
+          <div style="width:36px;height:36px;background:rgba(168,85,247,0.3);border:1px solid rgba(168,85,247,0.6);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-size:0.8rem;color:var(--purple);font-weight:700">2</div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:0.78rem;color:var(--muted)">Đáp án: 2 coins (9+2×1 = 11 → không tối ưu; 5+6 = 11 → 2 coins ✓) | Tím = kết quả cuối</p>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">coin_change.go</span>
+      <span class="code-header level-tag level-advanced">Advanced — Coin Change I & II</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">coinchange</span>
+
+<span class="kw">import</span> <span class="str">"math"</span>
+
+<span class="cm">// CoinChangeMin: Số coin ít nhất (LeetCode 322)
+// dp[i] = số coin tối thiểu để tạo amount i</span>
+<span class="kw">func</span> <span class="fn">CoinChangeMin</span>(coins []<span class="ty">int</span>, amount <span class="ty">int</span>) <span class="ty">int</span> {
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, amount+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= amount; i++ {
+        dp[i] = math.<span class="ty">MaxInt32</span>
+    }
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= amount; i++ {
+        <span class="kw">for</span> _, coin := <span class="kw">range</span> coins {
+            <span class="kw">if</span> coin &lt;= i && dp[i-coin] != math.<span class="ty">MaxInt32</span> {
+                dp[i] = <span class="fn">min</span>(dp[i], dp[i-coin]+<span class="num">1</span>)
+            }
+        }
+    }
+    <span class="kw">if</span> dp[amount] == math.<span class="ty">MaxInt32</span> { <span class="kw">return</span> -<span class="num">1</span> }
+    <span class="kw">return</span> dp[amount]
+}
+
+<span class="cm">// CoinChangeWays: Số cách đổi (LeetCode 518)
+// dp[i] = số cách tạo amount i (order không quan trọng)</span>
+<span class="kw">func</span> <span class="fn">CoinChangeWays</span>(coins []<span class="ty">int</span>, amount <span class="ty">int</span>) <span class="ty">int</span> {
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, amount+<span class="num">1</span>)
+    dp[<span class="num">0</span>] = <span class="num">1</span> <span class="cm">// Base: 1 cách tạo amount 0</span>
+    <span class="cm">// Duyệt coin trước → combination (không xét thứ tự)</span>
+    <span class="kw">for</span> _, coin := <span class="kw">range</span> coins {
+        <span class="kw">for</span> i := coin; i &lt;= amount; i++ {
+            dp[i] += dp[i-coin]
+        }
+    }
+    <span class="kw">return</span> dp[amount]
+}
+
+<span class="cm">// CoinChangePermutations: Số cách đổi có xét thứ tự
+// Duyệt amount trước → permutation</span>
+<span class="kw">func</span> <span class="fn">CoinChangePerms</span>(coins []<span class="ty">int</span>, amount <span class="ty">int</span>) <span class="ty">int</span> {
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, amount+<span class="num">1</span>)
+    dp[<span class="num">0</span>] = <span class="num">1</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= amount; i++ {
+        <span class="kw">for</span> _, coin := <span class="kw">range</span> coins {
+            <span class="kw">if</span> i >= coin {
+                dp[i] += dp[i-coin]
+            }
+        }
+    }
+    <span class="kw">return</span> dp[amount]
+}
+
+<span class="cm">// TraceCoins: Tìm lại danh sách coin được chọn</span>
+<span class="kw">func</span> <span class="fn">TraceCoins</span>(coins []<span class="ty">int</span>, amount <span class="ty">int</span>) []<span class="ty">int</span> {
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, amount+<span class="num">1</span>)
+    from := <span class="fn">make</span>([]<span class="ty">int</span>, amount+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= amount; i++ {
+        dp[i] = math.<span class="ty">MaxInt32</span>
+    }
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= amount; i++ {
+        <span class="kw">for</span> _, coin := <span class="kw">range</span> coins {
+            <span class="kw">if</span> coin &lt;= i && dp[i-coin]+<span class="num">1</span> &lt; dp[i] {
+                dp[i] = dp[i-coin] + <span class="num">1</span>
+                from[i] = coin
+            }
+        }
+    }
+    <span class="kw">var</span> result []<span class="ty">int</span>
+    <span class="kw">for</span> amount > <span class="num">0</span> {
+        result = <span class="fn">append</span>(result, from[amount])
+        amount -= from[amount]
+    }
+    <span class="kw">return</span> result
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== HOUSE ROBBER ===================== -->
+<section id="robber" class="section">
+  <div class="topic-header">
+    <div class="topic-number">06</div>
+    <div>
+      <div class="topic-title">House Robber</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-intermediate">⭐ Intermediate</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Dãy nhà có giá trị nums[i]. Không được cướp hai nhà liền kề. Tìm tổng tiền tối đa. Biến thể: <strong>House Robber II</strong> (nhà xếp thành vòng tròn), <strong>House Robber III</strong> (nhà xếp thành cây nhị phân — Tree DP).</p>
+  </div>
+
+  <div class="formula-box">
+    dp[i] = max(dp[i-1], dp[i-2] + nums[i])
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">house_robber.go</span>
+      <span class="code-header level-tag level-expert">Expert — I, II, III (Tree DP)</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">houserobber</span>
+
+<span class="cm">// === HOUSE ROBBER I: Dãy thẳng ===</span>
+<span class="kw">func</span> <span class="fn">Rob</span>(nums []<span class="ty">int</span>) <span class="ty">int</span> {
+    n := <span class="fn">len</span>(nums)
+    <span class="kw">if</span> n == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    <span class="kw">if</span> n == <span class="num">1</span> { <span class="kw">return</span> nums[<span class="num">0</span>] }
+    <span class="cm">// Space O(1): chỉ cần prev2, prev1</span>
+    prev2, prev1 := nums[<span class="num">0</span>], <span class="fn">max</span>(nums[<span class="num">0</span>], nums[<span class="num">1</span>])
+    <span class="kw">for</span> i := <span class="num">2</span>; i &lt; n; i++ {
+        curr := <span class="fn">max</span>(prev1, prev2+nums[i])
+        prev2, prev1 = prev1, curr
+    }
+    <span class="kw">return</span> prev1
+}
+
+<span class="cm">// === HOUSE ROBBER II: Vòng tròn ===
+// Nhà đầu và cuối liền kề → chia thành 2 bài toán linear</span>
+<span class="kw">func</span> <span class="fn">RobCircular</span>(nums []<span class="ty">int</span>) <span class="ty">int</span> {
+    n := <span class="fn">len</span>(nums)
+    <span class="kw">if</span> n == <span class="num">1</span> { <span class="kw">return</span> nums[<span class="num">0</span>] }
+    <span class="cm">// Case 1: Không lấy nhà cuối [0..n-2]
+    // Case 2: Không lấy nhà đầu [1..n-1]</span>
+    <span class="kw">return</span> <span class="fn">max</span>(<span class="fn">robRange</span>(nums, <span class="num">0</span>, n-<span class="num">2</span>),
+                <span class="fn">robRange</span>(nums, <span class="num">1</span>, n-<span class="num">1</span>))
+}
+
+<span class="kw">func</span> <span class="fn">robRange</span>(nums []<span class="ty">int</span>, lo, hi <span class="ty">int</span>) <span class="ty">int</span> {
+    prev2, prev1 := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := lo; i &lt;= hi; i++ {
+        prev2, prev1 = prev1, <span class="fn">max</span>(prev1, prev2+nums[i])
+    }
+    <span class="kw">return</span> prev1
+}
+
+<span class="cm">// === HOUSE ROBBER III: Tree DP ===
+// Nhà xếp thành cây, không cướp node cha và con cùng lúc</span>
+<span class="kw">type</span> <span class="ty">TreeNode</span> <span class="kw">struct</span> {
+    Val   <span class="ty">int</span>
+    Left  *<span class="ty">TreeNode</span>
+    Right *<span class="ty">TreeNode</span>
+}
+
+<span class="cm">// robTree trả về [maxWithRoot, maxWithoutRoot]</span>
+<span class="kw">func</span> <span class="fn">robTree</span>(node *<span class="ty">TreeNode</span>) (<span class="ty">int</span>, <span class="ty">int</span>) {
+    <span class="kw">if</span> node == <span class="kw">nil</span> { <span class="kw">return</span> <span class="num">0</span>, <span class="num">0</span> }
+
+    leftWith, leftWithout := <span class="fn">robTree</span>(node.Left)
+    rightWith, rightWithout := <span class="fn">robTree</span>(node.Right)
+
+    <span class="cm">// Lấy node này: không lấy con trực tiếp</span>
+    withRoot := node.Val + leftWithout + rightWithout
+    <span class="cm">// Không lấy node này: con có thể lấy hoặc không</span>
+    withoutRoot := <span class="fn">max</span>(leftWith, leftWithout) +
+                   <span class="fn">max</span>(rightWith, rightWithout)
+
+    <span class="kw">return</span> withRoot, withoutRoot
+}
+
+<span class="kw">func</span> <span class="fn">RobTree</span>(root *<span class="ty">TreeNode</span>) <span class="ty">int</span> {
+    withRoot, withoutRoot := <span class="fn">robTree</span>(root)
+    <span class="kw">return</span> <span class="fn">max</span>(withRoot, withoutRoot)
+}</pre>
+  </div>
+
+  <div class="alert alert-tip">
+    <strong>💡 Tree DP Pattern</strong>
+    House Robber III là ví dụ kinh điển của Tree DP: mỗi node trả về tuple (lấy node này, không lấy node này), quyết định được đưa ra tại từng node dựa trên kết quả con.
+  </div>
+</section>
+
+<!-- ===================== PALINDROME ===================== -->
+<section id="palindrome" class="section">
+  <div class="topic-header">
+    <div class="topic-number">07</div>
+    <div>
+      <div class="topic-title">Palindrome DP</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-expert">⭐⭐⭐ Expert</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Các bài toán liên quan đến Palindrome: <strong>LPS</strong> (Longest Palindromic Subsequence), <strong>LPSubstring</strong> (Longest Palindromic Substring), <strong>Palindrome Partitioning</strong> (chia chuỗi thành ít phần palindrome nhất). Đây là Interval DP với dp[i][j] biểu diễn đoạn [i, j].</p>
+  </div>
+
+  <div class="formula-box">
+    isPalin[i][j] = (s[i]==s[j]) && isPalin[i+1][j-1]<br>
+    LPS: dp[i][j] = dp[i+1][j-1]+2 nếu s[i]==s[j], else max(dp[i+1][j], dp[i][j-1])
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">palindrome_dp.go</span>
+      <span class="code-header level-tag level-expert">Expert — LPS + LPSubstring + Partitioning</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">palindrome</span>
+
+<span class="cm">// === 1. Longest Palindromic Subsequence (LPS) ===
+// dp[i][j] = độ dài LPS trong s[i..j]</span>
+<span class="kw">func</span> <span class="fn">LPS</span>(s <span class="ty">string</span>) <span class="ty">int</span> {
+    n := <span class="fn">len</span>(s)
+    dp := <span class="fn">make</span>([][]<span class="ty">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp {
+        dp[i] = <span class="fn">make</span>([]<span class="ty">int</span>, n)
+        dp[i][i] = <span class="num">1</span> <span class="cm">// 1 ký tự là palindrome</span>
+    }
+    <span class="kw">for</span> length := <span class="num">2</span>; length &lt;= n; length++ {
+        <span class="kw">for</span> i := <span class="num">0</span>; i &lt;= n-length; i++ {
+            j := i + length - <span class="num">1</span>
+            <span class="kw">if</span> s[i] == s[j] && length == <span class="num">2</span> {
+                dp[i][j] = <span class="num">2</span>
+            } <span class="kw">else if</span> s[i] == s[j] {
+                dp[i][j] = dp[i+<span class="num">1</span>][j-<span class="num">1</span>] + <span class="num">2</span>
+            } <span class="kw">else</span> {
+                dp[i][j] = <span class="fn">max</span>(dp[i+<span class="num">1</span>][j], dp[i][j-<span class="num">1</span>])
+            }
+        }
+    }
+    <span class="kw">return</span> dp[<span class="num">0</span>][n-<span class="num">1</span>]
+}
+
+<span class="cm">// === 2. Longest Palindromic Substring — Manacher's O(n) ===
+// Thuật toán Manacher: tìm LPSubstring trong O(n) thay vì O(n²)</span>
+<span class="kw">func</span> <span class="fn">LongestPalindromicSubstring</span>(s <span class="ty">string</span>) <span class="ty">string</span> {
+    <span class="cm">// Transform: "abc" → "#a#b#c#" để xử lý even/odd đồng nhất</span>
+    t := <span class="fn">transform</span>(s)
+    n := <span class="fn">len</span>(t)
+    p := <span class="fn">make</span>([]<span class="ty">int</span>, n) <span class="cm">// p[i] = radius của palindrome tại i</span>
+    c, r := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ {
+        mirror := <span class="num">2</span>*c - i
+        <span class="kw">if</span> i &lt; r { p[i] = <span class="fn">min</span>(r-i, p[mirror]) }
+        <span class="kw">for</span> i+p[i]+<span class="num">1</span> &lt; n && i-p[i]-<span class="num">1</span> >= <span class="num">0</span> &&
+            t[i+p[i]+<span class="num">1</span>] == t[i-p[i]-<span class="num">1</span>] {
+            p[i]++
+        }
+        <span class="kw">if</span> i+p[i] > r { c, r = i, i+p[i] }
+    }
+    maxLen, center := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i, v := <span class="kw">range</span> p {
+        <span class="kw">if</span> v > maxLen { maxLen, center = v, i }
+    }
+    start := (center - maxLen) / <span class="num">2</span>
+    <span class="kw">return</span> s[start : start+maxLen]
+}
+
+<span class="kw">func</span> <span class="fn">transform</span>(s <span class="ty">string</span>) <span class="ty">string</span> {
+    t := []<span class="ty">byte</span>{<span class="str">'#'</span>}
+    <span class="kw">for</span> _, c := <span class="kw">range</span> []<span class="ty">byte</span>(s) {
+        t = <span class="fn">append</span>(t, c, <span class="str">'#'</span>)
+    }
+    <span class="kw">return</span> <span class="ty">string</span>(t)
+}
+
+<span class="cm">// === 3. Palindrome Partitioning II (Min Cuts) ===
+// dp[i] = số lần cắt tối thiểu cho s[0..i]</span>
+<span class="kw">func</span> <span class="fn">MinCutPalindrome</span>(s <span class="ty">string</span>) <span class="ty">int</span> {
+    n := <span class="fn">len</span>(s)
+    isPalin := <span class="fn">make</span>([][]<span class="ty">bool</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> isPalin {
+        isPalin[i] = <span class="fn">make</span>([]<span class="ty">bool</span>, n)
+    }
+    <span class="cm">// Precompute isPalin[i][j]</span>
+    <span class="kw">for</span> i := n - <span class="num">1</span>; i >= <span class="num">0</span>; i-- {
+        <span class="kw">for</span> j := i; j &lt; n; j++ {
+            isPalin[i][j] = s[i] == s[j] &&
+                (j-i &lt;= <span class="num">2</span> || isPalin[i+<span class="num">1</span>][j-<span class="num">1</span>])
+        }
+    }
+    dp := <span class="fn">make</span>([]<span class="ty">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = i } <span class="cm">// max cuts = i</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        <span class="kw">if</span> isPalin[<span class="num">0</span>][i] { dp[i] = <span class="num">0</span>; <span class="kw">continue</span> }
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= i; j++ {
+            <span class="kw">if</span> isPalin[j][i] {
+                dp[i] = <span class="fn">min</span>(dp[i], dp[j-<span class="num">1</span>]+<span class="num">1</span>)
+            }
+        }
+    }
+    <span class="kw">return</span> dp[n-<span class="num">1</span>]
+}</pre>
+  </div>
+</section>
+
+<!-- ===================== LARGEST SQUARE ===================== -->
+<section id="square" class="section">
+  <div class="topic-header">
+    <div class="topic-number">08</div>
+    <div>
+      <div class="topic-title">Largest Square</div>
+      <div style="margin-top:6px">
+        <span class="badge badge-advanced">⭐⭐ Advanced</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Định nghĩa</h3>
+    <p>Cho ma trận nhị phân (0/1). Tìm hình vuông toàn số 1 lớn nhất. dp[i][j] = cạnh của hình vuông lớn nhất có góc dưới phải tại (i,j). Mở rộng: <strong>Largest Rectangle in Histogram</strong>, <strong>Maximal Rectangle</strong>.</p>
+  </div>
+
+  <div class="formula-box">
+    dp[i][j] = min(dp[i-1][j], dp[i][j-1], dp[i-1][j-1]) + 1 &nbsp;&nbsp;nếu matrix[i][j] == '1'
+  </div>
+
+  <h2 class="section-h2">Visualization: DP cho Largest Square</h2>
+  <div class="diagram-wrap">
+    <div class="diagram-title">Matrix Input → DP Table → Largest Square (3×3)</div>
+    <div style="display:flex; gap:40px; justify-content:center; flex-wrap:wrap">
+      <!-- Matrix -->
+      <div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;text-align:center">Input Matrix</div>
+        <table class="dp-vis-table">
+          <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+          <tr><td>1</td><td>0</td><td class="path">1</td><td class="path">1</td><td>1</td></tr>
+          <tr><td>1</td><td>1</td><td class="path">1</td><td class="path">1</td><td>1</td></tr>
+          <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+        </table>
+      </div>
+      <!-- DP Table -->
+      <div>
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:8px;text-align:center">DP Table</div>
+        <table class="dp-vis-table">
+          <tr><td>1</td><td>0</td><td>1</td><td>0</td><td>0</td></tr>
+          <tr><td>1</td><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+          <tr><td>1</td><td>1</td><td>1</td><td class="highlight" style="font-size:1rem">2</td><td class="highlight" style="font-size:1rem">2</td></tr>
+          <tr><td>1</td><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+        </table>
+      </div>
+    </div>
+    <p style="margin-top:12px;font-size:0.78rem;color:var(--muted)">dp[i][j]=2 nghĩa là có hình vuông 2×2 tại góc dưới phải (i,j) | Xanh lá = max value</p>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-header">
+      <span class="lang-tag">GO</span>
+      <span class="file-name">largest_square.go</span>
+      <span class="code-header level-tag level-expert">Expert — Maximal Square + Maximal Rectangle</span>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">largestsquare</span>
+
+<span class="cm">// === 1. Maximal Square (LeetCode 221) ===</span>
+<span class="kw">func</span> <span class="fn">MaximalSquare</span>(matrix [][]<span class="ty">byte</span>) <span class="ty">int</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(matrix) == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    m, n := <span class="fn">len</span>(matrix), <span class="fn">len</span>(matrix[<span class="num">0</span>])
+    dp := <span class="fn">make</span>([][]<span class="ty">int</span>, m+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = <span class="fn">make</span>([]<span class="ty">int</span>, n+<span class="num">1</span>) }
+
+    maxSide := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            <span class="kw">if</span> matrix[i-<span class="num">1</span>][j-<span class="num">1</span>] == <span class="str">'1'</span> {
+                dp[i][j] = <span class="fn">min</span>(
+                    dp[i-<span class="num">1</span>][j],
+                    dp[i][j-<span class="num">1</span>],
+                    dp[i-<span class="num">1</span>][j-<span class="num">1</span>],
+                ) + <span class="num">1</span>
+                <span class="kw">if</span> dp[i][j] > maxSide { maxSide = dp[i][j] }
+            }
+        }
+    }
+    <span class="kw">return</span> maxSide * maxSide
+}
+
+<span class="cm">// === 2. Maximal Rectangle (LeetCode 85) ===
+// Kết hợp DP + Monotone Stack: O(mn) time
+// Xem mỗi row là histogram, dùng Largest Rectangle in Histogram</span>
+<span class="kw">func</span> <span class="fn">MaximalRectangle</span>(matrix [][]<span class="ty">byte</span>) <span class="ty">int</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(matrix) == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span> }
+    m, n := <span class="fn">len</span>(matrix), <span class="fn">len</span>(matrix[<span class="num">0</span>])
+    heights := <span class="fn">make</span>([]<span class="ty">int</span>, n)
+    maxArea := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; m; i++ {
+        <span class="kw">for</span> j := <span class="num">0</span>; j &lt; n; j++ {
+            <span class="kw">if</span> matrix[i][j] == <span class="str">'1'</span> {
+                heights[j]++ <span class="cm">// Tích lũy chiều cao</span>
+            } <span class="kw">else</span> {
+                heights[j] = <span class="num">0</span> <span class="cm">// Reset khi gặp 0</span>
+            }
+        }
+        <span class="cm">// Largest Rectangle in Histogram cho mỗi row</span>
+        area := <span class="fn">largestInHistogram</span>(heights)
+        <span class="kw">if</span> area > maxArea { maxArea = area }
+    }
+    <span class="kw">return</span> maxArea
+}
+
+<span class="cm">// Largest Rectangle in Histogram — Monotone Stack O(n)</span>
+<span class="kw">func</span> <span class="fn">largestInHistogram</span>(heights []<span class="ty">int</span>) <span class="ty">int</span> {
+    stack := []<span class="ty">int</span>{-<span class="num">1</span>}
+    maxArea := <span class="num">0</span>
+    <span class="kw">for</span> i, h := <span class="kw">range</span> heights {
+        <span class="kw">for</span> stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] != -<span class="num">1</span> &&
+            heights[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]] >= h {
+            top := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            width := i - stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] - <span class="num">1</span>
+            maxArea = <span class="fn">max</span>(maxArea, heights[top]*width)
+        }
+        stack = <span class="fn">append</span>(stack, i)
+    }
+    n := <span class="fn">len</span>(heights)
+    <span class="kw">for</span> stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] != -<span class="num">1</span> {
+        top := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]
+        stack = stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+        width := n - stack[<span class="fn">len</span>(stack)-<span class="num">1</span>] - <span class="num">1</span>
+        maxArea = <span class="fn">max</span>(maxArea, heights[top]*width)
+    }
+    <span class="kw">return</span> maxArea
+}
+
+<span class="cm">// === 3. Count Square Submatrices (LeetCode 1277) ===
+// Đếm tổng số hình vuông (không chỉ lớn nhất)</span>
+<span class="kw">func</span> <span class="fn">CountSquares</span>(matrix [][]<span class="ty">int</span>) <span class="ty">int</span> {
+    total := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> matrix {
+        <span class="kw">for</span> j := <span class="kw">range</span> matrix[i] {
+            <span class="kw">if</span> matrix[i][j] > <span class="num">0</span> && i > <span class="num">0</span> && j > <span class="num">0</span> {
+                matrix[i][j] = <span class="fn">min</span>(
+                    matrix[i-<span class="num">1</span>][j],
+                    matrix[i][j-<span class="num">1</span>],
+                    matrix[i-<span class="num">1</span>][j-<span class="num">1</span>],
+                ) + <span class="num">1</span>
+            }
+            total += matrix[i][j] <span class="cm">// dp[i][j] = số hình vuông kết thúc tại đây</span>
+        }
+    }
+    <span class="kw">return</span> total
+}</pre>
+  </div>
+
+  <div class="alert alert-tip">
+    <strong>💡 Key Insight — min của 3 neighbor</strong>
+    dp[i][j] = min(trên, trái, trên-trái) + 1 vì: hình vuông k×k tại (i,j) cần hình vuông (k-1)×(k-1) tại cả 3 góc còn lại. Nếu một trong 3 < k-1, không thể mở rộng thêm.
+  </div>
+</section>
+
+<!-- ===================== REFERENCES ===================== -->
+<section id="references" class="section">
+  <div class="topic-header">
+    <div class="topic-number" style="background: linear-gradient(135deg, #eab308, #f97316)">📚</div>
+    <div><div class="topic-title">References & Tài liệu tham khảo</div></div>
+  </div>
+
+  <div class="concept-box">
+    <h3>📌 Tổng hợp tài liệu chất lượng cao</h3>
+    <p>Các tài nguyên được chọn lọc từ cộng đồng Go, Competitive Programming và Giáo trình Đại học uy tín nhất để học Dynamic Programming hiệu quả nhất.</p>
+  </div>
+
+  <h2 class="section-h2">📘 Sách & Giáo trình</h2>
+  <div class="ref-grid">
+    <a class="ref-card" href="https://mitpress.mit.edu/9780262046305/" target="_blank">
+      <div class="ref-source">MIT Press</div>
+      <h4>Introduction to Algorithms (CLRS 4th Ed)</h4>
+      <p>Chương 14-15 bao gồm DP hoàn chỉnh: Rod Cutting, Matrix Chain, LCS, Optimal BST. Chuẩn học thuật số 1 thế giới.</p>
+      <div class="stars">★★★★★ 5.0</div>
+    </a>
+    <a class="ref-card" href="https://cp-algorithms.com/dynamic_programming/intro-to-dp.html" target="_blank">
+      <div class="ref-source">cp-algorithms.com</div>
+      <h4>CP Algorithms — Dynamic Programming</h4>
+      <p>Tài liệu competitive programming tốt nhất, bao gồm DP nâng cao: Bitmask DP, DP on Trees, Divide and Conquer DP Optimization.</p>
+      <div class="stars">★★★★★ 5.0</div>
+    </a>
+    <a class="ref-card" href="https://web.stanford.edu/class/cs161/schedule.html" target="_blank">
+      <div class="ref-source">Stanford CS161</div>
+      <h4>Design and Analysis of Algorithms</h4>
+      <p>Slide và lecture notes của Stanford về DP với proof và complexity analysis chi tiết.</p>
+      <div class="stars">★★★★★ 5.0</div>
+    </a>
+  </div>
+
+  <h2 class="section-h2">🐙 GitHub Repositories</h2>
+  <div class="ref-grid">
+    <a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+      <div class="ref-source">GitHub · TheAlgorithms</div>
+      <h4>TheAlgorithms/Go</h4>
+      <p>Collection đầy đủ nhất về thuật toán Go, bao gồm DP, Graph, Sorting. Code chuẩn, có test đầy đủ. ⭐ 16k+ stars.</p>
+      <div class="stars">★★★★★ 16k+ ⭐</div>
+    </a>
+    <a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+      <div class="ref-source">GitHub · halfrost</div>
+      <h4>halfrost/LeetCode-Go</h4>
+      <p>Tất cả LeetCode problems giải bằng Go, organized by topic. Có solution explanation và complexity analysis. ⭐ 32k+ stars.</p>
+      <div class="stars">★★★★★ 32k+ ⭐</div>
+    </a>
+    <a class="ref-card" href="https://github.com/aQuaYi/LeetCode-in-Go" target="_blank">
+      <div class="ref-source">GitHub · aQuaYi</div>
+      <h4>aQuaYi/LeetCode-in-Go</h4>
+      <p>Giải LeetCode hoàn toàn bằng Go với explanation chi tiết. Focus vào idiomatic Go và performance.</p>
+      <div class="stars">★★★★☆ 2.8k+ ⭐</div>
+    </a>
+    <a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
+      <div class="ref-source">GitHub · labuladong</div>
+      <h4>labuladong/fucking-algorithm</h4>
+      <p>Giải thích pattern DP cực kỳ trực quan (Song/English). Framework tư duy DP mạnh nhất cho người học. ⭐ 124k+ stars.</p>
+      <div class="stars">★★★★★ 124k+ ⭐</div>
+    </a>
+  </div>
+
+  <h2 class="section-h2">🌐 Online Platforms & Courses</h2>
+  <div class="ref-grid">
+    <a class="ref-card" href="https://leetcode.com/tag/dynamic-programming/" target="_blank">
+      <div class="ref-source">LeetCode</div>
+      <h4>LeetCode — Dynamic Programming</h4>
+      <p>2500+ bài DP với difficulty từ Easy → Hard. NeetCode 150 DP list là lộ trình tốt nhất để luyện.</p>
+      <div class="stars">★★★★★ Practice #1</div>
+    </a>
+    <a class="ref-card" href="https://atcoder.jp/contests/dp" target="_blank">
+      <div class="ref-source">AtCoder</div>
+      <h4>AtCoder DP Contest</h4>
+      <p>26 bài DP mẫu cực hay, cover toàn bộ các pattern: Linear, Knapsack, LCS, Interval, Tree, Digit DP, Bitmask DP.</p>
+      <div class="stars">★★★★★ Competitive</div>
+    </a>
+    <a class="ref-card" href="https://go.dev/doc/effective_go" target="_blank">
+      <div class="ref-source">golang.org</div>
+      <h4>Effective Go</h4>
+      <p>Official Go guide để viết idiomatic Go code. Kết hợp với DP patterns để tạo production-grade implementations.</p>
+      <div class="stars">★★★★★ Official</div>
+    </a>
+    <a class="ref-card" href="https://neetcode.io/roadmap" target="_blank">
+      <div class="ref-source">NeetCode.io</div>
+      <h4>NeetCode DP Roadmap</h4>
+      <p>Lộ trình học DP có hệ thống nhất: 1D DP → 2D DP → Knapsack → LCS → Intervals → Bitmask. Có video giải thích từng bài.</p>
+      <div class="stars">★★★★★ Best Roadmap</div>
+    </a>
+  </div>
+
+  <h2 class="section-h2">📊 So sánh tổng hợp các kỹ thuật</h2>
+  <table class="dp-table">
+    <thead>
+      <tr>
+        <th>Bài toán</th>
+        <th>Pattern</th>
+        <th>Time</th>
+        <th>Space (Opt)</th>
+        <th>Difficulty</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Fibonacci</td>
+        <td>Linear DP</td>
+        <td>O(n) / O(log n)*</td>
+        <td>O(1)</td>
+        <td style="color:var(--yellow)">★ Intermediate</td>
+      </tr>
+      <tr>
+        <td>LCS</td>
+        <td>Sequence DP</td>
+        <td>O(mn)</td>
+        <td>O(min(m,n))</td>
+        <td style="color:var(--orange)">★★ Advanced</td>
+      </tr>
+      <tr>
+        <td>0/1 Knapsack</td>
+        <td>Knapsack DP</td>
+        <td>O(nW)</td>
+        <td>O(W)</td>
+        <td style="color:var(--orange)">★★ Advanced</td>
+      </tr>
+      <tr>
+        <td>Matrix Chain</td>
+        <td>Interval DP</td>
+        <td>O(n³)</td>
+        <td>O(n²)</td>
+        <td style="color:var(--purple)">★★★ Expert</td>
+      </tr>
+      <tr>
+        <td>Coin Change</td>
+        <td>Unbounded Knapsack</td>
+        <td>O(nW)</td>
+        <td>O(W)</td>
+        <td style="color:var(--yellow)">★ Intermediate</td>
+      </tr>
+      <tr>
+        <td>House Robber III</td>
+        <td>Tree DP</td>
+        <td>O(n)</td>
+        <td>O(h)</td>
+        <td style="color:var(--purple)">★★★ Expert</td>
+      </tr>
+      <tr>
+        <td>LPS + Min Cut</td>
+        <td>Interval DP</td>
+        <td>O(n²)</td>
+        <td>O(n²)</td>
+        <td style="color:var(--purple)">★★★ Expert</td>
+      </tr>
+      <tr>
+        <td>Maximal Rectangle</td>
+        <td>Grid DP + Stack</td>
+        <td>O(mn)</td>
+        <td>O(n)</td>
+        <td style="color:var(--orange)">★★ Advanced</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:0.75rem;color:var(--muted)">* Fibonacci với Matrix Exponentiation đạt O(log n)</p>
+
+  <div class="alert alert-tip">
+    <strong>🗺️ Lộ trình học đề xuất</strong>
+    Fibonacci (nắm vững Memo vs Table) → Coin Change (Unbounded Knapsack) → House Robber (1D DP) → LCS (2D Sequence DP) → Knapsack (0/1) → Largest Square (Grid DP) → Palindrome DP (Interval DP) → Matrix Chain (Interval DP nâng cao). Sau đó: AtCoder DP Contest để luyện tổng hợp.
+  </div>
+</section>
+
+</main>
+
+<script>
+function showSection(id) {
+  if (window.event) window.event.preventDefault();
+  // Hide all sections
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('#sidebar a').forEach(a => a.classList.remove('active'));
+  document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+
+  // Show target section
+  const el = document.getElementById(id);
+  if (el) el.classList.add('active');
+
+  // Activate nav
+  const navEl = document.getElementById('nav-' + id);
+  if (navEl) navEl.classList.add('active');
+
+  // Activate top tab
+  document.querySelectorAll('.top-tab').forEach(t => {
+    if (t.getAttribute('onclick') && t.getAttribute('onclick').includes(id)) {
+      t.classList.add('active');
+    }
+  });
+
+  window.scrollTo(0, 0);
+  return false;
+}
+
+// Highlight active section on load
+document.addEventListener('DOMContentLoaded', () => {
+  showSection('intro');
+});
+</script>
+</body>
+</html>
