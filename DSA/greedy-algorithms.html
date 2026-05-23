@@ -165,6 +165,24 @@
   .step-content { flex: 1; }
   .step-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
   .step-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+
+  /* ── CONCEPT ILLUSTRATIONS ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(0,255,136,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    background: var(--bg-card); padding: 12px;
+    transition: all 0.3s ease;
+  }
+  .concept-img-wrapper:hover {
+    transform: scale(1.01);
+    border-color: rgba(0,255,136,0.5);
+    box-shadow: 0 8px 30px rgba(0,255,136,0.2);
+  }
+  .concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .concept-img-caption {
+    text-align: center; font-size: 13px; color: var(--text-secondary);
+    margin-top: 10px; font-style: italic; line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -246,6 +264,11 @@
     <p class="prose">
       Khác với <strong>Dynamic Programming</strong> (tính tất cả trạng thái), Greedy ra quyết định ngay và không xem xét lại — thường có <strong>độ phức tạp thấp hơn</strong>, nhưng không phải bài toán nào cũng dùng được Greedy.
     </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/greedy_hero.png" alt="Greedy Algorithms Local Optimization">
+    <div class="concept-img-caption">Hình 1.1: Nguyên lý hoạt động của Greedy Algorithms — Lựa chọn tối ưu cục bộ (locally optimal) dẫn đến giải pháp tối ưu toàn cục (globally optimal)</div>
   </div>
 
   <div class="diagram-container">
@@ -450,6 +473,11 @@
     <div class="title">Interval Scheduling</div>
     <p class="prose">Cho <code>n</code> khoảng thời gian, mỗi khoảng có <code>[start, end]</code>. Tìm <strong>số lượng tối đa</strong> các khoảng không chồng lắp nhau (non-overlapping intervals) có thể chọn.</p>
     <p class="prose"><strong>Greedy insight:</strong> Luôn chọn khoảng <strong>kết thúc sớm nhất</strong> (earliest finish time). Bằng cách này ta "giải phóng" thời gian sớm nhất cho các khoảng tiếp theo — đây là Exchange Argument chứng minh tính đúng đắn.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/greedy_intervals.png" alt="Interval Scheduling Selection">
+    <div class="concept-img-caption">Hình 1.2: Thuật toán Interval Scheduling — Sắp xếp theo end time tăng dần và lần lượt chọn các khoảng không chồng lắp</div>
   </div>
 
   <div class="complexity-box">

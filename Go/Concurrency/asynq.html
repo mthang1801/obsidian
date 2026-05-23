@@ -404,6 +404,11 @@
     </p>
   </div>
 
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/asynq_hero.png" alt="Asynq Background Task Queue System Architecture">
+    <div class="concept-img-caption">Hình 2.1: Kiến trúc tổng quan hệ thống Asynq — Client (Producers) đưa tác vụ nền vào Redis Task Queue, các Worker chạy song song kéo tác vụ và thực thi bất đồng bộ</div>
+  </div>
+
   <!-- Architecture Diagram -->
   <div class="diagram-container">
     <div class="diagram-title">Asynq — Kiến trúc tổng quan: Producer → Redis → Worker</div>
@@ -1288,6 +1293,11 @@ go install github.com/hibiken/asynqmon@latest</pre>
       <div class="section-subtitle">Xử lý lỗi, exponential backoff, và Dead Letter Queue</div>
     </div>
     <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="concept-img-wrapper" style="border-color: rgba(245,158,11,0.25);">
+    <img src="../../public/images/asynq_retry_lifecycle.png" alt="Redis Background Task State Machine and Retry Lifecycle">
+    <div class="concept-img-caption">Hình 2.2: Vòng đời nhiệm vụ và cơ chế Retry trong Redis — Khi lỗi xảy ra, Asynq áp dụng Exponential Backoff để thử lại; nếu vượt quá số lần tối đa, tác vụ sẽ chuyển sang Dead Letter Queue (DLQ)</div>
   </div>
 
   <div class="code-block">

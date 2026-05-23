@@ -138,6 +138,24 @@
   .divider{border:none;border-top:1px solid var(--border);margin:32px 0;}
   /* ── UML BOX ── */
   .uml-box{rx:6;}
+  
+  /* ── CONCEPT ILLUSTRATIONS ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(168,85,247,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    background: var(--bg-card); padding: 12px;
+    transition: all 0.3s ease;
+  }
+  .concept-img-wrapper:hover {
+    transform: scale(1.01);
+    border-color: rgba(168,85,247,0.5);
+    box-shadow: 0 8px 30px rgba(168,85,247,0.2);
+  }
+  .concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .concept-img-caption {
+    text-align: center; font-size: 13px; color: var(--text-secondary);
+    margin-top: 10px; font-style: italic; line-height: 1.5;
+  }
 </style>
 </head>
 <body>
@@ -206,6 +224,11 @@
     <div class="ttl">Mẫu thiết kế hành vi — Giao tiếp giữa các đối tượng</div>
     <p class="prose"><strong>Behavioral Patterns</strong> tập trung vào <em>cách các đối tượng giao tiếp</em> và phân phối trách nhiệm. Không quan tâm đến cách tạo ra object (Creational) hay cấu trúc (Structural), mà quan tâm đến <strong>flow của dữ liệu, logic, và control</strong> giữa các components. Trong Go, behavioral patterns thường được hiện thực qua <strong>interface + function type</strong> thay vì class inheritance.</p>
     <p class="prose">Go không có class, không có kế thừa — nhưng <strong>composition + interface</strong> làm cho behavioral patterns <em>thậm chí còn clean hơn</em> so với Java/C++.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/behavioral_hero.png" alt="Go Behavioral Design Patterns Hub Architecture">
+    <div class="concept-img-caption">Hình 3.1: Kiến trúc bản đồ 10 mẫu thiết kế hành vi trong Go — Phân tách trách nhiệm, đóng gói hành vi và tối ưu giao tiếp giữa các thành phần</div>
   </div>
 
   <div class="diagram">
