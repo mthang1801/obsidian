@@ -13,10 +13,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/goroutines-guide.html"
+                "file": "DSA/tree.html"
               },
               "icon": "lucide-file",
-              "title": "goroutines-guide"
+              "title": "tree"
             }
           }
         ]
@@ -178,7 +178,8 @@
       }
     ],
     "direction": "horizontal",
-    "width": 300
+    "width": 300,
+    "collapsed": true
   },
   "left-ribbon": {
     "hiddenItems": {
@@ -194,32 +195,35 @@
   },
   "active": "2d4a11c20cfa0381",
   "lastOpenFiles": [
-    "Go/Concurrency/🎯 Roadmap Go Concurrency.md",
-    "Go/Concurrency/asynq.html",
-    "public/images/asynq_retry_lifecycle.png",
-    "public/images/greedy_hero.png",
-    "public/images/goroutines_hero.png",
-    "public/images/asynq_hero.png",
-    "public/images/behavioral_hero.png",
-    "Design Pattern/behavioral-patterns-go.html",
-    "Design Pattern",
+    "DSA/string.html",
+    "DSA/sorting.html",
+    "DSA/searching.html",
+    "DSA/important-algorithms.html",
     "DSA/greedy-algorithms.html",
-    "DSA/greedy-algorithms-guide.html",
-    "Glosarry/AI glossary.md",
-    "LeetCode/section-2.html",
-    "LeetCode/section-1.html",
+    "DSA/graph-algorithms.html",
+    "DSA/dsa-patterns-go.html",
+    "Screencast_20260524_065246.webm",
+    "DSA/🎯 Overview DSA.md",
+    "Design Pattern/behavioral-patterns-go.html",
     "LeetCode/section-3.html",
-    "Go/Concurrency/goroutines-guide.html",
-    "Go/Concurrency/goroutines-guide(2).html",
-    "public/images/buy_sell_stock.png",
-    "public/images/design.png",
-    "public/images/matrix.png",
-    "public/images/heap_priority_queue.png",
-    "public/images/bit_manipulation.png",
+    "LeetCode/section-2.html",
+    "public/images/visitor.png",
+    "public/images/memento.png",
+    "public/images/mediator.png",
+    "public/images/chain.png",
+    "public/images/iterator.png",
+    "public/images/state.png",
+    "public/images/template.png",
+    "public/images/command.png",
+    "public/images/observer.png",
+    "public/images/strategy.png",
+    "Go/Concurrency/🎯 Overview Go Concurrency.md",
+    "Untitled.canvas",
+    "Go/Basics/Untitled.md",
+    "Glosarry/AI glossary.md",
     "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",
     "Diagram/Flowchart/Pattern 1 — Business Logic Flow (Pro).md",
     "2026-05-22.md",
-    "Untitled.canvas",
     "LENDING/2026-04-24.md",
     "Go/Concurrency/🎯 Roadmap Học Tập Go Concurrency (Từ Dễ → Khó).md",
     "go-channels-guilde.html.md",

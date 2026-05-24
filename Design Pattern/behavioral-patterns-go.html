@@ -45,6 +45,10 @@
   /* ── SECTIONS ── */
   .page-section{display:none;}
   .page-section.active{display:block;}
+  a.nav-item, a.tnav{text-decoration:none;color:inherit;outline:none;}
+  /* Fallback Pure CSS Router (Obsidian & Scriptless Environments) */
+  .page-section:target{display:block !important;}
+  body:has(.page-section:target) .page-section.active:not(:target){display:none !important;}
   /* ── HEADER ── */
   .sec-header{display:flex;align-items:center;gap:14px;margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--border);}
   .sec-num{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--c-purple),var(--c-pink));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
@@ -111,7 +115,12 @@
   .cp-s{background:rgba(168,85,247,.1);color:var(--c-purple);border:1px solid rgba(168,85,247,.2);}
   .cp-lbl{font-size:9px;font-weight:400;opacity:.7;display:block;}
   /* ── TAGS ── */
-  .tag{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:600;font-family:var(--font-mono);margin:2px;}
+  .tag{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:600;font-family:var(--font-mono);margin:2px;cursor:pointer;transition:all .15s;}
+  .tag:hover{transform:translateY(-1px);filter:brightness(1.2);box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+  .svg-node{cursor:pointer;}
+  .svg-node rect, .svg-node text{transition:all .2s ease;}
+  .svg-node:hover rect{stroke-width:1.8px;filter:brightness(1.25);stroke:rgba(168,85,247,0.8);}
+  .svg-node:hover text{filter:brightness(1.25);}
   .t-s{background:rgba(168,85,247,.1);color:var(--c-purple);border:1px solid rgba(168,85,247,.2);}
   .t-o{background:rgba(0,212,255,.1);color:var(--c-cyan);border:1px solid rgba(0,212,255,.2);}
   .t-c{background:rgba(245,158,11,.1);color:var(--c-amber);border:1px solid rgba(245,158,11,.2);}
@@ -171,41 +180,41 @@
   </div>
   <div class="nav-sec">
     <div class="nav-sec-title">Tổng quan</div>
-    <button class="nav-item active" onclick="show('intro')"><span class="ni">🏠</span>Giới thiệu</button>
+    <a href="#s-intro" class="nav-item active" data-target="intro" onclick="show('intro')"><span class="ni">🏠</span>Giới thiệu</a>
   </div>
   <div class="nav-sec">
     <div class="nav-sec-title">Behavioral Patterns</div>
-    <button class="nav-item" onclick="show('strategy')"><span class="ni">🎯</span>01 Strategy</button>
-    <button class="nav-item" onclick="show('observer')"><span class="ni">📡</span>02 Observer</button>
-    <button class="nav-item" onclick="show('command')"><span class="ni">📋</span>03 Command</button>
-    <button class="nav-item" onclick="show('template')"><span class="ni">🧩</span>04 Template Method</button>
-    <button class="nav-item" onclick="show('state')"><span class="ni">🔄</span>05 State</button>
-    <button class="nav-item" onclick="show('iterator')"><span class="ni">🔁</span>06 Iterator</button>
-    <button class="nav-item" onclick="show('chain')"><span class="ni">⛓️</span>07 Chain of Responsibility</button>
-    <button class="nav-item" onclick="show('mediator')"><span class="ni">🤝</span>08 Mediator</button>
-    <button class="nav-item" onclick="show('memento')"><span class="ni">💾</span>09 Memento</button>
-    <button class="nav-item" onclick="show('visitor')"><span class="ni">🚶</span>10 Visitor</button>
+    <a href="#s-strategy" class="nav-item" data-target="strategy" onclick="show('strategy')"><span class="ni">🎯</span>01 Strategy</a>
+    <a href="#s-observer" class="nav-item" data-target="observer" onclick="show('observer')"><span class="ni">📡</span>02 Observer</a>
+    <a href="#s-command" class="nav-item" data-target="command" onclick="show('command')"><span class="ni">📋</span>03 Command</a>
+    <a href="#s-template" class="nav-item" data-target="template" onclick="show('template')"><span class="ni">🧩</span>04 Template Method</a>
+    <a href="#s-state" class="nav-item" data-target="state" onclick="show('state')"><span class="ni">🔄</span>05 State</a>
+    <a href="#s-iterator" class="nav-item" data-target="iterator" onclick="show('iterator')"><span class="ni">🔁</span>06 Iterator</a>
+    <a href="#s-chain" class="nav-item" data-target="chain" onclick="show('chain')"><span class="ni">⛓️</span>07 Chain of Responsibility</a>
+    <a href="#s-mediator" class="nav-item" data-target="mediator" onclick="show('mediator')"><span class="ni">🤝</span>08 Mediator</a>
+    <a href="#s-memento" class="nav-item" data-target="memento" onclick="show('memento')"><span class="ni">💾</span>09 Memento</a>
+    <a href="#s-visitor" class="nav-item" data-target="visitor" onclick="show('visitor')"><span class="ni">🚶</span>10 Visitor</a>
   </div>
   <div class="nav-sec">
     <div class="nav-sec-title">Phụ lục</div>
-    <button class="nav-item" onclick="show('refs')"><span class="ni">📖</span>References</button>
+    <a href="#s-refs" class="nav-item" data-target="refs" onclick="show('refs')"><span class="ni">📖</span>References</a>
   </div>
 </nav>
 
 <!-- TOPNAV -->
 <nav id="topnav">
-  <button class="tnav active" onclick="show('intro')">Giới thiệu</button>
-  <button class="tnav" onclick="show('strategy')">Strategy</button>
-  <button class="tnav" onclick="show('observer')">Observer</button>
-  <button class="tnav" onclick="show('command')">Command</button>
-  <button class="tnav" onclick="show('template')">Template</button>
-  <button class="tnav" onclick="show('state')">State</button>
-  <button class="tnav" onclick="show('iterator')">Iterator</button>
-  <button class="tnav" onclick="show('chain')">Chain</button>
-  <button class="tnav" onclick="show('mediator')">Mediator</button>
-  <button class="tnav" onclick="show('memento')">Memento</button>
-  <button class="tnav" onclick="show('visitor')">Visitor</button>
-  <button class="tnav" onclick="show('refs')">References</button>
+  <a href="#s-intro" class="tnav active" data-target="intro" onclick="show('intro')">Giới thiệu</a>
+  <a href="#s-strategy" class="tnav" data-target="strategy" onclick="show('strategy')">Strategy</a>
+  <a href="#s-observer" class="tnav" data-target="observer" onclick="show('observer')">Observer</a>
+  <a href="#s-command" class="tnav" data-target="command" onclick="show('command')">Command</a>
+  <a href="#s-template" class="tnav" data-target="template" onclick="show('template')">Template</a>
+  <a href="#s-state" class="tnav" data-target="state" onclick="show('state')">State</a>
+  <a href="#s-iterator" class="tnav" data-target="iterator" onclick="show('iterator')">Iterator</a>
+  <a href="#s-chain" class="tnav" data-target="chain" onclick="show('chain')">Chain</a>
+  <a href="#s-mediator" class="tnav" data-target="mediator" onclick="show('mediator')">Mediator</a>
+  <a href="#s-memento" class="tnav" data-target="memento" onclick="show('memento')">Memento</a>
+  <a href="#s-visitor" class="tnav" data-target="visitor" onclick="show('visitor')">Visitor</a>
+  <a href="#s-refs" class="tnav" data-target="refs" onclick="show('refs')">References</a>
 </nav>
 
 <main id="main"><div class="content">
@@ -240,63 +249,83 @@
       <text x="410" y="202" text-anchor="middle" font-size="11" fill="#94a3b8">Patterns</text>
 
       <!-- Strategy -->
-      <rect x="30" y="20" width="130" height="44" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.35)" stroke-width="1.3"/>
-      <text x="95" y="38" text-anchor="middle" font-size="12" font-weight="600" fill="#00d4ff">🎯 Strategy</text>
-      <text x="95" y="53" text-anchor="middle" font-size="10" fill="#64748b">Đổi thuật toán runtime</text>
+      <g class="svg-node" data-target="strategy" onclick="show('strategy')">
+        <rect x="30" y="20" width="130" height="44" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.35)" stroke-width="1.3"/>
+        <text x="95" y="38" text-anchor="middle" font-size="12" font-weight="600" fill="#00d4ff">🎯 Strategy</text>
+        <text x="95" y="53" text-anchor="middle" font-size="10" fill="#64748b">Đổi thuật toán runtime</text>
+      </g>
       <line x1="160" y1="42" x2="342" y2="178" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Observer -->
-      <rect x="660" y="20" width="140" height="44" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.35)" stroke-width="1.3"/>
-      <text x="730" y="38" text-anchor="middle" font-size="12" font-weight="600" fill="#00d4ff">📡 Observer</text>
-      <text x="730" y="53" text-anchor="middle" font-size="10" fill="#64748b">Pub/Sub event</text>
+      <g class="svg-node" data-target="observer" onclick="show('observer')">
+        <rect x="660" y="20" width="140" height="44" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.35)" stroke-width="1.3"/>
+        <text x="730" y="38" text-anchor="middle" font-size="12" font-weight="600" fill="#00d4ff">📡 Observer</text>
+        <text x="730" y="53" text-anchor="middle" font-size="10" fill="#64748b">Pub/Sub event</text>
+      </g>
       <line x1="660" y1="42" x2="478" y2="178" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Command -->
-      <rect x="30" y="100" width="130" height="44" rx="8" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.35)" stroke-width="1.3"/>
-      <text x="95" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#f59e0b">📋 Command</text>
-      <text x="95" y="133" text-anchor="middle" font-size="10" fill="#64748b">Đóng gói yêu cầu</text>
+      <g class="svg-node" data-target="command" onclick="show('command')">
+        <rect x="30" y="100" width="130" height="44" rx="8" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.35)" stroke-width="1.3"/>
+        <text x="95" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#f59e0b">📋 Command</text>
+        <text x="95" y="133" text-anchor="middle" font-size="10" fill="#64748b">Đóng gói yêu cầu</text>
+      </g>
       <line x1="160" y1="122" x2="342" y2="185" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Template -->
-      <rect x="660" y="100" width="140" height="44" rx="8" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" stroke-width="1.3"/>
-      <text x="730" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#00ff88">🧩 Template</text>
-      <text x="730" y="133" text-anchor="middle" font-size="10" fill="#64748b">Khung thuật toán</text>
+      <g class="svg-node" data-target="template" onclick="show('template')">
+        <rect x="660" y="100" width="140" height="44" rx="8" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" stroke-width="1.3"/>
+        <text x="730" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#00ff88">🧩 Template</text>
+        <text x="730" y="133" text-anchor="middle" font-size="10" fill="#64748b">Khung thuật toán</text>
+      </g>
       <line x1="660" y1="122" x2="478" y2="185" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- State -->
-      <rect x="30" y="180" width="130" height="44" rx="8" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.3"/>
-      <text x="95" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#ff6b6b">🔄 State</text>
-      <text x="95" y="213" text-anchor="middle" font-size="10" fill="#64748b">Hành vi theo trạng thái</text>
+      <g class="svg-node" data-target="state" onclick="show('state')">
+        <rect x="30" y="180" width="130" height="44" rx="8" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1.3"/>
+        <text x="95" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#ff6b6b">🔄 State</text>
+        <text x="95" y="213" text-anchor="middle" font-size="10" fill="#64748b">Hành vi theo trạng thái</text>
+      </g>
       <line x1="160" y1="202" x2="342" y2="195" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Iterator -->
-      <rect x="660" y="180" width="140" height="44" rx="8" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.3)" stroke-width="1.3"/>
-      <text x="730" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#3b82f6">🔁 Iterator</text>
-      <text x="730" y="213" text-anchor="middle" font-size="10" fill="#64748b">Duyệt collection</text>
+      <g class="svg-node" data-target="iterator" onclick="show('iterator')">
+        <rect x="660" y="180" width="140" height="44" rx="8" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.3)" stroke-width="1.3"/>
+        <text x="730" y="198" text-anchor="middle" font-size="12" font-weight="600" fill="#3b82f6">🔁 Iterator</text>
+        <text x="730" y="213" text-anchor="middle" font-size="10" fill="#64748b">Duyệt collection</text>
+      </g>
       <line x1="660" y1="202" x2="478" y2="195" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Chain -->
-      <rect x="30" y="260" width="130" height="44" rx="8" fill="rgba(236,72,153,0.1)" stroke="rgba(236,72,153,0.3)" stroke-width="1.3"/>
-      <text x="95" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#ec4899">⛓️ Chain</text>
-      <text x="95" y="293" text-anchor="middle" font-size="10" fill="#64748b">Chuỗi xử lý</text>
+      <g class="svg-node" data-target="chain" onclick="show('chain')">
+        <rect x="30" y="260" width="130" height="44" rx="8" fill="rgba(236,72,153,0.1)" stroke="rgba(236,72,153,0.3)" stroke-width="1.3"/>
+        <text x="95" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#ec4899">⛓️ Chain</text>
+        <text x="95" y="293" text-anchor="middle" font-size="10" fill="#64748b">Chuỗi xử lý</text>
+      </g>
       <line x1="160" y1="282" x2="342" y2="205" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Mediator -->
-      <rect x="660" y="260" width="140" height="44" rx="8" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.3)" stroke-width="1.3"/>
-      <text x="730" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#2dd4bf">🤝 Mediator</text>
-      <text x="730" y="293" text-anchor="middle" font-size="10" fill="#64748b">Trung gian giao tiếp</text>
+      <g class="svg-node" data-target="mediator" onclick="show('mediator')">
+        <rect x="660" y="260" width="140" height="44" rx="8" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.3)" stroke-width="1.3"/>
+        <text x="730" y="278" text-anchor="middle" font-size="12" font-weight="600" fill="#2dd4bf">🤝 Mediator</text>
+        <text x="730" y="293" text-anchor="middle" font-size="10" fill="#64748b">Trung gian giao tiếp</text>
+      </g>
       <line x1="660" y1="282" x2="478" y2="205" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Memento -->
-      <rect x="200" y="330" width="130" height="44" rx="8" fill="rgba(251,191,36,0.1)" stroke="rgba(251,191,36,0.3)" stroke-width="1.3"/>
-      <text x="265" y="348" text-anchor="middle" font-size="12" font-weight="600" fill="#fbbf24">💾 Memento</text>
-      <text x="265" y="363" text-anchor="middle" font-size="10" fill="#64748b">Lưu/phục hồi state</text>
+      <g class="svg-node" data-target="memento" onclick="show('memento')">
+        <rect x="200" y="330" width="130" height="44" rx="8" fill="rgba(251,191,36,0.1)" stroke="rgba(251,191,36,0.3)" stroke-width="1.3"/>
+        <text x="265" y="348" text-anchor="middle" font-size="12" font-weight="600" fill="#fbbf24">💾 Memento</text>
+        <text x="265" y="363" text-anchor="middle" font-size="10" fill="#64748b">Lưu/phục hồi state</text>
+      </g>
       <line x1="330" y1="330" x2="390" y2="228" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
 
       <!-- Visitor -->
-      <rect x="490" y="330" width="130" height="44" rx="8" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.3)" stroke-width="1.3"/>
-      <text x="555" y="348" text-anchor="middle" font-size="12" font-weight="600" fill="#a78bfa">🚶 Visitor</text>
-      <text x="555" y="363" text-anchor="middle" font-size="10" fill="#64748b">Thao tác trên element</text>
+      <g class="svg-node" data-target="visitor" onclick="show('visitor')">
+        <rect x="490" y="330" width="130" height="44" rx="8" fill="rgba(167,139,250,0.1)" stroke="rgba(167,139,250,0.3)" stroke-width="1.3"/>
+        <text x="555" y="348" text-anchor="middle" font-size="12" font-weight="600" fill="#a78bfa">🚶 Visitor</text>
+        <text x="555" y="363" text-anchor="middle" font-size="10" fill="#64748b">Thao tác trên element</text>
+      </g>
       <line x1="490" y1="330" x2="430" y2="228" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
     </svg>
   </div>
@@ -305,16 +334,16 @@
   <table class="tbl">
     <thead><tr><th>Pattern</th><th>Bài toán giải quyết</th><th>Go idiom</th><th>Khi nào dùng</th></tr></thead>
     <tbody>
-      <tr><td><span class="tag t-s">Strategy</span></td><td>Đổi thuật toán tại runtime</td><td>Interface injection</td><td>Nhiều cách làm cùng 1 việc</td></tr>
-      <tr><td><span class="tag t-o">Observer</span></td><td>Notify nhiều subscriber khi state thay đổi</td><td>Func slice / channel</td><td>Event-driven, pub/sub</td></tr>
-      <tr><td><span class="tag t-c">Command</span></td><td>Đóng gói action thành object</td><td>Func type / struct</td><td>Undo/redo, queue, macro</td></tr>
-      <tr><td><span class="tag t-t">Template</span></td><td>Khung thuật toán, bước có thể override</td><td>Embedding + interface</td><td>Pipeline với bước cố định</td></tr>
-      <tr><td><span class="tag t-st">State</span></td><td>Hành vi thay đổi theo state nội tại</td><td>State interface</td><td>FSM, workflow</td></tr>
-      <tr><td><span class="tag t-it">Iterator</span></td><td>Duyệt collection không expose internal</td><td>Channel / closure</td><td>Custom collection traversal</td></tr>
-      <tr><td><span class="tag t-ch">Chain</span></td><td>Pass request qua chuỗi handler</td><td>Handler func chain</td><td>Middleware, validation pipeline</td></tr>
-      <tr><td><span class="tag t-me">Mediator</span></td><td>Giảm coupling giữa nhiều object</td><td>Central broker struct</td><td>Chat room, event broker</td></tr>
-      <tr><td><span class="tag t-c">Memento</span></td><td>Lưu/phục hồi state object</td><td>Snapshot struct</td><td>Undo/redo, checkpoint</td></tr>
-      <tr><td><span class="tag t-s">Visitor</span></td><td>Thêm operation mà không sửa class</td><td>Accept/Visit interface</td><td>AST processing, export</td></tr>
+      <tr><td><span class="tag t-s" data-target="strategy" onclick="show('strategy')">Strategy</span></td><td>Đổi thuật toán tại runtime</td><td>Interface injection</td><td>Nhiều cách làm cùng 1 việc</td></tr>
+      <tr><td><span class="tag t-o" data-target="observer" onclick="show('observer')">Observer</span></td><td>Notify nhiều subscriber khi state thay đổi</td><td>Func slice / channel</td><td>Event-driven, pub/sub</td></tr>
+      <tr><td><span class="tag t-c" data-target="command" onclick="show('command')">Command</span></td><td>Đóng gói action thành object</td><td>Func type / struct</td><td>Undo/redo, queue, macro</td></tr>
+      <tr><td><span class="tag t-t" data-target="template" onclick="show('template')">Template</span></td><td>Khung thuật toán, bước có thể override</td><td>Embedding + interface</td><td>Pipeline với bước cố định</td></tr>
+      <tr><td><span class="tag t-st" data-target="state" onclick="show('state')">State</span></td><td>Hành vi thay đổi theo state nội tại</td><td>State interface</td><td>FSM, workflow</td></tr>
+      <tr><td><span class="tag t-it" data-target="iterator" onclick="show('iterator')">Iterator</span></td><td>Duyệt collection không expose internal</td><td>Channel / closure</td><td>Custom collection traversal</td></tr>
+      <tr><td><span class="tag t-ch" data-target="chain" onclick="show('chain')">Chain</span></td><td>Pass request qua chuỗi handler</td><td>Handler func chain</td><td>Middleware, validation pipeline</td></tr>
+      <tr><td><span class="tag t-me" data-target="mediator" onclick="show('mediator')">Mediator</span></td><td>Giảm coupling giữa nhiều object</td><td>Central broker struct</td><td>Chat room, event broker</td></tr>
+      <tr><td><span class="tag t-c" data-target="memento" onclick="show('memento')">Memento</span></td><td>Lưu/phục hồi state object</td><td>Snapshot struct</td><td>Undo/redo, checkpoint</td></tr>
+      <tr><td><span class="tag t-s" data-target="visitor" onclick="show('visitor')">Visitor</span></td><td>Thêm operation mà không sửa class</td><td>Accept/Visit interface</td><td>AST processing, export</td></tr>
     </tbody>
   </table>
 
@@ -338,6 +367,11 @@
     <div class="ttl">Strategy — Tách biệt thuật toán khỏi context sử dụng</div>
     <p class="prose"><strong>Strategy</strong> cho phép bạn định nghĩa một <em>họ các thuật toán</em>, đặt mỗi cái vào một class riêng và làm chúng <strong>hoán đổi được</strong>. Context chỉ biết interface của Strategy, không biết concrete implementation. Trong Go, đây là pattern <em>tự nhiên nhất</em> vì interface + dependency injection là idiom cốt lõi.</p>
     <p class="prose"><strong>Vấn đề giải quyết:</strong> Khi có nhiều biến thể thuật toán, tránh dùng <code>switch/if-else</code> dài → Strategy tách từng thuật toán ra, dễ thêm/xóa mà không ảnh hưởng client.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/strategy.png" alt="Strategy Pattern Architecture">
+    <div class="concept-img-caption">Hình 1.1: Kiến trúc mô phỏng Strategy Pattern trong Go — Context giao tiếp gián tiếp qua Interface để linh hoạt thay thế các Strategy tại runtime</div>
   </div>
 
   <div class="diagram">
@@ -629,6 +663,11 @@
     <p class="prose"><strong>Observer</strong> định nghĩa quan hệ phụ thuộc <strong>one-to-many</strong> giữa đối tượng: khi <em>Subject</em> thay đổi state, tất cả <em>Observers</em> được notify và tự cập nhật. Đây là nền tảng của <strong>Event-Driven Architecture</strong>, reactive programming, và Pub/Sub systems. Trong Go, observer có thể dùng channel thay vì callback để tận dụng goroutine.</p>
   </div>
 
+  <div class="concept-img-wrapper">
+    <img src="../public/images/observer.png" alt="Observer Pattern Architecture">
+    <div class="concept-img-caption">Hình 2.1: Kiến trúc mô phỏng Observer Pattern trong Go — Subject quản lý danh sách đăng ký và tự động thông báo tới toàn bộ Observers khi có thay đổi trạng thái</div>
+  </div>
+
   <div class="diagram">
     <div class="diagram-title">Observer Pattern — Subject ↔ Observer Communication</div>
     <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
@@ -851,6 +890,11 @@
     <div class="lbl">💡 Định nghĩa — GoF</div>
     <div class="ttl">Command — Biến request thành object độc lập</div>
     <p class="prose"><strong>Command</strong> đóng gói một <em>request/action</em> như một object — bao gồm: đối tượng được gọi, method, và tham số. Điều này cho phép: <strong>queue request</strong>, <strong>log history</strong>, <strong>undo/redo operations</strong>. Trong Go, function type là Command tự nhiên nhất, nhưng struct cần thiết khi command cần lưu state để undo.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/command.png" alt="Command Pattern Architecture">
+    <div class="concept-img-caption">Hình 3.2: Kiến trúc mô phỏng Command Pattern trong Go — Đóng gói yêu cầu thành đối tượng Command độc lập để quản lý hàng đợi và thực hiện xử lý bất đồng bộ</div>
   </div>
 
   <div class="diagram">
@@ -1086,6 +1130,11 @@
     <p class="prose"><strong>Template Method</strong> định nghĩa <em>bộ khung</em> (skeleton) của một thuật toán trong base class/struct, và cho phép các subtype <strong>override các bước cụ thể</strong> mà không thay đổi cấu trúc tổng thể. Trong Go (không có kế thừa), ta dùng <strong>embedding + interface hooks</strong> hoặc <strong>function callbacks</strong> để inject các bước có thể customize.</p>
   </div>
 
+  <div class="concept-img-wrapper">
+    <img src="../public/images/template.png" alt="Template Method Pattern Architecture">
+    <div class="concept-img-caption">Hình 4.1: Kiến trúc mô phỏng Template Method Pattern trong Go — Định nghĩa bộ khung thuật toán cố định và cho phép tùy biến linh hoạt các bước cụ thể thông qua interface hooks</div>
+  </div>
+
   <div class="diagram">
     <div class="diagram-title">Template Method — Cấu trúc Pipeline với Hooks</div>
     <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
@@ -1221,6 +1270,11 @@
     <div class="lbl">💡 Định nghĩa — GoF</div>
     <div class="ttl">State — Encapsulate hành vi theo từng trạng thái</div>
     <p class="prose"><strong>State</strong> cho phép object <em>thay đổi hành vi</em> khi state nội tại thay đổi. Object sẽ "trông như thay đổi class". Thay vì <code>switch state { case A: ... case B: ... }</code>, ta đặt mỗi state vào một struct riêng implement cùng interface. Context giữ con trỏ đến current state và delegate request. Dùng cho: <strong>Order workflow, Connection FSM, Traffic Light, Game character states</strong>.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/state.png" alt="State Pattern Architecture">
+    <div class="concept-img-caption">Hình 5.1: Kiến trúc mô phỏng State Pattern trong Go — Cho phép Context thay đổi hành vi động bằng cách ủy quyền xử lý cho các đối tượng State cụ thể tương ứng với từng trạng thái</div>
   </div>
 
   <div class="diagram">
@@ -1366,6 +1420,11 @@
     <p class="prose"><strong>Iterator</strong> cung cấp cách <em>duyệt tuần tự</em> các phần tử của một collection mà không cần biết cấu trúc bên trong (array, tree, graph, ...). Trong Go, iterator có thể implement qua: <strong>interface có Next()/Value()</strong>, <strong>channel-based</strong>, hoặc Go 1.22+ <strong>range-over-func</strong>. Mỗi cách có trade-off riêng về memory và complexity.</p>
   </div>
 
+  <div class="concept-img-wrapper">
+    <img src="../public/images/iterator.png" alt="Iterator Pattern Architecture">
+    <div class="concept-img-caption">Hình 6.1: Kiến trúc mô phỏng Iterator Pattern trong Go — Trừu tượng hóa việc duyệt các cấu trúc dữ liệu phức tạp (như cây, đồ thị) qua một giao diện duyệt tuần tự thống nhất</div>
+  </div>
+
   <h3>📝 Example 1 — Tree Iterator (Advanced)</h3>
   <div class="cb">
     <div class="ch"><span class="cl">GO</span><span class="cf">tree_iterator.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
@@ -1459,6 +1518,11 @@
     <div class="lbl">💡 Định nghĩa — GoF</div>
     <div class="ttl">Chain of Responsibility — Chuỗi handler linh hoạt</div>
     <p class="prose"><strong>Chain of Responsibility</strong> cho phép pass request qua một <em>chuỗi các handler</em>. Mỗi handler quyết định: <strong>xử lý request</strong> hay <strong>truyền tiếp</strong> cho handler kế tiếp. Sender không biết handler nào sẽ xử lý. Trong Go, pattern này cực kỳ phổ biến trong <strong>HTTP middleware</strong> (<code>net/http</code>, Gin, Echo) và <strong>gRPC interceptors</strong>.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/chain.png" alt="Chain of Responsibility Architecture">
+    <div class="concept-img-caption">Hình 7.1: Kiến trúc mô phỏng Chain of Responsibility trong Go — Chuỗi các middleware độc lập quyết định xử lý hoặc chuyển giao yêu cầu, hỗ trợ ngắt chuỗi khi phát hiện lỗi</div>
   </div>
 
   <div class="diagram">
@@ -1667,6 +1731,11 @@
     <p class="prose"><strong>Mediator</strong> định nghĩa một object <em>đóng vai trung gian</em> cho việc giao tiếp giữa các object khác, tránh các object tham chiếu trực tiếp lẫn nhau. Kết quả là <strong>giảm coupling</strong> từ O(n²) kết nối xuống O(n). Ví dụ thực tế: Chat room, Air traffic controller, Event broker, Form validation controller.</p>
   </div>
 
+  <div class="concept-img-wrapper">
+    <img src="../public/images/mediator.png" alt="Mediator Pattern Architecture">
+    <div class="concept-img-caption">Hình 8.1: Kiến trúc mô phỏng Mediator Pattern trong Go — Điều hướng toàn bộ giao tiếp qua một trung gian điều phối để giảm thiểu mức độ liên kết chặt chẽ (mesh coupling) giữa các thành phần</div>
+  </div>
+
   <div class="diagram">
     <div class="diagram-title">Mediator vs Direct Communication — Coupling Reduction</div>
     <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
@@ -1820,6 +1889,11 @@
     <p class="prose"><strong>Memento</strong> capture và externalize state nội tại của một object để có thể <em>restore về state đó sau này</em>, mà không vi phạm encapsulation. Ba thành phần: <strong>Originator</strong> (object cần save/restore state), <strong>Memento</strong> (immutable snapshot of state), <strong>Caretaker</strong> (quản lý lịch sử memento). Dùng cho: Text editor undo, Game save point, Database transaction rollback, Config snapshot.</p>
   </div>
 
+  <div class="concept-img-wrapper">
+    <img src="../public/images/memento.png" alt="Memento Pattern Architecture">
+    <div class="concept-img-caption">Hình 9.1: Kiến trúc mô phỏng Memento Pattern trong Go — Chụp lại trạng thái tại từng thời điểm làm snapshot bất biến (Memento) để hỗ trợ tính năng quay lui trạng thái (Undo/Redo)</div>
+  </div>
+
   <h3>📝 Example — Config Snapshot &amp; Rollback (Expert)</h3>
   <div class="cb">
     <div class="ch"><span class="cl">GO</span><span class="cf">config_memento.go</span><span class="cbadge cb-exp">EXPERT</span></div>
@@ -1931,6 +2005,11 @@
     <div class="lbl">💡 Định nghĩa — GoF</div>
     <div class="ttl">Visitor — Thêm operation mà không sửa element classes</div>
     <p class="prose"><strong>Visitor</strong> cho phép định nghĩa operation mới trên một cấu trúc object mà <em>không thay đổi các class của element đó</em>. Kỹ thuật <strong>double dispatch</strong>: Visitor.Visit(element) và element.Accept(visitor). Rất hữu ích khi có nhiều operation cần thực hiện trên cùng cấu trúc: AST traversal, DOM processing, export to multiple formats, tax calculation trên product hierarchy.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/visitor.png" alt="Visitor Pattern Architecture">
+    <div class="concept-img-caption">Hình 10.1: Kiến trúc mô phỏng Visitor Pattern trong Go — Phân tách các thuật toán xử lý ra khỏi cấu trúc dữ liệu chính thông qua kỹ thuật Double Dispatch linh hoạt</div>
   </div>
 
   <div class="diagram">
@@ -2145,16 +2224,16 @@
   <table class="tbl">
     <thead><tr><th>Pattern</th><th>OCP</th><th>SRP</th><th>DIP</th><th>Go Idiom</th><th>Test khó</th></tr></thead>
     <tbody>
-      <tr><td><span class="tag t-s">Strategy</span></td><td>✅</td><td>✅</td><td>✅</td><td>Interface injection</td><td>Dễ — mock interface</td></tr>
-      <tr><td><span class="tag t-o">Observer</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Chan / func slice</td><td>Cần sync.WaitGroup</td></tr>
-      <tr><td><span class="tag t-c">Command</span></td><td>✅</td><td>✅</td><td>✅</td><td>Func type</td><td>Dễ — execute &amp; verify</td></tr>
-      <tr><td><span class="tag t-t">Template</span></td><td>✅</td><td>⚠️</td><td>✅</td><td>Hooks interface</td><td>Dễ — inject mock hooks</td></tr>
-      <tr><td><span class="tag t-st">State</span></td><td>✅</td><td>✅</td><td>✅</td><td>State interface</td><td>Test từng transition</td></tr>
-      <tr><td><span class="tag t-it">Iterator</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Channel / closure</td><td>Cần drain channel</td></tr>
-      <tr><td><span class="tag t-ch">Chain</span></td><td>✅</td><td>✅</td><td>✅</td><td>func(Handler) Handler</td><td>Dễ — test each middleware</td></tr>
-      <tr><td><span class="tag t-me">Mediator</span></td><td>✅</td><td>⚠️</td><td>✅</td><td>Central broker</td><td>Phức tạp — nhiều actors</td></tr>
-      <tr><td><span class="tag t-c">Memento</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Deep copy</td><td>Verify state restoration</td></tr>
-      <tr><td><span class="tag t-s">Visitor</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Accept/Visit interface</td><td>Test từng visitor riêng</td></tr>
+      <tr><td><span class="tag t-s" data-target="strategy" onclick="show('strategy')">Strategy</span></td><td>✅</td><td>✅</td><td>✅</td><td>Interface injection</td><td>Dễ — mock interface</td></tr>
+      <tr><td><span class="tag t-o" data-target="observer" onclick="show('observer')">Observer</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Chan / func slice</td><td>Cần sync.WaitGroup</td></tr>
+      <tr><td><span class="tag t-c" data-target="command" onclick="show('command')">Command</span></td><td>✅</td><td>✅</td><td>✅</td><td>Func type</td><td>Dễ — execute &amp; verify</td></tr>
+      <tr><td><span class="tag t-t" data-target="template" onclick="show('template')">Template</span></td><td>✅</td><td>⚠️</td><td>✅</td><td>Hooks interface</td><td>Dễ — inject mock hooks</td></tr>
+      <tr><td><span class="tag t-st" data-target="state" onclick="show('state')">State</span></td><td>✅</td><td>✅</td><td>✅</td><td>State interface</td><td>Test từng transition</td></tr>
+      <tr><td><span class="tag t-it" data-target="iterator" onclick="show('iterator')">Iterator</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Channel / closure</td><td>Cần drain channel</td></tr>
+      <tr><td><span class="tag t-ch" data-target="chain" onclick="show('chain')">Chain</span></td><td>✅</td><td>✅</td><td>✅</td><td>func(Handler) Handler</td><td>Dễ — test each middleware</td></tr>
+      <tr><td><span class="tag t-me" data-target="mediator" onclick="show('mediator')">Mediator</span></td><td>✅</td><td>⚠️</td><td>✅</td><td>Central broker</td><td>Phức tạp — nhiều actors</td></tr>
+      <tr><td><span class="tag t-c" data-target="memento" onclick="show('memento')">Memento</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Deep copy</td><td>Verify state restoration</td></tr>
+      <tr><td><span class="tag t-s" data-target="visitor" onclick="show('visitor')">Visitor</span></td><td>✅</td><td>✅</td><td>⚠️</td><td>Accept/Visit interface</td><td>Test từng visitor riêng</td></tr>
     </tbody>
   </table>
 
@@ -2171,13 +2250,74 @@ function show(id) {
   document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
   const t = document.getElementById('s-' + id);
   if (t) t.classList.add('active');
-  document.querySelectorAll('.nav-item, .tnav').forEach(b => b.classList.remove('active'));
+  
+  // Sync the navigation highlights
   document.querySelectorAll('.nav-item, .tnav').forEach(b => {
-    const oc = b.getAttribute('onclick');
-    if (oc && oc.includes("'" + id + "'")) b.classList.add('active');
+    b.classList.remove('active');
+    const target = b.getAttribute('data-target') || b.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    if (target === id) b.classList.add('active');
   });
+
+  // Smooth scroll to top of page/main container
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+// Bind dynamic click events for sidebar and topnav anchors (guarantees Obsidian navigation compatibility)
+document.querySelectorAll('.nav-item, .tnav').forEach(el => {
+  const target = el.getAttribute('data-target') || el.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+  if (target) {
+    el.removeAttribute('onclick'); // prevent double execution in script-supported environments
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      // Smoothly update hash clean and trigger show
+      window.location.hash = 's-' + target;
+      show(target);
+    });
+  }
+});
+
+// Attach robust click listeners to SVG interactive map nodes
+document.querySelectorAll('.svg-node').forEach(node => {
+  const target = node.getAttribute('data-target') || node.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+  if (target) {
+    node.removeAttribute('onclick');
+    node.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      show(target);
+    });
+  }
+});
+
+// Attach robust click listeners to summary and selection guide table tags
+document.querySelectorAll('.tag').forEach(tag => {
+  const target = tag.getAttribute('data-target') || tag.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+  if (target) {
+    tag.removeAttribute('onclick');
+    tag.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      show(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL (e.g. from links or Obsidian page jumps)
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    show(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    show(hash.replace('#s-', ''));
+  }
+});
+
 document.querySelectorAll('.cb').forEach(block => {
   const h = block.querySelector('.ch');
   if (h && !h.querySelector('.copy-btn')) {
