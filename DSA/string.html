@@ -620,12 +620,12 @@
 				<span class="go">Go</span><span class="title"> <span class="highlight">String</span> Algorithms</span>
 			</div>
 			<nav>
-				<a href="#intro" class="active" onclick="setNav(this)">Giới thiệu</a>
-				<a href="#sliding-window" onclick="setNav(this)">Sliding Window</a>
-				<a href="#trie" onclick="setNav(this)">Trie / Prefix Tree</a>
-				<a href="#palindrome" onclick="setNav(this)">Palindrome</a>
-				<a href="#pitfalls" onclick="setNav(this)">Pitfalls</a>
-				<a href="#references" onclick="setNav(this)">References</a>
+				<a href="#intro" class="active">Giới thiệu</a>
+				<a href="#sliding-window">Sliding Window</a>
+				<a href="#trie">Trie / Prefix Tree</a>
+				<a href="#palindrome">Palindrome</a>
+				<a href="#pitfalls">Pitfalls</a>
+				<a href="#references">References</a>
 			</nav>
 		</header>
 
@@ -635,40 +635,40 @@
 			<aside>
 				<div class="sidebar-section">
 					<div class="sidebar-section-title">Tổng quan</div>
-					<a class="sidebar-link active" href="#intro" onclick="setSidebar(this)">Giới thiệu</a>
-					<a class="sidebar-link" href="#complexity" onclick="setSidebar(this)">So sánh độ phức tạp</a>
+					<a class="sidebar-link active" href="#intro">Giới thiệu</a>
+					<a class="sidebar-link" href="#complexity">So sánh độ phức tạp</a>
 				</div>
 
 				<div class="sidebar-section">
 					<div class="sidebar-section-title">01 · Sliding Window</div>
-					<a class="sidebar-link" href="#sw-concept" onclick="setSidebar(this)">Khái niệm</a>
-					<a class="sidebar-link" href="#sw-fixed" onclick="setSidebar(this)">Fixed Window</a>
-					<a class="sidebar-link" href="#sw-dynamic" onclick="setSidebar(this)">Dynamic Window</a>
-					<a class="sidebar-link" href="#sw-advanced" onclick="setSidebar(this)">Advanced — Min Window</a>
-					<a class="sidebar-link" href="#sw-expert" onclick="setSidebar(this)">Expert — Rabin-Karp Hash</a>
+					<a class="sidebar-link" href="#sw-concept">Khái niệm</a>
+					<a class="sidebar-link" href="#sw-fixed">Fixed Window</a>
+					<a class="sidebar-link" href="#sw-dynamic">Dynamic Window</a>
+					<a class="sidebar-link" href="#sw-advanced">Advanced — Min Window</a>
+					<a class="sidebar-link" href="#sw-expert">Expert — Rabin-Karp Hash</a>
 				</div>
 
 				<div class="sidebar-section">
 					<div class="sidebar-section-title">02 · Trie / Prefix Tree</div>
-					<a class="sidebar-link" href="#trie-concept" onclick="setSidebar(this)">Khái niệm</a>
-					<a class="sidebar-link" href="#trie-basic" onclick="setSidebar(this)">Trie cơ bản</a>
-					<a class="sidebar-link" href="#trie-generic" onclick="setSidebar(this)">Generic Trie (Go 1.18+)</a>
-					<a class="sidebar-link" href="#trie-autocomplete" onclick="setSidebar(this)">Autocomplete Engine</a>
-					<a class="sidebar-link" href="#trie-expert" onclick="setSidebar(this)">Expert — Concurrent Trie</a>
+					<a class="sidebar-link" href="#trie-concept">Khái niệm</a>
+					<a class="sidebar-link" href="#trie-basic">Trie cơ bản</a>
+					<a class="sidebar-link" href="#trie-generic">Generic Trie (Go 1.18+)</a>
+					<a class="sidebar-link" href="#trie-autocomplete">Autocomplete Engine</a>
+					<a class="sidebar-link" href="#trie-expert">Expert — Concurrent Trie</a>
 				</div>
 
 				<div class="sidebar-section">
 					<div class="sidebar-section-title">03 · Palindrome</div>
-					<a class="sidebar-link" href="#pal-concept" onclick="setSidebar(this)">Khái niệm</a>
-					<a class="sidebar-link" href="#pal-expand" onclick="setSidebar(this)">Expand Around Center</a>
-					<a class="sidebar-link" href="#pal-dp" onclick="setSidebar(this)">DP — Longest Palindrome</a>
-					<a class="sidebar-link" href="#pal-manacher" onclick="setSidebar(this)">Expert — Manacher O(n)</a>
+					<a class="sidebar-link" href="#pal-concept">Khái niệm</a>
+					<a class="sidebar-link" href="#pal-expand">Expand Around Center</a>
+					<a class="sidebar-link" href="#pal-dp">DP — Longest Palindrome</a>
+					<a class="sidebar-link" href="#pal-manacher">Expert — Manacher O(n)</a>
 				</div>
 
 				<div class="sidebar-section">
 					<div class="sidebar-section-title">Tham khảo</div>
-					<a class="sidebar-link" href="#pitfalls" onclick="setSidebar(this)">Pitfalls & Fix</a>
-					<a class="sidebar-link" href="#references" onclick="setSidebar(this)">References</a>
+					<a class="sidebar-link" href="#pitfalls">Pitfalls & Fix</a>
+					<a class="sidebar-link" href="#references">References</a>
 				</div>
 			</aside>
 
@@ -2434,35 +2434,137 @@
 		</div>
 
 		<script>
-			function setNav(el) {
-				document.querySelectorAll("nav a").forEach((a) => a.classList.remove("active"));
-				el.classList.add("active");
-			}
-			function setSidebar(el) {
-				document.querySelectorAll(".sidebar-link").forEach((a) => a.classList.remove("active"));
-				el.classList.add("active");
-			}
-
-			// Scroll spy
-			const sections = document.querySelectorAll(".section[id]");
-			const sideLinks = document.querySelectorAll(".sidebar-link");
 			const navLinks = document.querySelectorAll("nav a");
+			const sideLinks = document.querySelectorAll(".sidebar-link");
+
+			// Dynamically collect all target elements from both sidebar and header nav
+			const targetSelectors = new Set();
+			document.querySelectorAll(".sidebar-link, nav a").forEach((link) => {
+				const href = link.getAttribute("href");
+				if (href && href.startsWith("#")) {
+					targetSelectors.add(href);
+				}
+			});
+
+			const targetElements = [];
+			targetSelectors.forEach((selector) => {
+				try {
+					const el = document.querySelector(selector);
+					if (el) targetElements.push(el);
+				} catch (err) {
+					console.warn("Invalid selector target:", selector, err);
+				}
+			});
+
+			// Map sub-section IDs to their parent major section IDs
+			const parentSectionMap = {
+				"intro": "intro",
+				"complexity": "intro",
+				
+				"sliding-window": "sliding-window",
+				"sw-concept": "sliding-window",
+				"sw-fixed": "sliding-window",
+				"sw-dynamic": "sliding-window",
+				"sw-advanced": "sliding-window",
+				"sw-expert": "sliding-window",
+				
+				"trie": "trie",
+				"trie-concept": "trie",
+				"trie-basic": "trie",
+				"trie-generic": "trie",
+				"trie-autocomplete": "trie",
+				"trie-expert": "trie",
+				
+				"palindrome": "palindrome",
+				"pal-concept": "palindrome",
+				"pal-expand": "palindrome",
+				"pal-dp": "palindrome",
+				"pal-manacher": "palindrome",
+				
+				"pitfalls": "pitfalls",
+				"references": "references"
+			};
+
+			// Flag to prevent scroll spy overriding manual clicks during scrolling
+			let isScrollingFromClick = false;
+			let scrollTimeout = null;
 
 			const observer = new IntersectionObserver(
 				(entries) => {
-					entries.forEach((e) => {
-						if (e.isIntersecting) {
-							const id = e.target.id;
-							sideLinks.forEach((l) => {
-								l.classList.toggle("active", l.getAttribute("href") === "#" + id);
-							});
+					if (isScrollingFromClick) return; // Ignore scroll spy updates during click scroll
+
+					// Find the most prominent intersecting element to avoid multiple active items
+					let activeEntry = null;
+					entries.forEach((entry) => {
+						if (entry.isIntersecting) {
+							if (!activeEntry || entry.intersectionRatio > activeEntry.intersectionRatio) {
+								activeEntry = entry;
+							}
 						}
 					});
+
+					if (activeEntry) {
+						const id = activeEntry.target.id;
+
+						// Update sidebar active state
+						sideLinks.forEach((l) => {
+							l.classList.toggle("active", l.getAttribute("href") === "#" + id);
+						});
+
+						// Update header nav active state
+						const parentId = parentSectionMap[id] || id;
+						navLinks.forEach((l) => {
+							l.classList.toggle("active", l.getAttribute("href") === "#" + parentId);
+						});
+					}
 				},
-				{ threshold: 0.3, rootMargin: "-60px 0px -60% 0px" }
+				{ rootMargin: "-52px 0px -60% 0px", threshold: 0.1 }
 			);
 
-			sections.forEach((s) => observer.observe(s));
+			targetElements.forEach((el) => observer.observe(el));
+
+			// Robust smooth scroll for all anchor links
+			document.querySelectorAll('a[href^="#"]').forEach((a) => {
+				a.addEventListener("click", function (e) {
+					const href = this.getAttribute("href");
+					if (!href || href === "#" || href.startsWith("#/")) return;
+					try {
+						const targetElement = document.querySelector(href);
+						if (targetElement) {
+							e.preventDefault();
+
+							// Prevent scroll spy logic from clashing with click scrolling
+							isScrollingFromClick = true;
+							if (scrollTimeout) clearTimeout(scrollTimeout);
+
+							// Manually set active states immediately for visual responsiveness
+							const id = href.substring(1);
+							
+							// Update sidebar links
+							sideLinks.forEach((l) => {
+								l.classList.toggle("active", l.getAttribute("href") === href);
+							});
+
+							// Update header links
+							const parentId = parentSectionMap[id] || id;
+							navLinks.forEach((l) => {
+								l.classList.toggle("active", l.getAttribute("href") === "#" + parentId);
+							});
+
+							// Scroll smoothly
+							targetElement.scrollIntoView({ behavior: "smooth", block: "start" });
+							history.pushState(null, null, href);
+
+							// Re-enable scroll spy after scrolling finishes
+							scrollTimeout = setTimeout(() => {
+								isScrollingFromClick = false;
+							}, 800); // 800ms is standard smooth scroll duration
+						}
+					} catch (err) {
+						console.warn("Invalid selector:", href, err);
+					}
+				});
+			});
 		</script>
 	</body>
 </html>

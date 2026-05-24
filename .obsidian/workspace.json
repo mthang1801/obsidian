@@ -13,10 +13,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "DSA/tree.html"
+                "file": "DSA/string.html"
               },
               "icon": "lucide-file",
-              "title": "tree"
+              "title": "string"
             }
           }
         ]
@@ -195,18 +195,19 @@
   },
   "active": "2d4a11c20cfa0381",
   "lastOpenFiles": [
+    "Go/Concurrency/buffered-unbuffered-channels.html",
+    "Go/Concurrency/🎯 Overview Go Concurrency.md",
     "DSA/string.html",
+    "DSA/dsa-patterns-go.html",
+    "DSA/🎯 Overview DSA.md",
+    "DSA/tree.html",
     "DSA/sorting.html",
+    "DSA/linked-lists.html",
     "DSA/searching.html",
     "DSA/important-algorithms.html",
     "DSA/greedy-algorithms.html",
     "DSA/graph-algorithms.html",
-    "DSA/dsa-patterns-go.html",
     "Screencast_20260524_065246.webm",
-    "DSA/🎯 Overview DSA.md",
-    "Design Pattern/behavioral-patterns-go.html",
-    "LeetCode/section-3.html",
-    "LeetCode/section-2.html",
     "public/images/visitor.png",
     "public/images/memento.png",
     "public/images/mediator.png",
@@ -217,7 +218,6 @@
     "public/images/command.png",
     "public/images/observer.png",
     "public/images/strategy.png",
-    "Go/Concurrency/🎯 Overview Go Concurrency.md",
     "Untitled.canvas",
     "Go/Basics/Untitled.md",
     "Glosarry/AI glossary.md",
