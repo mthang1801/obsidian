@@ -11,15 +11,30 @@
             "id": "2d4a11c20cfa0381",
             "type": "leaf",
             "state": {
-              "type": "html-file-view",
+              "type": "markdown",
               "state": {
-                "file": "LeetCode/section-4.html"
+                "file": "Go/Concurrency/🎯 Overview Go Concurrency.md",
+                "mode": "source",
+                "source": false
               },
               "icon": "lucide-file",
-              "title": "section-4"
+              "title": "🎯 Overview Go Concurrency"
+            }
+          },
+          {
+            "id": "7418784d46d38ac6",
+            "type": "leaf",
+            "state": {
+              "type": "html-file-view",
+              "state": {
+                "file": "Go/Fundamental/go-basics-guide.html"
+              },
+              "icon": "lucide-file",
+              "title": "go-basics-guide"
             }
           }
-        ]
+        ],
+        "currentTab": 1
       }
     ],
     "direction": "vertical"
@@ -193,36 +208,35 @@
       "bases:Create new base": false
     }
   },
-  "active": "2d4a11c20cfa0381",
+  "active": "7418784d46d38ac6",
   "lastOpenFiles": [
-    "LeetCode/section-3.html",
+    "Go/Concurrency/race-conditions.html",
+    "public/images/go_slices_maps.png",
+    "public/images/go_errors_wrapping.png",
+    "public/images/go_pointers_memory.png",
+    "public/images/go_basics_hero.png",
+    "Go/Concurrency/🎯 Overview Go Concurrency.md",
+    "Go/Fundamental/go-basics-guide.html",
+    "Go/Concurrency/goroutines-guide.html",
+    "Go/Concurrency/buffered-unbuffered-channels.html",
+    "Go/Concurrency/bounded-parallelism-errgroup.html",
+    "Design Pattern/🎯 Overview Design Pattern.md",
+    "Glosarry/AI glossary.md",
+    "LeetCode/🎯 Overview LeetCode.md",
+    "DSA/🎯 Overview DSA.md",
     "LeetCode/section-4.html",
+    "LeetCode/section-3.html",
     "LeetCode/section-1.html",
     "LeetCode/section-2.html",
     "Design Pattern/structural-patterns.html",
-    "LeetCode/🎯 Overview LeetCode.md",
-    "Design Pattern/🎯 Overview Design Pattern.md",
-    "DSA/🎯 Overview DSA.md",
-    "Design Pattern/structural-design-patterns.html",
-    "Design Pattern/structural-design-patterns-go (2).html",
     "public/images/array_techniques.png",
     "public/images/sorting_searching.png",
     "public/images/advanced_trees.png",
     "public/images/advanced_graph.png",
     "public/images/dp_sequences.png",
     "public/images/dp_advanced.png",
-    "public/images/leetcode_hero.png",
-    "Design Pattern/behavioral-patterns.html",
-    "LeetCode/go-advanced-algorithms-guide.html",
-    "DSA/linked-lists.html",
-    "Go/Concurrency/🎯 Overview Go Concurrency.md",
-    "Go/Concurrency/context.html",
-    "public/images/flyweight.png",
-    "public/images/bridge.png",
-    "public/images/composite.png",
     "Untitled.canvas",
     "Go/Basics/Untitled.md",
-    "Glosarry/AI glossary.md",
     "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",
     "Diagram/Flowchart/Pattern 1 — Business Logic Flow (Pro).md",
     "2026-05-22.md",

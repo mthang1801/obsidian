@@ -4,10 +4,9 @@
 Học trước khi code bất kỳ concurrent system nào:
 
 1. [**Goroutines cơ bản**](./goroutines-guide.html) - Hiểu cách Go spawn lightweight threads
-2. [**Unbuffered Channels**](buffered-unbuffered-channels.html) - Synchronous communication (blocking)
-3. [**Buffered Channels**](buffered-unbuffered-channels.html) - Asynchronous với capacity
-4. [**Race Conditions**](./race-conditions.html) - Tại sao cần synchronization (chạy với `-race` flag)
-5. [**Mutex & RWMutex**](./mutex-and-confinement.html) - Bảo vệ shared memory
+2. [**Buffered - Unbuffered- Channels**](buffered-unbuffered-channels.html) - Synchronous communication (blocking) - Asynchronous với capacity
+3. [**Race Conditions**](./race-conditions.html) - Tại sao cần synchronization (chạy với `-race` flag)
+4. [**Mutex & RWMutex**](./mutex-and-confinement.html) - Bảo vệ shared memory
 
 🔥 **So sánh với Node.js**: Goroutines ≈ async/await nhưng truly concurrent, channels ≈ EventEmitter nhưng type-safe
 

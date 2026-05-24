@@ -1,0 +1,2220 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Fundamentals — Hướng dẫn toàn diện</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg-primary:#0d0f14;--bg-secondary:#131720;--bg-card:#1a1f2e;--bg-code:#0f1319;--accent-cyan:#00d4ff;--accent-green:#00ff88;--accent-purple:#a855f7;--accent-amber:#f59e0b;--accent-coral:#ff6b6b;--text-primary:#e2e8f0;--text-secondary:#94a3b8;--text-muted:#64748b;--border:rgba(255,255,255,0.07);--font-mono:'JetBrains Mono',monospace;--font-sans:'Inter',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-sans);display:flex;min-height:100vh}
+#sidebar{width:270px;min-width:270px;background:var(--bg-secondary);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;font-family:var(--font-mono)}
+.logo-text{font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.2}
+.logo-sub{font-size:11px;color:var(--accent-cyan);font-family:var(--font-mono)}
+.nav-section{padding:14px 12px 6px}
+.nav-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:0 8px;margin-bottom:6px}
+.nav-item{display:flex;align-items:center;padding:7px 8px;border-radius:6px;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;gap:6px}
+.nav-item:hover{background:rgba(255,255,255,.05);color:var(--text-primary)}
+.nav-item.active{background:rgba(0,212,255,.1);color:var(--accent-cyan);border-left:2px solid var(--accent-cyan);padding-left:6px}
+#topnav{position:fixed;top:0;left:270px;right:0;height:52px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:6px;z-index:50;overflow-x:auto}
+#topnav::-webkit-scrollbar{height:0}
+.tnav{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;white-space:nowrap;border:none;background:none;transition:all .15s}
+.tnav:hover{color:var(--text-primary);background:rgba(255,255,255,.05)}
+.tnav.active{color:var(--accent-cyan);background:rgba(0,212,255,.1)}
+#main{margin-left:270px;margin-top:52px;flex:1}
+.content-area{padding:44px 52px;max-width:960px}
+.page-section{display:none}
+.page-section.active{display:block}
+.sec-header{display:flex;align-items:center;gap:14px;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+.sec-num{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.sec-title{font-size:24px;font-weight:700;color:var(--text-primary)}
+.sec-sub{font-size:13px;color:var(--text-muted);margin-top:3px}
+.badge{padding:3px 9px;border-radius:16px;font-size:11px;font-weight:600;letter-spacing:.04em;font-family:var(--font-mono)}
+.b-basic{background:rgba(0,255,136,.1);color:var(--accent-green);border:1px solid rgba(0,255,136,.25)}
+.b-advanced{background:rgba(245,158,11,.1);color:var(--accent-amber);border:1px solid rgba(245,158,11,.25)}
+.b-expert{background:rgba(168,85,247,.12);color:var(--accent-purple);border:1px solid rgba(168,85,247,.3)}
+.prose{font-size:15px;line-height:1.8;color:var(--text-secondary);margin-bottom:18px}
+.prose strong{color:var(--text-primary);font-weight:600}
+.prose code{background:rgba(0,212,255,.08);color:var(--accent-cyan);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:13px}
+h3{font-size:17px;font-weight:600;color:var(--text-primary);margin:24px 0 10px}
+h4{font-size:14px;font-weight:600;color:var(--text-secondary);margin:16px 0 8px}
+.concept-box{background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(168,85,247,.05));border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:22px;margin-bottom:24px}
+.concept-box .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-cyan);margin-bottom:6px;font-family:var(--font-mono)}
+.concept-box .ctitle{font-size:19px;font-weight:700;color:var(--text-primary);margin-bottom:8px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:16px;transition:border-color .2s}
+.card:hover{border-color:rgba(0,212,255,.25)}
+.card-title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px}
+.code-block{background:var(--bg-code);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.code-lang{font-size:11px;font-weight:600;color:var(--accent-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em}
+.code-file{font-size:11px;color:var(--text-muted);font-family:var(--font-mono)}
+.code-copy{font-size:11px;cursor:pointer;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 9px;color:var(--text-secondary);transition:all .15s;font-family:var(--font-sans)}
+.code-copy:hover{border-color:var(--accent-cyan);color:var(--accent-cyan)}
+pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.7}
+pre::-webkit-scrollbar{height:4px}
+pre::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.kw{color:#c084fc}.fn{color:#60a5fa}.str{color:#86efac}.cm{color:#4b5563;font-style:italic}.num{color:#fb923c}.tp{color:#67e8f9}.pkg{color:#a78bfa}.op{color:#f472b6}
+.note{display:flex;gap:10px;padding:12px 14px;border-radius:8px;margin-bottom:16px;font-size:13.5px;line-height:1.6}
+.note p{margin:0}
+.n-info{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--accent-green)}
+.n-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+.n-danger{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--accent-coral)}
+.n-tip{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);color:var(--accent-cyan)}
+.note-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.diagram-box{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:24px;overflow:hidden}
+.diagram-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:16px;font-family:var(--font-mono);text-align:center}
+table.dtable{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13.5px}
+table.dtable th{padding:9px 12px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+table.dtable td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text-secondary)}
+table.dtable tr:hover td{background:rgba(255,255,255,.02)}
+table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:12px}
+.ref-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;text-decoration:none;transition:all .15s}
+.ref-card:hover{border-color:var(--accent-cyan);transform:translateX(2px)}
+.ref-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ref-body{flex:1;min-width:0}
+.ref-title{font-size:13.5px;font-weight:600;color:var(--text-primary);margin-bottom:2px}
+.ref-desc{font-size:11.5px;color:var(--text-muted);line-height:1.5}
+.ref-url{font-size:10.5px;color:var(--accent-cyan);font-family:var(--font-mono);margin-top:3px}
+.ref-star{font-size:11px;color:var(--accent-amber);margin-left:auto;white-space:nowrap;padding-left:10px}
+.divider{border:none;border-top:1px solid var(--border);margin:28px 0}
+.step{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;padding:14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px}
+.step-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;font-family:var(--font-mono);flex-shrink:0}
+.step-body .title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.step-body .desc{font-size:13px;color:var(--text-secondary);line-height:1.6}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-family:var(--font-mono);font-weight:600;margin:2px}
+.tag-cyan{background:rgba(0,212,255,.12);color:var(--accent-cyan)}
+.tag-green{background:rgba(0,255,136,.1);color:var(--accent-green)}
+.tag-amber{background:rgba(245,158,11,.1);color:var(--accent-amber)}
+.tag-purple{background:rgba(168,85,247,.1);color:var(--accent-purple)}
+.tag-coral{background:rgba(255,107,107,.1);color:var(--accent-coral)}
+
+/* ── CONCEPT ILLUSTRATIONS ── */
+.concept-img-wrapper {
+  margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  background: var(--bg-card); padding: 12px;
+  transition: all 0.3s ease;
+}
+.concept-img-wrapper:hover {
+  transform: scale(1.01);
+  border-color: rgba(0,212,255,0.5);
+  box-shadow: 0 8px 30px rgba(0,212,255,0.2);
+}
+.concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.concept-img-caption {
+  text-align: center; font-size: 13px; color: var(--text-secondary);
+  margin-top: 10px; font-style: italic; line-height: 1.5;
+}
+</style>
+</head>
+<body>
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">Go Fundamentals</div>
+      <div class="logo-sub">// basics to expert</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Basics</div>
+    <button class="nav-item active" onclick="show('intro')">🏠 Tổng quan</button>
+    <button class="nav-item" onclick="show('syntax')">📝 01 Syntax &amp; Variables</button>
+    <button class="nav-item" onclick="show('control')">🔀 02 Control Flow &amp; Loops</button>
+    <button class="nav-item" onclick="show('defer')">⚡ 03 Defer, Panic, Recover</button>
+    <button class="nav-item" onclick="show('pointers')">🎯 04 Pointers &amp; Memory</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Errors</div>
+    <button class="nav-item" onclick="show('err-custom')">🔴 01 Wrapping &amp; Custom</button>
+    <button class="nav-item" onclick="show('err-sentinel')">🔗 02 Sentinel, Join</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Functions</div>
+    <button class="nav-item" onclick="show('closures')">🔒 01 Closures &amp; Methods</button>
+    <button class="nav-item" onclick="show('strings')">🔤 02 Strings</button>
+    <button class="nav-item" onclick="show('strconv')">🔁 03 Strconv</button>
+    <button class="nav-item" onclick="show('fmt')">🖨️ 04 Fmt</button>
+    <button class="nav-item" onclick="show('math')">🧮 05 Math</button>
+    <button class="nav-item" onclick="show('slicesmaps')">🗃️ 06 Slices &amp; Maps</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Tài liệu</div>
+    <button class="nav-item" onclick="show('refs')">📚 References</button>
+  </div>
+</nav>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <button class="tnav active" onclick="show('intro')">Intro</button>
+  <button class="tnav" onclick="show('syntax')">Syntax</button>
+  <button class="tnav" onclick="show('control')">Control Flow</button>
+  <button class="tnav" onclick="show('defer')">Defer</button>
+  <button class="tnav" onclick="show('pointers')">Pointers</button>
+  <button class="tnav" onclick="show('err-custom')">Err Custom</button>
+  <button class="tnav" onclick="show('err-sentinel')">Err Sentinel</button>
+  <button class="tnav" onclick="show('closures')">Closures</button>
+  <button class="tnav" onclick="show('strings')">Strings</button>
+  <button class="tnav" onclick="show('strconv')">Strconv</button>
+  <button class="tnav" onclick="show('fmt')">Fmt</button>
+  <button class="tnav" onclick="show('math')">Math</button>
+  <button class="tnav" onclick="show('slicesmaps')">Slices/Maps</button>
+  <button class="tnav" onclick="show('refs')">Refs</button>
+</nav>
+
+<main id="main"><div class="content-area">
+<!-- ===== INTRO ===== -->
+<section class="page-section active" id="s-intro">
+  <div class="sec-header">
+    <div class="sec-num">Go</div>
+    <div>
+      <div class="sec-title">Go Fundamentals</div>
+      <div class="sec-sub">Hướng dẫn toàn diện từ cơ bản đến chuyên sâu — Basics, Errors, Functions</div>
+    </div>
+  </div>
+  <div class="concept-box">
+    <div class="label">🎯 Mục tiêu</div>
+    <div class="ctitle">Tài liệu bao gồm những gì?</div>
+    <p class="prose">Tài liệu này bao gồm tất cả các chủ đề nền tảng của Go từ <strong>Basics</strong> (Syntax, Control Flow, Defer/Panic/Recover, Pointers), <strong>Errors</strong> (Wrapping, Custom, Sentinel, Join), đến <strong>Functions</strong> (Closures, Methods, String packages, Math, Slices, Maps). Mỗi chủ đề có định nghĩa, ví dụ minh họa bằng SVG/diagram và code samples từ advanced đến expert.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_hero.png" alt="Go Fundamentals Learning Laboratory Overview" loading="lazy">
+    <div class="concept-img-caption">Hình 0.1: Tổng quan lộ trình và các chủ đề cốt lõi của tài liệu Go Fundamentals</div>
+  </div>
+  <div class="grid3">
+    <div class="card"><div class="card-title">📦 Basics — 4 chủ đề</div><p class="prose" style="font-size:13px;margin:0">Syntax &amp; Variables, Control Flow, Defer/Panic/Recover, Pointers &amp; Memory Model.</p></div>
+    <div class="card"><div class="card-title">🔴 Errors — 2 chủ đề</div><p class="prose" style="font-size:13px;margin:0">Custom errors, wrapping với <code>%w</code>, Sentinel errors, <code>errors.Join</code> (Go 1.20+).</p></div>
+    <div class="card"><div class="card-title">🔧 Functions — 6 chủ đề</div><p class="prose" style="font-size:13px;margin:0">Closures, Methods, strings, strconv, fmt, math, slices, maps.</p></div>
+  </div>
+  <div class="diagram-box">
+    <div class="diagram-title">Go Learning Path</div>
+    <svg width="100%" viewBox="0 0 820 160" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a0" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <rect x="10" y="50" width="120" height="56" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+      <text x="70" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Syntax</text>
+      <text x="70" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Variables, Types</text>
+      <line x1="130" y1="78" x2="160" y2="78" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a0)"/>
+      <rect x="160" y="50" width="120" height="56" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+      <text x="220" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Control</text>
+      <text x="220" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">if/for/switch</text>
+      <line x1="280" y1="78" x2="310" y2="78" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a0)"/>
+      <rect x="310" y="50" width="120" height="56" rx="8" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.3)" stroke-width="1.5"/>
+      <text x="370" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">Errors</text>
+      <text x="370" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Custom/Sentinel</text>
+      <line x1="430" y1="78" x2="460" y2="78" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a0)"/>
+      <rect x="460" y="50" width="120" height="56" rx="8" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.3)" stroke-width="1.5"/>
+      <text x="520" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">Functions</text>
+      <text x="520" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Closures/Methods</text>
+      <line x1="580" y1="78" x2="610" y2="78" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a0)"/>
+      <rect x="610" y="50" width="120" height="56" rx="8" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+      <text x="670" y="74" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">Std Packages</text>
+      <text x="670" y="92" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">strings/fmt/math</text>
+      <line x1="730" y1="78" x2="760" y2="78" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a0)"/>
+      <rect x="760" y="50" width="50" height="56" rx="8" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+      <text x="785" y="78" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">Expert</text>
+    </svg>
+  </div>
+  <div class="note n-tip"><div class="note-icon">💡</div><p><strong>Cách dùng tài liệu:</strong> Dùng sidebar bên trái hoặc top nav để điều hướng. Mỗi section có concept box, SVG diagram, code samples từ cơ bản đến expert, và bảng reference.</p></div>
+</section>
+<!-- ===== SYNTAX & VARIABLES ===== -->
+<section class="page-section" id="s-syntax">
+  <div class="sec-header">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Syntax &amp; Variables</div><div class="sec-sub">Khai báo biến, kiểu dữ liệu, zero values, type system</div></div>
+    <span class="badge b-basic">BASICS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">📖 Định nghĩa</div>
+    <div class="ctitle">Go Type System</div>
+    <p class="prose">Go là ngôn ngữ <strong>statically typed</strong> — kiểu được kiểm tra lúc compile. Mọi biến có <strong>zero value</strong> mặc định (không cần khởi tạo thủ công). Go dùng <strong>type inference</strong> với <code>:=</code> để đơn giản code.</p>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Go Basic Types &amp; Zero Values</div>
+    <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- Numeric -->
+      <rect x="10" y="10" width="180" height="195" rx="8" fill="rgba(0,212,255,.06)" stroke="rgba(0,212,255,.25)" stroke-width="1.5"/>
+      <text x="100" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Numeric</text>
+      <text x="22" y="54" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">int8/16/32/64</text>
+      <text x="22" y="72" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">uint8/16/32/64</text>
+      <text x="22" y="90" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">float32/64</text>
+      <text x="22" y="108" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">complex64/128</text>
+      <text x="22" y="126" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">byte (=uint8)</text>
+      <text x="22" y="144" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">rune (=int32)</text>
+      <text x="22" y="162" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">int / uint</text>
+      <text x="22" y="180" font-size="10" fill="#fb923c" font-family="JetBrains Mono">zero value: 0</text>
+      <!-- String/Bool -->
+      <rect x="205" y="10" width="160" height="130" rx="8" fill="rgba(0,255,136,.06)" stroke="rgba(0,255,136,.25)" stroke-width="1.5"/>
+      <text x="285" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">String/Bool</text>
+      <text x="217" y="54" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">string</text>
+      <text x="217" y="72" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">bool</text>
+      <text x="217" y="96" font-size="10" fill="#fb923c" font-family="JetBrains Mono">string → ""</text>
+      <text x="217" y="114" font-size="10" fill="#fb923c" font-family="JetBrains Mono">bool → false</text>
+      <!-- Composite -->
+      <rect x="380" y="10" width="160" height="195" rx="8" fill="rgba(168,85,247,.06)" stroke="rgba(168,85,247,.25)" stroke-width="1.5"/>
+      <text x="460" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">Composite</text>
+      <text x="392" y="54" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">array [N]T</text>
+      <text x="392" y="72" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">slice []T</text>
+      <text x="392" y="90" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">map[K]V</text>
+      <text x="392" y="108" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">struct{...}</text>
+      <text x="392" y="130" font-size="10" fill="#fb923c" font-family="JetBrains Mono">array → [zero...]</text>
+      <text x="392" y="148" font-size="10" fill="#fb923c" font-family="JetBrains Mono">slice/map → nil</text>
+      <text x="392" y="166" font-size="10" fill="#fb923c" font-family="JetBrains Mono">struct → fields zero</text>
+      <!-- Pointer/Interface -->
+      <rect x="555" y="10" width="255" height="195" rx="8" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.25)" stroke-width="1.5"/>
+      <text x="682" y="32" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">Pointer / Ref</text>
+      <text x="567" y="54" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">*T (pointer)</text>
+      <text x="567" y="72" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">interface{} / any</text>
+      <text x="567" y="90" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">chan T</text>
+      <text x="567" y="108" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">func(...)</text>
+      <text x="567" y="130" font-size="10" fill="#fb923c" font-family="JetBrains Mono">pointer → nil</text>
+      <text x="567" y="148" font-size="10" fill="#fb923c" font-family="JetBrains Mono">interface → nil</text>
+      <text x="567" y="166" font-size="10" fill="#fb923c" font-family="JetBrains Mono">chan/func → nil</text>
+    </svg>
+  </div>
+
+  <h3>Khai báo biến — 4 cách</h3>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">01_variables.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// 1. var với kiểu tường minh</span>
+    <span class="kw">var</span> name <span class="tp">string</span> = <span class="str">"Gopher"</span>
+    <span class="kw">var</span> age  <span class="tp">int</span>    = <span class="num">10</span>
+
+    <span class="cm">// 2. var không có giá trị → zero value</span>
+    <span class="kw">var</span> score <span class="tp">float64</span>  <span class="cm">// 0.0</span>
+    <span class="kw">var</span> ok    <span class="tp">bool</span>     <span class="cm">// false</span>
+    <span class="kw">var</span> data  []<span class="tp">byte</span>   <span class="cm">// nil</span>
+
+    <span class="cm">// 3. Short declaration := (type inferred)</span>
+    city    := <span class="str">"Hanoi"</span>
+    version := <span class="num">1.22</span>
+    active  := <span class="kw">true</span>
+
+    <span class="cm">// 4. Multiple assignment</span>
+    x, y, z := <span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>
+    a, b := b, a <span class="cm">// swap!</span>
+
+    <span class="cm">// Blank identifier _ discards a value</span>
+    result, _ := <span class="fn">divide</span>(<span class="num">10</span>, <span class="num">3</span>)
+
+    fmt.<span class="fn">Println</span>(name, age, score, ok, data, city, version, active, x, y, z, result)
+}
+
+<span class="cm">// Typed constants</span>
+<span class="kw">const</span> (
+    StatusOK       = <span class="num">200</span>
+    StatusNotFound = <span class="num">404</span>
+    Pi             = <span class="num">3.14159265358979</span>
+    AppName        = <span class="str">"GoApp"</span>
+)
+
+<span class="cm">// iota — auto-increment constants</span>
+<span class="kw">type</span> <span class="tp">Direction</span> <span class="tp">int</span>
+<span class="kw">const</span> (
+    North <span class="tp">Direction</span> = <span class="kw">iota</span> <span class="cm">// 0</span>
+    East                   <span class="cm">// 1</span>
+    South                  <span class="cm">// 2</span>
+    West                   <span class="cm">// 3</span>
+)
+
+<span class="kw">type</span> <span class="tp">ByteSize</span> <span class="tp">float64</span>
+<span class="kw">const</span> (
+    _           = <span class="kw">iota</span>            <span class="cm">// ignore 0</span>
+    KB <span class="tp">ByteSize</span> = <span class="num">1</span> &lt;&lt; (<span class="num">10</span> * <span class="kw">iota</span>) <span class="cm">// 1024</span>
+    MB                              <span class="cm">// 1048576</span>
+    GB                              <span class="cm">// 1073741824</span>
+)
+
+<span class="kw">func</span> <span class="fn">divide</span>(a, b <span class="tp">int</span>) (<span class="tp">int</span>, <span class="tp">error</span>) {
+    <span class="kw">if</span> b == <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"divide by zero"</span>) }
+    <span class="kw">return</span> a / b, <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <h3>Type System nâng cao — Named Types, Type Alias, Generics</h3>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">02_types_advanced.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// Named type — distinct type, NOT assignable without conversion</span>
+<span class="kw">type</span> <span class="tp">UserID</span>    <span class="tp">int64</span>
+<span class="kw">type</span> <span class="tp">ProductID</span> <span class="tp">int64</span>
+
+<span class="kw">func</span> <span class="fn">getUser</span>(id <span class="tp">UserID</span>) <span class="tp">string</span>    { <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"user/%d"</span>, id) }
+
+<span class="cm">// Type alias — same type, assignable</span>
+<span class="kw">type</span> <span class="tp">Rune</span> = <span class="tp">rune</span>  <span class="cm">// Rune IS rune — interchangeable</span>
+
+<span class="cm">// Struct with tags (used by JSON, DB, validator)</span>
+<span class="kw">type</span> <span class="tp">User</span> <span class="kw">struct</span> {
+    ID    <span class="tp">UserID</span> <span class="str">`json:"id"              db:"id"`</span>
+    Name  <span class="tp">string</span> <span class="str">`json:"name"            db:"name" validate:"required,min=2"`</span>
+    Email <span class="tp">string</span> <span class="str">`json:"email,omitempty" db:"email"`</span>
+    age   <span class="tp">int</span>    <span class="cm">// unexported — package-private</span>
+}
+
+<span class="cm">// Embedded struct — composition</span>
+<span class="kw">type</span> <span class="tp">Admin</span> <span class="kw">struct</span> {
+    <span class="tp">User</span>       <span class="cm">// embed: Admin.Name, Admin.Email work</span>
+    Permission <span class="tp">string</span>
+}
+
+<span class="cm">// Generic type (Go 1.18+)</span>
+<span class="kw">type</span> <span class="tp">Result</span>[<span class="tp">T</span> <span class="kw">any</span>] <span class="kw">struct</span> {
+    Value <span class="tp">T</span>
+    Err   <span class="tp">error</span>
+}
+
+<span class="kw">func</span> <span class="fn">Map</span>[<span class="tp">T</span>, <span class="tp">U</span> <span class="kw">any</span>](s []<span class="tp">T</span>, fn <span class="kw">func</span>(<span class="tp">T</span>) <span class="tp">U</span>) []<span class="tp">U</span> {
+    out := <span class="fn">make</span>([]<span class="tp">U</span>, <span class="fn">len</span>(s))
+    <span class="kw">for</span> i, v := <span class="kw">range</span> s { out[i] = <span class="fn">fn</span>(v) }
+    <span class="kw">return</span> out
+}
+
+<span class="kw">func</span> <span class="fn">Filter</span>[<span class="tp">T</span> <span class="kw">any</span>](s []<span class="tp">T</span>, pred <span class="kw">func</span>(<span class="tp">T</span>) <span class="tp">bool</span>) []<span class="tp">T</span> {
+    <span class="kw">var</span> out []<span class="tp">T</span>
+    <span class="kw">for</span> _, v := <span class="kw">range</span> s {
+        <span class="kw">if</span> <span class="fn">pred</span>(v) { out = <span class="fn">append</span>(out, v) }
+    }
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// Type constraint</span>
+<span class="kw">type</span> <span class="tp">Number</span> <span class="kw">interface</span> {
+    <span class="tp">int</span> | <span class="tp">int8</span> | <span class="tp">int16</span> | <span class="tp">int32</span> | <span class="tp">int64</span> |
+    <span class="tp">float32</span> | <span class="tp">float64</span>
+}
+
+<span class="kw">func</span> <span class="fn">Sum</span>[<span class="tp">T</span> <span class="tp">Number</span>](nums []<span class="tp">T</span>) <span class="tp">T</span> {
+    <span class="kw">var</span> total <span class="tp">T</span>
+    <span class="kw">for</span> _, n := <span class="kw">range</span> nums { total += n }
+    <span class="kw">return</span> total
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    uid := <span class="tp">UserID</span>(<span class="num">42</span>)
+    fmt.<span class="fn">Println</span>(<span class="fn">getUser</span>(uid))
+    <span class="cm">// getUser(ProductID(42))  // compile error! type mismatch</span>
+
+    nums := []<span class="tp">int</span>{<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>}
+    doubled := <span class="fn">Map</span>(nums, <span class="kw">func</span>(n <span class="tp">int</span>) <span class="tp">int</span> { <span class="kw">return</span> n * <span class="num">2</span> })
+    evens   := <span class="fn">Filter</span>(nums, <span class="kw">func</span>(n <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> n%<span class="num">2</span> == <span class="num">0</span> })
+    total   := <span class="fn">Sum</span>(nums)
+    fmt.<span class="fn">Println</span>(doubled, evens, total)
+}</pre>
+  </div>
+
+  <table class="dtable">
+    <thead><tr><th>Cách khai báo</th><th>Syntax</th><th>Type Inferred?</th><th>Phạm vi</th></tr></thead>
+    <tbody>
+      <tr><td><code>var</code> tường minh</td><td><code>var x int = 5</code></td><td>Không</td><td>Package hoặc function</td></tr>
+      <tr><td><code>var</code> zero</td><td><code>var x int</code></td><td>Không (zero value)</td><td>Package hoặc function</td></tr>
+      <tr><td>Short <code>:=</code></td><td><code>x := 5</code></td><td>Có</td><td>Function only</td></tr>
+      <tr><td><code>const</code></td><td><code>const Pi = 3.14</code></td><td>Có (untyped)</td><td>Package hoặc function</td></tr>
+    </tbody>
+  </table>
+</section>
+<!-- ===== CONTROL FLOW ===== -->
+<section class="page-section" id="s-control">
+  <div class="sec-header">
+    <div class="sec-num">02</div>
+    <div><div class="sec-title">Control Flow &amp; Loops</div><div class="sec-sub">if/else, for, switch, range, goto — Go chỉ có 1 looping construct</div></div>
+    <span class="badge b-basic">BASICS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🔀 Đặc điểm</div>
+    <div class="ctitle">Go đơn giản hóa Control Flow</div>
+    <p class="prose">Go <strong>không có</strong> <code>while</code>, <code>do-while</code>, ternary operator. Tất cả vòng lặp đều dùng <code>for</code>. <code>switch</code> không cần <code>break</code> (implicit break). <code>if</code> có thể có init statement.</p>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Go Control Flow — Decision Tree</div>
+    <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <!-- for loop types -->
+      <rect x="10" y="20" width="140" height="170" rx="8" fill="rgba(0,255,136,.07)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+      <text x="80" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">for</text>
+      <text x="22" y="64" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for { }         infinite</text>
+      <text x="22" y="82" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for cond { }    while</text>
+      <text x="22" y="100" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for i;c;p { }   classic</text>
+      <text x="22" y="118" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for i,v := range s</text>
+      <text x="22" y="152" font-size="10" fill="#fb923c" font-family="JetBrains Mono">break / continue</text>
+      <text x="22" y="170" font-size="10" fill="#fb923c" font-family="JetBrains Mono">goto (rare)</text>
+      <!-- if -->
+      <rect x="165" y="20" width="150" height="170" rx="8" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+      <text x="240" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">if / else</text>
+      <text x="177" y="64" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">if expr { }</text>
+      <text x="177" y="82" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">if init; cond { }</text>
+      <text x="177" y="100" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">if { } else { }</text>
+      <text x="177" y="118" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">if { } else if { }</text>
+      <text x="177" y="148" font-size="10" fill="#fb923c" font-family="JetBrains Mono">No parens needed</text>
+      <text x="177" y="166" font-size="10" fill="#fb923c" font-family="JetBrains Mono">{ MUST be same line</text>
+      <!-- switch -->
+      <rect x="330" y="20" width="175" height="170" rx="8" fill="rgba(168,85,247,.07)" stroke="rgba(168,85,247,.3)" stroke-width="1.5"/>
+      <text x="417" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">switch</text>
+      <text x="342" y="64" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">switch val { case: }</text>
+      <text x="342" y="82" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">switch { case cond: }</text>
+      <text x="342" y="100" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">switch init; val { }</text>
+      <text x="342" y="118" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">type switch</text>
+      <text x="342" y="148" font-size="10" fill="#fb923c" font-family="JetBrains Mono">implicit break</text>
+      <text x="342" y="166" font-size="10" fill="#fb923c" font-family="JetBrains Mono">fallthrough explicit</text>
+      <!-- range -->
+      <rect x="520" y="20" width="285" height="170" rx="8" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.3)" stroke-width="1.5"/>
+      <text x="662" y="42" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">range</text>
+      <text x="532" y="64" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for i, v := range slice  → idx, val</text>
+      <text x="532" y="82" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for k, v := range map    → key, val</text>
+      <text x="532" y="100" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for i, r := range string → idx, rune</text>
+      <text x="532" y="118" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">for v := range channel   → value</text>
+      <text x="532" y="148" font-size="10" fill="#fb923c" font-family="JetBrains Mono">for range N { }  (Go 1.22+)</text>
+      <text x="532" y="166" font-size="10" fill="#fb923c" font-family="JetBrains Mono">use _ to discard index/value</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">control_flow.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// === IF — with init statement ===</span>
+    <span class="kw">if</span> n := <span class="num">42</span>; n%<span class="num">2</span> == <span class="num">0</span> {
+        fmt.<span class="fn">Println</span>(<span class="str">"even"</span>, n)
+    } <span class="kw">else</span> {
+        fmt.<span class="fn">Println</span>(<span class="str">"odd"</span>, n)
+    }
+    <span class="cm">// n is NOT accessible here — scoped to if block</span>
+
+    <span class="cm">// === FOR — 4 forms ===</span>
+    <span class="cm">// Classic</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">5</span>; i++ { fmt.<span class="fn">Print</span>(i, <span class="str">" "</span>) }; fmt.<span class="fn">Println</span>()
+
+    <span class="cm">// While-style</span>
+    x := <span class="num">1</span>
+    <span class="kw">for</span> x &lt; <span class="num">100</span> { x *= <span class="num">2</span> }
+    fmt.<span class="fn">Println</span>(<span class="str">"x ="</span>, x)
+
+    <span class="cm">// Infinite with break</span>
+    count := <span class="num">0</span>
+    <span class="kw">for</span> {
+        count++
+        <span class="kw">if</span> count == <span class="num">3</span> { <span class="kw">break</span> }
+    }
+
+    <span class="cm">// Range over slice</span>
+    fruits := []<span class="tp">string</span>{<span class="str">"apple"</span>, <span class="str">"banana"</span>, <span class="str">"cherry"</span>}
+    <span class="kw">for</span> i, f := <span class="kw">range</span> fruits {
+        fmt.<span class="fn">Printf</span>(<span class="str">"%d: %s\n"</span>, i, f)
+    }
+
+    <span class="cm">// Range over map (non-deterministic order)</span>
+    scores := <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{<span class="str">"Alice"</span>: <span class="num">95</span>, <span class="str">"Bob"</span>: <span class="num">87</span>}
+    <span class="kw">for</span> k, v := <span class="kw">range</span> scores {
+        fmt.<span class="fn">Printf</span>(<span class="str">"%s: %d\n"</span>, k, v)
+    }
+
+    <span class="cm">// Range over string → runes (Unicode-safe)</span>
+    <span class="kw">for</span> i, r := <span class="kw">range</span> <span class="str">"Héllo"</span> {
+        fmt.<span class="fn">Printf</span>(<span class="str">"[%d] %c (%d)\n"</span>, i, r, r)
+    }
+
+    <span class="cm">// Go 1.22+: range over integer</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> <span class="num">5</span> { fmt.<span class="fn">Print</span>(i) }; fmt.<span class="fn">Println</span>()
+
+    <span class="cm">// === SWITCH ===</span>
+    day := <span class="str">"Monday"</span>
+    <span class="kw">switch</span> day {
+    <span class="kw">case</span> <span class="str">"Saturday"</span>, <span class="str">"Sunday"</span>:
+        fmt.<span class="fn">Println</span>(<span class="str">"Weekend"</span>)
+    <span class="kw">case</span> <span class="str">"Monday"</span>:
+        fmt.<span class="fn">Println</span>(<span class="str">"Start of week"</span>)
+        <span class="cm">// implicit break — no fallthrough</span>
+    <span class="kw">default</span>:
+        fmt.<span class="fn">Println</span>(<span class="str">"Weekday"</span>)
+    }
+
+    <span class="cm">// Expressionless switch (replaces if-else chains)</span>
+    score := <span class="num">75</span>
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> score &gt;= <span class="num">90</span>: fmt.<span class="fn">Println</span>(<span class="str">"A"</span>)
+    <span class="kw">case</span> score &gt;= <span class="num">80</span>: fmt.<span class="fn">Println</span>(<span class="str">"B"</span>)
+    <span class="kw">case</span> score &gt;= <span class="num">70</span>: fmt.<span class="fn">Println</span>(<span class="str">"C"</span>)
+    <span class="kw">default</span>:         fmt.<span class="fn">Println</span>(<span class="str">"F"</span>)
+    }
+
+    <span class="cm">// Type switch — runtime type checking</span>
+    <span class="kw">var</span> val <span class="kw">any</span> = <span class="num">3.14</span>
+    <span class="kw">switch</span> v := val.(<span class="kw">type</span>) {
+    <span class="kw">case</span> <span class="tp">int</span>:     fmt.<span class="fn">Printf</span>(<span class="str">"int: %d\n"</span>, v)
+    <span class="kw">case</span> <span class="tp">string</span>:  fmt.<span class="fn">Printf</span>(<span class="str">"string: %s\n"</span>, v)
+    <span class="kw">case</span> <span class="tp">float64</span>: fmt.<span class="fn">Printf</span>(<span class="str">"float64: %f\n"</span>, v)
+    <span class="kw">default</span>:       fmt.<span class="fn">Printf</span>(<span class="str">"unknown: %T\n"</span>, v)
+    }
+
+    <span class="cm">// Labeled break — exit outer loop</span>
+<span class="tp">Outer</span>:
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">3</span>; i++ {
+        <span class="kw">for</span> j := <span class="num">0</span>; j &lt; <span class="num">3</span>; j++ {
+            <span class="kw">if</span> i+j == <span class="num">3</span> { <span class="kw">break</span> <span class="tp">Outer</span> }
+            fmt.<span class="fn">Printf</span>(<span class="str">"(%d,%d) "</span>, i, j)
+        }
+    }
+}</pre>
+  </div>
+</section>
+
+<!-- ===== DEFER PANIC RECOVER ===== -->
+<section class="page-section" id="s-defer">
+  <div class="sec-header">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">Defer, Panic, Recover</div><div class="sec-sub">Resource cleanup, stack unwinding, exception-like error handling</div></div>
+    <span class="badge b-basic">BASICS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">⚡ Định nghĩa</div>
+    <div class="ctitle">Cơ chế cleanup của Go</div>
+    <p class="prose"><strong><code>defer</code></strong> trì hoãn thực thi function đến khi function bao ngoài return. <strong><code>panic</code></strong> dừng goroutine bình thường, bắt đầu unwinding stack. <strong><code>recover</code></strong> bắt panic trong deferred function.</p>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Defer Stack (LIFO) + Panic/Recover Flow</div>
+    <svg width="100%" viewBox="0 0 820 210" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <!-- Defer stack -->
+      <text x="160" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">DEFER STACK (LIFO)</text>
+      <rect x="10" y="25" width="300" height="175" rx="8" fill="rgba(0,212,255,.05)" stroke="rgba(0,212,255,.2)" stroke-width="1.5"/>
+      <rect x="25" y="40" width="270" height="28" rx="4" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+      <text x="160" y="58" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">defer fmt.Println("1st")</text>
+      <rect x="25" y="76" width="270" height="28" rx="4" fill="rgba(0,212,255,.18)" stroke="rgba(0,212,255,.4)" stroke-width="1"/>
+      <text x="160" y="94" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">defer fmt.Println("2nd")</text>
+      <rect x="25" y="112" width="270" height="28" rx="4" fill="rgba(0,212,255,.25)" stroke="rgba(0,212,255,.5)" stroke-width="1"/>
+      <text x="160" y="130" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">defer fmt.Println("3rd")</text>
+      <text x="160" y="162" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">↑ Executes LAST to FIRST</text>
+      <text x="160" y="182" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Output: "3rd" → "2nd" → "1st"</text>
+      <!-- Panic/Recover -->
+      <text x="570" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">PANIC / RECOVER FLOW</text>
+      <rect x="380" y="25" width="420" height="175" rx="8" fill="rgba(255,107,107,.05)" stroke="rgba(255,107,107,.2)" stroke-width="1.5"/>
+      <rect x="395" y="38" width="130" height="28" rx="5" fill="rgba(0,255,136,.12)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+      <text x="460" y="57" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">func runs</text>
+      <line x1="527" y1="52" x2="555" y2="52" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="555" y="38" width="130" height="28" rx="5" fill="rgba(255,107,107,.12)" stroke="rgba(255,107,107,.3)" stroke-width="1"/>
+      <text x="620" y="57" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">panic("msg")</text>
+      <line x1="620" y1="66" x2="620" y2="90" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="555" y="90" width="130" height="28" rx="5" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+      <text x="620" y="109" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">defers run</text>
+      <line x1="555" y1="104" x2="395" y2="104" stroke="#94a3b8" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="395" y="90" width="130" height="28" rx="5" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.3)" stroke-width="1"/>
+      <text x="460" y="109" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">recover()</text>
+      <line x1="460" y1="118" x2="460" y2="142" stroke="#a855f7" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="395" y="142" width="130" height="28" rx="5" fill="rgba(0,255,136,.12)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+      <text x="460" y="161" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">handle error</text>
+      <text x="622" y="135" font-size="9" fill="#64748b" font-family="JetBrains Mono">if not recovered</text>
+      <line x1="620" y1="118" x2="620" y2="142" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#a2)"/>
+      <rect x="555" y="142" width="130" height="28" rx="5" fill="rgba(255,107,107,.15)" stroke="rgba(255,107,107,.4)" stroke-width="1"/>
+      <text x="620" y="161" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">program crash</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">defer_panic_recover.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"os"</span>
+)
+
+<span class="cm">// Pattern 1: Resource cleanup (canonical use of defer)</span>
+<span class="kw">func</span> <span class="fn">readFile</span>(path <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    f, err := os.<span class="fn">Open</span>(path)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="str">""</span>, err }
+    <span class="kw">defer</span> f.<span class="fn">Close</span>() <span class="cm">// always called — even on panic or early return</span>
+    <span class="cm">// ... read file ...</span>
+    <span class="kw">return</span> <span class="str">"content"</span>, <span class="kw">nil</span>
+}
+
+<span class="cm">// Pattern 2: Defer modifies named return value</span>
+<span class="kw">func</span> <span class="fn">safeDiv</span>(a, b <span class="tp">int</span>) (result <span class="tp">int</span>, err <span class="tp">error</span>) {
+    <span class="kw">defer</span> <span class="kw">func</span>() {
+        <span class="kw">if</span> r := <span class="fn">recover</span>(); r != <span class="kw">nil</span> {
+            err = fmt.<span class="fn">Errorf</span>(<span class="str">"recovered panic: %v"</span>, r)
+        }
+    }()
+    <span class="kw">return</span> a / b, <span class="kw">nil</span> <span class="cm">// panics if b == 0</span>
+}
+
+<span class="cm">// Pattern 3: LIFO order demonstration</span>
+<span class="kw">func</span> <span class="fn">lifoDemo</span>() {
+    fmt.<span class="fn">Println</span>(<span class="str">"start"</span>)
+    <span class="kw">defer</span> fmt.<span class="fn">Println</span>(<span class="str">"defer 1"</span>) <span class="cm">// runs 3rd</span>
+    <span class="kw">defer</span> fmt.<span class="fn">Println</span>(<span class="str">"defer 2"</span>) <span class="cm">// runs 2nd</span>
+    <span class="kw">defer</span> fmt.<span class="fn">Println</span>(<span class="str">"defer 3"</span>) <span class="cm">// runs 1st</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"end"</span>)
+    <span class="cm">// Output: start → end → defer 3 → defer 2 → defer 1</span>
+}
+
+<span class="cm">// Pattern 4: Defer in loop — GOTCHA! Don't do this</span>
+<span class="kw">func</span> <span class="fn">deferInLoop</span>(files []<span class="tp">string</span>) {
+    <span class="cm">// ❌ BAD: all defers run at function end, not each iteration</span>
+    <span class="kw">for</span> _, f := <span class="kw">range</span> files {
+        rc, _ := os.<span class="fn">Open</span>(f)
+        <span class="kw">defer</span> rc.<span class="fn">Close</span>() <span class="cm">// accumulates! bad for long loops</span>
+    }
+}
+
+<span class="kw">func</span> <span class="fn">deferInLoopFixed</span>(files []<span class="tp">string</span>) {
+    <span class="cm">// ✅ GOOD: encapsulate in inner function</span>
+    <span class="fn">process</span> := <span class="kw">func</span>(path <span class="tp">string</span>) {
+        rc, _ := os.<span class="fn">Open</span>(path)
+        <span class="kw">defer</span> rc.<span class="fn">Close</span>() <span class="cm">// runs when inner func returns</span>
+    }
+    <span class="kw">for</span> _, f := <span class="kw">range</span> files { <span class="fn">process</span>(f) }
+}
+
+<span class="cm">// Pattern 5: Safe goroutine wrapper (production pattern)</span>
+<span class="kw">func</span> <span class="fn">safeGo</span>(fn <span class="kw">func</span>()) {
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            <span class="kw">if</span> r := <span class="fn">recover</span>(); r != <span class="kw">nil</span> {
+                fmt.<span class="fn">Printf</span>(<span class="str">"goroutine panic: %v\n"</span>, r)
+                <span class="cm">// log to sentry, alert monitoring, etc.</span>
+            }
+        }()
+        <span class="fn">fn</span>()
+    }()
+}
+
+<span class="cm">// Pattern 6: Panic should ONLY be used for truly unrecoverable states</span>
+<span class="kw">func</span> <span class="fn">mustParseConfig</span>(path <span class="tp">string</span>) {
+    <span class="kw">if</span> path == <span class="str">""</span> {
+        <span class="kw">panic</span>(<span class="str">"config path must not be empty"</span>) <span class="cm">// programmer error</span>
+    }
+    <span class="cm">// Use panic for: initialization failures, programmer errors</span>
+    <span class="cm">// NEVER use panic for: user input errors, expected failures</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="fn">lifoDemo</span>()
+
+    result, err := <span class="fn">safeDiv</span>(<span class="num">10</span>, <span class="num">0</span>)
+    fmt.<span class="fn">Println</span>(result, err) <span class="cm">// 0 recovered panic: runtime error: integer divide by zero</span>
+
+    result2, err2 := <span class="fn">safeDiv</span>(<span class="num">10</span>, <span class="num">2</span>)
+    fmt.<span class="fn">Println</span>(result2, err2) <span class="cm">// 5 nil</span>
+}</pre>
+  </div>
+  <div class="note n-warn"><div class="note-icon">⚠️</div><p><strong>Defer evaluation:</strong> Tham số của deferred function được evaluate ngay lúc <code>defer</code> được gọi, không phải khi execute. <code>defer fmt.Println(x)</code> — giá trị của <code>x</code> được capture ngay.</p></div>
+</section>
+<!-- ===== POINTERS ===== -->
+<section class="page-section" id="s-pointers">
+  <div class="sec-header">
+    <div class="sec-num">04</div>
+    <div><div class="sec-title">Pointers &amp; Memory</div><div class="sec-sub">Stack vs Heap, escape analysis, value vs pointer semantics</div></div>
+    <span class="badge b-basic">BASICS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🎯 Định nghĩa</div>
+    <div class="ctitle">Pointer — địa chỉ bộ nhớ của một giá trị</div>
+    <p class="prose">Go có pointers nhưng <strong>không có pointer arithmetic</strong>. <code>&amp;x</code> lấy địa chỉ của x. <code>*p</code> dereference pointer p. Go runtime có <strong>garbage collector</strong> — bạn không cần free memory thủ công.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_pointers_memory.png" alt="Go Pointer & Memory Model Stack vs Heap" loading="lazy">
+    <div class="concept-img-caption">Hình 4.1: Mô hình quản lý bộ nhớ trong Go — So sánh chi tiết cơ chế phân bổ Stack vs Heap và giải thuật Escape Analysis</div>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Stack vs Heap — Go Memory Model</div>
+    <svg width="100%" viewBox="0 0 820 190" xmlns="http://www.w3.org/2000/svg">
+      <!-- Stack -->
+      <rect x="10" y="10" width="350" height="170" rx="8" fill="rgba(0,212,255,.06)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+      <text x="185" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">STACK (fast, auto managed)</text>
+      <rect x="25" y="40" width="320" height="24" rx="4" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)" stroke-width="1"/>
+      <text x="185" y="56" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">local variables (doesn't escape)</text>
+      <rect x="25" y="70" width="320" height="24" rx="4" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)" stroke-width="1"/>
+      <text x="185" y="86" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">function parameters</text>
+      <rect x="25" y="100" width="320" height="24" rx="4" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)" stroke-width="1"/>
+      <text x="185" y="116" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">return values (small)</text>
+      <text x="25" y="152" font-size="10" fill="#00ff88" font-family="JetBrains Mono">✓ No GC overhead</text>
+      <text x="25" y="170" font-size="10" fill="#00ff88" font-family="JetBrains Mono">✓ CPU cache friendly</text>
+      <!-- Heap -->
+      <rect x="375" y="10" width="430" height="170" rx="8" fill="rgba(168,85,247,.06)" stroke="rgba(168,85,247,.3)" stroke-width="1.5"/>
+      <text x="590" y="30" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">HEAP (GC managed)</text>
+      <rect x="390" y="40" width="400" height="24" rx="4" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.25)" stroke-width="1"/>
+      <text x="590" y="56" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">variables that escape (pointers returned)</text>
+      <rect x="390" y="70" width="400" height="24" rx="4" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.25)" stroke-width="1"/>
+      <text x="590" y="86" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">closures capturing outer vars</text>
+      <rect x="390" y="100" width="400" height="24" rx="4" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.25)" stroke-width="1"/>
+      <text x="590" y="116" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">large objects, interface values</text>
+      <text x="390" y="152" font-size="10" fill="#fb923c" font-family="JetBrains Mono">⚠ GC pressure increases</text>
+      <text x="390" y="170" font-size="10" fill="#64748b" font-family="JetBrains Mono">go build -gcflags="-m" to check escapes</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">pointers_memory.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// Value vs Pointer semantics</span>
+<span class="kw">type</span> <span class="tp">Point</span> <span class="kw">struct</span> { X, Y <span class="tp">float64</span> }
+
+<span class="cm">// Value receiver — copy of Point, original unchanged</span>
+<span class="kw">func</span> (p <span class="tp">Point</span>) <span class="fn">Scale</span>(factor <span class="tp">float64</span>) <span class="tp">Point</span> {
+    <span class="kw">return</span> <span class="tp">Point</span>{p.X * factor, p.Y * factor}
+}
+
+<span class="cm">// Pointer receiver — modifies original</span>
+<span class="kw">func</span> (p *<span class="tp">Point</span>) <span class="fn">ScaleInPlace</span>(factor <span class="tp">float64</span>) {
+    p.X *= factor
+    p.Y *= factor
+}
+
+<span class="cm">// Pointer parameter — modify caller's variable</span>
+<span class="kw">func</span> <span class="fn">doubleIt</span>(n *<span class="tp">int</span>) { *n *= <span class="num">2</span> }
+
+<span class="cm">// new() vs make() — different purposes</span>
+<span class="kw">func</span> <span class="fn">allocDemo</span>() {
+    <span class="cm">// new(T) — allocates zeroed T, returns *T</span>
+    p := <span class="fn">new</span>(<span class="tp">int</span>)    <span class="cm">// *int pointing to 0</span>
+    *p = <span class="num">42</span>
+    fmt.<span class="fn">Println</span>(*p)
+
+    <span class="cm">// make(T, args) — only for slice, map, chan</span>
+    s := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="num">5</span>, <span class="num">10</span>)    <span class="cm">// len=5, cap=10</span>
+    m := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>) <span class="cm">// initialized map</span>
+    c := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">int</span>, <span class="num">5</span>)      <span class="cm">// buffered channel</span>
+    fmt.<span class="fn">Println</span>(s, m, c)
+}
+
+<span class="cm">// When to use pointer vs value</span>
+<span class="kw">type</span> <span class="tp">SmallValue</span> <span class="kw">struct</span> { X, Y <span class="tp">int</span> }        <span class="cm">// use value receiver</span>
+<span class="kw">type</span> <span class="tp">LargeConfig</span> <span class="kw">struct</span> { data [<span class="num">1024</span>]<span class="tp">byte</span> } <span class="cm">// use pointer receiver</span>
+
+<span class="cm">// Nil pointer — check before deref</span>
+<span class="kw">func</span> <span class="fn">safePrint</span>(s *<span class="tp">string</span>) {
+    <span class="kw">if</span> s == <span class="kw">nil</span> {
+        fmt.<span class="fn">Println</span>(<span class="str">"&lt;nil&gt;"</span>)
+        <span class="kw">return</span>
+    }
+    fmt.<span class="fn">Println</span>(*s)
+}
+
+<span class="cm">// Return pointer to local — Go escapes to heap safely</span>
+<span class="kw">func</span> <span class="fn">newPoint</span>(x, y <span class="tp">float64</span>) *<span class="tp">Point</span> {
+    p := <span class="tp">Point</span>{x, y}     <span class="cm">// Go detects p escapes → heap alloc</span>
+    <span class="kw">return</span> &amp;p            <span class="cm">// SAFE in Go (unlike C!)</span>
+}
+
+<span class="cm">// unsafe.Pointer — escape hatch (expert use only)</span>
+<span class="kw">import</span> <span class="str">"unsafe"</span>
+
+<span class="kw">func</span> <span class="fn">stringToBytes</span>(s <span class="tp">string</span>) []<span class="tp">byte</span> {
+    <span class="cm">// Zero-copy conversion (read-only!)</span>
+    <span class="kw">return</span> unsafe.<span class="fn">Slice</span>(unsafe.<span class="fn">StringData</span>(s), <span class="fn">len</span>(s))
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    x := <span class="num">10</span>
+    <span class="fn">doubleIt</span>(&amp;x)
+    fmt.<span class="fn">Println</span>(x) <span class="cm">// 20</span>
+
+    p := <span class="tp">Point</span>{<span class="num">3</span>, <span class="num">4</span>}
+    p2 := p.<span class="fn">Scale</span>(<span class="num">2</span>)       <span class="cm">// p unchanged</span>
+    p.<span class="fn">ScaleInPlace</span>(<span class="num">2</span>)     <span class="cm">// p modified</span>
+    fmt.<span class="fn">Println</span>(p2, p)   <span class="cm">// {6 8} {6 8}</span>
+
+    ptr := <span class="fn">newPoint</span>(<span class="num">1</span>, <span class="num">2</span>)
+    fmt.<span class="fn">Println</span>(ptr)
+
+    <span class="fn">allocDemo</span>()
+}</pre>
+  </div>
+
+  <table class="dtable">
+    <thead><tr><th>Khi nào dùng</th><th>Value</th><th>Pointer</th></tr></thead>
+    <tbody>
+      <tr><td>Struct nhỏ (&lt;64 bytes)</td><td>✅ Preferred</td><td>OK</td></tr>
+      <tr><td>Struct lớn / cần modify</td><td>❌ Expensive copy</td><td>✅ Required</td></tr>
+      <tr><td>Implement interface</td><td>Nếu không cần modify</td><td>✅ Flexible</td></tr>
+      <tr><td>Function parameter</td><td>Immutable semantics</td><td>Side effects OK</td></tr>
+      <tr><td>Return nullable</td><td>Use <code>ok bool</code></td><td>Use <code>nil</code> check</td></tr>
+    </tbody>
+  </table>
+</section>
+<!-- ===== ERROR CUSTOM ===== -->
+<section class="page-section" id="s-err-custom">
+  <div class="sec-header">
+    <div class="sec-num">E1</div>
+    <div><div class="sec-title">Errors — Wrapping &amp; Custom</div><div class="sec-sub">Custom error types, error wrapping với %w, errors.As/Is</div></div>
+    <span class="badge b-advanced">ERRORS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🔴 Định nghĩa</div>
+    <div class="ctitle">Errors are values — xử lý lỗi tường minh</div>
+    <p class="prose">Go không có exceptions. <strong>Errors là values</strong> — bất kỳ type nào implement interface <code>error</code> (method <code>Error() string</code>) đều là error. Wrapping error với <code>%w</code> tạo ra chuỗi error chain có thể inspect bằng <code>errors.Is</code> và <code>errors.As</code>.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_errors_wrapping.png" alt="Go Error Wrapping and Unpacking Chain" loading="lazy">
+    <div class="concept-img-caption">Hình 5.1: Cơ chế đóng gói lỗi (Error Wrapping) với %w và giải nén lớp lỗi thông qua errors.Is và errors.As</div>
+  </div>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">errors_custom.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"net/http"</span>
+)
+
+<span class="cm">// === Custom error type ===</span>
+<span class="kw">type</span> <span class="tp">ValidationError</span> <span class="kw">struct</span> {
+    Field   <span class="tp">string</span>
+    Message <span class="tp">string</span>
+}
+
+<span class="kw">func</span> (e *<span class="tp">ValidationError</span>) <span class="fn">Error</span>() <span class="tp">string</span> {
+    <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"validation failed on field %q: %s"</span>, e.Field, e.Message)
+}
+
+<span class="cm">// HTTPError carries status code</span>
+<span class="kw">type</span> <span class="tp">HTTPError</span> <span class="kw">struct</span> {
+    Code    <span class="tp">int</span>
+    Message <span class="tp">string</span>
+    Cause   <span class="tp">error</span>
+}
+
+<span class="kw">func</span> (e *<span class="tp">HTTPError</span>) <span class="fn">Error</span>() <span class="tp">string</span> {
+    <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"HTTP %d: %s"</span>, e.Code, e.Message)
+}
+
+<span class="cm">// Unwrap() makes errors.Is/As traverse the chain</span>
+<span class="kw">func</span> (e *<span class="tp">HTTPError</span>) <span class="fn">Unwrap</span>() <span class="tp">error</span> { <span class="kw">return</span> e.Cause }
+
+<span class="cm">// Constructor for cleaner API</span>
+<span class="kw">func</span> <span class="fn">NewHTTPError</span>(code <span class="tp">int</span>, msg <span class="tp">string</span>, cause <span class="tp">error</span>) *<span class="tp">HTTPError</span> {
+    <span class="kw">return</span> &amp;<span class="tp">HTTPError</span>{Code: code, Message: msg, Cause: cause}
+}
+
+<span class="cm">// === Error wrapping with %w ===</span>
+<span class="kw">func</span> <span class="fn">fetchUser</span>(id <span class="tp">int</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="kw">if</span> id &lt;= <span class="num">0</span> {
+        <span class="kw">return</span> <span class="str">""</span>, &amp;<span class="tp">ValidationError</span>{Field: <span class="str">"id"</span>, Message: <span class="str">"must be positive"</span>}
+    }
+    <span class="cm">// Simulate not found</span>
+    <span class="kw">return</span> <span class="str">""</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"fetchUser: %w"</span>, <span class="fn">NewHTTPError</span>(<span class="num">404</span>, <span class="str">"user not found"</span>, <span class="kw">nil</span>))
+}
+
+<span class="kw">func</span> <span class="fn">getProfile</span>(userID <span class="tp">int</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    name, err := <span class="fn">fetchUser</span>(userID)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="cm">// wrap with context — %w preserves chain</span>
+        <span class="kw">return</span> <span class="str">""</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"getProfile(id=%d): %w"</span>, userID, err)
+    }
+    <span class="kw">return</span> name, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// errors.As — extract specific error type from chain</span>
+    _, err := <span class="fn">getProfile</span>(-<span class="num">1</span>)
+    <span class="kw">var</span> ve *<span class="tp">ValidationError</span>
+    <span class="kw">if</span> errors.<span class="fn">As</span>(err, &amp;ve) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Validation error on field %q: %s\n"</span>, ve.Field, ve.Message)
+    }
+
+    _, err2 := <span class="fn">getProfile</span>(<span class="num">99</span>)
+    <span class="kw">var</span> he *<span class="tp">HTTPError</span>
+    <span class="kw">if</span> errors.<span class="fn">As</span>(err2, &amp;he) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"HTTP error code: %d\n"</span>, he.Code)
+        <span class="kw">if</span> he.Code == http.StatusNotFound {
+            fmt.<span class="fn">Println</span>(<span class="str">"→ Resource not found, returning 404 to client"</span>)
+        }
+    }
+
+    <span class="cm">// Print full chain</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"Full chain:"</span>, err2)
+    <span class="cm">// getProfile(id=99): fetchUser: HTTP 404: user not found</span>
+
+    <span class="cm">// errors.Unwrap to traverse manually</span>
+    <span class="kw">for</span> e := err2; e != <span class="kw">nil</span>; e = errors.<span class="fn">Unwrap</span>(e) {
+        fmt.<span class="fn">Printf</span>(<span class="str">"  → %T: %v\n"</span>, e, e)
+    }
+}</pre>
+  </div>
+
+  <h3>Error Type Hierarchy (advanced)</h3>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">errors_domain.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">domain</span>
+
+<span class="kw">import</span> (
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+)
+
+<span class="cm">// DomainError base type — all domain errors embed this</span>
+<span class="kw">type</span> <span class="tp">DomainError</span> <span class="kw">struct</span> {
+    Code    <span class="tp">string</span>
+    Message <span class="tp">string</span>
+    cause   <span class="tp">error</span>
+}
+<span class="kw">func</span> (e *<span class="tp">DomainError</span>) <span class="fn">Error</span>() <span class="tp">string</span>  { <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"[%s] %s"</span>, e.Code, e.Message) }
+<span class="kw">func</span> (e *<span class="tp">DomainError</span>) <span class="fn">Unwrap</span>() <span class="tp">error</span> { <span class="kw">return</span> e.cause }
+
+<span class="kw">type</span> <span class="tp">NotFoundError</span>    <span class="kw">struct</span> { <span class="tp">DomainError</span>; Resource <span class="tp">string</span>; ID <span class="kw">any</span> }
+<span class="kw">type</span> <span class="tp">ConflictError</span>    <span class="kw">struct</span> { <span class="tp">DomainError</span>; Resource <span class="tp">string</span> }
+<span class="kw">type</span> <span class="tp">UnauthorizedError</span> <span class="kw">struct</span> { <span class="tp">DomainError</span> }
+
+<span class="kw">func</span> <span class="fn">NewNotFound</span>(resource <span class="tp">string</span>, id <span class="kw">any</span>) *<span class="tp">NotFoundError</span> {
+    <span class="kw">return</span> &amp;<span class="tp">NotFoundError</span>{
+        DomainError: <span class="tp">DomainError</span>{Code: <span class="str">"NOT_FOUND"</span>, Message: fmt.<span class="fn">Sprintf</span>(<span class="str">"%s with id %v not found"</span>, resource, id)},
+        Resource: resource, ID: id,
+    }
+}
+
+<span class="cm">// Helper to classify errors in HTTP handler</span>
+<span class="kw">func</span> <span class="fn">HTTPStatusFrom</span>(err <span class="tp">error</span>) <span class="tp">int</span> {
+    <span class="kw">var</span> nfe *<span class="tp">NotFoundError</span>
+    <span class="kw">var</span> ce  *<span class="tp">ConflictError</span>
+    <span class="kw">var</span> ue  *<span class="tp">UnauthorizedError</span>
+    <span class="kw">switch</span> {
+    <span class="kw">case</span> errors.<span class="fn">As</span>(err, &amp;nfe): <span class="kw">return</span> <span class="num">404</span>
+    <span class="kw">case</span> errors.<span class="fn">As</span>(err, &amp;ce):  <span class="kw">return</span> <span class="num">409</span>
+    <span class="kw">case</span> errors.<span class="fn">As</span>(err, &amp;ue):  <span class="kw">return</span> <span class="num">401</span>
+    <span class="kw">default</span>:                    <span class="kw">return</span> <span class="num">500</span>
+    }
+}</pre>
+  </div>
+</section>
+
+<!-- ===== ERROR SENTINEL ===== -->
+<section class="page-section" id="s-err-sentinel">
+  <div class="sec-header">
+    <div class="sec-num">E2</div>
+    <div><div class="sec-title">Sentinel, Wrapping, Join</div><div class="sec-sub">Sentinel errors, errors.Is, errors.Join (Go 1.20), multi-error patterns</div></div>
+    <span class="badge b-advanced">ERRORS</span>
+  </div>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">errors_sentinel_join.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"io"</span>
+    <span class="str">"io/fs"</span>
+)
+
+<span class="cm">// === Sentinel errors — package-level, comparable ===</span>
+<span class="kw">var</span> (
+    ErrNotFound      = errors.<span class="fn">New</span>(<span class="str">"not found"</span>)
+    ErrUnauthorized  = errors.<span class="fn">New</span>(<span class="str">"unauthorized"</span>)
+    ErrInvalidInput  = errors.<span class="fn">New</span>(<span class="str">"invalid input"</span>)
+    ErrTimeout       = errors.<span class="fn">New</span>(<span class="str">"operation timed out"</span>)
+)
+
+<span class="cm">// Wrap sentinel for context</span>
+<span class="kw">func</span> <span class="fn">getOrder</span>(id <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="kw">if</span> id == <span class="str">""</span> { <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"getOrder: %w"</span>, ErrInvalidInput) }
+    <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"getOrder %q: %w"</span>, id, ErrNotFound)
+}
+
+<span class="cm">// errors.Is — checks at any depth in the chain</span>
+<span class="kw">func</span> <span class="fn">handleOrder</span>(id <span class="tp">string</span>) {
+    err := <span class="fn">getOrder</span>(id)
+    <span class="kw">if</span> errors.<span class="fn">Is</span>(err, ErrNotFound) {
+        fmt.<span class="fn">Println</span>(<span class="str">"→ 404: order not found"</span>)
+    } <span class="kw">else if</span> errors.<span class="fn">Is</span>(err, ErrInvalidInput) {
+        fmt.<span class="fn">Println</span>(<span class="str">"→ 400: invalid request"</span>)
+    }
+}
+
+<span class="cm">// stdlib sentinels: io.EOF, fs.ErrNotExist, context.Canceled</span>
+<span class="kw">func</span> <span class="fn">readAll</span>(r io.Reader) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    buf := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="num">512</span>)
+    n, err := r.<span class="fn">Read</span>(buf)
+    <span class="kw">if</span> errors.<span class="fn">Is</span>(err, io.EOF) { <span class="kw">return</span> <span class="tp">string</span>(buf[:n]), <span class="kw">nil</span> }
+    <span class="kw">if</span> errors.<span class="fn">Is</span>(err, fs.ErrNotExist) { <span class="kw">return</span> <span class="str">""</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"file not found: %w"</span>, err) }
+    <span class="kw">return</span> <span class="tp">string</span>(buf[:n]), err
+}
+
+<span class="cm">// === errors.Join (Go 1.20) — multiple errors at once ===</span>
+<span class="kw">func</span> <span class="fn">validateUser</span>(name, email <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="kw">var</span> errs []<span class="tp">error</span>
+    <span class="kw">if</span> name == <span class="str">""</span>  { errs = <span class="fn">append</span>(errs, errors.<span class="fn">New</span>(<span class="str">"name required"</span>)) }
+    <span class="kw">if</span> email == <span class="str">""</span> { errs = <span class="fn">append</span>(errs, errors.<span class="fn">New</span>(<span class="str">"email required"</span>)) }
+    <span class="kw">if</span> <span class="fn">len</span>(name) &lt; <span class="num">2</span> &amp;&amp; name != <span class="str">""</span> {
+        errs = <span class="fn">append</span>(errs, errors.<span class="fn">New</span>(<span class="str">"name too short"</span>))
+    }
+    <span class="kw">return</span> errors.<span class="fn">Join</span>(errs...) <span class="cm">// nil if errs is empty</span>
+}
+
+<span class="cm">// errors.Join wraps multiple — each Is/As checked</span>
+<span class="kw">func</span> <span class="fn">runBatch</span>(items []<span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="kw">var</span> errs []<span class="tp">error</span>
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items {
+        <span class="kw">if</span> err := <span class="fn">process</span>(item); err != <span class="kw">nil</span> {
+            errs = <span class="fn">append</span>(errs, fmt.<span class="fn">Errorf</span>(<span class="str">"item %q: %w"</span>, item, err))
+        }
+    }
+    <span class="kw">return</span> errors.<span class="fn">Join</span>(errs...)
+}
+
+<span class="cm">// Custom Is() for flexible matching</span>
+<span class="kw">type</span> <span class="tp">CodeError</span> <span class="kw">struct</span> { Code <span class="tp">int</span>; Msg <span class="tp">string</span> }
+<span class="kw">func</span> (e *<span class="tp">CodeError</span>) <span class="fn">Error</span>() <span class="tp">string</span> { <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"%d: %s"</span>, e.Code, e.Msg) }
+<span class="kw">func</span> (e *<span class="tp">CodeError</span>) <span class="fn">Is</span>(target <span class="tp">error</span>) <span class="tp">bool</span> {
+    t, ok := target.(*<span class="tp">CodeError</span>)
+    <span class="kw">return</span> ok &amp;&amp; t.Code == e.Code  <span class="cm">// match by code only, ignore message</span>
+}
+
+<span class="kw">func</span> <span class="fn">process</span>(s <span class="tp">string</span>) <span class="tp">error</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="fn">handleOrder</span>(<span class="str">""</span>)
+    <span class="fn">handleOrder</span>(<span class="str">"order-123"</span>)
+
+    err := <span class="fn">validateUser</span>(<span class="str">"x"</span>, <span class="str">""</span>)
+    fmt.<span class="fn">Println</span>(err) <span class="cm">// name too short\nemail required</span>
+
+    <span class="cm">// errors.Join result works with errors.Is on each sub-error</span>
+    err2 := <span class="fn">validateUser</span>(<span class="str">""</span>, <span class="str">""</span>)
+    fmt.<span class="fn">Println</span>(<span class="str">"unwrapped:"</span>, errors.<span class="fn">Unwrap</span>(err2)) <span class="cm">// first sub-error</span>
+
+    <span class="cm">// CodeError custom Is</span>
+    e1 := &amp;<span class="tp">CodeError</span>{<span class="num">404</span>, <span class="str">"order not found"</span>}
+    e2 := &amp;<span class="tp">CodeError</span>{<span class="num">404</span>, <span class="str">"completely different message"</span>}
+    fmt.<span class="fn">Println</span>(errors.<span class="fn">Is</span>(e1, e2)) <span class="cm">// true — same code</span>
+}</pre>
+  </div>
+</section>
+<!-- ===== CLOSURES & METHODS ===== -->
+<section class="page-section" id="s-closures">
+  <div class="sec-header">
+    <div class="sec-num">F1</div>
+    <div><div class="sec-title">Closures &amp; Methods</div><div class="sec-sub">First-class functions, closures, value/pointer receivers, interfaces</div></div>
+    <span class="badge b-advanced">FUNCTIONS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🔒 Định nghĩa</div>
+    <div class="ctitle">Functions là first-class citizens trong Go</div>
+    <p class="prose"><strong>Closure</strong> là function capture biến từ outer scope. <strong>Method</strong> là function gắn với type. Go hỗ trợ <strong>higher-order functions</strong>, <strong>function types</strong>, và <strong>method expressions</strong>. Đây là nền tảng của functional patterns trong Go.</p>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Closure Capture — Variable Lifetime</div>
+    <svg width="100%" viewBox="0 0 820 170" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <rect x="10" y="20" width="200" height="130" rx="8" fill="rgba(0,212,255,.06)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+      <text x="110" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">outer function</text>
+      <rect x="24" y="52" width="172" height="26" rx="4" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)" stroke-width="1"/>
+      <text x="110" y="69" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">count := 0  ← captured var</text>
+      <rect x="24" y="86" width="172" height="50" rx="4" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.25)" stroke-width="1"/>
+      <text x="110" y="104" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">closure func() {</text>
+      <text x="110" y="120" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">  count++  ← reads/writes</text>
+      <text x="110" y="133" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">}</text>
+      <line x1="210" y1="65" x2="260" y2="65" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a3)"/>
+      <text x="234" y="58" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">pointer</text>
+      <rect x="260" y="48" width="160" height="40" rx="6" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+      <text x="340" y="68" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">HEAP: count lives here</text>
+      <text x="340" y="82" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">even after outer returns</text>
+      <line x1="196" y1="111" x2="260" y2="111" stroke="#a855f7" stroke-width="1.5" marker-end="url(#a3)"/>
+      <rect x="440" y="20" width="365" height="130" rx="8" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.3)" stroke-width="1.5"/>
+      <text x="622" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">Method Set Rules</text>
+      <text x="455" y="64" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Value receiver T:    T and *T can call</text>
+      <text x="455" y="82" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Pointer receiver *T: only *T can call</text>
+      <text x="455" y="100" font-size="10" fill="#fb923c" font-family="JetBrains Mono">Interface needs *T if any method uses *T</text>
+      <text x="455" y="122" font-size="10" fill="#64748b" font-family="JetBrains Mono">→ Be consistent: all value OR all pointer</text>
+      <text x="455" y="140" font-size="10" fill="#64748b" font-family="JetBrains Mono">   receivers on a type (not mixed)</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">closures_methods.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// === Closure patterns ===</span>
+
+<span class="cm">// 1. Counter — closure with mutable state</span>
+<span class="kw">func</span> <span class="fn">makeCounter</span>() <span class="kw">func</span>() <span class="tp">int</span> {
+    count := <span class="num">0</span>
+    <span class="kw">return</span> <span class="kw">func</span>() <span class="tp">int</span> {
+        count++
+        <span class="kw">return</span> count
+    }
+}
+
+<span class="cm">// 2. Memoize — cache results in closure</span>
+<span class="kw">func</span> <span class="fn">memoize</span>(fn <span class="kw">func</span>(<span class="tp">int</span>) <span class="tp">int</span>) <span class="kw">func</span>(<span class="tp">int</span>) <span class="tp">int</span> {
+    cache := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>)
+    <span class="kw">return</span> <span class="kw">func</span>(n <span class="tp">int</span>) <span class="tp">int</span> {
+        <span class="kw">if</span> v, ok := cache[n]; ok { <span class="kw">return</span> v }
+        v := <span class="fn">fn</span>(n)
+        cache[n] = v
+        <span class="kw">return</span> v
+    }
+}
+
+<span class="cm">// 3. Functional options pattern (idiomatic Go)</span>
+<span class="kw">type</span> <span class="tp">ServerConfig</span> <span class="kw">struct</span> {
+    host    <span class="tp">string</span>
+    port    <span class="tp">int</span>
+    timeout <span class="tp">int</span>
+}
+
+<span class="kw">type</span> <span class="tp">Option</span> <span class="kw">func</span>(*<span class="tp">ServerConfig</span>)
+
+<span class="kw">func</span> <span class="fn">WithHost</span>(h <span class="tp">string</span>) <span class="tp">Option</span>    { <span class="kw">return</span> <span class="kw">func</span>(c *<span class="tp">ServerConfig</span>) { c.host = h } }
+<span class="kw">func</span> <span class="fn">WithPort</span>(p <span class="tp">int</span>) <span class="tp">Option</span>       { <span class="kw">return</span> <span class="kw">func</span>(c *<span class="tp">ServerConfig</span>) { c.port = p } }
+<span class="kw">func</span> <span class="fn">WithTimeout</span>(t <span class="tp">int</span>) <span class="tp">Option</span>    { <span class="kw">return</span> <span class="kw">func</span>(c *<span class="tp">ServerConfig</span>) { c.timeout = t } }
+
+<span class="kw">func</span> <span class="fn">NewServer</span>(opts ...<span class="tp">Option</span>) *<span class="tp">ServerConfig</span> {
+    cfg := &amp;<span class="tp">ServerConfig</span>{host: <span class="str">"localhost"</span>, port: <span class="num">8080</span>, timeout: <span class="num">30</span>}
+    <span class="kw">for</span> _, opt := <span class="kw">range</span> opts { <span class="fn">opt</span>(cfg) }
+    <span class="kw">return</span> cfg
+}
+
+<span class="cm">// === Methods ===</span>
+<span class="kw">type</span> <span class="tp">Stack</span>[<span class="tp">T</span> <span class="kw">any</span>] <span class="kw">struct</span> { items []<span class="tp">T</span> }
+
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[<span class="tp">T</span>]) <span class="fn">Push</span>(v <span class="tp">T</span>)          { s.items = <span class="fn">append</span>(s.items, v) }
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[<span class="tp">T</span>]) <span class="fn">Pop</span>() (<span class="tp">T</span>, <span class="tp">bool</span>) {
+    <span class="kw">var</span> zero <span class="tp">T</span>
+    <span class="kw">if</span> <span class="fn">len</span>(s.items) == <span class="num">0</span> { <span class="kw">return</span> zero, <span class="kw">false</span> }
+    n := <span class="fn">len</span>(s.items) - <span class="num">1</span>
+    v := s.items[n]
+    s.items = s.items[:n]
+    <span class="kw">return</span> v, <span class="kw">true</span>
+}
+<span class="kw">func</span> (s *<span class="tp">Stack</span>[<span class="tp">T</span>]) <span class="fn">Len</span>() <span class="tp">int</span>          { <span class="kw">return</span> <span class="fn">len</span>(s.items) }
+<span class="kw">func</span> (s  <span class="tp">Stack</span>[<span class="tp">T</span>]) <span class="fn">Peek</span>() (<span class="tp">T</span>, <span class="tp">bool</span>) {
+    <span class="kw">var</span> zero <span class="tp">T</span>
+    <span class="kw">if</span> <span class="fn">len</span>(s.items) == <span class="num">0</span> { <span class="kw">return</span> zero, <span class="kw">false</span> }
+    <span class="kw">return</span> s.items[<span class="fn">len</span>(s.items)-<span class="num">1</span>], <span class="kw">true</span>
+}
+
+<span class="cm">// Method expressions and method values</span>
+<span class="kw">type</span> <span class="tp">Adder</span> <span class="kw">struct</span>{ base <span class="tp">int</span> }
+<span class="kw">func</span> (a <span class="tp">Adder</span>) <span class="fn">Add</span>(x <span class="tp">int</span>) <span class="tp">int</span> { <span class="kw">return</span> a.base + x }
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    c := <span class="fn">makeCounter</span>()
+    fmt.<span class="fn">Println</span>(c(), c(), c()) <span class="cm">// 1 2 3</span>
+
+    fib := <span class="fn">memoize</span>(<span class="kw">func</span>(n <span class="tp">int</span>) <span class="tp">int</span> {
+        <span class="kw">if</span> n &lt;= <span class="num">1</span> { <span class="kw">return</span> n }
+        <span class="kw">return</span> n <span class="cm">// simplified</span>
+    })
+    fmt.<span class="fn">Println</span>(fib(<span class="num">10</span>), fib(<span class="num">10</span>)) <span class="cm">// cached 2nd call</span>
+
+    srv := <span class="fn">NewServer</span>(<span class="fn">WithHost</span>(<span class="str">"0.0.0.0"</span>), <span class="fn">WithPort</span>(<span class="num">9090</span>))
+    fmt.<span class="fn">Printf</span>(<span class="str">"%+v\n"</span>, srv)
+
+    s := &amp;<span class="tp">Stack</span>[<span class="tp">int</span>]{}
+    s.<span class="fn">Push</span>(<span class="num">1</span>); s.<span class="fn">Push</span>(<span class="num">2</span>); s.<span class="fn">Push</span>(<span class="num">3</span>)
+    v, _ := s.<span class="fn">Pop</span>()
+    fmt.<span class="fn">Println</span>(v, s.<span class="fn">Len</span>()) <span class="cm">// 3, 2</span>
+
+    <span class="cm">// Method value — binds receiver</span>
+    a := <span class="tp">Adder</span>{base: <span class="num">10</span>}
+    addFn := a.<span class="fn">Add</span>        <span class="cm">// method value — a is bound</span>
+    fmt.<span class="fn">Println</span>(<span class="fn">addFn</span>(<span class="num">5</span>))  <span class="cm">// 15</span>
+
+    <span class="cm">// Method expression — receiver as first arg</span>
+    addExpr := <span class="tp">Adder</span>.<span class="fn">Add</span>
+    fmt.<span class="fn">Println</span>(<span class="fn">addExpr</span>(a, <span class="num">5</span>)) <span class="cm">// 15</span>
+}</pre>
+  </div>
+</section>
+<!-- ===== STRINGS ===== -->
+<section class="page-section" id="s-strings">
+  <div class="sec-header">
+    <div class="sec-num">F2</div>
+    <div><div class="sec-title">Package strings</div><div class="sec-sub">Tất cả methods của strings — Contains, Split, Replace, Builder, v.v.</div></div>
+    <span class="badge b-advanced">FUNCTIONS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🔤 Định nghĩa</div>
+    <div class="ctitle">string trong Go — immutable byte slice UTF-8</div>
+    <p class="prose">Go string là <strong>immutable sequence of bytes</strong> được encode UTF-8. Package <code>strings</code> cung cấp đầy đủ các utilities để xử lý string. Dùng <code>strings.Builder</code> khi cần nối nhiều strings để tránh allocation.</p>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">strings package — Function Groups</div>
+    <svg width="100%" viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg">
+      <rect x="10" y="10" width="148" height="160" rx="7" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.25)" stroke-width="1.5"/>
+      <text x="84" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Search</text>
+      <text x="20" y="50" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Contains</text>
+      <text x="20" y="67" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">ContainsAny</text>
+      <text x="20" y="84" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">HasPrefix/Suffix</text>
+      <text x="20" y="101" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Index / LastIndex</text>
+      <text x="20" y="118" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">IndexByte/Rune</text>
+      <text x="20" y="135" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Count</text>
+      <text x="20" y="152" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">EqualFold</text>
+
+      <rect x="170" y="10" width="145" height="160" rx="7" fill="rgba(0,255,136,.07)" stroke="rgba(0,255,136,.25)" stroke-width="1.5"/>
+      <text x="243" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">Transform</text>
+      <text x="180" y="50" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">ToUpper/Lower</text>
+      <text x="180" y="67" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">ToTitle</text>
+      <text x="180" y="84" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Title (deprecated)</text>
+      <text x="180" y="101" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Replace/All</text>
+      <text x="180" y="118" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Map(fn, s)</text>
+      <text x="180" y="135" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Repeat</text>
+      <text x="180" y="152" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">NewReplacer</text>
+
+      <rect x="327" y="10" width="150" height="160" rx="7" fill="rgba(168,85,247,.07)" stroke="rgba(168,85,247,.25)" stroke-width="1.5"/>
+      <text x="402" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">Split/Join</text>
+      <text x="337" y="50" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Split</text>
+      <text x="337" y="67" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">SplitN / SplitAfter</text>
+      <text x="337" y="84" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Fields</text>
+      <text x="337" y="101" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">FieldsFunc</text>
+      <text x="337" y="118" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Join</text>
+      <text x="337" y="135" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Cut / CutPrefix</text>
+      <text x="337" y="152" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">CutSuffix</text>
+
+      <rect x="490" y="10" width="145" height="160" rx="7" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.25)" stroke-width="1.5"/>
+      <text x="562" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">Trim</text>
+      <text x="500" y="50" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Trim</text>
+      <text x="500" y="67" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">TrimSpace</text>
+      <text x="500" y="84" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">TrimLeft/Right</text>
+      <text x="500" y="101" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">TrimPrefix/Suffix</text>
+      <text x="500" y="118" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">TrimFunc</text>
+
+      <rect x="648" y="10" width="162" height="160" rx="7" fill="rgba(255,107,107,.07)" stroke="rgba(255,107,107,.25)" stroke-width="1.5"/>
+      <text x="729" y="30" text-anchor="middle" font-size="11" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">Builder/Reader</text>
+      <text x="658" y="50" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Builder.WriteString</text>
+      <text x="658" y="67" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Builder.WriteByte</text>
+      <text x="658" y="84" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Builder.String()</text>
+      <text x="658" y="101" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">Builder.Reset()</text>
+      <text x="658" y="118" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">NewReader</text>
+      <text x="658" y="135" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">NewReplacer</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">strings_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"strings"</span>
+    <span class="str">"unicode"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    s := <span class="str">"  Hello, Go World!  "</span>
+
+    <span class="cm">// === Search ===</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Contains</span>(s, <span class="str">"Go"</span>))            <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">ContainsAny</span>(s, <span class="str">"aeiou"</span>))       <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">ContainsRune</span>(s, 'G'))           <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">HasPrefix</span>(s, <span class="str">"  Hello"</span>))        <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">HasSuffix</span>(s, <span class="str">"!  "</span>))           <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Index</span>(s, <span class="str">"Go"</span>))                <span class="cm">// 9</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">LastIndex</span>(s, <span class="str">"o"</span>))              <span class="cm">// 16</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Count</span>(s, <span class="str">"o"</span>))                 <span class="cm">// 3</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">EqualFold</span>(<span class="str">"Go"</span>, <span class="str">"gO"</span>))         <span class="cm">// true (case-insensitive)</span>
+
+    <span class="cm">// === Transform ===</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">ToUpper</span>(s))                     <span class="cm">// "  HELLO, GO WORLD!  "</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">ToLower</span>(s))                     <span class="cm">// "  hello, go world!  "</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Replace</span>(s, <span class="str">"o"</span>, <span class="str">"0"</span>, <span class="num">2</span>))        <span class="cm">// replace first 2</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">ReplaceAll</span>(s, <span class="str">"o"</span>, <span class="str">"0"</span>))        <span class="cm">// replace all</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Repeat</span>(<span class="str">"Go"</span>, <span class="num">3</span>))               <span class="cm">// "GoGoGo"</span>
+
+    <span class="cm">// Map — transform each rune</span>
+    rot13 := strings.<span class="fn">Map</span>(<span class="kw">func</span>(r <span class="tp">rune</span>) <span class="tp">rune</span> {
+        <span class="kw">switch</span> {
+        <span class="kw">case</span> r &gt;= <span class="str">'a'</span> &amp;&amp; r &lt;= <span class="str">'z'</span>: <span class="kw">return</span> <span class="str">'a'</span> + (r-<span class="str">'a'</span>+<span class="num">13</span>)%<span class="num">26</span>
+        <span class="kw">case</span> r &gt;= <span class="str">'A'</span> &amp;&amp; r &lt;= <span class="str">'Z'</span>: <span class="kw">return</span> <span class="str">'A'</span> + (r-<span class="str">'A'</span>+<span class="num">13</span>)%<span class="num">26</span>
+        }
+        <span class="kw">return</span> r
+    }, <span class="str">"Hello"</span>)
+    fmt.<span class="fn">Println</span>(rot13) <span class="cm">// "Uryyb"</span>
+
+    <span class="cm">// === Split / Join ===</span>
+    parts := strings.<span class="fn">Split</span>(<span class="str">"a,b,c"</span>, <span class="str">","</span>)             <span class="cm">// ["a","b","c"]</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Join</span>(parts, <span class="str">" | "</span>))            <span class="cm">// "a | b | c"</span>
+
+    words := strings.<span class="fn">Fields</span>(<span class="str">"  foo bar  baz  "</span>)       <span class="cm">// splits on whitespace</span>
+    fmt.<span class="fn">Println</span>(words)                                  <span class="cm">// [foo bar baz]</span>
+
+    <span class="cm">// FieldsFunc — custom separator</span>
+    tokens := strings.<span class="fn">FieldsFunc</span>(<span class="str">"a1b2c3"</span>, unicode.IsDigit)
+    fmt.<span class="fn">Println</span>(tokens) <span class="cm">// [a b c]</span>
+
+    <span class="cm">// SplitN — limit splits</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">SplitN</span>(<span class="str">"a:b:c:d"</span>, <span class="str">":"</span>, <span class="num">2</span>)) <span class="cm">// [a b:c:d]</span>
+
+    <span class="cm">// Cut — split on first separator (Go 1.18+)</span>
+    before, after, found := strings.<span class="fn">Cut</span>(<span class="str">"user@example.com"</span>, <span class="str">"@"</span>)
+    fmt.<span class="fn">Println</span>(before, after, found) <span class="cm">// user example.com true</span>
+
+    <span class="cm">// === Trim ===</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">TrimSpace</span>(s))                  <span class="cm">// "Hello, Go World!"</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">Trim</span>(<span class="str">"!!hello!!"</span>, <span class="str">"!"</span>))         <span class="cm">// "hello"</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">TrimLeft</span>(<span class="str">"!!hello!!"</span>, <span class="str">"!"</span>))     <span class="cm">// "hello!!"</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">TrimPrefix</span>(<span class="str">"GoDoc"</span>, <span class="str">"Go"</span>))     <span class="cm">// "Doc"</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">TrimSuffix</span>(<span class="str">"GoDoc"</span>, <span class="str">"Doc"</span>))    <span class="cm">// "Go"</span>
+    fmt.<span class="fn">Println</span>(strings.<span class="fn">TrimFunc</span>(<span class="str">" 123abc"</span>, unicode.IsSpace))
+
+    <span class="cm">// CutPrefix / CutSuffix (Go 1.20+)</span>
+    after2, found2 := strings.<span class="fn">CutPrefix</span>(<span class="str">"Bearer token123"</span>, <span class="str">"Bearer "</span>)
+    fmt.<span class="fn">Println</span>(after2, found2) <span class="cm">// "token123" true</span>
+
+    <span class="cm">// === Builder — efficient concatenation ===</span>
+    <span class="kw">var</span> b strings.Builder
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">5</span>; i++ {
+        fmt.<span class="fn">Fprintf</span>(&amp;b, <span class="str">"item%d,"</span>, i)
+    }
+    fmt.<span class="fn">Println</span>(b.<span class="fn">String</span>()) <span class="cm">// item0,item1,item2,item3,item4,</span>
+
+    <span class="cm">// NewReplacer — multiple replacements in one pass</span>
+    r := strings.<span class="fn">NewReplacer</span>(<span class="str">"&amp;"</span>, <span class="str">"&amp;amp;"</span>, <span class="str">"&lt;"</span>, <span class="str">"&amp;lt;"</span>, <span class="str">"&gt;"</span>, <span class="str">"&amp;gt;"</span>)
+    fmt.<span class="fn">Println</span>(r.<span class="fn">Replace</span>(<span class="str">"&lt;b&gt;bold &amp; safe&lt;/b&gt;"</span>))
+}</pre>
+  </div>
+
+  <table class="dtable">
+    <thead><tr><th>Function</th><th>Signature</th><th>Mô tả</th></tr></thead>
+    <tbody>
+      <tr><td><code>strings.Cut</code></td><td><code>(s,sep) → before,after,found</code></td><td>Split tại sep đầu tiên (Go 1.18)</td></tr>
+      <tr><td><code>strings.Builder</code></td><td><code>WriteString / String()</code></td><td>Zero-alloc string builder</td></tr>
+      <tr><td><code>strings.NewReplacer</code></td><td><code>(old,new,...) → *Replacer</code></td><td>Multi-replace, thread-safe</td></tr>
+      <tr><td><code>strings.FieldsFunc</code></td><td><code>(s, f func(rune) bool)</code></td><td>Split by custom predicate</td></tr>
+      <tr><td><code>strings.Map</code></td><td><code>(f func(rune) rune, s)</code></td><td>Transform mỗi rune</td></tr>
+    </tbody>
+  </table>
+</section>
+<!-- ===== STRCONV ===== -->
+<section class="page-section" id="s-strconv">
+  <div class="sec-header">
+    <div class="sec-num">F3</div>
+    <div><div class="sec-title">Package strconv</div><div class="sec-sub">Chuyển đổi string ↔ primitive types: Atoi, Itoa, Parse*, Format*, AppendInt</div></div>
+    <span class="badge b-advanced">FUNCTIONS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🔁 Định nghĩa</div>
+    <div class="ctitle">strconv — String Conversion Package</div>
+    <p class="prose">Package <code>strconv</code> xử lý chuyển đổi giữa string và các kiểu cơ bản. Hàm <code>Parse*</code> trả về <code>(value, error)</code>. Hàm <code>Format*</code> trả về string. <code>Append*</code> variants giúp tránh allocation bằng cách ghi vào slice có sẵn.</p>
+  </div>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">strconv_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"strconv"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// === int ↔ string ===</span>
+    n, err := strconv.<span class="fn">Atoi</span>(<span class="str">"42"</span>)       <span class="cm">// "42" → 42</span>
+    fmt.<span class="fn">Println</span>(n, err)
+
+    s := strconv.<span class="fn">Itoa</span>(<span class="num">42</span>)              <span class="cm">// 42 → "42"</span>
+    fmt.<span class="fn">Println</span>(s)
+
+    _, err2 := strconv.<span class="fn">Atoi</span>(<span class="str">"abc"</span>)
+    fmt.<span class="fn">Println</span>(err2) <span class="cm">// *NumError: invalid syntax</span>
+
+    <span class="cm">// === ParseInt — base and bit size ===</span>
+    i64, _ := strconv.<span class="fn">ParseInt</span>(<span class="str">"FF"</span>, <span class="num">16</span>, <span class="num">64</span>)   <span class="cm">// hex → 255</span>
+    i8,  _ := strconv.<span class="fn">ParseInt</span>(<span class="str">"101010"</span>, <span class="num">2</span>, <span class="num">8</span>)  <span class="cm">// binary → 42</span>
+    fmt.<span class="fn">Println</span>(i64, i8)
+
+    <span class="cm">// === ParseUint ===</span>
+    u, _ := strconv.<span class="fn">ParseUint</span>(<span class="str">"4294967295"</span>, <span class="num">10</span>, <span class="num">64</span>)
+    fmt.<span class="fn">Println</span>(u) <span class="cm">// max uint32</span>
+
+    <span class="cm">// === ParseFloat ===</span>
+    f, _ := strconv.<span class="fn">ParseFloat</span>(<span class="str">"3.14159"</span>, <span class="num">64</span>)
+    fmt.<span class="fn">Printf</span>(<span class="str">"%.5f\n"</span>, f)
+
+    f32, _ := strconv.<span class="fn">ParseFloat</span>(<span class="str">"2.718"</span>, <span class="num">32</span>) <span class="cm">// 32-bit precision</span>
+    fmt.<span class="fn">Println</span>(float32(f32))
+
+    <span class="cm">// === ParseBool ===</span>
+    b1, _ := strconv.<span class="fn">ParseBool</span>(<span class="str">"true"</span>)   <span class="cm">// true</span>
+    b2, _ := strconv.<span class="fn">ParseBool</span>(<span class="str">"1"</span>)      <span class="cm">// true</span>
+    b3, _ := strconv.<span class="fn">ParseBool</span>(<span class="str">"T"</span>)      <span class="cm">// true</span>
+    b4, _ := strconv.<span class="fn">ParseBool</span>(<span class="str">"FALSE"</span>)  <span class="cm">// false</span>
+    fmt.<span class="fn">Println</span>(b1, b2, b3, b4)
+
+    <span class="cm">// === FormatInt / FormatUint ===</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatInt</span>(<span class="num">255</span>, <span class="num">16</span>))  <span class="cm">// "ff"</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatInt</span>(<span class="num">42</span>, <span class="num">2</span>))   <span class="cm">// "101010"</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatInt</span>(<span class="num">42</span>, <span class="num">8</span>))   <span class="cm">// "52" (octal)</span>
+
+    <span class="cm">// === FormatFloat ===</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatFloat</span>(<span class="num">3.14159</span>, <span class="str">'f'</span>, <span class="num">2</span>, <span class="num">64</span>))  <span class="cm">// "3.14"</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatFloat</span>(<span class="num">3.14159</span>, <span class="str">'e'</span>, <span class="num">3</span>, <span class="num">64</span>))  <span class="cm">// "3.142e+00"</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatFloat</span>(<span class="num">3.14159</span>, <span class="str">'g'</span>, -<span class="num">1</span>, <span class="num">64</span>)) <span class="cm">// shortest repr</span>
+
+    <span class="cm">// === FormatBool ===</span>
+    fmt.<span class="fn">Println</span>(strconv.<span class="fn">FormatBool</span>(<span class="kw">true</span>), strconv.<span class="fn">FormatBool</span>(<span class="kw">false</span>))
+
+    <span class="cm">// === AppendInt — zero alloc append to existing slice ===</span>
+    buf := []<span class="tp">byte</span>(<span class="str">"ID:"</span>)
+    buf = strconv.<span class="fn">AppendInt</span>(buf, <span class="num">12345</span>, <span class="num">10</span>)
+    fmt.<span class="fn">Println</span>(<span class="tp">string</span>(buf)) <span class="cm">// "ID:12345"</span>
+
+    <span class="cm">// === Quote / Unquote (for string literals) ===</span>
+    q := strconv.<span class="fn">Quote</span>(<span class="str">"hello \"world\"\ttab"</span>)
+    fmt.<span class="fn">Println</span>(q)     <span class="cm">// "hello \"world\"\ttab"</span>
+    unq, _ := strconv.<span class="fn">Unquote</span>(q)
+    fmt.<span class="fn">Println</span>(unq)   <span class="cm">// hello "world"	tab</span>
+
+    <span class="cm">// === NumError — rich error info ===</span>
+    _, err3 := strconv.<span class="fn">ParseInt</span>(<span class="str">"99999999999999999999"</span>, <span class="num">10</span>, <span class="num">32</span>)
+    <span class="kw">if</span> numErr, ok := err3.(*strconv.NumError); ok {
+        fmt.<span class="fn">Printf</span>(<span class="str">"Func=%s Num=%s Err=%v\n"</span>,
+            numErr.Func, numErr.Num, numErr.Err) <span class="cm">// ErrRange</span>
+    }
+
+    <span class="cm">// === Common pattern: safe parse with fallback ===</span>
+    <span class="fn">parseInt</span> := <span class="kw">func</span>(s <span class="tp">string</span>, def <span class="tp">int</span>) <span class="tp">int</span> {
+        n, err := strconv.<span class="fn">Atoi</span>(s)
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> def }
+        <span class="kw">return</span> n
+    }
+    fmt.<span class="fn">Println</span>(<span class="fn">parseInt</span>(<span class="str">"42"</span>, <span class="num">0</span>))   <span class="cm">// 42</span>
+    fmt.<span class="fn">Println</span>(<span class="fn">parseInt</span>(<span class="str">"bad"</span>, <span class="num">0</span>)) <span class="cm">// 0 (default)</span>
+}</pre>
+  </div>
+
+  <table class="dtable">
+    <thead><tr><th>Function</th><th>Input → Output</th><th>Ghi chú</th></tr></thead>
+    <tbody>
+      <tr><td><code>strconv.Atoi</code></td><td><code>string → (int, error)</code></td><td>Shorthand ParseInt(s, 10, 0)</td></tr>
+      <tr><td><code>strconv.Itoa</code></td><td><code>int → string</code></td><td>Shorthand FormatInt(i, 10)</td></tr>
+      <tr><td><code>strconv.ParseInt</code></td><td><code>(s, base, bitSize) → (int64, err)</code></td><td>base 2/8/10/16; bitSize 8/16/32/64</td></tr>
+      <tr><td><code>strconv.ParseFloat</code></td><td><code>(s, bitSize) → (float64, err)</code></td><td>bitSize 32 or 64</td></tr>
+      <tr><td><code>strconv.FormatFloat</code></td><td><code>(f, fmt, prec, bitSize) → string</code></td><td>fmt: 'e','f','g','x'</td></tr>
+      <tr><td><code>strconv.AppendInt</code></td><td><code>(dst []byte, i, base) → []byte</code></td><td>Zero allocation — append to buffer</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ===== FMT ===== -->
+<section class="page-section" id="s-fmt">
+  <div class="sec-header">
+    <div class="sec-num">F4</div>
+    <div><div class="sec-title">Package fmt</div><div class="sec-sub">Printf verbs, Errorf, Sprintf, Sscanf, Stringer interface</div></div>
+    <span class="badge b-advanced">FUNCTIONS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🖨️ Định nghĩa</div>
+    <div class="ctitle">fmt — Formatted I/O</div>
+    <p class="prose">Package <code>fmt</code> cung cấp formatted I/O theo kiểu C <code>printf</code> nhưng type-safe. <strong>Verbs</strong> (<code>%v</code>, <code>%d</code>, <code>%s</code>...) điều khiển format. Implement <code>Stringer</code> hoặc <code>GoStringer</code> để tùy chỉnh output.</p>
+  </div>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">fmt_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"os"</span>
+    <span class="str">"strings"</span>
+)
+
+<span class="cm">// Stringer interface — custom String() output</span>
+<span class="kw">type</span> <span class="tp">Color</span> <span class="tp">int</span>
+<span class="kw">const</span> (
+    Red <span class="tp">Color</span> = <span class="kw">iota</span>
+    Green
+    Blue
+)
+<span class="kw">func</span> (c <span class="tp">Color</span>) <span class="fn">String</span>() <span class="tp">string</span> {
+    <span class="kw">return</span> [...]<span class="tp">string</span>{<span class="str">"Red"</span>, <span class="str">"Green"</span>, <span class="str">"Blue"</span>}[c]
+}
+
+<span class="kw">type</span> <span class="tp">Point</span> <span class="kw">struct</span>{ X, Y <span class="tp">float64</span> }
+<span class="kw">func</span> (p <span class="tp">Point</span>) <span class="fn">String</span>() <span class="tp">string</span>   { <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"(%.2f, %.2f)"</span>, p.X, p.Y) }
+<span class="kw">func</span> (p <span class="tp">Point</span>) <span class="fn">GoString</span>() <span class="tp">string</span> { <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"Point{X:%v, Y:%v}"</span>, p.X, p.Y) }
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// === Print family (no newline by default) ===</span>
+    fmt.<span class="fn">Print</span>(<span class="str">"Hello"</span>)        <span class="cm">// no newline</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"Hello"</span>)     <span class="cm">// adds newline</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%s!\n"</span>, <span class="str">"Hi"</span>) <span class="cm">// formatted</span>
+
+    <span class="cm">// === Common verbs ===</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%v\n"</span>,  <span class="num">42</span>)             <span class="cm">// default: 42</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%+v\n"</span>, <span class="tp">Point</span>{<span class="num">1</span>,<span class="num">2</span>})    <span class="cm">// {X:1 Y:2}</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%#v\n"</span>, <span class="tp">Point</span>{<span class="num">1</span>,<span class="num">2</span>})    <span class="cm">// GoString: Point{X:1, Y:2}</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%T\n"</span>,  <span class="tp">Point</span>{<span class="num">1</span>,<span class="num">2</span>})    <span class="cm">// type: main.Point</span>
+
+    <span class="cm">// Integer verbs</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%d %05d\n"</span>, <span class="num">42</span>, <span class="num">42</span>)     <span class="cm">// 42 00042 (zero-padded)</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%b %o %x %X\n"</span>, <span class="num">42</span>, <span class="num">42</span>, <span class="num">42</span>, <span class="num">42</span>) <span class="cm">// bin oct hex HEX</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%+d %+d\n"</span>, <span class="num">42</span>, -<span class="num">42</span>)    <span class="cm">// +42 -42 (force sign)</span>
+
+    <span class="cm">// Float verbs</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%.2f\n"</span>, <span class="num">3.14159</span>)      <span class="cm">// 3.14</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%e\n"</span>,   <span class="num">3.14159</span>)      <span class="cm">// 3.141590e+00</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%g\n"</span>,   <span class="num">3.14159</span>)      <span class="cm">// shortest</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%10.2f\n"</span>, <span class="num">3.14</span>)       <span class="cm">// "      3.14" (width 10)</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%-10.2f|\n"</span>, <span class="num">3.14</span>)     <span class="cm">// "3.14      |" (left-align)</span>
+
+    <span class="cm">// String/byte verbs</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%s %q\n"</span>, <span class="str">"Go"</span>, <span class="str">"Go"</span>)  <span class="cm">// Go "Go"</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%x\n"</span>, <span class="str">"Go"</span>)           <span class="cm">// 476f (hex of bytes)</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%10s|\n"</span>, <span class="str">"Go"</span>)        <span class="cm">// "        Go|"</span>
+
+    <span class="cm">// Stringer auto-called by %v, %s</span>
+    p := <span class="tp">Point</span>{<span class="num">3</span>, <span class="num">4</span>}
+    fmt.<span class="fn">Println</span>(p)           <span class="cm">// calls String(): (3.00, 4.00)</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%v\n"</span>, p)   <span class="cm">// (3.00, 4.00)</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"%#v\n"</span>, p)  <span class="cm">// GoString: Point{X:3, Y:4}</span>
+
+    fmt.<span class="fn">Printf</span>(<span class="str">"Color: %v\n"</span>, Green) <span class="cm">// "Color: Green"</span>
+
+    <span class="cm">// === Sprintf — format to string ===</span>
+    msg := fmt.<span class="fn">Sprintf</span>(<span class="str">"user %d: %s"</span>, <span class="num">42</span>, <span class="str">"Alice"</span>)
+    fmt.<span class="fn">Println</span>(msg)
+
+    <span class="cm">// === Errorf with %w ===</span>
+    baseErr := fmt.<span class="fn">Errorf</span>(<span class="str">"base error"</span>)
+    wrapped := fmt.<span class="fn">Errorf</span>(<span class="str">"handler: %w"</span>, baseErr)
+    fmt.<span class="fn">Println</span>(wrapped)
+
+    <span class="cm">// === Fprintln — write to io.Writer ===</span>
+    fmt.<span class="fn">Fprintln</span>(os.Stderr, <span class="str">"error message"</span>)
+    fmt.<span class="fn">Fprintf</span>(os.Stdout, <span class="str">"pid=%d\n"</span>, os.<span class="fn">Getpid</span>())
+
+    <span class="cm">// === Sprint/Sprintln ===</span>
+    s1 := fmt.<span class="fn">Sprint</span>(<span class="num">1</span>, <span class="str">" "</span>, <span class="num">2</span>)          <span class="cm">// "1 2"</span>
+    s2 := fmt.<span class="fn">Sprintln</span>(<span class="str">"a"</span>, <span class="str">"b"</span>)       <span class="cm">// "a b\n"</span>
+    fmt.<span class="fn">Print</span>(s1, s2)
+
+    <span class="cm">// === Sscanf — parse from string ===</span>
+    <span class="kw">var</span> name <span class="tp">string</span>; <span class="kw">var</span> age <span class="tp">int</span>
+    n, _ := fmt.<span class="fn">Sscanf</span>(<span class="str">"Alice 30"</span>, <span class="str">"%s %d"</span>, &amp;name, &amp;age)
+    fmt.<span class="fn">Printf</span>(<span class="str">"parsed %d items: name=%s age=%d\n"</span>, n, name, age)
+
+    <span class="cm">// === Stringer in table format ===</span>
+    colors := []<span class="tp">Color</span>{Red, Green, Blue}
+    <span class="kw">for</span> _, c := <span class="kw">range</span> colors {
+        fmt.<span class="fn">Printf</span>(<span class="str">"%-8v = %d\n"</span>, c, c)
+    }
+
+    <span class="cm">// === Custom formatter with fmt.Formatter interface ===</span>
+    _ = strings.<span class="fn">NewReplacer</span>() <span class="cm">// suppress unused import</span>
+}</pre>
+  </div>
+
+  <table class="dtable">
+    <thead><tr><th>Verb</th><th>Kiểu</th><th>Ví dụ output</th></tr></thead>
+    <tbody>
+      <tr><td><code>%v</code></td><td>Bất kỳ</td><td>default format</td></tr>
+      <tr><td><code>%+v</code></td><td>Struct</td><td><code>{Field:Value}</code></td></tr>
+      <tr><td><code>%#v</code></td><td>Bất kỳ</td><td>Go syntax (GoString())</td></tr>
+      <tr><td><code>%T</code></td><td>Bất kỳ</td><td>type name</td></tr>
+      <tr><td><code>%d %b %o %x</code></td><td>int</td><td>decimal, binary, octal, hex</td></tr>
+      <tr><td><code>%f %e %g</code></td><td>float</td><td>fixed, scientific, shortest</td></tr>
+      <tr><td><code>%s %q</code></td><td>string</td><td>plain, quoted</td></tr>
+      <tr><td><code>%p</code></td><td>pointer</td><td><code>0xc000...</code></td></tr>
+      <tr><td><code>%w</code></td><td>error (Errorf)</td><td>wrappable error chain</td></tr>
+    </tbody>
+  </table>
+</section>
+<!-- ===== MATH ===== -->
+<section class="page-section" id="s-math">
+  <div class="sec-header">
+    <div class="sec-num">F5</div>
+    <div><div class="sec-title">Package math</div><div class="sec-sub">math, math/rand, math/big — từ số học cơ bản đến big.Int</div></div>
+    <span class="badge b-advanced">FUNCTIONS</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🧮 Định nghĩa</div>
+    <div class="ctitle">math — Mathematical functions cho float64</div>
+    <p class="prose">Package <code>math</code> chứa hàm toán học cho <code>float64</code>. <code>math/rand/v2</code> (Go 1.22+) cho random numbers. <code>math/big</code> cho arbitrary precision. Dùng <code>math.MaxInt</code>, <code>math.MinInt</code> để lấy giới hạn platform-dependent.</p>
+  </div>
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">math_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"math"</span>
+    <span class="str">"math/big"</span>
+    <span class="str">"math/rand/v2"</span>
+    <span class="str">"math/cmplx"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// === Constants ===</span>
+    fmt.<span class="fn">Println</span>(math.Pi)        <span class="cm">// 3.141592653589793</span>
+    fmt.<span class="fn">Println</span>(math.E)         <span class="cm">// 2.718281828459045</span>
+    fmt.<span class="fn">Println</span>(math.Phi)       <span class="cm">// 1.618... (golden ratio)</span>
+    fmt.<span class="fn">Println</span>(math.MaxFloat64) <span class="cm">// 1.7976931348623157e+308</span>
+    fmt.<span class="fn">Println</span>(math.SmallestNonzeroFloat64)
+    fmt.<span class="fn">Println</span>(math.MaxInt, math.MinInt, math.MaxInt32)
+
+    <span class="cm">// === Basic math ===</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Abs</span>(-<span class="num">5.5</span>))      <span class="cm">// 5.5</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Ceil</span>(<span class="num">2.3</span>))      <span class="cm">// 3</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Floor</span>(<span class="num">2.9</span>))     <span class="cm">// 2</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Round</span>(<span class="num">2.5</span>))     <span class="cm">// 3</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Trunc</span>(<span class="num">2.9</span>))     <span class="cm">// 2 (toward zero)</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Mod</span>(<span class="num">10</span>, <span class="num">3</span>))     <span class="cm">// 1 (remainder float)</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Remainder</span>(<span class="num">10</span>, <span class="num">3</span>)) <span class="cm">// IEEE remainder</span>
+
+    <span class="cm">// Min/Max</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Max</span>(<span class="num">3.0</span>, <span class="num">5.0</span>))  <span class="cm">// 5</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Min</span>(<span class="num">3.0</span>, <span class="num">5.0</span>))  <span class="cm">// 3</span>
+    <span class="cm">// Go 1.21+: min/max builtins for ordered types</span>
+    fmt.<span class="fn">Println</span>(<span class="fn">min</span>(<span class="num">3</span>, <span class="num">5</span>), <span class="fn">max</span>(<span class="num">3</span>, <span class="num">5</span>)) <span class="cm">// 3 5 (builtin, any type)</span>
+
+    <span class="cm">// === Power / Roots ===</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Pow</span>(<span class="num">2</span>, <span class="num">10</span>))     <span class="cm">// 1024</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Pow10</span>(<span class="num">3</span>))       <span class="cm">// 1000</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Sqrt</span>(<span class="num">144</span>))      <span class="cm">// 12</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Cbrt</span>(<span class="num">27</span>))       <span class="cm">// 3 (cube root)</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Hypot</span>(<span class="num">3</span>, <span class="num">4</span>))    <span class="cm">// 5 (√(3²+4²))</span>
+
+    <span class="cm">// === Log / Exp ===</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Log</span>(math.E))    <span class="cm">// 1 (natural log)</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Log2</span>(<span class="num">1024</span>))     <span class="cm">// 10</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Log10</span>(<span class="num">1000</span>))    <span class="cm">// 3</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Exp</span>(<span class="num">1</span>))         <span class="cm">// e</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">Exp2</span>(<span class="num">8</span>))        <span class="cm">// 256</span>
+
+    <span class="cm">// === Trig ===</span>
+    fmt.<span class="fn">Printf</span>(<span class="str">"sin(π/2)=%.0f cos(π)=%.0f\n"</span>, math.<span class="fn">Sin</span>(math.Pi/<span class="num">2</span>), math.<span class="fn">Cos</span>(math.Pi))
+    fmt.<span class="fn">Printf</span>(<span class="str">"tan(π/4)=%.2f\n"</span>, math.<span class="fn">Tan</span>(math.Pi/<span class="num">4</span>))
+    fmt.<span class="fn">Printf</span>(<span class="str">"asin(1)=%.4f\n"</span>, math.<span class="fn">Asin</span>(<span class="num">1</span>)) <span class="cm">// π/2</span>
+    deg := <span class="num">180</span>.0 * math.<span class="fn">Atan2</span>(<span class="num">1</span>, <span class="num">1</span>) / math.Pi
+    fmt.<span class="fn">Printf</span>(<span class="str">"atan2(1,1) = %.0f°\n"</span>, deg) <span class="cm">// 45°</span>
+
+    <span class="cm">// === Special values ===</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">IsNaN</span>(math.<span class="fn">NaN</span>()))      <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(math.<span class="fn">IsInf</span>(math.Inf(<span class="num">1</span>), <span class="num">1</span>)) <span class="cm">// true (+Inf)</span>
+
+    <span class="cm">// === rand/v2 (Go 1.22+) ===</span>
+    fmt.<span class="fn">Println</span>(rand.<span class="fn">IntN</span>(<span class="num">100</span>))        <span class="cm">// [0, 100)</span>
+    fmt.<span class="fn">Println</span>(rand.<span class="fn">Float64</span>())        <span class="cm">// [0.0, 1.0)</span>
+    fmt.<span class="fn">Println</span>(rand.<span class="fn">N</span>(<span class="num">100</span>))           <span class="cm">// generic N, any integer type</span>
+
+    <span class="cm">// Seeded source for deterministic tests</span>
+    src := rand.<span class="fn">NewPCG</span>(<span class="num">42</span>, <span class="num">1337</span>)
+    r := rand.<span class="fn">New</span>(src)
+    fmt.<span class="fn">Println</span>(r.<span class="fn">IntN</span>(<span class="num">10</span>))
+
+    <span class="cm">// Shuffle</span>
+    s := []<span class="tp">int</span>{<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>}
+    rand.<span class="fn">Shuffle</span>(<span class="fn">len</span>(s), <span class="kw">func</span>(i, j <span class="tp">int</span>) { s[i], s[j] = s[j], s[i] })
+    fmt.<span class="fn">Println</span>(s)
+
+    <span class="cm">// === math/big — arbitrary precision ===</span>
+    a := <span class="fn">new</span>(big.Int).<span class="fn">SetUint64</span>(<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= <span class="num">20</span>; i++ {
+        a.<span class="fn">Mul</span>(a, big.NewInt(int64(i)))
+    }
+    fmt.<span class="fn">Println</span>(<span class="str">"20! ="</span>, a) <span class="cm">// 2432902008176640000</span>
+
+    <span class="cm">// big.Float for precision</span>
+    pi := <span class="fn">new</span>(big.Float).<span class="fn">SetPrec</span>(<span class="num">200</span>).<span class="fn">SetFloat64</span>(math.Pi)
+    fmt.<span class="fn">Printf</span>(<span class="str">"π (200 bits) = %.50f\n"</span>, pi)
+
+    <span class="cm">// big.Rat for exact fractions</span>
+    rat := new(big.Rat).<span class="fn">SetFrac</span>(big.<span class="fn">NewInt</span>(<span class="num">1</span>), big.<span class="fn">NewInt</span>(<span class="num">3</span>))
+    fmt.<span class="fn">Println</span>(rat.FloatString(<span class="num">10</span>)) <span class="cm">// "0.3333333333"</span>
+
+    <span class="cm">// === math/cmplx — complex numbers ===</span>
+    z := complex(<span class="num">3</span>, <span class="num">4</span>)
+    fmt.<span class="fn">Printf</span>(<span class="str">"|z|=%.0f arg=%.4f\n"</span>, cmplx.<span class="fn">Abs</span>(z), cmplx.<span class="fn">Phase</span>(z))
+}</pre>
+  </div>
+</section>
+<!-- ===== SLICES & MAPS ===== -->
+<section class="page-section" id="s-slicesmaps">
+  <div class="sec-header">
+    <div class="sec-num">F6</div>
+    <div><div class="sec-title">Slices &amp; Maps</div><div class="sec-sub">Tất cả operations — make, append, copy, delete, slices package (Go 1.21)</div></div>
+    <span class="badge b-expert">EXPERT</span>
+  </div>
+  <div class="concept-box">
+    <div class="label">🗃️ Định nghĩa</div>
+    <div class="ctitle">Slice — dynamic array; Map — hash table</div>
+    <p class="prose"><strong>Slice</strong> là view vào một underlying array — gồm pointer, length, và capacity. <strong>Map</strong> là hash table không có thứ tự. Go 1.21 thêm packages <code>slices</code> và <code>maps</code> với các generic utilities tiện lợi.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_slices_maps.png" alt="Go Slice and Map Internal Data Structures" loading="lazy">
+    <div class="concept-img-caption">Hình 6.1: Cấu trúc dữ liệu nội bộ của Slice (Header view) và Map (Hash Table Buckets Chain) trong bộ nhớ Go</div>
+  </div>
+
+  <div class="diagram-box">
+    <div class="diagram-title">Slice Internal Structure</div>
+    <svg width="100%" viewBox="0 0 820 160" xmlns="http://www.w3.org/2000/svg">
+      <defs><marker id="a4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></marker></defs>
+      <!-- Slice header -->
+      <rect x="10" y="30" width="250" height="100" rx="8" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+      <text x="135" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Slice Header (24 bytes)</text>
+      <rect x="22" y="40" width="226" height="24" rx="4" fill="rgba(0,212,255,.15)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+      <text x="135" y="56" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">ptr → (points to array)</text>
+      <rect x="22" y="70" width="110" height="24" rx="4" fill="rgba(0,255,136,.15)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+      <text x="77" y="86" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">len = 3</text>
+      <rect x="138" y="70" width="110" height="24" rx="4" fill="rgba(245,158,11,.15)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+      <text x="193" y="86" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">cap = 6</text>
+      <text x="135" y="120" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">len: accessible elements</text>
+      <text x="135" y="135" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">cap: total allocated</text>
+      <!-- Array -->
+      <line x1="248" y1="52" x2="295" y2="52" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a4)"/>
+      <text x="340" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">Underlying Array</text>
+      <rect x="295" y="30" width="50" height="40" rx="4" fill="rgba(0,212,255,.15)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+      <text x="320" y="55" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">[0]</text>
+      <rect x="347" y="30" width="50" height="40" rx="4" fill="rgba(0,212,255,.15)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+      <text x="372" y="55" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">[1]</text>
+      <rect x="399" y="30" width="50" height="40" rx="4" fill="rgba(0,212,255,.15)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+      <text x="424" y="55" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">[2]</text>
+      <rect x="451" y="30" width="50" height="40" rx="4" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+      <text x="476" y="55" text-anchor="middle" font-size="12" fill="#475569" font-family="JetBrains Mono">[3]</text>
+      <rect x="503" y="30" width="50" height="40" rx="4" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+      <text x="528" y="55" text-anchor="middle" font-size="12" fill="#475569" font-family="JetBrains Mono">[4]</text>
+      <rect x="555" y="30" width="50" height="40" rx="4" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+      <text x="580" y="55" text-anchor="middle" font-size="12" fill="#475569" font-family="JetBrains Mono">[5]</text>
+      <!-- Braces -->
+      <line x1="295" y1="80" x2="448" y2="80" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="370" y="96" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">len=3 (accessible)</text>
+      <line x1="295" y1="110" x2="604" y2="110" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="450" y="126" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">cap=6 (allocated)</text>
+      <!-- append note -->
+      <rect x="640" y="30" width="170" height="110" rx="8" fill="rgba(168,85,247,.07)" stroke="rgba(168,85,247,.25)" stroke-width="1.5"/>
+      <text x="725" y="50" text-anchor="middle" font-size="10" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">append() strategy</text>
+      <text x="650" y="70" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">if len &lt; cap: extend</text>
+      <text x="650" y="86" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">if len == cap: new array</text>
+      <text x="650" y="102" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">small: double cap</text>
+      <text x="650" y="118" font-size="9.5" fill="#94a3b8" font-family="JetBrains Mono">large: ~1.25x growth</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">slices_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"cmp"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"slices"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// === Create ===</span>
+    <span class="kw">var</span> a []<span class="tp">int</span>                   <span class="cm">// nil slice — len=0, cap=0</span>
+    b := []<span class="tp">int</span>{}                  <span class="cm">// empty slice — len=0, cap=0, NOT nil</span>
+    c := []<span class="tp">int</span>{<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>}           <span class="cm">// literal</span>
+    d := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="num">5</span>)           <span class="cm">// len=5, cap=5, zeros</span>
+    e := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="num">3</span>, <span class="num">10</span>)       <span class="cm">// len=3, cap=10</span>
+    fmt.<span class="fn">Println</span>(a == <span class="kw">nil</span>, b == <span class="kw">nil</span>, <span class="fn">len</span>(c), <span class="fn">cap</span>(d), <span class="fn">cap</span>(e))
+
+    <span class="cm">// === Append ===</span>
+    s := []<span class="tp">int</span>{<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>}
+    s = <span class="fn">append</span>(s, <span class="num">4</span>)             <span class="cm">// single</span>
+    s = <span class="fn">append</span>(s, <span class="num">5</span>, <span class="num">6</span>, <span class="num">7</span>)       <span class="cm">// multiple</span>
+    other := []<span class="tp">int</span>{<span class="num">8</span>, <span class="num">9</span>}
+    s = <span class="fn">append</span>(s, other...)      <span class="cm">// spread another slice</span>
+    fmt.<span class="fn">Println</span>(s)
+
+    <span class="cm">// === Slice expressions ===</span>
+    t := s[<span class="num">1</span>:<span class="num">4</span>]    <span class="cm">// [2 3 4] — shares memory!</span>
+    t2 := s[:<span class="num">3</span>]   <span class="cm">// [1 2 3]</span>
+    t3 := s[<span class="num">3</span>:]   <span class="cm">// [4 5 6 7 8 9]</span>
+    t4 := s[:]    <span class="cm">// full copy of header, same array</span>
+    <span class="cm">// 3-index slice — control cap: s[low:high:max]</span>
+    t5 := s[<span class="num">1</span>:<span class="num">4</span>:<span class="num">5</span>] <span class="cm">// len=3, cap=4 (prevents extending beyond index 5)</span>
+    fmt.<span class="fn">Println</span>(t, t2, t3, t4, t5)
+
+    <span class="cm">// === Copy ===</span>
+    dst := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(s))
+    n := <span class="fn">copy</span>(dst, s)             <span class="cm">// deep copy: n = elements copied</span>
+    fmt.<span class="fn">Println</span>(n, dst)
+
+    <span class="cm">// === Delete element at index i ===</span>
+    i := <span class="num">2</span>
+    s2 := <span class="fn">append</span>(s[:i], s[i+<span class="num">1</span>:]...)  <span class="cm">// order preserving</span>
+    fmt.<span class="fn">Println</span>(s2)
+
+    <span class="cm">// unordered delete (faster — swap with last)</span>
+    s3 := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(s))
+    <span class="fn">copy</span>(s3, s)
+    s3[i] = s3[<span class="fn">len</span>(s3)-<span class="num">1</span>]
+    s3 = s3[:<span class="fn">len</span>(s3)-<span class="num">1</span>]
+    fmt.<span class="fn">Println</span>(s3)
+
+    <span class="cm">// === slices package (Go 1.21) ===</span>
+    nums := []<span class="tp">int</span>{<span class="num">5</span>, <span class="num">2</span>, <span class="num">8</span>, <span class="num">1</span>, <span class="num">9</span>, <span class="num">3</span>}
+    slices.<span class="fn">Sort</span>(nums)                          <span class="cm">// in-place sort</span>
+    fmt.<span class="fn">Println</span>(nums)                          <span class="cm">// [1 2 3 5 8 9]</span>
+
+    idx, _ := slices.<span class="fn">BinarySearch</span>(nums, <span class="num">5</span>)   <span class="cm">// index 3</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"BinarySearch:"</span>, idx)
+
+    type Person struct{ Name <span class="tp">string</span>; Age <span class="tp">int</span> }
+    people := []Person{{<span class="str">"Alice"</span>, <span class="num">30</span>}, {<span class="str">"Bob"</span>, <span class="num">25</span>}, {<span class="str">"Carol"</span>, <span class="num">35</span>}}
+    slices.<span class="fn">SortFunc</span>(people, <span class="kw">func</span>(a, b Person) <span class="tp">int</span> {
+        <span class="kw">return</span> cmp.<span class="fn">Compare</span>(a.Age, b.Age)
+    })
+    fmt.<span class="fn">Println</span>(people) <span class="cm">// sorted by age</span>
+
+    fmt.<span class="fn">Println</span>(slices.<span class="fn">Contains</span>(nums, <span class="num">5</span>))          <span class="cm">// true</span>
+    fmt.<span class="fn">Println</span>(slices.<span class="fn">Index</span>(nums, <span class="num">8</span>))             <span class="cm">// 4</span>
+    fmt.<span class="fn">Println</span>(slices.<span class="fn">Max</span>(nums))                  <span class="cm">// 9</span>
+    fmt.<span class="fn">Println</span>(slices.<span class="fn">Min</span>(nums))                  <span class="cm">// 1</span>
+    fmt.<span class="fn">Println</span>(slices.<span class="fn">Equal</span>(nums, []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">8</span>,<span class="num">9</span>})) <span class="cm">// true</span>
+    rev := slices.<span class="fn">Clone</span>(nums); slices.<span class="fn">Reverse</span>(rev)
+    fmt.<span class="fn">Println</span>(rev)                               <span class="cm">// [9 8 5 3 2 1]</span>
+    fmt.<span class="fn">Println</span>(slices.<span class="fn">Compact</span>([]<span class="tp">int</span>{<span class="num">1</span>,<span class="num">1</span>,<span class="num">2</span>,<span class="num">2</span>,<span class="num">3</span>})) <span class="cm">// [1 2 3] (deduplicate adj)</span>
+}</pre>
+  </div>
+
+  <div class="code-block">
+    <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">maps_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"maps"</span>
+    <span class="str">"sort"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// === Create ===</span>
+    <span class="kw">var</span> m1 <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>          <span class="cm">// nil — READ OK but WRITE panics!</span>
+    m2 := <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{}        <span class="cm">// empty, non-nil</span>
+    m3 := <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{         <span class="cm">// literal</span>
+        <span class="str">"Alice"</span>: <span class="num">95</span>,
+        <span class="str">"Bob"</span>:   <span class="num">87</span>,
+    }
+    m4 := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>, <span class="num">100</span>) <span class="cm">// pre-allocate for 100 entries</span>
+    fmt.<span class="fn">Println</span>(m1 == <span class="kw">nil</span>, m2, m3, m4)
+
+    <span class="cm">// === CRUD ===</span>
+    m := <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{}
+
+    <span class="cm">// Create / Update</span>
+    m[<span class="str">"Alice"</span>] = <span class="num">95</span>
+    m[<span class="str">"Bob"</span>]   = <span class="num">87</span>
+    m[<span class="str">"Alice"</span>] = <span class="num">97</span> <span class="cm">// update</span>
+
+    <span class="cm">// Read with "comma ok" pattern</span>
+    v, ok := m[<span class="str">"Alice"</span>]
+    fmt.<span class="fn">Println</span>(v, ok)          <span class="cm">// 97 true</span>
+    v2, ok2 := m[<span class="str">"Zoe"</span>]
+    fmt.<span class="fn">Println</span>(v2, ok2)        <span class="cm">// 0 false (zero value)</span>
+
+    <span class="cm">// Delete</span>
+    <span class="fn">delete</span>(m, <span class="str">"Bob"</span>)
+    fmt.<span class="fn">Println</span>(<span class="fn">len</span>(m))          <span class="cm">// 1</span>
+
+    <span class="cm">// Clear (Go 1.21)</span>
+    m[<span class="str">"test"</span>] = <span class="num">1</span>
+    <span class="fn">clear</span>(m)                    <span class="cm">// remove all entries</span>
+    fmt.<span class="fn">Println</span>(<span class="fn">len</span>(m))          <span class="cm">// 0</span>
+
+    <span class="cm">// === Iterate (non-deterministic order!) ===</span>
+    scores := <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{<span class="str">"Alice"</span>: <span class="num">95</span>, <span class="str">"Bob"</span>: <span class="num">87</span>, <span class="str">"Carol"</span>: <span class="num">91</span>}
+    <span class="kw">for</span> k, v := <span class="kw">range</span> scores { fmt.<span class="fn">Printf</span>(<span class="str">"%s=%d "</span>, k, v) }
+    fmt.<span class="fn">Println</span>()
+
+    <span class="cm">// Deterministic iteration — sort keys first</span>
+    keys := <span class="fn">make</span>([]<span class="tp">string</span>, <span class="num">0</span>, <span class="fn">len</span>(scores))
+    <span class="kw">for</span> k := <span class="kw">range</span> scores { keys = <span class="fn">append</span>(keys, k) }
+    sort.<span class="fn">Strings</span>(keys)
+    <span class="kw">for</span> _, k := <span class="kw">range</span> keys { fmt.<span class="fn">Printf</span>(<span class="str">"%s=%d\n"</span>, k, scores[k]) }
+
+    <span class="cm">// === maps package (Go 1.21) ===</span>
+    fmt.<span class="fn">Println</span>(maps.<span class="fn">Keys</span>(scores))        <span class="cm">// []string (random order)</span>
+    fmt.<span class="fn">Println</span>(maps.<span class="fn">Values</span>(scores))      <span class="cm">// []int</span>
+
+    clone := maps.<span class="fn">Clone</span>(scores)
+    fmt.<span class="fn">Println</span>(maps.<span class="fn">Equal</span>(scores, clone))  <span class="cm">// true</span>
+
+    <span class="cm">// Copy entries from one map into another</span>
+    extra := <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>{<span class="str">"Dave"</span>: <span class="num">78</span>}
+    maps.<span class="fn">Copy</span>(clone, extra)
+    fmt.<span class="fn">Println</span>(clone)
+
+    <span class="cm">// DeleteFunc — delete entries matching predicate</span>
+    maps.<span class="fn">DeleteFunc</span>(clone, <span class="kw">func</span>(k <span class="tp">string</span>, v <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> v &lt; <span class="num">80</span> })
+    fmt.<span class="fn">Println</span>(<span class="str">"after delete &lt;80:"</span>, clone)
+
+    <span class="cm">// === Pattern: groupBy ===</span>
+    words := []<span class="tp">string</span>{<span class="str">"apple"</span>, <span class="str">"ant"</span>, <span class="str">"banana"</span>, <span class="str">"bee"</span>, <span class="str">"cat"</span>}
+    byFirst := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">rune</span>][]<span class="tp">string</span>)
+    <span class="kw">for</span> _, w := <span class="kw">range</span> words {
+        k := <span class="tp">rune</span>(w[<span class="num">0</span>])
+        byFirst[k] = <span class="fn">append</span>(byFirst[k], w)
+    }
+    fmt.<span class="fn">Println</span>(byFirst)
+
+    <span class="cm">// === Pattern: frequency count ===</span>
+    text := <span class="str">"the quick brown fox jumps over the lazy dog"</span>
+    freq := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">rune</span>]<span class="tp">int</span>)
+    <span class="kw">for</span> _, r := <span class="kw">range</span> text { freq[r]++ }
+    fmt.<span class="fn">Println</span>(<span class="str">"'e' count:"</span>, freq[<span class="str">'e'</span>]) <span class="cm">// 3</span>
+
+    <span class="cm">// === struct as map key (comparable types) ===</span>
+    <span class="kw">type</span> Coord <span class="kw">struct</span>{ X, Y <span class="tp">int</span> }
+    grid := <span class="kw">map</span>[Coord]<span class="tp">string</span>{
+        {<span class="num">0</span>, <span class="num">0</span>}: <span class="str">"origin"</span>,
+        {<span class="num">1</span>, <span class="num">0</span>}: <span class="str">"east"</span>,
+    }
+    fmt.<span class="fn">Println</span>(grid[Coord{<span class="num">0</span>, <span class="num">0</span>}])
+}</pre>
+  </div>
+
+  <table class="dtable">
+    <thead><tr><th>Operation</th><th>Slice</th><th>Map</th></tr></thead>
+    <tbody>
+      <tr><td>Create với pre-alloc</td><td><code>make([]T, len, cap)</code></td><td><code>make(map[K]V, hint)</code></td></tr>
+      <tr><td>Add element</td><td><code>s = append(s, v)</code></td><td><code>m[k] = v</code></td></tr>
+      <tr><td>Delete element</td><td><code>append(s[:i], s[i+1:]...)</code></td><td><code>delete(m, k)</code></td></tr>
+      <tr><td>Check exist</td><td><code>i &gt;= 0 &amp;&amp; i &lt; len(s)</code></td><td><code>v, ok := m[k]</code></td></tr>
+      <tr><td>Iterate sorted</td><td><code>for i, v := range s</code></td><td>Sort keys first</td></tr>
+      <tr><td>Clear all (Go 1.21)</td><td><code>clear(s)</code> — zero elements</td><td><code>clear(m)</code> — remove all</td></tr>
+      <tr><td>Clone (Go 1.21)</td><td><code>slices.Clone(s)</code></td><td><code>maps.Clone(m)</code></td></tr>
+    </tbody>
+  </table>
+</section>
+<!-- ===== REFERENCES ===== -->
+<section class="page-section" id="s-refs">
+  <div class="sec-header">
+    <div class="sec-num">📚</div>
+    <div><div class="sec-title">References</div><div class="sec-sub">Tài liệu tham khảo chất lượng cao — official docs, books, tools</div></div>
+  </div>
+
+  <h3>🏛️ Official Go Resources</h3>
+  <a class="ref-card" href="https://go.dev/tour" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,.1)">🚀</div>
+    <div class="ref-body">
+      <div class="ref-title">A Tour of Go — Interactive Tutorial</div>
+      <div class="ref-desc">Tutorial tương tác chính thức. Bao gồm tất cả: types, control flow, methods, interfaces, goroutines.</div>
+      <div class="ref-url">go.dev/tour</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+  <a class="ref-card" href="https://go.dev/doc/effective_go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,.1)">📘</div>
+    <div class="ref-body">
+      <div class="ref-title">Effective Go</div>
+      <div class="ref-desc">Hướng dẫn cách viết Go idiomatic. Naming, formatting, control structures, data, interfaces.</div>
+      <div class="ref-url">go.dev/doc/effective_go</div>
+    </div>
+    <div class="ref-star">⭐ Must-Read</div>
+  </a>
+  <a class="ref-card" href="https://pkg.go.dev/std" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,.1)">📦</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Standard Library</div>
+      <div class="ref-desc">Toàn bộ API docs cho fmt, strings, strconv, math, slices, maps và 200+ packages khác.</div>
+      <div class="ref-url">pkg.go.dev/std</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+  <a class="ref-card" href="https://go.dev/ref/spec" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,.1)">📐</div>
+    <div class="ref-body">
+      <div class="ref-title">The Go Programming Language Specification</div>
+      <div class="ref-desc">Spec chính thức. Giải thích chính xác type system, operators, statements, expressions.</div>
+      <div class="ref-url">go.dev/ref/spec</div>
+    </div>
+    <div class="ref-star">⭐ Spec</div>
+  </a>
+
+  <h3>📚 Books &amp; Courses</h3>
+  <a class="ref-card" href="https://www.gopl.io/" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,.1)">📗</div>
+    <div class="ref-body">
+      <div class="ref-title">The Go Programming Language — Donovan &amp; Kernighan</div>
+      <div class="ref-desc">Sách kinh điển nhất. Variables, types, functions, methods, interfaces, goroutines, testing đầy đủ.</div>
+      <div class="ref-url">gopl.io — ISBN: 978-0134190440</div>
+    </div>
+    <div class="ref-star">⭐ Best Book</div>
+  </a>
+  <a class="ref-card" href="https://100go.co/" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,.1)">📙</div>
+    <div class="ref-body">
+      <div class="ref-title">100 Go Mistakes and How to Avoid Them — Teiva Harsanyi</div>
+      <div class="ref-desc">100 lỗi thường gặp của Go developers: slices, maps, interfaces, goroutines, error handling.</div>
+      <div class="ref-url">100go.co</div>
+    </div>
+    <div class="ref-star">⭐ 5k★ GitHub</div>
+  </a>
+  <a class="ref-card" href="https://www.bytesizego.com/" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,.1)">🎓</div>
+    <div class="ref-body">
+      <div class="ref-title">Bitfield Consulting — Learn Go</div>
+      <div class="ref-desc">Video tutorials chất lượng cao. Go for beginners đến advanced — John Arundel (Let's Go author).</div>
+      <div class="ref-url">bitfieldconsulting.com</div>
+    </div>
+    <div class="ref-star">⭐ Video</div>
+  </a>
+
+  <h3>🛠️ Tools &amp; Libraries</h3>
+  <a class="ref-card" href="https://github.com/uber-go/guide" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,.1)">🏢</div>
+    <div class="ref-body">
+      <div class="ref-title">Uber Go Style Guide</div>
+      <div class="ref-desc">Style guide từ Uber. Pointers, errors, goroutines, slices, maps — best practices production Go.</div>
+      <div class="ref-url">github.com/uber-go/guide</div>
+    </div>
+    <div class="ref-star">⭐ 16k★</div>
+  </a>
+  <a class="ref-card" href="https://github.com/golang/go/wiki/CodeReviewComments" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,.1)">🔍</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Code Review Comments — golang/go Wiki</div>
+      <div class="ref-desc">Code review checklist từ Go team. Variable names, error strings, receiver names, line length.</div>
+      <div class="ref-url">github.com/golang/go/wiki/CodeReviewComments</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+  <a class="ref-card" href="https://github.com/dominikbraun/graph" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,.1)">📊</div>
+    <div class="ref-body">
+      <div class="ref-title">go-playground/validator — Struct Validation</div>
+      <div class="ref-desc">Validate structs/fields với struct tags. Required, min, max, email, url — production-ready.</div>
+      <div class="ref-url">github.com/go-playground/validator</div>
+    </div>
+    <div class="ref-star">⭐ 17k★</div>
+  </a>
+  <a class="ref-card" href="https://github.com/samber/lo" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,.1)">🔧</div>
+    <div class="ref-body">
+      <div class="ref-title">samber/lo — Lodash-style Generics for Go</div>
+      <div class="ref-desc">Map, Filter, Reduce, Find, Contains, Uniq, GroupBy, Flatten cho slices/maps. Go 1.18+ generics.</div>
+      <div class="ref-url">github.com/samber/lo</div>
+    </div>
+    <div class="ref-star">⭐ 18k★</div>
+  </a>
+  <a class="ref-card" href="https://pkg.go.dev/golang.org/x/text" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,.1)">🌐</div>
+    <div class="ref-body">
+      <div class="ref-title">golang.org/x/text — Text Processing</div>
+      <div class="ref-desc">Unicode normalization, collation, encoding conversion. Cho i18n và string processing nâng cao.</div>
+      <div class="ref-url">pkg.go.dev/golang.org/x/text</div>
+    </div>
+    <div class="ref-star">⭐ Official x/</div>
+  </a>
+
+  <h3>🎓 Cheat Sheets &amp; Quick Reference</h3>
+  <a class="ref-card" href="https://quickref.me/go" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,.1)">📋</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Cheat Sheet — quickref.me</div>
+      <div class="ref-desc">Quick reference cho syntax, data types, control structures, functions, closures, goroutines.</div>
+      <div class="ref-url">quickref.me/go</div>
+    </div>
+    <div class="ref-star">⭐ Quick Ref</div>
+  </a>
+  <a class="ref-card" href="https://gobyexample.com/" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,.1)">💡</div>
+    <div class="ref-body">
+      <div class="ref-title">Go by Example</div>
+      <div class="ref-desc">Hands-on code examples cho mọi concept. Variables → Goroutines → JSON → Testing đầy đủ.</div>
+      <div class="ref-url">gobyexample.com</div>
+    </div>
+    <div class="ref-star">⭐ 8.5k★</div>
+  </a>
+
+  <hr class="divider">
+  <div class="note n-info">
+    <div class="note-icon">✅</div>
+    <p><strong>Tóm tắt nhanh:</strong> Go = simple syntax + strong types + zero values + goroutines. Dùng <code>:=</code> cho local vars, <code>defer</code> cho cleanup, <code>errors.As/Is</code> cho error handling, <code>slices</code>/<code>maps</code> packages (Go 1.21) cho generic utilities. Run <code>go vet ./...</code> và <code>staticcheck ./...</code> thường xuyên.</p>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + name);
+  if (t) t.classList.add('active');
+  
+  // Sync the navigation highlights
+  document.querySelectorAll('.nav-item, .tnav').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + name + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // Smooth scroll to top of page/main container
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind dynamic click events for sidebar, topnav, opc cards, and tags
+document.querySelectorAll('.nav-item, .tnav, .opc, .tag').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  const target = el.getAttribute('data-target') || oc?.match(/show\('([^']+)'\)/)?.[1];
+  if (target) {
+    // Save original click handler target in dataset to assist highlighting
+    el.dataset.onclick = oc;
+    el.removeAttribute('onclick'); // prevent double execution
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'intro'
+    const activeSec = document.querySelector('.page-section.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    }
+  }
+});
+
+// Setup copy code buttons
+window.cp = function(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
