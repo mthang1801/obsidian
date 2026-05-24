@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Advanced Algorithms — Hướng dẫn chuyên sâu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg-primary:#0d0f14;--bg-secondary:#131720;--bg-card:#1a1f2e;--bg-code:#0f1319;--accent-cyan:#00d4ff;--accent-green:#00ff88;--accent-purple:#a855f7;--accent-amber:#f59e0b;--accent-coral:#ff6b6b;--accent-blue:#3b82f6;--text-primary:#e2e8f0;--text-secondary:#94a3b8;--text-muted:#64748b;--border:rgba(255,255,255,0.07);--border-accent:rgba(0,212,255,0.3);--font-mono:'JetBrains Mono',monospace;--font-sans:'Inter',sans-serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-sans);display:flex;min-height:100vh;}
+#sidebar{width:270px;min-width:270px;background:var(--bg-secondary);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;}
+#sidebar::-webkit-scrollbar{width:4px;}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;font-family:var(--font-mono);}
+.logo-text{font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.2;}
+.logo-sub{font-size:11px;color:var(--accent-cyan);font-family:var(--font-mono);}
+.nav-section{padding:14px 12px 6px;}
+.nav-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:0 8px;margin-bottom:6px;}
+.nav-item{display:flex;align-items:center;padding:7px 8px;border-radius:6px;text-decoration:none;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;gap:8px;}
+.nav-item:hover{background:rgba(255,255,255,.05);color:var(--text-primary);}
+.nav-item.active{background:rgba(0,212,255,.1);color:var(--accent-cyan);border-left:2px solid var(--accent-cyan);padding-left:6px;}
+.nav-sub{font-size:11px;color:var(--text-muted);padding:4px 8px 4px 32px;cursor:pointer;border-radius:4px;transition:all .15s;display:block;border:none;background:none;width:100%;text-align:left;}
+.nav-sub:hover{color:var(--text-secondary);}
+#topnav{position:fixed;top:0;left:270px;right:0;height:52px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:6px;z-index:50;overflow-x:auto;}
+.topnav-item{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;white-space:nowrap;text-decoration:none;transition:all .15s;border:none;background:none;}
+.topnav-item:hover{color:var(--text-primary);background:rgba(255,255,255,.05);}
+.topnav-item.active{color:var(--accent-cyan);background:rgba(0,212,255,.1);}
+#main{margin-left:270px;margin-top:52px;flex:1;max-width:calc(100% - 270px);}
+.content-area{padding:44px 52px;max-width:980px;}
+.section-header{display:flex;align-items:center;gap:14px;margin-bottom:32px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.section-number{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:13px;font-weight:700;color:white;flex-shrink:0;}
+.section-title{font-size:24px;font-weight:700;color:var(--text-primary);}
+.section-subtitle{font-size:13px;color:var(--text-muted);margin-top:4px;}
+.page-section{display:none;}
+.page-section.active{display:block;}
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;font-family:var(--font-mono);}
+.badge-expert{background:rgba(168,85,247,.15);color:var(--accent-purple);border:1px solid rgba(168,85,247,.3);}
+.badge-advanced{background:rgba(245,158,11,.12);color:var(--accent-amber);border:1px solid rgba(245,158,11,.3);}
+.badge-basic{background:rgba(0,212,255,.1);color:var(--accent-cyan);border:1px solid rgba(0,212,255,.25);}
+.prose{font-size:15px;line-height:1.8;color:var(--text-secondary);margin-bottom:20px;}
+.prose strong{color:var(--text-primary);font-weight:600;}
+.prose code{background:rgba(0,212,255,.08);color:var(--accent-cyan);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:13px;}
+h3{font-size:17px;font-weight:600;color:var(--text-primary);margin:28px 0 12px;}
+h4{font-size:14px;font-weight:600;color:var(--text-secondary);margin:18px 0 8px;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px;transition:border-color .2s;}
+.card:hover{border-color:var(--border-accent);}
+.card-title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:10px;}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.concept-box{background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(168,85,247,.05));border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:22px;margin-bottom:26px;}
+.concept-box .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-cyan);margin-bottom:8px;font-family:var(--font-mono);}
+.concept-box .title{font-size:19px;font-weight:700;color:var(--text-primary);margin-bottom:10px;}
+.code-block{background:var(--bg-code);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px;}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);}
+.code-lang{font-size:11px;font-weight:600;color:var(--accent-cyan);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:.08em;}
+.code-filename{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);}
+.code-copy{font-size:11px;cursor:pointer;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;color:var(--text-secondary);transition:all .15s;font-family:var(--font-sans);}
+.code-copy:hover{border-color:var(--accent-cyan);color:var(--accent-cyan);}
+pre{margin:0;padding:20px;overflow-x:auto;font-family:var(--font-mono);font-size:13px;line-height:1.7;}
+pre::-webkit-scrollbar{height:4px;}
+pre::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.kw{color:#c084fc;}.fn{color:#60a5fa;}.str{color:#86efac;}.cm{color:#4b5563;font-style:italic;}.num{color:#fb923c;}.tp{color:#67e8f9;}.pkg{color:#a78bfa;}.op{color:#f472b6;}
+.diagram-container{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:26px;overflow:hidden;}
+.diagram-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:18px;font-family:var(--font-mono);text-align:center;}
+.data-table{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:14px;}
+.data-table th{padding:10px 14px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.data-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text-secondary);}
+.data-table tr:hover td{background:rgba(255,255,255,.02);}
+.data-table td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:12px;}
+.note{display:flex;gap:12px;padding:14px 16px;border-radius:8px;margin-bottom:18px;font-size:14px;}
+.note-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d;}
+.note-info{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);color:var(--accent-cyan);}
+.note-danger{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--accent-coral);}
+.note-success{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--accent-green);}
+.note-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.note p{margin:0;line-height:1.6;}
+.ref-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px;text-decoration:none;transition:all .15s;cursor:pointer;}
+.ref-card:hover{border-color:var(--accent-cyan);transform:translateX(2px);}
+.ref-icon{width:38px;height:38px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.ref-body{flex:1;min-width:0;}
+.ref-title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:3px;}
+.ref-desc{font-size:12px;color:var(--text-muted);line-height:1.5;}
+.ref-url{font-size:11px;color:var(--accent-cyan);font-family:var(--font-mono);margin-top:4px;word-break:break-all;}
+.ref-stars{font-size:11px;color:var(--accent-amber);margin-left:auto;white-space:nowrap;padding-left:12px;}
+.pitfall-row td:first-child{color:var(--accent-coral);font-weight:600;font-family:var(--font-mono);font-size:12px;}
+.pitfall-row td:nth-child(2){color:var(--text-muted);}
+.pitfall-row td:nth-child(3){color:var(--accent-green);font-size:13px;}
+hr.divider{border:none;border-top:1px solid var(--border);margin:32px 0;}
+
+  /* ── CONCEPT ILLUSTRATIONS ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    background: var(--bg-card); padding: 12px;
+    transition: all 0.3s ease;
+  }
+  .concept-img-wrapper:hover {
+    transform: scale(1.01);
+    border-color: rgba(0,212,255,0.5);
+    box-shadow: 0 8px 30px rgba(0,212,255,0.2);
+  }
+  .concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .concept-img-caption {
+    text-align: center; font-size: 13px; color: var(--text-secondary);
+    margin-top: 10px; font-style: italic; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">Advanced Algorithms</div>
+      <div class="logo-sub">LeetCode Master · Go Lang</div>
+    </div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Dynamic Programming</div>
+    <button class="nav-item active" onclick="showSection('dp-advanced')"><span>🧠</span> 18 · Advanced DP</button>
+    <button class="nav-sub" onclick="showSection('dp-advanced')">Bitmask · Digit · Interval · Tree DP</button>
+    <button class="nav-item" onclick="showSection('dp-sequences')"><span>🔗</span> 23 · DP Sequences</button>
+    <button class="nav-sub" onclick="showSection('dp-sequences')">LCS · LIS · Edit Distance · Wildcard</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Graph &amp; Trees</div>
+    <button class="nav-item" onclick="showSection('advanced-graph')"><span>🕸️</span> 19 · Advanced Graph</button>
+    <button class="nav-sub" onclick="showSection('advanced-graph')">Dijkstra · Bellman-Ford · Tarjan SCC</button>
+    <button class="nav-sub" onclick="showSection('advanced-graph')">Floyd-Warshall · Kruskal MST</button>
+    <button class="nav-item" onclick="showSection('advanced-trees')"><span>🌲</span> 22 · Advanced Trees</button>
+    <button class="nav-sub" onclick="showSection('advanced-trees')">Segment Tree · Fenwick BIT</button>
+    <button class="nav-sub" onclick="showSection('advanced-trees')">Trie · XOR Trie</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Algorithms</div>
+    <button class="nav-item" onclick="showSection('sorting-searching')"><span>🔍</span> 20 · Sorting &amp; Searching</button>
+    <button class="nav-sub" onclick="showSection('sorting-searching')">QuickSort 3-Way · MergeSort</button>
+    <button class="nav-sub" onclick="showSection('sorting-searching')">Binary Search biến thể</button>
+    <button class="nav-item" onclick="showSection('array-techniques')"><span>📐</span> 21 · Array Techniques</button>
+    <button class="nav-sub" onclick="showSection('array-techniques')">Two Pointers · Sliding Window</button>
+    <button class="nav-sub" onclick="showSection('array-techniques')">Monotonic Stack · Prefix Sum</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Tài liệu</div>
+    <button class="nav-item" onclick="showSection('references')"><span>📚</span> References</button>
+  </div>
+</nav>
+
+<!-- TOP NAV -->
+<nav id="topnav">
+  <button class="topnav-item active" onclick="showSection('dp-advanced')">18 · Adv DP</button>
+  <button class="topnav-item" onclick="showSection('advanced-graph')">19 · Graph</button>
+  <button class="topnav-item" onclick="showSection('sorting-searching')">20 · Sort/Search</button>
+  <button class="topnav-item" onclick="showSection('array-techniques')">21 · Array</button>
+  <button class="topnav-item" onclick="showSection('advanced-trees')">22 · Trees</button>
+  <button class="topnav-item" onclick="showSection('dp-sequences')">23 · DP Seq</button>
+  <button class="topnav-item" onclick="showSection('references')">📚 Refs</button>
+</nav>
+
+<main id="main">
+<div class="content-area">
+
+<!-- ===== SECTION 18: ADVANCED DP ===== -->
+<section class="page-section active" id="s-dp-advanced">
+<div class="section-header">
+  <div class="section-number">18</div>
+  <div>
+    <div class="section-title">Advanced Dynamic Programming</div>
+    <div class="section-subtitle">Bitmask DP · Digit DP · Interval DP · Tree DP · DP trên DAG</div>
+  </div>
+  <span class="badge badge-expert">EXPERT</span>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/leetcode_hero.png" alt="LeetCode Advanced Algorithms Curriculum Overview" loading="lazy">
+  <div class="concept-img-caption">Hình 18.0: Tổng quan bản đồ chương trình cấu trúc dữ liệu và giải thuật nâng cao trong Go</div>
+</div>
+
+<div class="concept-box">
+  <div class="label">① Define — Định nghĩa &amp; Phân loại</div>
+  <div class="title">Dynamic Programming Nâng Cao</div>
+  <p class="prose"><strong>DP nâng cao</strong> mở rộng DP cơ bản bằng cách biểu diễn state phức tạp hơn. Hai điều kiện cốt lõi vẫn là <code>Optimal Substructure</code> và <code>Overlapping Subproblems</code>, nhưng state space phong phú hơn nhiều.</p>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/dp_advanced.png" alt="Advanced Dynamic Programming Patterns" loading="lazy">
+  <div class="concept-img-caption">Hình 18.1: Mô hình hóa các dạng quy hoạch động nâng cao — Bitmask DP, Digit DP, Interval DP, và Tree DP trong Go</div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Kỹ thuật</th><th>State Representation</th><th>Complexity</th><th>Use Case điển hình</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Bitmask DP</strong></td><td><code>dp[mask][i]</code></td><td>O(2ⁿ·n²)</td><td>TSP, assignment, set cover</td></tr>
+    <tr><td><strong>Digit DP</strong></td><td><code>dp[pos][tight][sum]</code></td><td>O(D·10·states)</td><td>Đếm số thỏa điều kiện trong [L,R]</td></tr>
+    <tr><td><strong>Interval DP</strong></td><td><code>dp[l][r]</code></td><td>O(n³)</td><td>Matrix chain, palindrome, burst balloons</td></tr>
+    <tr><td><strong>Tree DP</strong></td><td><code>dp[node][state]</code></td><td>O(n·states)</td><td>Max independent set, tree knapsack</td></tr>
+    <tr><td><strong>DP trên DAG</strong></td><td><code>dp[node]</code></td><td>O(V+E)</td><td>Longest path, topological DP</td></tr>
+  </tbody>
+</table>
+
+<h3>🔷 Bitmask DP — TSP &amp; Assignment Problems</h3>
+<p class="prose">Bitmask DP dùng một số nguyên để biểu diễn <strong>tập hợp các phần tử đã chọn</strong>. Bit thứ <code>i</code> = 1 nếu phần tử <code>i</code> đã thuộc tập hợp. Giới hạn thực tế: <strong>n ≤ 20</strong>.</p>
+
+<div class="diagram-container">
+  <div class="diagram-title">② Bitmask DP — TSP State Transitions (n=4 cities)</div>
+  <svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#00d4ff" stroke-width="1.5"/></marker>
+      <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#00ff88" stroke-width="1.5"/></marker>
+      <marker id="a3" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#a855f7" stroke-width="1.5"/></marker>
+    </defs>
+    <!-- State boxes -->
+    <rect x="30" y="40" width="140" height="58" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+    <text x="100" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">mask=0001</text>
+    <text x="100" y="80" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">{City0} — dp[1][0]=0</text>
+
+    <rect x="210" y="40" width="140" height="58" rx="8" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+    <text x="280" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">mask=0011</text>
+    <text x="280" y="80" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">{0,1} — dp[3][1]</text>
+
+    <rect x="390" y="40" width="140" height="58" rx="8" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+    <text x="460" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">mask=0111</text>
+    <text x="460" y="80" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">{0,1,2} — dp[7][2]</text>
+
+    <rect x="570" y="40" width="145" height="58" rx="8" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+    <text x="642" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">mask=1111</text>
+    <text x="642" y="80" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">ALL — dp[15][3]</text>
+
+    <!-- Arrows -->
+    <line x1="170" y1="69" x2="208" y2="69" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a1)"/>
+    <line x1="350" y1="69" x2="388" y2="69" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+    <line x1="530" y1="69" x2="568" y2="69" stroke="#a855f7" stroke-width="1.5" marker-end="url(#a3)"/>
+
+    <!-- Transition formula box -->
+    <rect x="30" y="130" width="755" height="48" rx="8" fill="rgba(0,212,255,0.04)" stroke="var(--border)"/>
+    <text x="44" y="152" font-size="11" fill="#64748b" font-family="JetBrains Mono">Transition:</text>
+    <text x="130" y="152" font-size="13" fill="#c084fc" font-family="JetBrains Mono">dp[mask|(1&lt;&lt;next)][next] = min(dp[mask][curr] + dist[curr][next])</text>
+    <text x="44" y="170" font-size="11" fill="#64748b" font-family="JetBrains Mono">Bỏ qua khi bit 'next' đã set. Thêm next vào mask bằng OR. Kết quả = min(dp[fullMask][i] + dist[i][0])</text>
+
+    <!-- Bit ops -->
+    <rect x="30" y="200" width="755" height="86" rx="8" fill="rgba(0,0,0,0.2)" stroke="var(--border)"/>
+    <text x="46" y="222" font-size="11" fill="#64748b" font-family="JetBrains Mono">Bit Operations cần nhớ:</text>
+    <text x="46" y="242" font-size="12" fill="#f59e0b" font-family="JetBrains Mono">Check visited:    mask &amp; (1&lt;&lt;i) != 0</text>
+    <text x="46" y="260" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Add to visited:   newMask = mask | (1&lt;&lt;i)</text>
+    <text x="46" y="278" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">All visited:      mask == (1&lt;&lt;n)-1   →   n=4: fullMask=0b1111=15</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">bitmask_dp_tsp.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Bitmask DP: Travelling Salesman Problem (TSP)
+// Tìm đường đi ngắn nhất qua n thành phố, bắt đầu và kết thúc tại city 0
+// Time: O(2ⁿ × n²)  Space: O(2ⁿ × n)   Giới hạn thực tế: n ≤ 20</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (<span class="str">"fmt"</span>; <span class="str">"math"</span>)
+
+<span class="kw">const</span> INF = <span class="pkg">math</span>.MaxInt32
+
+<span class="kw">func</span> <span class="fn">tsp</span>(dist [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(dist)
+    fullMask := (<span class="num">1</span> &lt;&lt; n) - <span class="num">1</span>
+
+    <span class="cm">// dp[mask][i] = chi phí tối thiểu khi đã thăm cities trong mask, đang ở city i</span>
+    dp := <span class="fn">make</span>([][]<span class="tp">int</span>, <span class="num">1</span>&lt;&lt;n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp {
+        dp[i] = <span class="fn">make</span>([]<span class="tp">int</span>, n)
+        <span class="kw">for</span> j := <span class="kw">range</span> dp[i] { dp[i][j] = INF }
+    }
+    dp[<span class="num">1</span>][<span class="num">0</span>] = <span class="num">0</span> <span class="cm">// Base: chỉ city 0 đã thăm (mask=1), cost=0</span>
+
+    <span class="kw">for</span> mask := <span class="num">1</span>; mask &lt;= fullMask; mask++ {
+        <span class="kw">for</span> curr := <span class="num">0</span>; curr &lt; n; curr++ {
+            <span class="kw">if</span> mask&(<span class="num">1</span>&lt;&lt;curr) == <span class="num">0</span> || dp[mask][curr] == INF { <span class="kw">continue</span> }
+            <span class="kw">for</span> next := <span class="num">0</span>; next &lt; n; next++ {
+                <span class="kw">if</span> mask&(<span class="num">1</span>&lt;&lt;next) != <span class="num">0</span> { <span class="kw">continue</span> } <span class="cm">// Đã thăm rồi</span>
+                newMask := mask | (<span class="num">1</span> &lt;&lt; next)
+                cost := dp[mask][curr] + dist[curr][next]
+                <span class="kw">if</span> cost &lt; dp[newMask][next] { dp[newMask][next] = cost }
+            }
+        }
+    }
+
+    ans := INF
+    <span class="kw">for</span> last := <span class="num">1</span>; last &lt; n; last++ {
+        <span class="kw">if</span> dp[fullMask][last] != INF {
+            total := dp[fullMask][last] + dist[last][<span class="num">0</span>]
+            <span class="kw">if</span> total &lt; ans { ans = total }
+        }
+    }
+    <span class="kw">return</span> ans
+}
+
+<span class="cm">// ===== ADVANCED: LeetCode 1125 — Smallest Sufficient Team =====
+// dp[mask] = team nhỏ nhất cover đủ skills trong mask</span>
+<span class="kw">func</span> <span class="fn">smallestSufficientTeam</span>(reqSkills []<span class="tp">string</span>, people [][]<span class="tp">string</span>) []<span class="tp">int</span> {
+    n := <span class="fn">len</span>(reqSkills)
+    skillIdx := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int</span>)
+    <span class="kw">for</span> i, s := <span class="kw">range</span> reqSkills { skillIdx[s] = i }
+
+    peopleMask := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(people))
+    <span class="kw">for</span> i, skills := <span class="kw">range</span> people {
+        <span class="kw">for</span> _, s := <span class="kw">range</span> skills { peopleMask[i] |= <span class="num">1</span> &lt;&lt; skillIdx[s] }
+    }
+
+    fullMask := (<span class="num">1</span> &lt;&lt; n) - <span class="num">1</span>
+    dp := <span class="fn">make</span>([][]<span class="tp">int</span>, fullMask+<span class="num">1</span>)
+    dp[<span class="num">0</span>] = []<span class="tp">int</span>{}
+
+    <span class="kw">for</span> mask := <span class="num">0</span>; mask &lt;= fullMask; mask++ {
+        <span class="kw">if</span> dp[mask] == <span class="kw">nil</span> { <span class="kw">continue</span> }
+        <span class="kw">for</span> i, pm := <span class="kw">range</span> peopleMask {
+            nm := mask | pm
+            <span class="kw">if</span> dp[nm] == <span class="kw">nil</span> || <span class="fn">len</span>(dp[nm]) > <span class="fn">len</span>(dp[mask])+<span class="num">1</span> {
+                t := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(dp[mask])+<span class="num">1</span>)
+                <span class="fn">copy</span>(t, dp[mask]); t[<span class="fn">len</span>(dp[mask])] = i; dp[nm] = t
+            }
+        }
+    }
+    <span class="kw">return</span> dp[fullMask]
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    dist := [][]<span class="tp">int</span>{{<span class="num">0</span>,<span class="num">10</span>,<span class="num">15</span>,<span class="num">20</span>},{<span class="num">10</span>,<span class="num">0</span>,<span class="num">35</span>,<span class="num">25</span>},{<span class="num">15</span>,<span class="num">35</span>,<span class="num">0</span>,<span class="num">30</span>},{<span class="num">20</span>,<span class="num">25</span>,<span class="num">30</span>,<span class="num">0</span>}}
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"TSP min cost:"</span>, <span class="fn">tsp</span>(dist)) <span class="cm">// Output: 80</span>
+}</pre>
+</div>
+
+<h3>🔷 Digit DP — Đếm số trong khoảng [0, N]</h3>
+<p class="prose">Digit DP xử lý bài toán <strong>đếm số nguyên thỏa điều kiện trong [L, R]</strong>. Key insight: <code>f(L,R) = f(0,R) - f(0,L-1)</code>. State = <code>(pos, tight, extra_state)</code>.</p>
+
+<div class="diagram-container">
+  <div class="diagram-title">② Digit DP — State Machine (tight constraint)</div>
+  <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+    <defs><marker id="da" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#a855f7" stroke-width="1.5"/></marker></defs>
+    <rect x="30" y="70" width="120" height="46" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+    <text x="90" y="90" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">pos=0</text>
+    <text x="90" y="107" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">tight=true</text>
+    <rect x="200" y="40" width="130" height="46" rx="8" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+    <text x="265" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">pos=1, tight</text>
+    <text x="265" y="77" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">d == limit[1]</text>
+    <rect x="200" y="120" width="130" height="46" rx="8" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.35)" stroke-width="1.5"/>
+    <text x="265" y="140" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">pos=1, free</text>
+    <text x="265" y="157" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">d &lt; limit[1]</text>
+    <rect x="390" y="40" width="130" height="46" rx="8" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+    <text x="455" y="67" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">pos=2, tight</text>
+    <rect x="390" y="120" width="130" height="46" rx="8" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.35)" stroke-width="1.5"/>
+    <text x="455" y="147" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">pos=2, free</text>
+    <rect x="580" y="80" width="140" height="46" rx="8" fill="rgba(245,158,11,0.12)" stroke="rgba(245,158,11,0.4)" stroke-width="1.5"/>
+    <text x="650" y="100" text-anchor="middle" font-size="11" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">pos=D (base)</text>
+    <text x="650" y="117" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">return count</text>
+    <line x1="150" y1="82" x2="198" y2="62" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#da)"/>
+    <line x1="150" y1="98" x2="198" y2="140" stroke="#a855f7" stroke-width="1.5" marker-end="url(#da)"/>
+    <line x1="330" y1="63" x2="388" y2="63" stroke="#00ff88" stroke-width="1.5" marker-end="url(#da)"/>
+    <line x1="330" y1="143" x2="388" y2="143" stroke="#a855f7" stroke-width="1.5" marker-end="url(#da)"/>
+    <line x1="520" y1="103" x2="578" y2="103" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#da)"/>
+    <text x="156" y="72" font-size="10" fill="#00ff88" font-family="JetBrains Mono">d==lim</text>
+    <text x="156" y="120" font-size="10" fill="#a855f7" font-family="JetBrains Mono">d&lt;lim</text>
+    <text x="30" y="185" font-size="11" fill="#64748b" font-family="JetBrains Mono">Formula: dp[pos][tight][state] = Σ dp[pos+1][tight &amp;&amp; d==limit[pos]][update(state,d)]  for d in [0..maxDigit]</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">digit_dp.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Digit DP: đếm số trong [1,N] có digit sum chia hết cho k
+// Time: O(D × 10 × k)  Space: O(D × 2 × k) — memoization 3D</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="kw">func</span> <span class="fn">countDivisibleDigitSum</span>(n, k <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="cm">// Trích xuất digits của n từ cao xuống thấp</span>
+    digits := []<span class="tp">int</span>{}
+    <span class="kw">for</span> tmp := n; tmp > <span class="num">0</span>; tmp /= <span class="num">10</span> {
+        digits = <span class="fn">append</span>([]<span class="tp">int</span>{tmp % <span class="num">10</span>}, digits...)
+    }
+    D := <span class="fn">len</span>(digits)
+
+    <span class="cm">// memo[pos][tightIdx][rem]: -1 = chưa tính</span>
+    memo := <span class="fn">make</span>([][][]<span class="tp">int</span>, D)
+    <span class="kw">for</span> i := <span class="kw">range</span> memo {
+        memo[i] = <span class="fn">make</span>([][]<span class="tp">int</span>, <span class="num">2</span>)
+        <span class="kw">for</span> j := <span class="kw">range</span> memo[i] {
+            memo[i][j] = <span class="fn">make</span>([]<span class="tp">int</span>, k)
+            <span class="kw">for</span> l := <span class="kw">range</span> memo[i][j] { memo[i][j][l] = -<span class="num">1</span> }
+        }
+    }
+
+    <span class="kw">var</span> dp <span class="kw">func</span>(pos, tight, rem <span class="tp">int</span>) <span class="tp">int</span>
+    dp = <span class="kw">func</span>(pos, tight, rem <span class="tp">int</span>) <span class="tp">int</span> {
+        <span class="kw">if</span> pos == D { <span class="kw">if</span> rem == <span class="num">0</span> { <span class="kw">return</span> <span class="num">1</span> }; <span class="kw">return</span> <span class="num">0</span> }
+        ti := <span class="num">0</span>; <span class="kw">if</span> tight { ti = <span class="num">1</span> }
+        <span class="kw">if</span> memo[pos][ti][rem] != -<span class="num">1</span> { <span class="kw">return</span> memo[pos][ti][rem] }
+
+        limit := <span class="num">9</span>
+        <span class="kw">if</span> tight { limit = digits[pos] } <span class="cm">// tight: chỉ được chọn tối đa digits[pos]</span>
+
+        res := <span class="num">0</span>
+        <span class="kw">for</span> d := <span class="num">0</span>; d &lt;= limit; d++ {
+            res += dp(pos+<span class="num">1</span>, tight && d == digits[pos], (rem+d)%k)
+        }
+        memo[pos][ti][rem] = res
+        <span class="kw">return</span> res
+    }
+    <span class="kw">return</span> dp(<span class="num">0</span>, <span class="kw">true</span>, <span class="num">0</span>) - <span class="num">1</span> <span class="cm">// Trừ số 0</span>
+}
+
+<span class="cm">// ===== EXPERT: LeetCode 233 — Number of Digit One =====
+// Đếm số lần digit '1' xuất hiện trong tất cả số từ 1 đến n</span>
+<span class="kw">func</span> <span class="fn">countDigitOne</span>(n <span class="tp">int</span>) <span class="tp">int</span> {
+    digits := []<span class="tp">int</span>{}
+    <span class="kw">for</span> tmp := n; tmp > <span class="num">0</span>; tmp /= <span class="num">10</span> {
+        digits = <span class="fn">append</span>([]<span class="tp">int</span>{tmp % <span class="num">10</span>}, digits...)
+    }
+    D := <span class="fn">len</span>(digits)
+    memo := <span class="fn">make</span>([][][]<span class="tp">int</span>, D)
+    <span class="kw">for</span> i := <span class="kw">range</span> memo {
+        memo[i] = <span class="fn">make</span>([][]<span class="tp">int</span>, <span class="num">2</span>)
+        <span class="kw">for</span> j := <span class="kw">range</span> memo[i] { memo[i][j] = <span class="fn">make</span>([]<span class="tp">int</span>, D+<span class="num">1</span>); <span class="kw">for</span> l := <span class="kw">range</span> memo[i][j] { memo[i][j][l] = -<span class="num">1</span> } }
+    }
+    <span class="kw">var</span> dp <span class="kw">func</span>(pos, tight, cnt1 <span class="tp">int</span>) <span class="tp">int</span>
+    dp = <span class="kw">func</span>(pos, tight, cnt1 <span class="tp">int</span>) <span class="tp">int</span> {
+        <span class="kw">if</span> pos == D { <span class="kw">return</span> cnt1 }
+        ti := <span class="num">0</span>; <span class="kw">if</span> tight { ti = <span class="num">1</span> }
+        <span class="kw">if</span> memo[pos][ti][cnt1] != -<span class="num">1</span> { <span class="kw">return</span> memo[pos][ti][cnt1] }
+        lim := <span class="num">9</span>; <span class="kw">if</span> tight { lim = digits[pos] }
+        res := <span class="num">0</span>
+        <span class="kw">for</span> d := <span class="num">0</span>; d &lt;= lim; d++ {
+            add := <span class="num">0</span>; <span class="kw">if</span> d == <span class="num">1</span> { add = <span class="num">1</span> }
+            res += dp(pos+<span class="num">1</span>, tight && d == digits[pos], cnt1+add)
+        }
+        memo[pos][ti][cnt1] = res
+        <span class="kw">return</span> res
+    }
+    <span class="kw">return</span> dp(<span class="num">0</span>, <span class="kw">true</span>, <span class="num">0</span>)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">countDivisibleDigitSum</span>(<span class="num">100</span>, <span class="num">3</span>)) <span class="cm">// 33</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">countDigitOne</span>(<span class="num">13</span>))             <span class="cm">// 6</span>
+}</pre>
+</div>
+
+<h3>🔷 Interval DP — Matrix Chain &amp; Burst Balloons</h3>
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">interval_dp.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Interval DP: Matrix Chain + Burst Balloons (LC 312)
+// Duyệt theo chiều dài đoạn tăng dần: length=2,3,...,n
+// Matrix Chain: O(n³)  Burst Balloons: O(n³)</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="kw">func</span> <span class="fn">matrixChain</span>(dims []<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(dims) - <span class="num">1</span>
+    dp := <span class="fn">make</span>([][]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = <span class="fn">make</span>([]<span class="tp">int</span>, n) }
+
+    <span class="kw">for</span> length := <span class="num">2</span>; length &lt;= n; length++ {
+        <span class="kw">for</span> l := <span class="num">0</span>; l &lt;= n-length; l++ {
+            r := l + length - <span class="num">1</span>
+            dp[l][r] = INF
+            <span class="kw">for</span> k := l; k &lt; r; k++ { <span class="cm">// k là điểm chia</span>
+                cost := dp[l][k] + dp[k+<span class="num">1</span>][r] + dims[l]*dims[k+<span class="num">1</span>]*dims[r+<span class="num">1</span>]
+                <span class="kw">if</span> cost &lt; dp[l][r] { dp[l][r] = cost }
+            }
+        }
+    }
+    <span class="kw">return</span> dp[<span class="num">0</span>][n-<span class="num">1</span>]
+}
+
+<span class="cm">// maxCoins: LeetCode 312 — Burst Balloons
+// TRICK: k là balloon bị burst CUỐI CÙNG trong [l,r]
+//        dp[l][r] = max coins burst hết (l+1,...,r-1), giữ l và r làm boundary</span>
+<span class="kw">func</span> <span class="fn">maxCoins</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(nums)
+    arr := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">2</span>)
+    arr[<span class="num">0</span>], arr[n+<span class="num">1</span>] = <span class="num">1</span>, <span class="num">1</span> <span class="cm">// Sentinel</span>
+    <span class="fn">copy</span>(arr[<span class="num">1</span>:], nums)
+
+    dp := <span class="fn">make</span>([][]<span class="tp">int</span>, n+<span class="num">2</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i] = <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">2</span>) }
+
+    <span class="kw">for</span> length := <span class="num">1</span>; length &lt;= n; length++ {
+        <span class="kw">for</span> l := <span class="num">1</span>; l &lt;= n-length+<span class="num">1</span>; l++ {
+            r := l + length - <span class="num">1</span>
+            <span class="kw">for</span> k := l; k &lt;= r; k++ {
+                coins := arr[l-<span class="num">1</span>]*arr[k]*arr[r+<span class="num">1</span>] + dp[l][k-<span class="num">1</span>] + dp[k+<span class="num">1</span>][r]
+                <span class="kw">if</span> coins > dp[l][r] { dp[l][r] = coins }
+            }
+        }
+    }
+    <span class="kw">return</span> dp[<span class="num">1</span>][n]
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">matrixChain</span>([]<span class="tp">int</span>{<span class="num">10</span>,<span class="num">30</span>,<span class="num">5</span>,<span class="num">60</span>})) <span class="cm">// 4500</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">maxCoins</span>([]<span class="tp">int</span>{<span class="num">3</span>,<span class="num">1</span>,<span class="num">5</span>,<span class="num">8</span>}))          <span class="cm">// 167</span>
+}</pre>
+</div>
+
+<h3>🔷 Tree DP — House Robber III &amp; Tree Diameter</h3>
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">tree_dp.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Tree DP: LeetCode 337 House Robber III + Tree Diameter
+// DFS bottom-up: tính dp từ lá lên gốc  Time: O(n)  Space: O(n)</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="kw">type</span> <span class="tp">TreeNode</span> <span class="kw">struct</span>{ Val <span class="tp">int</span>; Left, Right *<span class="tp">TreeNode</span> }
+
+<span class="cm">// rob: trả về (maxWithRoot, maxWithoutRoot)
+// Invariant: không thể chọn cả parent lẫn child</span>
+<span class="kw">func</span> <span class="fn">rob</span>(root *<span class="tp">TreeNode</span>) <span class="tp">int</span> {
+    <span class="kw">var</span> dfs <span class="kw">func</span>(*<span class="tp">TreeNode</span>) (<span class="tp">int</span>, <span class="tp">int</span>)
+    dfs = <span class="kw">func</span>(n *<span class="tp">TreeNode</span>) (<span class="tp">int</span>, <span class="tp">int</span>) {
+        <span class="kw">if</span> n == <span class="kw">nil</span> { <span class="kw">return</span> <span class="num">0</span>, <span class="num">0</span> }
+        lW, lWo := dfs(n.Left)
+        rW, rWo := dfs(n.Right)
+        withRoot    := n.Val + lWo + rWo       <span class="cm">// Chọn node này → không được chọn children</span>
+        withoutRoot := max2(lW, lWo) + max2(rW, rWo)
+        <span class="kw">return</span> withRoot, withoutRoot
+    }
+    w, wo := dfs(root)
+    <span class="kw">return</span> max2(w, wo)
+}
+
+<span class="cm">// treeDiameter: LeetCode 543 — dùng DFS state = max depth từ node
+// Tại mỗi node: diameter đi qua node = top1Depth + top2Depth</span>
+<span class="kw">func</span> <span class="fn">treeDiameter</span>(edges [][]<span class="tp">int</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(edges) + <span class="num">1</span>
+    adj := <span class="fn">make</span>([][]<span class="tp">int</span>, n)
+    <span class="kw">for</span> _, e := <span class="kw">range</span> edges {
+        adj[e[<span class="num">0</span>]] = <span class="fn">append</span>(adj[e[<span class="num">0</span>]], e[<span class="num">1</span>])
+        adj[e[<span class="num">1</span>]] = <span class="fn">append</span>(adj[e[<span class="num">1</span>]], e[<span class="num">0</span>])
+    }
+    ans := <span class="num">0</span>
+    <span class="kw">var</span> dfs <span class="kw">func</span>(v, parent <span class="tp">int</span>) <span class="tp">int</span>
+    dfs = <span class="kw">func</span>(v, parent <span class="tp">int</span>) <span class="tp">int</span> {
+        d1, d2 := <span class="num">0</span>, <span class="num">0</span>
+        <span class="kw">for</span> _, c := <span class="kw">range</span> adj[v] {
+            <span class="kw">if</span> c == parent { <span class="kw">continue</span> }
+            d := dfs(c, v) + <span class="num">1</span>
+            <span class="kw">if</span> d > d1 { d2 = d1; d1 = d } <span class="kw">else</span> <span class="kw">if</span> d > d2 { d2 = d }
+        }
+        <span class="kw">if</span> d1+d2 > ans { ans = d1 + d2 }
+        <span class="kw">return</span> d1
+    }
+    dfs(<span class="num">0</span>, -<span class="num">1</span>)
+    <span class="kw">return</span> ans
+}
+
+<span class="kw">func</span> max2(a, b <span class="tp">int</span>) <span class="tp">int</span> { <span class="kw">if</span> a > b { <span class="kw">return</span> a }; <span class="kw">return</span> b }
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    root := &<span class="tp">TreeNode</span>{<span class="num">3</span>,
+        &<span class="tp">TreeNode</span>{<span class="num">2</span>, <span class="kw">nil</span>, &<span class="tp">TreeNode</span>{<span class="num">3</span>, <span class="kw">nil</span>, &<span class="tp">TreeNode</span>{<span class="num">1</span>, <span class="kw">nil</span>, <span class="kw">nil</span>}}},
+        &<span class="tp">TreeNode</span>{<span class="num">3</span>, <span class="kw">nil</span>, &<span class="tp">TreeNode</span>{<span class="num">1</span>, <span class="kw">nil</span>, <span class="kw">nil</span>}}}
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">rob</span>(root)) <span class="cm">// 7</span>
+}</pre>
+</div>
+
+<h3>④ Pitfalls — Lỗi thường gặp Advanced DP</h3>
+<table class="data-table">
+  <thead><tr><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+  <tbody class="pitfall-row">
+    <tr class="pitfall-row"><td>Bitmask overflow</td><td>Dùng int32, shift &gt;31 bits</td><td>Dùng <code>int64</code> hoặc giới hạn n≤20</td></tr>
+    <tr class="pitfall-row"><td>Digit DP: cache sai với tight</td><td>Cache cả tight=true → kết quả sai</td><td>Đưa <code>tight</code> vào memo key (index 0/1)</td></tr>
+    <tr class="pitfall-row"><td>Interval DP: thứ tự loop sai</td><td>Tính dp[l][r] trước subproblems</td><td>Duyệt theo <code>length</code> tăng dần, không theo l</td></tr>
+    <tr class="pitfall-row"><td>Tree DP: cycle trong undirected</td><td>DFS đi ngược về parent</td><td>Luôn truyền tham số <code>parent</code> và skip</td></tr>
+    <tr class="pitfall-row"><td>TSP: mask=0 base case</td><td>Quên dp[1][0]=0, còn lại INF</td><td>Init toàn bộ = INF, set <code>dp[1][0]=0</code> riêng</td></tr>
+  </tbody>
+</table>
+<div class="note note-warn"><div class="note-icon">⚠️</div><p><strong>Giới hạn thực tế:</strong> Bitmask DP với n=20 cần 2²⁰×20 ≈ 20M states. RAM: ~160MB với int. Với n=25, cần meet-in-the-middle hoặc heuristic.</p></div>
+</section>
+
+<!-- ===== SECTION 19: ADVANCED GRAPH ===== -->
+<section class="page-section" id="s-advanced-graph">
+<div class="section-header">
+  <div class="section-number">19</div>
+  <div>
+    <div class="section-title">Advanced Graph Algorithms</div>
+    <div class="section-subtitle">Dijkstra · Bellman-Ford · Floyd-Warshall · Tarjan SCC · Kruskal MST</div>
+  </div>
+  <span class="badge badge-expert">EXPERT</span>
+</div>
+
+<div class="concept-box">
+  <div class="label">① Define — Graph Algorithm Taxonomy</div>
+  <div class="title">Chọn đúng thuật toán theo loại đồ thị</div>
+  <p class="prose">Đồ thị có <strong>Directed/Undirected</strong>, <strong>Weighted/Unweighted</strong>, <strong>Cyclic/DAG</strong>. Lựa chọn sai thuật toán là lỗi phổ biến nhất trong graph problems.</p>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/advanced_graph.png" alt="Advanced Graph Algorithms" loading="lazy">
+  <div class="concept-img-caption">Hình 19.1: Thuật toán đồ thị nâng cao — Phân loại, trực quan hóa Dijkstra, Tarjan SCC và Kruskal MST trong Go</div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Thuật toán</th><th>Shortest Path</th><th>Negative Edge</th><th>Complexity</th><th>Dùng khi nào</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Dijkstra</strong></td><td>Single source</td><td>❌</td><td>O((V+E) log V)</td><td>Weighted, non-negative edges</td></tr>
+    <tr><td><strong>Bellman-Ford</strong></td><td>Single source</td><td>✅</td><td>O(V × E)</td><td>Negative edges, detect cycle</td></tr>
+    <tr><td><strong>Floyd-Warshall</strong></td><td>All pairs</td><td>✅</td><td>O(V³)</td><td>Dense graph, all-pairs shortest path</td></tr>
+    <tr><td><strong>BFS</strong></td><td>Single source</td><td>—</td><td>O(V+E)</td><td>Unweighted graph</td></tr>
+    <tr><td><strong>0-1 BFS</strong></td><td>Single source</td><td>—</td><td>O(V+E)</td><td>Edges có weight 0 hoặc 1</td></tr>
+  </tbody>
+</table>
+
+<div class="diagram-container">
+  <div class="diagram-title">② Dijkstra — Priority Queue Min-Heap Relaxation</div>
+  <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="ga" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#64748b" stroke-width="1.5"/></marker>
+      <marker id="gc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#00d4ff" stroke-width="2"/></marker>
+      <marker id="gg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#00ff88" stroke-width="2"/></marker>
+    </defs>
+    <!-- Nodes -->
+    <circle cx="100" cy="140" r="26" fill="rgba(0,212,255,0.15)" stroke="#00d4ff" stroke-width="2"/>
+    <text x="100" y="145" text-anchor="middle" font-size="13" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">A</text>
+    <text x="100" y="180" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">dist=0</text>
+
+    <circle cx="270" cy="70" r="26" fill="rgba(168,85,247,0.12)" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="270" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">B</text>
+    <text x="270" y="112" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">dist=4</text>
+
+    <circle cx="270" cy="210" r="26" fill="rgba(168,85,247,0.12)" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="270" y="215" text-anchor="middle" font-size="13" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">C</text>
+    <text x="270" y="252" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">dist=2</text>
+
+    <circle cx="440" cy="140" r="26" fill="rgba(245,158,11,0.12)" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="440" y="145" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">D</text>
+    <text x="440" y="180" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">dist=6</text>
+
+    <circle cx="600" cy="140" r="26" fill="rgba(0,255,136,0.12)" stroke="#00ff88" stroke-width="1.5"/>
+    <text x="600" y="145" text-anchor="middle" font-size="13" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">E</text>
+    <text x="600" y="180" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">dist=9</text>
+
+    <!-- Edges -->
+    <line x1="126" y1="127" x2="244" y2="83" stroke="#00d4ff" stroke-width="2" marker-end="url(#gc)"/>
+    <text x="178" y="97" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">4</text>
+    <line x1="126" y1="153" x2="244" y2="197" stroke="#00d4ff" stroke-width="2" marker-end="url(#gc)"/>
+    <text x="178" y="185" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">2</text>
+    <line x1="296" y1="83" x2="414" y2="130" stroke="#64748b" stroke-width="1.5" marker-end="url(#ga)"/>
+    <text x="358" y="99" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">3</text>
+    <line x1="296" y1="197" x2="414" y2="152" stroke="#64748b" stroke-width="1.5" marker-end="url(#ga)"/>
+    <text x="358" y="185" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">4</text>
+    <line x1="466" y1="140" x2="574" y2="140" stroke="#00ff88" stroke-width="2" marker-end="url(#gg)"/>
+    <text x="520" y="132" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">3</text>
+
+    <!-- Min-Heap visualization -->
+    <rect x="670" y="40" width="135" height="200" rx="8" fill="rgba(255,255,255,0.02)" stroke="var(--border)"/>
+    <text x="737" y="60" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">MIN-HEAP PQ</text>
+    <rect x="680" y="68" width="115" height="24" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.4)"/>
+    <text x="737" y="85" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">(0, A) ←top</text>
+    <rect x="680" y="96" width="115" height="24" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)"/>
+    <text x="737" y="113" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">(2, C)</text>
+    <rect x="680" y="124" width="115" height="24" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)"/>
+    <text x="737" y="141" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">(4, B)</text>
+    <rect x="680" y="152" width="115" height="24" rx="4" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)"/>
+    <text x="737" y="169" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">(6, D)</text>
+    <rect x="680" y="180" width="115" height="24" rx="4" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)"/>
+    <text x="737" y="197" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">(9, E)</text>
+
+    <text x="30" y="270" font-size="11" fill="#64748b" font-family="JetBrains Mono">Relaxation: if dist[u] + w(u,v) &lt; dist[v]  →  update dist[v] + push (dist[v], v) to heap</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">dijkstra.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Dijkstra với Min-Heap (container/heap)
+// Time: O((V+E) log V)  Space: O(V+E)</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (<span class="str">"container/heap"</span>; <span class="str">"fmt"</span>; <span class="str">"math"</span>)
+
+<span class="kw">type</span> <span class="tp">Edge</span> <span class="kw">struct</span>{ to, w <span class="tp">int</span> }
+<span class="kw">type</span> <span class="tp">Item</span> <span class="kw">struct</span>{ dist, node <span class="tp">int</span> }
+<span class="kw">type</span> <span class="tp">MinHeap</span> []<span class="tp">Item</span>
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Len</span>() <span class="tp">int</span>            { <span class="kw">return</span> <span class="fn">len</span>(h) }
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Less</span>(i,j <span class="tp">int</span>) <span class="tp">bool</span>  { <span class="kw">return</span> h[i].dist &lt; h[j].dist }
+<span class="kw">func</span> (h <span class="tp">MinHeap</span>) <span class="fn">Swap</span>(i,j <span class="tp">int</span>)       { h[i], h[j] = h[j], h[i] }
+<span class="kw">func</span> (h *<span class="tp">MinHeap</span>) <span class="fn">Push</span>(x <span class="kw">interface</span>{}) { *h = <span class="fn">append</span>(*h, x.(<span class="tp">Item</span>)) }
+<span class="kw">func</span> (h *<span class="tp">MinHeap</span>) <span class="fn">Pop</span>() <span class="kw">interface</span>{}   { o:=*h; n:=<span class="fn">len</span>(o); x:=o[n-<span class="num">1</span>]; *h=o[:n-<span class="num">1</span>]; <span class="kw">return</span> x }
+
+<span class="kw">func</span> <span class="fn">dijkstra</span>(adj [][]<span class="tp">Edge</span>, src <span class="tp">int</span>) []<span class="tp">int</span> {
+    n := <span class="fn">len</span>(adj)
+    dist := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dist { dist[i] = <span class="pkg">math</span>.MaxInt32 }
+    dist[src] = <span class="num">0</span>
+
+    pq := &<span class="tp">MinHeap</span>{{<span class="num">0</span>, src}}
+    <span class="pkg">heap</span>.<span class="fn">Init</span>(pq)
+
+    <span class="kw">for</span> pq.<span class="fn">Len</span>() > <span class="num">0</span> {
+        cur := <span class="pkg">heap</span>.<span class="fn">Pop</span>(pq).(<span class="tp">Item</span>)
+        <span class="kw">if</span> cur.dist > dist[cur.node] { <span class="kw">continue</span> } <span class="cm">// Stale entry</span>
+        <span class="kw">for</span> _, e := <span class="kw">range</span> adj[cur.node] {
+            nd := dist[cur.node] + e.w
+            <span class="kw">if</span> nd &lt; dist[e.to] {
+                dist[e.to] = nd
+                <span class="pkg">heap</span>.<span class="fn">Push</span>(pq, <span class="tp">Item</span>{nd, e.to})
+            }
+        }
+    }
+    <span class="kw">return</span> dist
+}
+
+<span class="cm">// ===== EXPERT: Bellman-Ford + Negative Cycle Detection =====</span>
+<span class="kw">type</span> <span class="tp">GEdge</span> <span class="kw">struct</span>{ from, to, w <span class="tp">int</span> }
+
+<span class="kw">func</span> <span class="fn">bellmanFord</span>(n <span class="tp">int</span>, edges []<span class="tp">GEdge</span>, src <span class="tp">int</span>) ([]<span class="tp">int</span>, <span class="tp">bool</span>) {
+    dist := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dist { dist[i] = <span class="pkg">math</span>.MaxInt32 }
+    dist[src] = <span class="num">0</span>
+
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n-<span class="num">1</span>; i++ { <span class="cm">// Relax V-1 lần</span>
+        updated := <span class="kw">false</span>
+        <span class="kw">for</span> _, e := <span class="kw">range</span> edges {
+            <span class="kw">if</span> dist[e.from] != <span class="pkg">math</span>.MaxInt32 && dist[e.from]+e.w &lt; dist[e.to] {
+                dist[e.to] = dist[e.from] + e.w; updated = <span class="kw">true</span>
+            }
+        }
+        <span class="kw">if</span> !updated { <span class="kw">break</span> }
+    }
+    <span class="cm">// Lần V: vẫn update được → có negative cycle</span>
+    <span class="kw">for</span> _, e := <span class="kw">range</span> edges {
+        <span class="kw">if</span> dist[e.from] != <span class="pkg">math</span>.MaxInt32 && dist[e.from]+e.w &lt; dist[e.to] {
+            <span class="kw">return</span> dist, <span class="kw">true</span>
+        }
+    }
+    <span class="kw">return</span> dist, <span class="kw">false</span>
+}
+
+<span class="cm">// ===== EXPERT: Tarjan SCC — O(V+E) =====</span>
+<span class="kw">type</span> <span class="tp">TarjanSCC</span> <span class="kw">struct</span>{
+    adj     [][]<span class="tp">int</span>
+    idx, low []<span class="tp">int</span>
+    onStack  []<span class="tp">bool</span>
+    stack    []<span class="tp">int</span>
+    timer    <span class="tp">int</span>
+    sccs     [][]<span class="tp">int</span>
+}
+<span class="kw">func</span> <span class="fn">newTarjan</span>(n <span class="tp">int</span>, adj [][]<span class="tp">int</span>) *<span class="tp">TarjanSCC</span> {
+    t := &<span class="tp">TarjanSCC</span>{adj:adj, idx:<span class="fn">make</span>([]<span class="tp">int</span>,n), low:<span class="fn">make</span>([]<span class="tp">int</span>,n), onStack:<span class="fn">make</span>([]<span class="tp">bool</span>,n)}
+    <span class="kw">for</span> i := <span class="kw">range</span> t.idx { t.idx[i] = -<span class="num">1</span> }
+    <span class="kw">return</span> t
+}
+<span class="kw">func</span> (t *<span class="tp">TarjanSCC</span>) <span class="fn">dfs</span>(v <span class="tp">int</span>) {
+    t.idx[v]=t.timer; t.low[v]=t.timer; t.timer++
+    t.stack=<span class="fn">append</span>(t.stack,v); t.onStack[v]=<span class="kw">true</span>
+    <span class="kw">for</span> _, u := <span class="kw">range</span> t.adj[v] {
+        <span class="kw">if</span> t.idx[u]==-<span class="num">1</span> { t.<span class="fn">dfs</span>(u); <span class="kw">if</span> t.low[u]&lt;t.low[v] { t.low[v]=t.low[u] } } <span class="kw">else</span> <span class="kw">if</span> t.onStack[u] && t.idx[u]&lt;t.low[v] { t.low[v]=t.idx[u] }
+    }
+    <span class="kw">if</span> t.low[v]==t.idx[v] {
+        scc:=[]<span class="tp">int</span>{}
+        <span class="kw">for</span> { u:=t.stack[<span class="fn">len</span>(t.stack)-<span class="num">1</span>]; t.stack=t.stack[:<span class="fn">len</span>(t.stack)-<span class="num">1</span>]; t.onStack[u]=<span class="kw">false</span>; scc=<span class="fn">append</span>(scc,u); <span class="kw">if</span> u==v { <span class="kw">break</span> } }
+        t.sccs=<span class="fn">append</span>(t.sccs,scc)
+    }
+}
+<span class="kw">func</span> <span class="fn">findSCCs</span>(n <span class="tp">int</span>, adj [][]<span class="tp">int</span>) [][]<span class="tp">int</span> {
+    t:=<span class="fn">newTarjan</span>(n,adj); <span class="kw">for</span> v:=<span class="num">0</span>;v&lt;n;v++ { <span class="kw">if</span> t.idx[v]==-<span class="num">1</span> { t.<span class="fn">dfs</span>(v) } }; <span class="kw">return</span> t.sccs
+}
+
+<span class="cm">// ===== EXPERT: Kruskal MST với DSU =====</span>
+<span class="kw">type</span> <span class="tp">DSU</span> <span class="kw">struct</span>{ parent, rank []<span class="tp">int</span> }
+<span class="kw">func</span> <span class="fn">NewDSU</span>(n <span class="tp">int</span>) *<span class="tp">DSU</span> { p:=<span class="fn">make</span>([]<span class="tp">int</span>,n); <span class="kw">for</span> i:=<span class="kw">range</span> p{p[i]=i}; <span class="kw">return</span> &<span class="tp">DSU</span>{p,<span class="fn">make</span>([]<span class="tp">int</span>,n)} }
+<span class="kw">func</span> (d *<span class="tp">DSU</span>) <span class="fn">Find</span>(x <span class="tp">int</span>) <span class="tp">int</span> { <span class="kw">if</span> d.parent[x]!=x { d.parent[x]=d.<span class="fn">Find</span>(d.parent[x]) }; <span class="kw">return</span> d.parent[x] }
+<span class="kw">func</span> (d *<span class="tp">DSU</span>) <span class="fn">Union</span>(x,y <span class="tp">int</span>) <span class="tp">bool</span> {
+    px,py:=d.<span class="fn">Find</span>(x),d.<span class="fn">Find</span>(y); <span class="kw">if</span> px==py { <span class="kw">return</span> <span class="kw">false</span> }
+    <span class="kw">if</span> d.rank[px]&lt;d.rank[py] { px,py=py,px }; d.parent[py]=px; <span class="kw">if</span> d.rank[px]==d.rank[py] { d.rank[px]++ }; <span class="kw">return</span> <span class="kw">true</span>
+}
+<span class="kw">func</span> <span class="fn">kruskal</span>(n <span class="tp">int</span>, edges []<span class="tp">GEdge</span>) <span class="tp">int</span> {
+    <span class="pkg">sort</span>.<span class="fn">Slice</span>(edges, <span class="kw">func</span>(i,j <span class="tp">int</span>) <span class="tp">bool</span> { <span class="kw">return</span> edges[i].w&lt;edges[j].w })
+    dsu:=<span class="fn">NewDSU</span>(n); cost:=<span class="num">0</span>; cnt:=<span class="num">0</span>
+    <span class="kw">for</span> _, e := <span class="kw">range</span> edges {
+        <span class="kw">if</span> dsu.<span class="fn">Union</span>(e.from,e.to) { cost+=e.w; cnt++; <span class="kw">if</span> cnt==n-<span class="num">1</span> { <span class="kw">break</span> } }
+    }
+    <span class="kw">return</span> cost
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    adj := [][]<span class="tp">Edge</span>{{{<span class="num">1</span>,<span class="num">4</span>},{<span class="num">2</span>,<span class="num">2</span>}},{{<span class="num">3</span>,<span class="num">3</span>}},{{<span class="num">3</span>,<span class="num">4</span>}},{{<span class="num">4</span>,<span class="num">3</span>}},{}}
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Dijkstra:"</span>, <span class="fn">dijkstra</span>(adj, <span class="num">0</span>)) <span class="cm">// [0 4 2 6 9]</span>
+    edges := []<span class="tp">GEdge</span>{{<span class="num">0</span>,<span class="num">1</span>,<span class="num">10</span>},{<span class="num">0</span>,<span class="num">2</span>,<span class="num">6</span>},{<span class="num">0</span>,<span class="num">3</span>,<span class="num">5</span>},{<span class="num">1</span>,<span class="num">3</span>,<span class="num">15</span>},{<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>}}
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"MST cost:"</span>, <span class="fn">kruskal</span>(<span class="num">4</span>, edges)) <span class="cm">// 19</span>
+    adj2 := [][]<span class="tp">int</span>{{<span class="num">1</span>},{<span class="num">2</span>},{<span class="num">0</span>,<span class="num">3</span>},{<span class="num">4</span>},{<span class="num">3</span>}}
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"SCCs:"</span>, <span class="fn">findSCCs</span>(<span class="num">5</span>, adj2))
+}</pre>
+</div>
+
+<h3>④ Pitfalls — Graph Algorithms</h3>
+<table class="data-table">
+  <thead><tr><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+  <tbody class="pitfall-row">
+    <tr class="pitfall-row"><td>Dijkstra + negative edge</td><td>Assume không tìm được đường ngắn hơn sau</td><td>Dùng Bellman-Ford khi có negative edges</td></tr>
+    <tr class="pitfall-row"><td>Floyd-Warshall overflow</td><td><code>INF+INF</code> tràn số</td><td>Kiểm tra <code>dist[i][k] != INF/2</code> trước cộng</td></tr>
+    <tr class="pitfall-row"><td>Dijkstra: stale entry</td><td>Push nhiều lần, process entry cũ</td><td>Check <code>cur.dist > dist[cur.node]</code> → continue</td></tr>
+    <tr class="pitfall-row"><td>Tarjan trên undirected graph</td><td>Tất cả nodes trở thành 1 SCC</td><td>Tarjan chỉ cho directed; undirected dùng BFS/DFS thường</td></tr>
+    <tr class="pitfall-row"><td>DSU không path compression</td><td>Find() O(n) worst case</td><td>Luôn dùng path compression + union by rank</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===== SECTION 20: SORTING & SEARCHING ===== -->
+<section class="page-section" id="s-sorting-searching">
+<div class="section-header">
+  <div class="section-number">20</div>
+  <div>
+    <div class="section-title">Sorting &amp; Searching</div>
+    <div class="section-subtitle">QuickSort 3-Way · MergeSort · Counting/Radix · Binary Search biến thể</div>
+  </div>
+  <span class="badge badge-advanced">ADVANCED</span>
+</div>
+
+<div class="concept-box">
+  <div class="label">① Define — Sorting Taxonomy</div>
+  <div class="title">Comparison-based vs Non-comparison Sorting</div>
+  <p class="prose">Comparison-based sort có lower bound <strong>Ω(n log n)</strong> theo Information Theory. Non-comparison sort (Counting, Radix) có thể đạt <strong>O(n)</strong> nhưng yêu cầu domain hạn chế.</p>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/sorting_searching.png" alt="Sorting and Searching Algorithms" loading="lazy">
+  <div class="concept-img-caption">Hình 20.1: Thuật toán Sắp xếp &amp; Tìm kiếm — Trực quan hóa phân đoạn QuickSort 3-Way và các biến thể Tìm kiếm Nhị phân trong Go</div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Thuật toán</th><th>Best</th><th>Average</th><th>Worst</th><th>Space</th><th>Stable</th></tr></thead>
+  <tbody>
+    <tr><td><strong>QuickSort</strong></td><td>O(n log n)</td><td>O(n log n)</td><td>O(n²)</td><td>O(log n)</td><td>❌</td></tr>
+    <tr><td><strong>MergeSort</strong></td><td>O(n log n)</td><td>O(n log n)</td><td>O(n log n)</td><td>O(n)</td><td>✅</td></tr>
+    <tr><td><strong>HeapSort</strong></td><td>O(n log n)</td><td>O(n log n)</td><td>O(n log n)</td><td>O(1)</td><td>❌</td></tr>
+    <tr><td><strong>Counting Sort</strong></td><td>O(n+k)</td><td>O(n+k)</td><td>O(n+k)</td><td>O(k)</td><td>✅</td></tr>
+    <tr><td><strong>Radix Sort</strong></td><td>O(d·n)</td><td>O(d·n)</td><td>O(d·n)</td><td>O(n+k)</td><td>✅</td></tr>
+    <tr><td><strong>TimSort</strong> (Go built-in)</td><td>O(n)</td><td>O(n log n)</td><td>O(n log n)</td><td>O(n)</td><td>✅</td></tr>
+  </tbody>
+</table>
+
+<div class="diagram-container">
+  <div class="diagram-title">② QuickSort 3-Way Partition (Dutch National Flag) — pivot=5</div>
+  <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+    <!-- Before -->
+    <text x="30" y="26" font-size="11" fill="#64748b" font-family="JetBrains Mono">BEFORE: [3,5,8,1,5,9,2,7]</text>
+    <rect x="30" y="34" width="50" height="34" rx="4" fill="rgba(255,107,107,0.15)" stroke="rgba(255,107,107,0.4)"/>
+    <text x="55" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">3</text>
+    <rect x="82" y="34" width="50" height="34" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)" stroke-width="2"/>
+    <text x="107" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">5</text>
+    <rect x="134" y="34" width="50" height="34" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)"/>
+    <text x="159" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">8</text>
+    <rect x="186" y="34" width="50" height="34" rx="4" fill="rgba(255,107,107,0.15)" stroke="rgba(255,107,107,0.4)"/>
+    <text x="211" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">1</text>
+    <rect x="238" y="34" width="50" height="34" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)" stroke-width="2"/>
+    <text x="263" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">5</text>
+    <rect x="290" y="34" width="50" height="34" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)"/>
+    <text x="315" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">9</text>
+    <rect x="342" y="34" width="50" height="34" rx="4" fill="rgba(255,107,107,0.15)" stroke="rgba(255,107,107,0.4)"/>
+    <text x="367" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">2</text>
+    <rect x="394" y="34" width="50" height="34" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)"/>
+    <text x="419" y="57" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">7</text>
+    <!-- Arrow -->
+    <text x="490" y="57" font-size="22" fill="#64748b" font-family="JetBrains Mono">→</text>
+    <!-- After -->
+    <text x="30" y="108" font-size="11" fill="#64748b" font-family="JetBrains Mono">AFTER partition pivot=5:</text>
+    <rect x="30" y="116" width="108" height="34" rx="4" fill="rgba(255,107,107,0.2)" stroke="rgba(255,107,107,0.5)" stroke-width="1.5"/>
+    <text x="84" y="138" text-anchor="middle" font-size="12" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">1  2  3</text>
+    <rect x="140" y="116" width="80" height="34" rx="4" fill="rgba(245,158,11,0.2)" stroke="rgba(245,158,11,0.6)" stroke-width="2"/>
+    <text x="180" y="138" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">5  5</text>
+    <rect x="222" y="116" width="110" height="34" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+    <text x="277" y="138" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">7  8  9</text>
+    <text x="30" y="170" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">&lt; pivot: recurse</text>
+    <text x="148" y="170" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">== pivot: skip</text>
+    <text x="232" y="170" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">&gt; pivot: recurse</text>
+    <!-- Explanation box -->
+    <rect x="430" y="116" width="370" height="70" rx="6" fill="rgba(255,255,255,0.02)" stroke="var(--border)"/>
+    <text x="446" y="136" font-size="11" fill="#64748b" font-family="JetBrains Mono">Pointers: lo (start of ==), mid (current), hi (end of ==)</text>
+    <text x="446" y="154" font-size="12" fill="#00ff88" font-family="JetBrains Mono">arr[mid] &lt; pivot → swap(lo,mid); lo++; mid++</text>
+    <text x="446" y="172" font-size="12" fill="#ff6b6b" font-family="JetBrains Mono">arr[mid] &gt; pivot → swap(mid,hi); hi--</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">sorting_searching.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — QuickSort 3-Way + MergeSort + Binary Search biến thể + Search on Answer</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (<span class="str">"fmt"</span>; <span class="str">"math/rand"</span>; <span class="str">"sort"</span>)
+
+<span class="cm">// quickSort3Way: Dutch National Flag — xử lý tốt array nhiều duplicates</span>
+<span class="kw">func</span> <span class="fn">quickSort3Way</span>(arr []<span class="tp">int</span>, lo, hi <span class="tp">int</span>) {
+    <span class="kw">if</span> lo >= hi { <span class="kw">return</span> }
+    pivIdx := lo + <span class="pkg">rand</span>.<span class="fn">Intn</span>(hi-lo+<span class="num">1</span>)
+    arr[lo], arr[pivIdx] = arr[pivIdx], arr[lo]
+    pivot := arr[lo]
+    lt, gt, i := lo, hi, lo+<span class="num">1</span>
+
+    <span class="kw">for</span> i &lt;= gt {
+        <span class="kw">if</span>      arr[i] &lt; pivot { arr[lt], arr[i] = arr[i], arr[lt]; lt++; i++ }
+        <span class="kw">else if</span> arr[i] > pivot { arr[i], arr[gt] = arr[gt], arr[i]; gt-- }
+        <span class="kw">else</span>                   { i++ }
+    }
+    <span class="fn">quickSort3Way</span>(arr, lo, lt-<span class="num">1</span>)
+    <span class="fn">quickSort3Way</span>(arr, gt+<span class="num">1</span>, hi)
+}
+
+<span class="cm">// mergeSort: stable, dùng khi cần count inversions hoặc stable sort</span>
+<span class="kw">func</span> <span class="fn">mergeSort</span>(arr []<span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="kw">if</span> <span class="fn">len</span>(arr) &lt;= <span class="num">1</span> { <span class="kw">return</span> arr }
+    mid := <span class="fn">len</span>(arr) / <span class="num">2</span>
+    l, r := <span class="fn">mergeSort</span>(arr[:mid]), <span class="fn">mergeSort</span>(arr[mid:])
+    res := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="num">0</span>, <span class="fn">len</span>(arr))
+    i, j := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> i &lt; <span class="fn">len</span>(l) && j &lt; <span class="fn">len</span>(r) {
+        <span class="kw">if</span> l[i] &lt;= r[j] { res = <span class="fn">append</span>(res, l[i]); i++ } <span class="kw">else</span> { res = <span class="fn">append</span>(res, r[j]); j++ }
+    }
+    res = <span class="fn">append</span>(res, l[i:]...); res = <span class="fn">append</span>(res, r[j:]...)
+    <span class="kw">return</span> res
+}
+
+<span class="cm">// === BINARY SEARCH TEMPLATES ===
+// lowerBound: index đầu tiên arr[i] >= target (C++ lower_bound)
+// RULE: lo=0, hi=n (open), arr[mid]&lt;target → lo=mid+1, else → hi=mid</span>
+<span class="kw">func</span> <span class="fn">lowerBound</span>(arr []<span class="tp">int</span>, t <span class="tp">int</span>) <span class="tp">int</span> {
+    lo, hi := <span class="num">0</span>, <span class="fn">len</span>(arr)
+    <span class="kw">for</span> lo &lt; hi { mid := lo+(hi-lo)/<span class="num">2</span>; <span class="kw">if</span> arr[mid] &lt; t { lo=mid+<span class="num">1</span> } <span class="kw">else</span> { hi=mid } }
+    <span class="kw">return</span> lo
+}
+
+<span class="cm">// upperBound: index đầu tiên arr[i] > target (C++ upper_bound)</span>
+<span class="kw">func</span> <span class="fn">upperBound</span>(arr []<span class="tp">int</span>, t <span class="tp">int</span>) <span class="tp">int</span> {
+    lo, hi := <span class="num">0</span>, <span class="fn">len</span>(arr)
+    <span class="kw">for</span> lo &lt; hi { mid := lo+(hi-lo)/<span class="num">2</span>; <span class="kw">if</span> arr[mid] &lt;= t { lo=mid+<span class="num">1</span> } <span class="kw">else</span> { hi=mid } }
+    <span class="kw">return</span> lo
+}
+
+<span class="cm">// ===== EXPERT: Binary Search on Answer =====
+// LeetCode 1011: Ship Packages Within D Days
+// TRICK: không search trên array, search trên "giá trị capacity"</span>
+<span class="kw">func</span> <span class="fn">shipWithinDays</span>(weights []<span class="tp">int</span>, days <span class="tp">int</span>) <span class="tp">int</span> {
+    lo, hi := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, w := <span class="kw">range</span> weights { <span class="kw">if</span> w>lo { lo=w }; hi+=w }
+
+    canShip := <span class="kw">func</span>(cap <span class="tp">int</span>) <span class="tp">bool</span> {
+        d, cur := <span class="num">1</span>, <span class="num">0</span>
+        <span class="kw">for</span> _, w := <span class="kw">range</span> weights {
+            <span class="kw">if</span> cur+w > cap { d++; cur=<span class="num">0</span> }; cur+=w
+        }
+        <span class="kw">return</span> d &lt;= days
+    }
+    <span class="kw">for</span> lo &lt; hi { mid := lo+(hi-lo)/<span class="num">2</span>; <span class="kw">if</span> <span class="fn">canShip</span>(mid) { hi=mid } <span class="kw">else</span> { lo=mid+<span class="num">1</span> } }
+    <span class="kw">return</span> lo
+}
+
+<span class="cm">// ===== EXPERT: MergeSort đếm Inversions — LeetCode 315 =====</span>
+<span class="kw">func</span> <span class="fn">countSmaller</span>(nums []<span class="tp">int</span>) []<span class="tp">int</span> {
+    n := <span class="fn">len</span>(nums); res := <span class="fn">make</span>([]<span class="tp">int</span>, n); idx := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> idx { idx[i]=i }
+    <span class="kw">var</span> ms <span class="kw">func</span>([]<span class="tp">int</span>) []<span class="tp">int</span>
+    ms = <span class="kw">func</span>(ids []<span class="tp">int</span>) []<span class="tp">int</span> {
+        <span class="kw">if</span> <span class="fn">len</span>(ids)&lt;=<span class="num">1</span> { <span class="kw">return</span> ids }
+        mid:=<span class="fn">len</span>(ids)/<span class="num">2</span>; l,r:=<span class="fn">ms</span>(ids[:mid]),<span class="fn">ms</span>(ids[mid:])
+        mg:=<span class="fn">make</span>([]<span class="tp">int</span>,<span class="num">0</span>,<span class="fn">len</span>(ids)); i,j:=<span class="num">0</span>,<span class="num">0</span>
+        <span class="kw">for</span> i&lt;<span class="fn">len</span>(l) && j&lt;<span class="fn">len</span>(r) {
+            <span class="kw">if</span> nums[l[i]]&lt;=nums[r[j]] { res[l[i]]+=j; mg=<span class="fn">append</span>(mg,l[i]); i++ } <span class="kw">else</span> { mg=<span class="fn">append</span>(mg,r[j]); j++ }
+        }
+        <span class="kw">for</span> ;i&lt;<span class="fn">len</span>(l);i++ { res[l[i]]+=j; mg=<span class="fn">append</span>(mg,l[i]) }
+        <span class="kw">return</span> <span class="fn">append</span>(mg, r[j:]...)
+    }
+    <span class="fn">ms</span>(idx); <span class="kw">return</span> res
+}
+
+<span class="cm">// Counting Sort: O(n+k), k = value range</span>
+<span class="kw">func</span> <span class="fn">countingSort</span>(arr []<span class="tp">int</span>, maxVal <span class="tp">int</span>) []<span class="tp">int</span> {
+    cnt := <span class="fn">make</span>([]<span class="tp">int</span>, maxVal+<span class="num">1</span>)
+    <span class="kw">for</span> _, v := <span class="kw">range</span> arr { cnt[v]++ }
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= maxVal; i++ { cnt[i]+=cnt[i-<span class="num">1</span>] }
+    res := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="fn">len</span>(arr))
+    <span class="kw">for</span> i := <span class="fn">len</span>(arr)-<span class="num">1</span>; i >= <span class="num">0</span>; i-- { cnt[arr[i]]--; res[cnt[arr[i]]]=arr[i] }
+    <span class="kw">return</span> res
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    arr := []<span class="tp">int</span>{<span class="num">3</span>,<span class="num">5</span>,<span class="num">8</span>,<span class="num">1</span>,<span class="num">5</span>,<span class="num">9</span>,<span class="num">2</span>,<span class="num">7</span>}
+    <span class="fn">quickSort3Way</span>(arr, <span class="num">0</span>, <span class="fn">len</span>(arr)-<span class="num">1</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(arr) <span class="cm">// [1 2 3 5 5 7 8 9]</span>
+    a2 := []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">3</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>}
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">lowerBound</span>(a2,<span class="num">3</span>), <span class="fn">upperBound</span>(a2,<span class="num">3</span>)) <span class="cm">// 1  3</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">shipWithinDays</span>([]<span class="tp">int</span>{<span class="num">1</span>,<span class="num">2</span>,<span class="num">3</span>,<span class="num">4</span>,<span class="num">5</span>,<span class="num">6</span>,<span class="num">7</span>,<span class="num">8</span>,<span class="num">9</span>,<span class="num">10</span>}, <span class="num">5</span>)) <span class="cm">// 15</span>
+    _ = <span class="fn">sort</span>.<span class="fn">SearchInts</span> <span class="cm">// Built-in binary search</span>
+}</pre>
+</div>
+
+<h3>④ Pitfalls</h3>
+<table class="data-table">
+  <thead><tr><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+  <tbody class="pitfall-row">
+    <tr class="pitfall-row"><td>QuickSort worst O(n²)</td><td>Pivot luôn là min/max với sorted input</td><td>Random pivot hoặc median-of-three</td></tr>
+    <tr class="pitfall-row"><td>Binary Search infinite loop</td><td><code>lo=mid</code> khi <code>hi=lo+1</code></td><td>Chỉ dùng <code>lo=mid+1</code> hoặc <code>hi=mid</code>; không bao giờ <code>lo=mid</code></td></tr>
+    <tr class="pitfall-row"><td>Overflow <code>(lo+hi)/2</code></td><td>lo+hi &gt; MaxInt khi giá trị lớn</td><td>Dùng <code>lo + (hi-lo)/2</code></td></tr>
+    <tr class="pitfall-row"><td>Counting Sort: giá trị âm</td><td>Index âm panic</td><td>Shift: <code>count[v - minVal]++</code></td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===== SECTION 21: ARRAY TECHNIQUES ===== -->
+<section class="page-section" id="s-array-techniques">
+<div class="section-header">
+  <div class="section-number">21</div>
+  <div>
+    <div class="section-title">Array Techniques</div>
+    <div class="section-subtitle">Two Pointers · Sliding Window · Monotonic Stack · Prefix Sum · Difference Array</div>
+  </div>
+  <span class="badge badge-advanced">ADVANCED</span>
+</div>
+
+<div class="concept-box">
+  <div class="label">① Define — Biến O(n²) thành O(n)</div>
+  <div class="title">Tối ưu hóa bài toán mảng</div>
+  <p class="prose">Các kỹ thuật này duy trì một <strong>cấu trúc bổ sung</strong> (window, stack, prefix map) và tận dụng <strong>monotone property</strong> hoặc <strong>precomputed information</strong> để tránh nested loop.</p>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/array_techniques.png" alt="Array Techniques and Window Optimization" loading="lazy">
+  <div class="concept-img-caption">Hình 21.1: Kỹ thuật mảng &amp; Cửa sổ trượt tối ưu — Trực quan hóa hoạt động của Two Pointers, Sliding Window và Monotonic Stack trong Go</div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Kỹ thuật</th><th>Pattern nhận biết</th><th>Complexity</th><th>Examples nổi bật</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Two Pointers</strong></td><td>Sorted array, pair/triple với điều kiện</td><td>O(n)</td><td>3Sum, Container with Water</td></tr>
+    <tr><td><strong>Sliding Window</strong></td><td>Subarray/substring với size hoặc constraint</td><td>O(n)</td><td>Min Window Substring, Max Average</td></tr>
+    <tr><td><strong>Monotonic Stack</strong></td><td>Next greater/smaller element</td><td>O(n)</td><td>Largest Rectangle, Trapping Rain</td></tr>
+    <tr><td><strong>Prefix Sum</strong></td><td>Range sum query nhiều lần</td><td>O(1) query</td><td>Subarray Sum Equals K, 2D queries</td></tr>
+    <tr><td><strong>Difference Array</strong></td><td>Range update nhiều lần</td><td>O(1) update</td><td>Corporate Flight Bookings</td></tr>
+  </tbody>
+</table>
+
+<div class="diagram-container">
+  <div class="diagram-title">② Sliding Window — Fixed vs Variable Size</div>
+  <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg">
+    <!-- Fixed window k=3 -->
+    <text x="30" y="26" font-size="11" fill="#64748b" font-family="JetBrains Mono">FIXED (k=3): Max sum subarray</text>
+    <rect x="30" y="34" width="44" height="32" rx="4" fill="rgba(255,255,255,0.03)" stroke="var(--border)"/>
+    <text x="52" y="56" text-anchor="middle" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <rect x="76" y="34" width="44" height="32" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="2"/>
+    <text x="98" y="56" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">4</text>
+    <rect x="122" y="34" width="44" height="32" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="2"/>
+    <text x="144" y="56" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">2</text>
+    <rect x="168" y="34" width="44" height="32" rx="4" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.5)" stroke-width="2"/>
+    <text x="190" y="56" text-anchor="middle" font-size="14" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">7</text>
+    <rect x="214" y="34" width="44" height="32" rx="4" fill="rgba(255,255,255,0.03)" stroke="var(--border)"/>
+    <text x="236" y="56" text-anchor="middle" font-size="14" fill="#64748b" font-family="JetBrains Mono">3</text>
+    <rect x="260" y="34" width="44" height="32" rx="4" fill="rgba(255,255,255,0.03)" stroke="var(--border)"/>
+    <text x="282" y="56" text-anchor="middle" font-size="14" fill="#64748b" font-family="JetBrains Mono">5</text>
+    <text x="98" y="82" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">L</text>
+    <text x="190" y="82" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">R</text>
+    <text x="370" y="56" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">sum=13 (max)</text>
+    <text x="370" y="74" font-size="11" fill="#64748b" font-family="JetBrains Mono">Slide: sum = sum - arr[L-1] + arr[R+1]</text>
+
+    <!-- Variable window -->
+    <text x="30" y="110" font-size="11" fill="#64748b" font-family="JetBrains Mono">VARIABLE: Longest subarray sum ≤ k=6</text>
+    <rect x="30" y="118" width="44" height="32" rx="4" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.5)" stroke-width="2"/>
+    <text x="52" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">2</text>
+    <rect x="76" y="118" width="44" height="32" rx="4" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.5)" stroke-width="2"/>
+    <text x="98" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">3</text>
+    <rect x="122" y="118" width="44" height="32" rx="4" fill="rgba(0,255,136,0.12)" stroke="rgba(0,255,136,0.5)" stroke-width="2"/>
+    <text x="144" y="140" text-anchor="middle" font-size="14" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">1</text>
+    <rect x="168" y="118" width="44" height="32" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.4)" stroke-dasharray="4,3"/>
+    <text x="190" y="140" text-anchor="middle" font-size="14" fill="#ff6b6b" font-family="JetBrains Mono">5</text>
+    <text x="30" y="166" font-size="10" fill="#00ff88" font-family="JetBrains Mono">L=0, R=2: sum=6 ≤ 6 ✓ ans=3</text>
+    <text x="180" y="166" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">R=3: sum=11 &gt; 6 → L++ để shrink</text>
+    <!-- Rule box -->
+    <rect x="430" y="118" width="370" height="86" rx="6" fill="rgba(255,255,255,0.02)" stroke="var(--border)"/>
+    <text x="446" y="138" font-size="11" fill="#64748b" font-family="JetBrains Mono">WINDOW INVARIANT (Variable):</text>
+    <text x="446" y="158" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Expand R  khi điều kiện thỏa</text>
+    <text x="446" y="178" font-size="12" fill="#ff6b6b" font-family="JetBrains Mono">Shrink L  khi điều kiện vi phạm</text>
+    <text x="446" y="198" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Update ans = max(ans, R-L+1)</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">array_techniques.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Two Pointers · Sliding Window · Monotonic Stack · Prefix Sum · Difference Array</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (<span class="str">"fmt"</span>; <span class="str">"sort"</span>)
+
+<span class="cm">// === TWO POINTERS: 3Sum — O(n²) ===</span>
+<span class="kw">func</span> <span class="fn">threeSum</span>(nums []<span class="tp">int</span>) [][]<span class="tp">int</span> {
+    <span class="pkg">sort</span>.<span class="fn">Ints</span>(nums); res := [][]<span class="tp">int</span>{}
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="fn">len</span>(nums)-<span class="num">2</span>; i++ {
+        <span class="kw">if</span> i>0 && nums[i]==nums[i-<span class="num">1</span>] { <span class="kw">continue</span> }
+        lo, hi := i+<span class="num">1</span>, <span class="fn">len</span>(nums)-<span class="num">1</span>
+        <span class="kw">for</span> lo &lt; hi {
+            s := nums[i]+nums[lo]+nums[hi]
+            <span class="kw">if</span> s==<span class="num">0</span> {
+                res = <span class="fn">append</span>(res, []<span class="tp">int</span>{nums[i],nums[lo],nums[hi]})
+                <span class="kw">for</span> lo&lt;hi && nums[lo]==nums[lo+<span class="num">1</span>] { lo++ }
+                <span class="kw">for</span> lo&lt;hi && nums[hi]==nums[hi-<span class="num">1</span>] { hi-- }
+                lo++; hi--
+            } <span class="kw">else if</span> s &lt; <span class="num">0</span> { lo++ } <span class="kw">else</span> { hi-- }
+        }
+    }
+    <span class="kw">return</span> res
+}
+
+<span class="cm">// === SLIDING WINDOW: Min Window Substring — O(n+m) ===
+// LeetCode 76: substring ngắn nhất của s chứa tất cả chars của t</span>
+<span class="kw">func</span> <span class="fn">minWindow</span>(s, t <span class="tp">string</span>) <span class="tp">string</span> {
+    need := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">byte</span>]<span class="tp">int</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="fn">len</span>(t); i++ { need[t[i]]++ }
+    have, total := <span class="num">0</span>, <span class="fn">len</span>(need)
+    window := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">byte</span>]<span class="tp">int</span>)
+    res, resLen := [<span class="num">2</span>]<span class="tp">int</span>{}, 1<<<span class="num">30</span>
+    lo := <span class="num">0</span>
+    <span class="kw">for</span> hi := <span class="num">0</span>; hi &lt; <span class="fn">len</span>(s); hi++ {
+        c := s[hi]; window[c]++
+        <span class="kw">if</span> need[c]>0 && window[c]==need[c] { have++ }
+        <span class="kw">for</span> have==total {
+            <span class="kw">if</span> hi-lo+<span class="num">1</span>&lt;resLen { resLen=hi-lo+<span class="num">1</span>; res=[<span class="num">2</span>]<span class="tp">int</span>{lo,hi} }
+            window[s[lo]]--
+            <span class="kw">if</span> need[s[lo]]>0 && window[s[lo]]&lt;need[s[lo]] { have-- }
+            lo++
+        }
+    }
+    <span class="kw">if</span> resLen==1<<<span class="num">30</span> { <span class="kw">return</span> <span class="str">""</span> }
+    <span class="kw">return</span> s[res[<span class="num">0</span>]:res[<span class="num">1</span>]+<span class="num">1</span>]
+}
+
+<span class="cm">// === MONOTONIC STACK: Largest Rectangle in Histogram — O(n) ===
+// Duy trì stack các index có height tăng dần
+// Pop khi gặp height nhỏ hơn → tính area</span>
+<span class="kw">func</span> <span class="fn">largestRectangle</span>(heights []<span class="tp">int</span>) <span class="tp">int</span> {
+    heights = <span class="fn">append</span>(heights, <span class="num">0</span>) <span class="cm">// Sentinel flush stack</span>
+    stack := []<span class="tp">int</span>{}; maxArea := <span class="num">0</span>
+    <span class="kw">for</span> i, h := <span class="kw">range</span> heights {
+        <span class="kw">for</span> <span class="fn">len</span>(stack)>0 && heights[stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]]>h {
+            top := stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]; stack=stack[:<span class="fn">len</span>(stack)-<span class="num">1</span>]
+            w := i; <span class="kw">if</span> <span class="fn">len</span>(stack)>0 { w=i-stack[<span class="fn">len</span>(stack)-<span class="num">1</span>]-<span class="num">1</span> }
+            <span class="kw">if</span> a:=heights[top]*w; a>maxArea { maxArea=a }
+        }
+        stack=<span class="fn">append</span>(stack, i)
+    }
+    <span class="kw">return</span> maxArea
+}
+
+<span class="cm">// === PREFIX SUM: Subarray Sum Equals K — O(n) ===
+// TRICK: prefix[i]-prefix[j]=k → đếm prefix[j]=prefix[i]-k đã thấy trước</span>
+<span class="kw">func</span> <span class="fn">subarraySum</span>(nums []<span class="tp">int</span>, k <span class="tp">int</span>) <span class="tp">int</span> {
+    cnt := <span class="kw">map</span>[<span class="tp">int</span>]<span class="tp">int</span>{<span class="num">0</span>:<span class="num">1</span>}; sum, res := <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> _, v := <span class="kw">range</span> nums { sum+=v; res+=cnt[sum-k]; cnt[sum]++ }
+    <span class="kw">return</span> res
+}
+
+<span class="cm">// === DIFFERENCE ARRAY: Range Update O(1) ===
+// LeetCode 1109: diff[l]+=v, diff[r+1]-=v → prefix sum để restore</span>
+<span class="kw">func</span> <span class="fn">corpFlightBookings</span>(bookings [][]<span class="tp">int</span>, n <span class="tp">int</span>) []<span class="tp">int</span> {
+    diff := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">2</span>)
+    <span class="kw">for</span> _, b := <span class="kw">range</span> bookings { diff[b[<span class="num">0</span>]]+=b[<span class="num">2</span>]; diff[b[<span class="num">1</span>]+<span class="num">1</span>]-=b[<span class="num">2</span>] }
+    res := <span class="fn">make</span>([]<span class="tp">int</span>, n); cur := <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; n; i++ { cur+=diff[i+<span class="num">1</span>]; res[i]=cur }
+    <span class="kw">return</span> res
+}
+
+<span class="cm">// === EXPERT: Trapping Rain Water — O(n) two pointers ===</span>
+<span class="kw">func</span> <span class="fn">trap</span>(height []<span class="tp">int</span>) <span class="tp">int</span> {
+    lo, hi, lMax, rMax, water := <span class="num">0</span>, <span class="fn">len</span>(height)-<span class="num">1</span>, <span class="num">0</span>, <span class="num">0</span>, <span class="num">0</span>
+    <span class="kw">for</span> lo &lt; hi {
+        <span class="kw">if</span> height[lo] &lt; height[hi] {
+            <span class="kw">if</span> height[lo] >= lMax { lMax=height[lo] } <span class="kw">else</span> { water+=lMax-height[lo] }
+            lo++
+        } <span class="kw">else</span> {
+            <span class="kw">if</span> height[hi] >= rMax { rMax=height[hi] } <span class="kw">else</span> { water+=rMax-height[hi] }
+            hi--
+        }
+    }
+    <span class="kw">return</span> water
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">largestRectangle</span>([]<span class="tp">int</span>{<span class="num">2</span>,<span class="num">1</span>,<span class="num">5</span>,<span class="num">6</span>,<span class="num">2</span>,<span class="num">3</span>})) <span class="cm">// 10</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">subarraySum</span>([]<span class="tp">int</span>{<span class="num">1</span>,<span class="num">1</span>,<span class="num">1</span>}, <span class="num">2</span>))              <span class="cm">// 2</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">minWindow</span>(<span class="str">"ADOBECODEBANC"</span>,<span class="str">"ABC"</span>))            <span class="cm">// "BANC"</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">trap</span>([]<span class="tp">int</span>{<span class="num">0</span>,<span class="num">1</span>,<span class="num">0</span>,<span class="num">2</span>,<span class="num">1</span>,<span class="num">0</span>,<span class="num">1</span>,<span class="num">3</span>,<span class="num">2</span>,<span class="num">1</span>,<span class="num">2</span>,<span class="num">1</span>}))    <span class="cm">// 6</span>
+}</pre>
+</div>
+
+<h3>④ Pitfalls</h3>
+<table class="data-table">
+  <thead><tr><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+  <tbody class="pitfall-row">
+    <tr class="pitfall-row"><td>Sliding Window: shrink sai thời điểm</td><td>Shrink quá sớm, bỏ mất valid window</td><td>Chỉ shrink khi vi phạm; update ans TRƯỚC khi shrink</td></tr>
+    <tr class="pitfall-row"><td>Monotonic Stack: không flush cuối</td><td>Elements còn trong stack chưa xử lý</td><td>Thêm sentinel 0 vào cuối array</td></tr>
+    <tr class="pitfall-row"><td>Prefix Sum: quên init prefixCount[0]=1</td><td>Bỏ mất subarray bắt đầu từ index 0</td><td><code>cnt := map[int]int{0: 1}</code></td></tr>
+    <tr class="pitfall-row"><td>Difference Array: index out of bound</td><td><code>diff[r+1]</code> khi r=n-1</td><td>Khai báo <code>diff = make([]int, n+2)</code></td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===== SECTION 22: ADVANCED TREES ===== -->
+<section class="page-section" id="s-advanced-trees">
+<div class="section-header">
+  <div class="section-number">22</div>
+  <div>
+    <div class="section-title">Advanced Trees</div>
+    <div class="section-subtitle">Segment Tree · Fenwick BIT · Trie · XOR Trie · Sparse Table</div>
+  </div>
+  <span class="badge badge-expert">EXPERT</span>
+</div>
+
+<div class="concept-box">
+  <div class="label">① Define — Khi nào dùng cấu trúc nào?</div>
+  <div class="title">Range Query &amp; Update Structures</div>
+  <p class="prose">Khi cần <strong>range query + point update</strong> (hoặc ngược lại) nhiều lần trên mảng, <code>Segment Tree</code> và <code>Fenwick Tree (BIT)</code> là hai lựa chọn chính với O(log n) mỗi operation.</p>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/advanced_trees.png" alt="Advanced Trees and Data Structures" loading="lazy">
+  <div class="concept-img-caption">Hình 22.1: Các Cấu trúc Cây nâng cao — Trực quan hóa Segment Tree (Range Queries), Fenwick Tree (BIT) và XOR Trie trong Go</div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Cấu trúc</th><th>Build</th><th>Query</th><th>Update</th><th>Flexibility</th><th>Dùng khi</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Segment Tree</strong></td><td>O(n)</td><td>O(log n)</td><td>O(log n)</td><td>Rất cao</td><td>Mọi range query: sum, min, max, GCD + lazy</td></tr>
+    <tr><td><strong>Fenwick BIT</strong></td><td>O(n)</td><td>O(log n)</td><td>O(log n)</td><td>Trung bình</td><td>Prefix sum, inversions (code gọn hơn)</td></tr>
+    <tr><td><strong>Sparse Table</strong></td><td>O(n log n)</td><td>O(1)</td><td>❌ Static</td><td>Thấp</td><td>Immutable RMQ (Range Min/Max)</td></tr>
+    <tr><td><strong>Trie</strong></td><td>O(M·L)</td><td>O(L)</td><td>O(L)</td><td>Cao cho string</td><td>Prefix search, autocomplete, XOR max</td></tr>
+  </tbody>
+</table>
+
+<div class="diagram-container">
+  <div class="diagram-title">② Segment Tree — Array [1,3,5,7,9,11] → 1-indexed nodes</div>
+  <svg width="100%" viewBox="0 0 820 290" xmlns="http://www.w3.org/2000/svg">
+    <!-- Root node 1 -->
+    <rect x="340" y="8" width="120" height="38" rx="6" fill="rgba(0,212,255,0.18)" stroke="rgba(0,212,255,0.55)" stroke-width="2"/>
+    <text x="400" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">node=1  sum=36</text>
+    <text x="400" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">range [0,5]</text>
+
+    <!-- Level 2 -->
+    <rect x="150" y="80" width="110" height="38" rx="6" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.45)" stroke-width="1.5"/>
+    <text x="205" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">node=2  sum=9</text>
+    <text x="205" y="112" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">range [0,2]</text>
+
+    <rect x="530" y="80" width="115" height="38" rx="6" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.45)" stroke-width="1.5"/>
+    <text x="587" y="96" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">node=3  sum=27</text>
+    <text x="587" y="112" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">range [3,5]</text>
+
+    <!-- Level 3 -->
+    <rect x="60" y="158" width="95" height="36" rx="5" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+    <text x="107" y="174" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">n=4  sum=4</text>
+    <text x="107" y="188" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">[0,1]</text>
+
+    <rect x="238" y="158" width="95" height="36" rx="5" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+    <text x="285" y="174" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">n=5  sum=5</text>
+    <text x="285" y="188" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">[2,2]</text>
+
+    <rect x="438" y="158" width="100" height="36" rx="5" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+    <text x="488" y="174" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">n=6  sum=16</text>
+    <text x="488" y="188" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">[3,4]</text>
+
+    <rect x="630" y="158" width="105" height="36" rx="5" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+    <text x="682" y="174" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">n=7  sum=11</text>
+    <text x="682" y="188" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">[5,5]</text>
+
+    <!-- Leaves -->
+    <rect x="30" y="228" width="52" height="28" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)"/>
+    <text x="56" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">1</text>
+    <rect x="90" y="228" width="52" height="28" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)"/>
+    <text x="116" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">3</text>
+    <rect x="416" y="228" width="52" height="28" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)"/>
+    <text x="442" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">7</text>
+    <rect x="476" y="228" width="52" height="28" rx="4" fill="rgba(245,158,11,0.15)" stroke="rgba(245,158,11,0.5)"/>
+    <text x="502" y="248" text-anchor="middle" font-size="13" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">9</text>
+
+    <!-- Connector lines -->
+    <line x1="400" y1="46" x2="255" y2="78" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <line x1="400" y1="46" x2="547" y2="78" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+    <line x1="205" y1="118" x2="130" y2="156" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+    <line x1="205" y1="118" x2="285" y2="156" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+    <line x1="587" y1="118" x2="512" y2="156" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+    <line x1="587" y1="118" x2="682" y2="156" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+    <line x1="107" y1="194" x2="56" y2="226" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <line x1="107" y1="194" x2="116" y2="226" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <line x1="488" y1="194" x2="442" y2="226" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+    <line x1="488" y1="194" x2="502" y2="226" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+    <!-- BIT explanation -->
+    <rect x="30" y="270" width="760" height="16" rx="3" fill="rgba(255,255,255,0.01)" stroke="var(--border)"/>
+    <text x="44" y="282" font-size="11" fill="#64748b" font-family="JetBrains Mono">Left child = 2×node   |   Right child = 2×node+1   |   Parent = node/2   |   Size = 4×n nodes</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">segment_tree_bit_trie.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — Segment Tree (Range Sum + Point Update) + BIT + Trie + XOR Trie</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="cm">// ===== SEGMENT TREE =====
+// tree[1] = root, tree[2i] = left, tree[2i+1] = right
+// ALWAYS allocate 4*n nodes</span>
+<span class="kw">type</span> <span class="tp">SegTree</span> <span class="kw">struct</span>{ n <span class="tp">int</span>; tree []<span class="tp">int</span> }
+
+<span class="kw">func</span> <span class="fn">NewSegTree</span>(arr []<span class="tp">int</span>) *<span class="tp">SegTree</span> {
+    n := <span class="fn">len</span>(arr); st := &<span class="tp">SegTree</span>{n, <span class="fn">make</span>([]<span class="tp">int</span>, <span class="num">4</span>*n)}
+    st.<span class="fn">build</span>(arr, <span class="num">1</span>, <span class="num">0</span>, n-<span class="num">1</span>); <span class="kw">return</span> st
+}
+<span class="kw">func</span> (st *<span class="tp">SegTree</span>) <span class="fn">build</span>(arr []<span class="tp">int</span>, node, s, e <span class="tp">int</span>) {
+    <span class="kw">if</span> s==e { st.tree[node]=arr[s]; <span class="kw">return</span> }
+    m := (s+e)/<span class="num">2</span>
+    st.<span class="fn">build</span>(arr, <span class="num">2</span>*node, s, m)
+    st.<span class="fn">build</span>(arr, <span class="num">2</span>*node+<span class="num">1</span>, m+<span class="num">1</span>, e)
+    st.tree[node] = st.tree[<span class="num">2</span>*node] + st.tree[<span class="num">2</span>*node+<span class="num">1</span>]
+}
+
+<span class="cm">// Update: point update tại index idx</span>
+<span class="kw">func</span> (st *<span class="tp">SegTree</span>) <span class="fn">Update</span>(idx, val <span class="tp">int</span>) { st.<span class="fn">upd</span>(<span class="num">1</span>, <span class="num">0</span>, st.n-<span class="num">1</span>, idx, val) }
+<span class="kw">func</span> (st *<span class="tp">SegTree</span>) <span class="fn">upd</span>(node, s, e, idx, val <span class="tp">int</span>) {
+    <span class="kw">if</span> s==e { st.tree[node]=val; <span class="kw">return</span> }
+    m := (s+e)/<span class="num">2</span>
+    <span class="kw">if</span> idx&lt;=m { st.<span class="fn">upd</span>(<span class="num">2</span>*node, s, m, idx, val) } <span class="kw">else</span> { st.<span class="fn">upd</span>(<span class="num">2</span>*node+<span class="num">1</span>, m+<span class="num">1</span>, e, idx, val) }
+    st.tree[node] = st.tree[<span class="num">2</span>*node] + st.tree[<span class="num">2</span>*node+<span class="num">1</span>]
+}
+
+<span class="cm">// Query: range sum [l, r]</span>
+<span class="kw">func</span> (st *<span class="tp">SegTree</span>) <span class="fn">Query</span>(l, r <span class="tp">int</span>) <span class="tp">int</span> { <span class="kw">return</span> st.<span class="fn">qry</span>(<span class="num">1</span>, <span class="num">0</span>, st.n-<span class="num">1</span>, l, r) }
+<span class="kw">func</span> (st *<span class="tp">SegTree</span>) <span class="fn">qry</span>(node, s, e, l, r <span class="tp">int</span>) <span class="tp">int</span> {
+    <span class="kw">if</span> r&lt;s || e&lt;l { <span class="kw">return</span> <span class="num">0</span> }              <span class="cm">// No overlap</span>
+    <span class="kw">if</span> l&lt;=s && e&lt;=r { <span class="kw">return</span> st.tree[node] } <span class="cm">// Full overlap</span>
+    m := (s+e)/<span class="num">2</span>
+    <span class="kw">return</span> st.<span class="fn">qry</span>(<span class="num">2</span>*node, s, m, l, r) + st.<span class="fn">qry</span>(<span class="num">2</span>*node+<span class="num">1</span>, m+<span class="num">1</span>, e, l, r)
+}
+
+<span class="cm">// ===== FENWICK TREE (BIT) — Binary Indexed Tree =====
+// Compact, O(log n) update/prefix-sum. MUST be 1-indexed.
+// i & (-i) = lowbit: right-most set bit</span>
+<span class="kw">type</span> <span class="tp">BIT</span> <span class="kw">struct</span>{ tree []<span class="tp">int</span>; n <span class="tp">int</span> }
+<span class="kw">func</span> <span class="fn">NewBIT</span>(n <span class="tp">int</span>) *<span class="tp">BIT</span> { <span class="kw">return</span> &<span class="tp">BIT</span>{<span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>), n} }
+
+<span class="kw">func</span> (b *<span class="tp">BIT</span>) <span class="fn">Add</span>(i, v <span class="tp">int</span>) { <span class="kw">for</span> ; i&lt;=b.n; i+=i&(-i) { b.tree[i]+=v } }
+<span class="kw">func</span> (b *<span class="tp">BIT</span>) <span class="fn">Sum</span>(i <span class="tp">int</span>) <span class="tp">int</span> { s:=<span class="num">0</span>; <span class="kw">for</span> ;i><span class="num">0</span>;i-=i&(-i) { s+=b.tree[i] }; <span class="kw">return</span> s }
+<span class="kw">func</span> (b *<span class="tp">BIT</span>) <span class="fn">RangeSum</span>(l, r <span class="tp">int</span>) <span class="tp">int</span> { <span class="kw">return</span> b.<span class="fn">Sum</span>(r)-b.<span class="fn">Sum</span>(l-<span class="num">1</span>) }
+
+<span class="cm">// ===== TRIE — Prefix Tree =====</span>
+<span class="kw">type</span> <span class="tp">TrieNode</span> <span class="kw">struct</span>{ ch [<span class="num">26</span>]*<span class="tp">TrieNode</span>; end <span class="tp">bool</span> }
+<span class="kw">type</span> <span class="tp">Trie</span> <span class="kw">struct</span>{ root *<span class="tp">TrieNode</span> }
+<span class="kw">func</span> <span class="fn">NewTrie</span>() *<span class="tp">Trie</span> { <span class="kw">return</span> &<span class="tp">Trie</span>{&<span class="tp">TrieNode</span>{}} }
+
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">Insert</span>(w <span class="tp">string</span>) {
+    n := t.root
+    <span class="kw">for</span> _, c := <span class="kw">range</span> w { i:=c-<span class="str">'a'</span>; <span class="kw">if</span> n.ch[i]==<span class="kw">nil</span> { n.ch[i]=&<span class="tp">TrieNode</span>{} }; n=n.ch[i] }
+    n.end=<span class="kw">true</span>
+}
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">Search</span>(w <span class="tp">string</span>) <span class="tp">bool</span> {
+    n := t.root
+    <span class="kw">for</span> _, c := <span class="kw">range</span> w { i:=c-<span class="str">'a'</span>; <span class="kw">if</span> n.ch[i]==<span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">false</span> }; n=n.ch[i] }
+    <span class="kw">return</span> n.end
+}
+<span class="kw">func</span> (t *<span class="tp">Trie</span>) <span class="fn">StartsWith</span>(p <span class="tp">string</span>) <span class="tp">bool</span> {
+    n := t.root
+    <span class="kw">for</span> _, c := <span class="kw">range</span> p { i:=c-<span class="str">'a'</span>; <span class="kw">if</span> n.ch[i]==<span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">false</span> }; n=n.ch[i] }
+    <span class="kw">return</span> <span class="kw">true</span>
+}
+
+<span class="cm">// ===== EXPERT: XOR Trie — Maximum XOR of Two Numbers =====
+// LeetCode 421: Insert bits từ MSB (bit31) xuống LSB
+// Query: với mỗi bit, ưu tiên chọn bit đối lập (maximize XOR)</span>
+<span class="kw">type</span> <span class="tp">XTrie</span> <span class="kw">struct</span>{ ch [<span class="num">2</span>]*<span class="tp">XTrie</span> }
+
+<span class="kw">func</span> <span class="fn">maxXOR</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    root := &<span class="tp">XTrie</span>{}
+    <span class="kw">var</span> ins <span class="kw">func</span>(*<span class="tp">XTrie</span>, <span class="tp">int</span>)
+    ins = <span class="kw">func</span>(n *<span class="tp">XTrie</span>, num <span class="tp">int</span>) {
+        <span class="kw">for</span> bit := <span class="num">31</span>; bit >= <span class="num">0</span>; bit-- {
+            b := (num>>bit)&<span class="num">1</span>; <span class="kw">if</span> n.ch[b]==<span class="kw">nil</span> { n.ch[b]=&<span class="tp">XTrie</span>{} }; n=n.ch[b]
+        }
+    }
+    <span class="kw">var</span> qry <span class="kw">func</span>(*<span class="tp">XTrie</span>, <span class="tp">int</span>) <span class="tp">int</span>
+    qry = <span class="kw">func</span>(n *<span class="tp">XTrie</span>, num <span class="tp">int</span>) <span class="tp">int</span> {
+        xor := <span class="num">0</span>
+        <span class="kw">for</span> bit := <span class="num">31</span>; bit >= <span class="num">0</span>; bit-- {
+            b := (num>>bit)&<span class="num">1</span>; want := <span class="num">1</span>-b
+            <span class="kw">if</span> n.ch[want]!=<span class="kw">nil</span> { xor|=<span class="num">1</span>&lt;&lt;bit; n=n.ch[want] } <span class="kw">else</span> { n=n.ch[b] }
+        }
+        <span class="kw">return</span> xor
+    }
+    <span class="kw">for</span> _, v := <span class="kw">range</span> nums { ins(root, v) }
+    ans := <span class="num">0</span>
+    <span class="kw">for</span> _, v := <span class="kw">range</span> nums { <span class="kw">if</span> x:=qry(root,v); x>ans { ans=x } }
+    <span class="kw">return</span> ans
+}
+
+<span class="cm">// ===== EXPERT: Sparse Table — O(1) Range Min Query =====
+// Build: O(n log n)  Query: O(1) với overlap-friendly ops (min, max, gcd)</span>
+<span class="kw">type</span> <span class="tp">SparseTable</span> <span class="kw">struct</span>{ table [][]<span class="tp">int</span>; log2 []<span class="tp">int</span> }
+
+<span class="kw">func</span> <span class="fn">NewSparseTable</span>(arr []<span class="tp">int</span>) *<span class="tp">SparseTable</span> {
+    n := <span class="fn">len</span>(arr); k := <span class="num">1</span>
+    <span class="kw">for</span> (<span class="num">1</span>&lt;&lt;k) &lt;= n { k++ }
+    tbl := <span class="fn">make</span>([][]<span class="tp">int</span>, k)
+    <span class="kw">for</span> i := <span class="kw">range</span> tbl { tbl[i]=<span class="fn">make</span>([]<span class="tp">int</span>,n) }
+    <span class="fn">copy</span>(tbl[<span class="num">0</span>], arr)
+    <span class="kw">for</span> j := <span class="num">1</span>; j &lt; k; j++ {
+        <span class="kw">for</span> i := <span class="num">0</span>; i+((<span class="num">1</span>&lt;&lt;j)-<span class="num">1</span>) &lt; n; i++ {
+            a, b := tbl[j-<span class="num">1</span>][i], tbl[j-<span class="num">1</span>][i+(<span class="num">1</span>&lt;&lt;(j-<span class="num">1</span>))]
+            <span class="kw">if</span> a &lt; b { tbl[j][i]=a } <span class="kw">else</span> { tbl[j][i]=b }
+        }
+    }
+    lg := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">2</span>; i &lt;= n; i++ { lg[i]=lg[i/<span class="num">2</span>]+<span class="num">1</span> }
+    <span class="kw">return</span> &<span class="tp">SparseTable</span>{tbl, lg}
+}
+
+<span class="cm">// RMQ O(1): [l,r] range minimum</span>
+<span class="kw">func</span> (st *<span class="tp">SparseTable</span>) <span class="fn">RMQ</span>(l, r <span class="tp">int</span>) <span class="tp">int</span> {
+    k := st.log2[r-l+<span class="num">1</span>]
+    a, b := st.table[k][l], st.table[k][r-(<span class="num">1</span>&lt;&lt;k)+<span class="num">1</span>]
+    <span class="kw">if</span> a &lt; b { <span class="kw">return</span> a }; <span class="kw">return</span> b
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    arr := []<span class="tp">int</span>{<span class="num">1</span>,<span class="num">3</span>,<span class="num">5</span>,<span class="num">7</span>,<span class="num">9</span>,<span class="num">11</span>}
+    st := <span class="fn">NewSegTree</span>(arr)
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(st.<span class="fn">Query</span>(<span class="num">1</span>,<span class="num">3</span>))  <span class="cm">// 15 (3+5+7)</span>
+    st.<span class="fn">Update</span>(<span class="num">1</span>, <span class="num">10</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(st.<span class="fn">Query</span>(<span class="num">1</span>,<span class="num">3</span>))  <span class="cm">// 22 (10+5+7)</span>
+
+    bit := <span class="fn">NewBIT</span>(<span class="num">6</span>)
+    <span class="kw">for</span> i, v := <span class="kw">range</span> arr { bit.<span class="fn">Add</span>(i+<span class="num">1</span>, v) }
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(bit.<span class="fn">RangeSum</span>(<span class="num">2</span>,<span class="num">4</span>)) <span class="cm">// 15 (3+5+7)</span>
+
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">maxXOR</span>([]<span class="tp">int</span>{<span class="num">3</span>,<span class="num">10</span>,<span class="num">5</span>,<span class="num">25</span>,<span class="num">2</span>,<span class="num">8</span>})) <span class="cm">// 28</span>
+
+    sp := <span class="fn">NewSparseTable</span>([]<span class="tp">int</span>{<span class="num">2</span>,<span class="num">4</span>,<span class="num">3</span>,<span class="num">1</span>,<span class="num">6</span>,<span class="num">7</span>,<span class="num">8</span>,<span class="num">9</span>,<span class="num">1</span>,<span class="num">7</span>})
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(sp.<span class="fn">RMQ</span>(<span class="num">0</span>,<span class="num">4</span>)) <span class="cm">// 1 (min of [2,4,3,1,6])</span>
+}</pre>
+</div>
+
+<h3>④ Pitfalls</h3>
+<table class="data-table">
+  <thead><tr><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+  <tbody class="pitfall-row">
+    <tr class="pitfall-row"><td>SegTree: size 4n không đủ</td><td>Tree node với n không là power-of-2 cần tới 4n</td><td>Luôn dùng <code>make([]int, 4*n)</code></td></tr>
+    <tr class="pitfall-row"><td>BIT: 0-indexed gây lỗi</td><td><code>i &amp; (-i)</code> với i=0 → vòng lặp vô hạn</td><td>BIT bắt buộc 1-indexed: Add(i+1, v)</td></tr>
+    <tr class="pitfall-row"><td>Trie: memory với Unicode</td><td>ch[26] chỉ đủ cho lowercase a-z</td><td>Dùng <code>map[rune]*TrieNode</code> cho Unicode</td></tr>
+    <tr class="pitfall-row"><td>Sparse Table: mutable array</td><td>Sparse Table không hỗ trợ update</td><td>Dùng Segment Tree nếu cần update</td></tr>
+    <tr class="pitfall-row"><td>Lazy Propagation: quên pushDown</td><td>Query vào child khi lazy chưa propagate</td><td>Gọi <code>pushDown(node)</code> trước khi recurse vào children</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ===== SECTION 23: DP SEQUENCES ===== -->
+<section class="page-section" id="s-dp-sequences">
+<div class="section-header">
+  <div class="section-number">23</div>
+  <div>
+    <div class="section-title">DP Sequences</div>
+    <div class="section-subtitle">LCS · LIS O(n log n) · Edit Distance · Palindrome DP · Wildcard Matching</div>
+  </div>
+  <span class="badge badge-expert">EXPERT</span>
+</div>
+
+<div class="concept-box">
+  <div class="label">① Define — Sequence DP</div>
+  <div class="title">DP trên Chuỗi &amp; Dãy Số</div>
+  <p class="prose">Sequence DP giải bài toán tối ưu trên <strong>string hoặc array</strong>. State <code>dp[i]</code> (1 chuỗi) hoặc <code>dp[i][j]</code> (2 chuỗi). Key insight: <strong>rolling array</strong> giảm space từ O(mn) xuống O(n).</p>
+</div>
+
+<div class="concept-img-wrapper">
+  <img src="../public/images/dp_sequences.png" alt="Sequence Alignment and Dynamic Programming" loading="lazy">
+  <div class="concept-img-caption">Hình 23.1: Quy hoạch động chuỗi &amp; dãy số — Trực quan hóa so khớp LCS, LIS và Edit Distance trong Go</div>
+</div>
+
+<table class="data-table">
+  <thead><tr><th>Bài toán</th><th>State DP</th><th>Transition key</th><th>Complexity</th></tr></thead>
+  <tbody>
+    <tr><td><strong>LCS</strong></td><td><code>dp[i][j]</code></td><td>match → +1; mismatch → max(left, up)</td><td>O(mn) / O(n) space</td></tr>
+    <tr><td><strong>LIS</strong> (patience sort)</td><td><code>tails[]</code></td><td>Binary search để duy trì tails tối thiểu</td><td>O(n log n)</td></tr>
+    <tr><td><strong>Edit Distance</strong></td><td><code>dp[i][j]</code></td><td>match → 0; mismatch → min(ins,del,rep)+1</td><td>O(mn) / O(n) space</td></tr>
+    <tr><td><strong>Longest Palindrome Subseq</strong></td><td><code>dp[l][r]</code></td><td>Interval DP: match → dp[l+1][r-1]+2</td><td>O(n²)</td></tr>
+    <tr><td><strong>Wildcard / Regex</strong></td><td><code>dp[i][j]</code></td><td>'*' → dp[i-1][j] || dp[i][j-1]</td><td>O(mn)</td></tr>
+  </tbody>
+</table>
+
+<div class="diagram-container">
+  <div class="diagram-title">② LCS Table — "ABCDE" vs "ACE" và LIS Patience Sorting</div>
+  <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+    <!-- LCS table header -->
+    <text x="30" y="22" font-size="11" fill="#64748b" font-family="JetBrains Mono">LCS("ABCDE", "ACE") = 3</text>
+    <text x="80" y="44" font-size="12" fill="#64748b" font-family="JetBrains Mono">""</text>
+    <text x="118" y="44" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">A</text>
+    <text x="156" y="44" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">B</text>
+    <text x="194" y="44" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">C</text>
+    <text x="232" y="44" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">D</text>
+    <text x="270" y="44" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">E</text>
+    <!-- Row "" -->
+    <text x="44" y="76" font-size="12" fill="#64748b" font-family="JetBrains Mono">""</text>
+    <text x="80" y="76" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="118" y="76" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="156" y="76" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="194" y="76" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="232" y="76" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="270" y="76" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <!-- Row A -->
+    <text x="44" y="112" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">A</text>
+    <text x="80" y="112" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <rect x="106" y="96" width="28" height="24" rx="4" fill="rgba(0,255,136,0.18)" stroke="rgba(0,255,136,0.5)"/>
+    <text x="118" y="112" text-anchor="middle" font-size="14" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">1</text>
+    <text x="156" y="112" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <text x="194" y="112" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <text x="232" y="112" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <text x="270" y="112" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <!-- Row C -->
+    <text x="44" y="148" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">C</text>
+    <text x="80" y="148" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="118" y="148" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <text x="156" y="148" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <rect x="182" y="132" width="28" height="24" rx="4" fill="rgba(0,255,136,0.18)" stroke="rgba(0,255,136,0.5)"/>
+    <text x="194" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">2</text>
+    <text x="232" y="148" font-size="14" fill="#64748b" font-family="JetBrains Mono">2</text>
+    <text x="270" y="148" font-size="14" fill="#64748b" font-family="JetBrains Mono">2</text>
+    <!-- Row E -->
+    <text x="44" y="184" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">E</text>
+    <text x="80" y="184" font-size="14" fill="#64748b" font-family="JetBrains Mono">0</text>
+    <text x="118" y="184" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <text x="156" y="184" font-size="14" fill="#64748b" font-family="JetBrains Mono">1</text>
+    <text x="194" y="184" font-size="14" fill="#64748b" font-family="JetBrains Mono">2</text>
+    <text x="232" y="184" font-size="14" fill="#64748b" font-family="JetBrains Mono">2</text>
+    <rect x="258" y="168" width="28" height="24" rx="4" fill="rgba(245,158,11,0.22)" stroke="rgba(245,158,11,0.6)" stroke-width="2"/>
+    <text x="270" y="184" text-anchor="middle" font-size="14" font-weight="700" fill="#f59e0b" font-family="JetBrains Mono">3</text>
+    <!-- Transition note -->
+    <text x="310" y="80" font-size="11" fill="#64748b" font-family="JetBrains Mono">if s1[i]==s2[j]: dp[i][j] = dp[i-1][j-1]+1</text>
+    <text x="310" y="100" font-size="11" fill="#64748b" font-family="JetBrains Mono">else:            dp[i][j] = max(dp[i-1][j], dp[i][j-1])</text>
+    <text x="310" y="126" font-size="11" fill="#64748b" font-family="JetBrains Mono">Space Opt: rolling 1D array O(n)</text>
+
+    <!-- LIS patience sorting -->
+    <text x="310" y="158" font-size="11" fill="#64748b" font-family="JetBrains Mono">LIS Patience Sorting: [10,9,2,5,3,7,101,18]</text>
+    <rect x="310" y="166" width="36" height="26" rx="4" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)"/>
+    <text x="328" y="184" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">2</text>
+    <rect x="350" y="166" width="36" height="26" rx="4" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)"/>
+    <text x="368" y="184" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">3</text>
+    <rect x="390" y="166" width="36" height="26" rx="4" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)"/>
+    <text x="408" y="184" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">7</text>
+    <rect x="430" y="166" width="42" height="26" rx="4" fill="rgba(0,212,255,0.12)" stroke="rgba(0,212,255,0.4)"/>
+    <text x="451" y="184" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">18</text>
+    <text x="480" y="184" font-size="11" fill="#64748b" font-family="JetBrains Mono">= tails[]</text>
+    <text x="310" y="208" font-size="11" fill="#64748b" font-family="JetBrains Mono">len(tails)=4 → LIS length=4  (2,3,7,18 or 2,5,7,101)</text>
+    <text x="310" y="226" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Binary search: tails[pos]&gt;=num → replace; pos==len → append</text>
+    <text x="30" y="248" font-size="11" fill="#64748b" font-family="JetBrains Mono">Edit Distance: dp[i][j] = op cost from word1[:i] → word2[:j]. Rolling 1D array: prev = dp[i-1][j-1]</text>
+  </svg>
+</div>
+
+<div class="code-block">
+  <div class="code-header"><span class="code-lang">GO</span><span class="code-filename">dp_sequences.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+  <pre><span class="cm">// ③ CODE — LCS (rolling) + LIS O(n log n) + Edit Distance + Palindrome + Wildcard</span>
+
+<span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (<span class="str">"fmt"</span>; <span class="str">"sort"</span>)
+
+<span class="cm">// === LCS — Space O(n) với rolling array ===</span>
+<span class="kw">func</span> <span class="fn">lcs</span>(s1, s2 <span class="tp">string</span>) <span class="tp">int</span> {
+    m, n := <span class="fn">len</span>(s1), <span class="fn">len</span>(s2)
+    <span class="kw">if</span> m &lt; n { s1, s2 = s2, s1; m, n = n, m }
+    dp := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        prev := <span class="num">0</span> <span class="cm">// Lưu dp[i-1][j-1]</span>
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            tmp := dp[j]
+            <span class="kw">if</span> s1[i-<span class="num">1</span>]==s2[j-<span class="num">1</span>] { dp[j]=prev+<span class="num">1</span> } <span class="kw">else</span> <span class="kw">if</span> dp[j-<span class="num">1</span>]>dp[j] { dp[j]=dp[j-<span class="num">1</span>] }
+            prev = tmp
+        }
+    }
+    <span class="kw">return</span> dp[n]
+}
+
+<span class="cm">// === LIS — O(n log n) Patience Sorting ===
+// tails[i] = phần tử nhỏ nhất có thể kết thúc LIS dài i+1</span>
+<span class="kw">func</span> <span class="fn">lis</span>(nums []<span class="tp">int</span>) <span class="tp">int</span> {
+    tails := []<span class="tp">int</span>{}
+    <span class="kw">for</span> _, n := <span class="kw">range</span> nums {
+        pos := <span class="pkg">sort</span>.<span class="fn">SearchInts</span>(tails, n) <span class="cm">// First tails[i] >= n</span>
+        <span class="kw">if</span> pos == <span class="fn">len</span>(tails) { tails = <span class="fn">append</span>(tails, n) } <span class="kw">else</span> { tails[pos]=n }
+    }
+    <span class="kw">return</span> <span class="fn">len</span>(tails)
+}
+
+<span class="cm">// lisReconstruct: O(n²) nhưng lấy được actual subsequence</span>
+<span class="kw">func</span> <span class="fn">lisReconstruct</span>(nums []<span class="tp">int</span>) []<span class="tp">int</span> {
+    n := <span class="fn">len</span>(nums); dp := <span class="fn">make</span>([]<span class="tp">int</span>, n); parent := <span class="fn">make</span>([]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i]=<span class="num">1</span>; parent[i]=-<span class="num">1</span> }
+    best, bestIdx := <span class="num">1</span>, <span class="num">0</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt; n; i++ {
+        <span class="kw">for</span> j := <span class="num">0</span>; j &lt; i; j++ {
+            <span class="kw">if</span> nums[j]&lt;nums[i] && dp[j]+<span class="num">1</span>>dp[i] { dp[i]=dp[j]+<span class="num">1</span>; parent[i]=j }
+        }
+        <span class="kw">if</span> dp[i]>best { best=dp[i]; bestIdx=i }
+    }
+    res := <span class="fn">make</span>([]<span class="tp">int</span>, best)
+    <span class="kw">for</span> i := best-<span class="num">1</span>; i >= <span class="num">0</span>; i-- { res[i]=nums[bestIdx]; bestIdx=parent[bestIdx] }
+    <span class="kw">return</span> res
+}
+
+<span class="cm">// === Edit Distance — Levenshtein, O(mn) time O(n) space ===</span>
+<span class="kw">func</span> <span class="fn">editDistance</span>(w1, w2 <span class="tp">string</span>) <span class="tp">int</span> {
+    m, n := <span class="fn">len</span>(w1), <span class="fn">len</span>(w2)
+    dp := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    <span class="kw">for</span> j := <span class="kw">range</span> dp { dp[j]=j }
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        prev := dp[<span class="num">0</span>]; dp[<span class="num">0</span>]=i
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            tmp := dp[j]
+            <span class="kw">if</span> w1[i-<span class="num">1</span>]==w2[j-<span class="num">1</span>] { dp[j]=prev } <span class="kw">else</span> {
+                mn := dp[j-<span class="num">1</span>]; <span class="kw">if</span> dp[j]&lt;mn { mn=dp[j] }; <span class="kw">if</span> prev&lt;mn { mn=prev }
+                dp[j]=mn+<span class="num">1</span>
+            }
+            prev=tmp
+        }
+    }
+    <span class="kw">return</span> dp[n]
+}
+
+<span class="cm">// === Longest Palindromic Subsequence — LeetCode 516, O(n²) ===
+// dp[l][r] = LPS trong s[l..r]
+// s[l]==s[r]: dp[l][r]=dp[l+1][r-1]+2  else: max(dp[l+1][r], dp[l][r-1])</span>
+<span class="kw">func</span> <span class="fn">longestPalindromicSubseq</span>(s <span class="tp">string</span>) <span class="tp">int</span> {
+    n := <span class="fn">len</span>(s)
+    dp := <span class="fn">make</span>([][]<span class="tp">int</span>, n)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i]=<span class="fn">make</span>([]<span class="tp">int</span>,n); dp[i][i]=<span class="num">1</span> }
+    <span class="kw">for</span> length := <span class="num">2</span>; length &lt;= n; length++ {
+        <span class="kw">for</span> l := <span class="num">0</span>; l &lt;= n-length; l++ {
+            r := l+length-<span class="num">1</span>
+            <span class="kw">if</span> s[l]==s[r] { dp[l][r]=dp[l+<span class="num">1</span>][r-<span class="num">1</span>]+<span class="num">2</span>; <span class="kw">if</span> length==<span class="num">2</span> { dp[l][r]=<span class="num">2</span> } } <span class="kw">else</span> { <span class="kw">if</span> dp[l+<span class="num">1</span>][r]>dp[l][r-<span class="num">1</span>] { dp[l][r]=dp[l+<span class="num">1</span>][r] } <span class="kw">else</span> { dp[l][r]=dp[l][r-<span class="num">1</span>] } }
+        }
+    }
+    <span class="kw">return</span> dp[<span class="num">0</span>][n-<span class="num">1</span>]
+}
+
+<span class="cm">// === Wildcard Matching — LeetCode 44 ===
+// dp[i][j] = true nếu s[:i] match p[:j]
+// '?' match 1 char, '*' match any sequence (kể cả empty)</span>
+<span class="kw">func</span> <span class="fn">isMatch</span>(s, p <span class="tp">string</span>) <span class="tp">bool</span> {
+    m, n := <span class="fn">len</span>(s), <span class="fn">len</span>(p)
+    dp := <span class="fn">make</span>([][]<span class="tp">bool</span>, m+<span class="num">1</span>)
+    <span class="kw">for</span> i := <span class="kw">range</span> dp { dp[i]=<span class="fn">make</span>([]<span class="tp">bool</span>, n+<span class="num">1</span>) }
+    dp[<span class="num">0</span>][<span class="num">0</span>] = <span class="kw">true</span>
+    <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ { <span class="kw">if</span> p[j-<span class="num">1</span>]=='*' { dp[<span class="num">0</span>][j]=dp[<span class="num">0</span>][j-<span class="num">1</span>] } } <span class="cm">// '*' match empty</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := <span class="num">1</span>; j &lt;= n; j++ {
+            <span class="kw">if</span> p[j-<span class="num">1</span>]=='*' { dp[i][j]=dp[i-<span class="num">1</span>][j]||dp[i][j-<span class="num">1</span>] } <span class="kw">else if</span> p[j-<span class="num">1</span>]=='?'||s[i-<span class="num">1</span>]==p[j-<span class="num">1</span>] { dp[i][j]=dp[i-<span class="num">1</span>][j-<span class="num">1</span>] }
+        }
+    }
+    <span class="kw">return</span> dp[m][n]
+}
+
+<span class="cm">// === EXPERT: Distinct Subsequences — LeetCode 115 ===
+// dp[i][j] = số cách s[:i] contain t[:j] như một subsequence</span>
+<span class="kw">func</span> <span class="fn">numDistinct</span>(s, t <span class="tp">string</span>) <span class="tp">int</span> {
+    m, n := <span class="fn">len</span>(s), <span class="fn">len</span>(t)
+    dp := <span class="fn">make</span>([]<span class="tp">int</span>, n+<span class="num">1</span>)
+    dp[<span class="num">0</span>] = <span class="num">1</span> <span class="cm">// Empty t matched by any prefix of s</span>
+    <span class="kw">for</span> i := <span class="num">1</span>; i &lt;= m; i++ {
+        <span class="kw">for</span> j := n; j >= <span class="num">1</span>; j-- { <span class="cm">// Duyệt ngược để tránh reuse</span>
+            <span class="kw">if</span> s[i-<span class="num">1</span>]==t[j-<span class="num">1</span>] { dp[j]+=dp[j-<span class="num">1</span>] }
+        }
+    }
+    <span class="kw">return</span> dp[n]
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">lcs</span>(<span class="str">"ABCDE"</span>, <span class="str">"ACE"</span>))                    <span class="cm">// 3</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">lis</span>([]<span class="tp">int</span>{<span class="num">10</span>,<span class="num">9</span>,<span class="num">2</span>,<span class="num">5</span>,<span class="num">3</span>,<span class="num">7</span>,<span class="num">101</span>,<span class="num">18</span>}))         <span class="cm">// 4</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">lisReconstruct</span>([]<span class="tp">int</span>{<span class="num">3</span>,<span class="num">1</span>,<span class="num">4</span>,<span class="num">2</span>,<span class="num">5</span>}))           <span class="cm">// [1 2 5] or [1 4 5]</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">editDistance</span>(<span class="str">"horse"</span>, <span class="str">"ros"</span>))              <span class="cm">// 3</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">longestPalindromicSubseq</span>(<span class="str">"bbbab"</span>))          <span class="cm">// 4 ("bbbb")</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">isMatch</span>(<span class="str">"adceb"</span>, <span class="str">"*a*b"</span>))                   <span class="cm">// true</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="fn">numDistinct</span>(<span class="str">"rabbbit"</span>, <span class="str">"rabbit"</span>))          <span class="cm">// 3</span>
+}</pre>
+</div>
+
+<h3>④ Pitfalls</h3>
+<table class="data-table">
+  <thead><tr><th>Lỗi</th><th>Nguyên nhân</th><th>Cách fix</th></tr></thead>
+  <tbody class="pitfall-row">
+    <tr class="pitfall-row"><td>LCS rolling array: prev bị overwrite</td><td>Dùng dp[j] thay vì lưu tmp = dp[j] trước</td><td>Lưu <code>prev := dp[j]</code> trước khi update dp[j]</td></tr>
+    <tr class="pitfall-row"><td>LIS: strictly vs non-strictly increasing</td><td>SearchInts cho non-strict, cần custom</td><td>Strictly: <code>SearchInts(tails, n)</code>; Non-strictly: <code>SearchInts(tails, n+1)</code></td></tr>
+    <tr class="pitfall-row"><td>Palindrome DP: length=2 edge case</td><td>dp[l+1][r-1] = dp[l+1][l] sai khi l=r-1</td><td>Xử lý riêng <code>if length==2 { dp[l][r]=2 }</code></td></tr>
+    <tr class="pitfall-row"><td>Wildcard: '*' không match empty</td><td>Quên init dp[0][j] cho pattern "*"</td><td>Init: <code>if p[j-1]=='*' { dp[0][j]=dp[0][j-1] }</code></td></tr>
+    <tr class="pitfall-row"><td>numDistinct: reuse issue</td><td>Duyệt j tăng → 1 char s[i] dùng nhiều lần</td><td>Duyệt j ngược từ n xuống 1</td></tr>
+  </tbody>
+</table>
+
+<div class="note note-info">
+  <div class="note-icon">💡</div>
+  <p><strong>Space Optimization pattern:</strong> Hầu hết DP 2D <code>dp[i][j]</code> chỉ dùng row <code>i-1</code> → có thể optimize xuống O(n) với rolling array. LCS, Edit Distance, Knapsack đều làm được. Palindrome DP (interval) thì không thể vì cần cả left và bottom.</p>
+</div>
+</section>
+
+<!-- ===== REFERENCES ===== -->
+<section class="page-section" id="s-references">
+<div class="section-header">
+  <div class="section-number" style="background:linear-gradient(135deg,#f59e0b,#ec4899)">📚</div>
+  <div>
+    <div class="section-title">References &amp; Learning Resources</div>
+    <div class="section-subtitle">Tài liệu được đánh giá cao — GitHub, Books, Courses, Official Docs</div>
+  </div>
+</div>
+
+<h3>🏆 GitHub Repositories</h3>
+
+<a class="ref-card" href="https://github.com/TheAlgorithms/Go" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,212,255,0.12)">⚡</div>
+  <div class="ref-body">
+    <div class="ref-title">TheAlgorithms / Go</div>
+    <div class="ref-desc">Tất cả algorithms &amp; data structures được implement bằng Go thuần túy, có test. Bao gồm DP, Graph, Sort, Tree, String. Chuẩn mực community.</div>
+    <div class="ref-url">github.com/TheAlgorithms/Go</div>
+  </div>
+  <div class="ref-stars">⭐ 16k+</div>
+</a>
+
+<a class="ref-card" href="https://github.com/halfrost/LeetCode-Go" target="_blank">
+  <div class="ref-icon" style="background:rgba(168,85,247,0.12)">🎯</div>
+  <div class="ref-body">
+    <div class="ref-title">halfrost / LeetCode-Go</div>
+    <div class="ref-desc">Solutions toàn bộ LeetCode bằng Go với giải thích chi tiết. Có categorize theo topic, difficulty. Cực kỳ hữu ích để tham chiếu idiomatic Go patterns.</div>
+    <div class="ref-url">github.com/halfrost/LeetCode-Go</div>
+  </div>
+  <div class="ref-stars">⭐ 32k+</div>
+</a>
+
+<a class="ref-card" href="https://github.com/labuladong/fucking-algorithm" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🧠</div>
+  <div class="ref-body">
+    <div class="ref-title">labuladong / fucking-algorithm</div>
+    <div class="ref-desc">Series bài giải thích algorithm cực kỳ chi tiết. Đặc biệt mạnh về DP (Bitmask, Digit, Interval), Binary Search templates, Sliding Window. Có phiên bản tiếng Anh lẫn Hán.</div>
+    <div class="ref-url">github.com/labuladong/fucking-algorithm</div>
+  </div>
+  <div class="ref-stars">⭐ 125k+</div>
+</a>
+
+<a class="ref-card" href="https://github.com/neetcode-gh/leetcode" target="_blank">
+  <div class="ref-icon" style="background:rgba(245,158,11,0.12)">🔥</div>
+  <div class="ref-body">
+    <div class="ref-title">neetcode-gh / leetcode</div>
+    <div class="ref-desc">Solutions kèm video giải thích của NeetCode. Có Go solutions. Road map học theo từng topic rõ ràng: Arrays → DP → Graph → Advanced Trees. Chuẩn FAANG interview.</div>
+    <div class="ref-url">github.com/neetcode-gh/leetcode</div>
+  </div>
+  <div class="ref-stars">⭐ 6k+</div>
+</a>
+
+<a class="ref-card" href="https://github.com/aQuaYi/LeetCode-in-Go" target="_blank">
+  <div class="ref-icon" style="background:rgba(255,107,107,0.1)">🐹</div>
+  <div class="ref-body">
+    <div class="ref-title">aQuaYi / LeetCode-in-Go</div>
+    <div class="ref-desc">Go solutions với benchmark test. Tập trung vào idiomatic Go, container/heap, sort interface. Hữu ích để học Go-specific patterns cho competitive programming.</div>
+    <div class="ref-url">github.com/aQuaYi/LeetCode-in-Go</div>
+  </div>
+  <div class="ref-stars">⭐ 3k+</div>
+</a>
+
+<a class="ref-card" href="https://github.com/williamfiset/Algorithms" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,212,255,0.1)">📐</div>
+  <div class="ref-body">
+    <div class="ref-title">williamfiset / Algorithms</div>
+    <div class="ref-desc">Implementation với video giải thích kỹ thuật. Đặc biệt mạnh về Graph (Tarjan, Dijkstra, MST), Segment Tree với Lazy Propagation, Network Flow. Nguồn tham chiếu chuyên sâu.</div>
+    <div class="ref-url">github.com/williamfiset/Algorithms</div>
+  </div>
+  <div class="ref-stars">⭐ 17k+</div>
+</a>
+
+<h3>📖 Books &amp; Courses</h3>
+
+<a class="ref-card" href="https://cp-algorithms.com" target="_blank">
+  <div class="ref-icon" style="background:rgba(168,85,247,0.12)">🌐</div>
+  <div class="ref-body">
+    <div class="ref-title">CP-Algorithms.com</div>
+    <div class="ref-desc">Competitive Programming Algorithms — website chuẩn nhất về thuật toán thi đấu. Bao gồm Segment Tree Lazy, Digit DP, Tarjan SCC, Convex Hull Trick, KMP. Mỗi article có proof + implementation.</div>
+    <div class="ref-url">cp-algorithms.com</div>
+  </div>
+  <div class="ref-stars">⭐ Nguồn số 1</div>
+</a>
+
+<a class="ref-card" href="https://leetcode.com/explore/learn" target="_blank">
+  <div class="ref-icon" style="background:rgba(245,158,11,0.12)">🎓</div>
+  <div class="ref-body">
+    <div class="ref-title">LeetCode Learn — Official</div>
+    <div class="ref-desc">Official LeetCode learning path. Có interactive cards cho từng topic: Binary Search, Sliding Window, DP, Tree. Kèm curated problems theo độ khó. Premium có solution hints.</div>
+    <div class="ref-url">leetcode.com/explore/learn</div>
+  </div>
+  <div class="ref-stars">⭐ Official</div>
+</a>
+
+<a class="ref-card" href="https://neetcode.io/roadmap" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🗺️</div>
+  <div class="ref-body">
+    <div class="ref-title">NeetCode Roadmap</div>
+    <div class="ref-desc">Road map học algorithm từ beginner đến expert. 150 problems được chọn lọc theo topic. Mỗi problem có video explanation. Chuẩn nhất để chuẩn bị FAANG/Big Tech interview trong 3-6 tháng.</div>
+    <div class="ref-url">neetcode.io/roadmap</div>
+  </div>
+  <div class="ref-stars">⭐ Top 1 Interview Prep</div>
+</a>
+
+<a class="ref-card" href="https://go.dev/doc/effective_go" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,212,255,0.12)">🐹</div>
+  <div class="ref-body">
+    <div class="ref-title">Effective Go — Official</div>
+    <div class="ref-desc">Tài liệu chính thức từ Go team về idiomatic Go patterns. Goroutines, channels, interfaces, error handling. Cần đọc trước khi viết Go cho competitive programming hoặc production.</div>
+    <div class="ref-url">go.dev/doc/effective_go</div>
+  </div>
+  <div class="ref-stars">⭐ Must Read</div>
+</a>
+
+<h3>🔗 Tham chiếu chuyên biệt theo Topic</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-title" style="color:var(--accent-cyan)">🧠 Dynamic Programming</div>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.7">
+      • <a href="https://atcoder.jp/contests/dp/tasks" style="color:var(--accent-cyan)">AtCoder DP Contest</a> — 26 bài DP chuẩn<br>
+      • <a href="https://usaco.guide/gold/dp" style="color:var(--accent-cyan)">USACO Guide — DP Gold</a><br>
+      • <a href="https://codeforces.com/blog/entry/47094" style="color:var(--accent-cyan)">Codeforces: Digit DP Tutorial</a><br>
+      • <a href="https://codeforces.com/blog/entry/18051" style="color:var(--accent-cyan)">Codeforces: Bitmask DP</a>
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--accent-purple)">🕸️ Graph Algorithms</div>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.7">
+      • <a href="https://cp-algorithms.com/graph/dijkstra.html" style="color:var(--accent-purple)">CP-Algorithms: Dijkstra</a><br>
+      • <a href="https://cp-algorithms.com/graph/strongly-connected-components.html" style="color:var(--accent-purple)">CP-Algorithms: SCC</a><br>
+      • <a href="https://usaco.guide/gold/shortest-paths" style="color:var(--accent-purple)">USACO Guide: Shortest Paths</a><br>
+      • <a href="https://visualgo.net/en/sssp" style="color:var(--accent-purple)">VisuAlgo: SSSP Visualization</a>
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--accent-green)">🌲 Trees &amp; Data Structures</div>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.7">
+      • <a href="https://cp-algorithms.com/data_structures/segment_tree.html" style="color:var(--accent-green)">CP-Algorithms: Segment Tree</a><br>
+      • <a href="https://cp-algorithms.com/data_structures/fenwick.html" style="color:var(--accent-green)">CP-Algorithms: Fenwick BIT</a><br>
+      • <a href="https://visualgo.net/en/segmenttree" style="color:var(--accent-green)">VisuAlgo: Segment Tree Viz</a><br>
+      • <a href="https://codeforces.com/blog/entry/18051" style="color:var(--accent-green)">Trie: Competitive Prog Book</a>
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title" style="color:var(--accent-amber)">🔍 Sort &amp; Binary Search</div>
+    <p style="font-size:13px;color:var(--text-muted);line-height:1.7">
+      • <a href="https://pkg.go.dev/sort" style="color:var(--accent-amber)">Go sort package — Official</a><br>
+      • <a href="https://pkg.go.dev/container/heap" style="color:var(--accent-amber)">container/heap — Min/Max Heap</a><br>
+      • <a href="https://leetcode.com/discuss/general-discussion/786126/python-powerful-ultimate-binary-search-template" style="color:var(--accent-amber)">Binary Search Template Guide</a><br>
+      • <a href="https://visualgo.net/en/sorting" style="color:var(--accent-amber)">VisuAlgo: Sorting Visualization</a>
+    </p>
+  </div>
+</div>
+
+<div class="note note-success">
+  <div class="note-icon">🎯</div>
+  <p><strong>Lộ trình học đề xuất:</strong> (1) Nắm vững Array Techniques + Binary Search → (2) DP cơ bản → (3) Graph BFS/DFS → (4) Advanced Trees → (5) Advanced DP → (6) Advanced Graph. Mỗi topic làm 20-30 LeetCode problems (easy → medium → hard). Target: <strong>150 problems trong 3 tháng</strong> theo NeetCode Roadmap.</p>
+</div>
+
+<div class="note note-info">
+  <div class="note-icon">⚡</div>
+  <p><strong>Go-specific tips cho competitive programming:</strong> Dùng <code>sort.Slice</code> thay vì implement; <code>container/heap</code> cho priority queue; <code>bufio.NewReader(os.Stdin)</code> cho fast I/O; <code>strings.Builder</code> thay vì string concatenation. Tránh global variables — dùng closure hoặc struct methods.</p>
+</div>
+</section>
+
+</div><!-- .content-area -->
+</main><!-- #main -->
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + id);
+  if (t) t.classList.add('active');
+  
+  // Sync the navigation highlights robustly by matching the onclick binding target
+  document.querySelectorAll('.nav-item, .topnav-item, .nav-sub').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + id + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // Smooth scroll to top of page/main container
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind dynamic click events for sidebar buttons, topnav items, sub-items, and cards
+document.querySelectorAll('.nav-item, .topnav-item, .nav-sub, .tag, .ref-card').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  const target = el.getAttribute('data-target') || oc?.match(/showSection\('([^']+)'\)/)?.[1];
+  if (target) {
+    // Save original click target in dataset to assist highlighting sync
+    el.dataset.onclick = oc;
+    el.removeAttribute('onclick'); // prevent double execution
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'dp-advanced'
+    const activeSec = document.querySelector('.page-section.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    }
+  }
+});
+
+// Setup copy code buttons
+window.copyCode = function(btn) {
+  var pre = btn.closest('.code-block').querySelector('pre');
+  var text = pre.innerText || pre.textContent;
+  navigator.clipboard.writeText(text).then(function() {
+    btn.textContent = 'Copied!';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 1800);
+  }).catch(function() {
+    btn.textContent = 'Error';
+    setTimeout(function() { btn.textContent = 'Copy'; }, 1800);
+  });
+}
+</script>
+</body>
+</html>

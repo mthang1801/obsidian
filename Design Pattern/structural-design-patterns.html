@@ -1,0 +1,2338 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Structural Design Patterns — Hướng dẫn chuyên sâu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,212,255,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== SIDEBAR ====== */
+  #sidebar {
+    width: 270px; min-width: 270px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed; top: 0; left: 0; bottom: 0;
+    overflow-y: auto; z-index: 100;
+    display: flex; flex-direction: column;
+  }
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 700; color: white; font-family: var(--font-mono);
+  }
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; }
+  .logo-sub  { font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); }
+
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-section-title {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-muted); padding: 0 8px; margin-bottom: 6px;
+  }
+  .nav-item {
+    display: flex; align-items: center; padding: 7px 8px; border-radius: 6px;
+    text-decoration: none; color: var(--text-secondary); font-size: 13px;
+    cursor: pointer; transition: all 0.15s; border: none; background: none;
+    width: 100%; text-align: left;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active {
+    background: rgba(0,212,255,0.1); color: var(--accent-cyan);
+    border-left: 2px solid var(--accent-cyan); padding-left: 6px;
+  }
+
+  /* ====== TOP NAV ====== */
+  #topnav {
+    position: fixed; top: 0; left: 270px; right: 0; height: 52px;
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 32px; gap: 8px;
+    z-index: 50; overflow-x: auto;
+  }
+  .topnav-item {
+    padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer; white-space: nowrap;
+    text-decoration: none; transition: all 0.15s; border: none; background: none;
+  }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .topnav-item.active { color: var(--accent-cyan); background: rgba(0,212,255,0.1); }
+
+  /* ====== MAIN ====== */
+  #main { margin-left: 270px; margin-top: 52px; flex: 1; max-width: calc(100% - 270px); }
+  .content-area { padding: 48px 56px; max-width: 980px; }
+
+  /* ====== SECTION HEADER ====== */
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 32px; padding-bottom: 20px; border-bottom: 1px solid var(--border);
+  }
+  .section-number {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    color: white; flex-shrink: 0;
+  }
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  .badge { padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; font-family: var(--font-mono); }
+  .badge-expert   { background: rgba(168,85,247,0.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced { background: rgba(245,158,11,0.12); color: var(--accent-amber);  border: 1px solid rgba(245,158,11,0.3); }
+  .badge-basic    { background: rgba(0,212,255,0.10);  color: var(--accent-cyan);   border: 1px solid rgba(0,212,255,0.25); }
+
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ====== PROSE ====== */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code {
+    background: rgba(0,212,255,0.08); color: var(--accent-cyan);
+    padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 13px;
+  }
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* ====== CARDS ====== */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px; transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--border-accent); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+  .card-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .card-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* ====== CONCEPT BOX ====== */
+  .concept-box {
+    background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(168,85,247,0.05));
+    border: 1px solid rgba(0,212,255,0.2); border-radius: 12px; padding: 24px; margin-bottom: 28px;
+  }
+  .concept-box .label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent-cyan); margin-bottom: 8px; font-family: var(--font-mono);
+  }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; }
+
+  /* ====== CODE BLOCKS ====== */
+  .code-block {
+    background: var(--bg-code); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 24px;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.02);
+  }
+  .code-lang { font-size: 11px; font-weight: 600; color: var(--accent-cyan); font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; }
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+  .code-copy {
+    font-size: 11px; cursor: pointer; background: none; border: 1px solid var(--border);
+    border-radius: 4px; padding: 3px 10px; color: var(--text-secondary); transition: all 0.15s; font-family: var(--font-sans);
+  }
+  .code-copy:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+  pre { margin: 0; padding: 20px; overflow-x: auto; font-family: var(--font-mono); font-size: 13px; line-height: 1.7; }
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .kw  { color: #c084fc; }
+  .fn  { color: #60a5fa; }
+  .str { color: #86efac; }
+  .cm  { color: #4b5563; font-style: italic; }
+  .num { color: #fb923c; }
+  .tp  { color: #67e8f9; }
+  .pkg { color: #a78bfa; }
+  .op  { color: #f472b6; }
+
+  /* ====== DIAGRAM ====== */
+  .diagram-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 28px; overflow: hidden;
+  }
+  .diagram-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); margin-bottom: 20px; font-family: var(--font-mono); text-align: center;
+  }
+
+  /* ====== TABLE ====== */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th {
+    padding: 10px 14px; text-align: left; background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td code { background: rgba(0,212,255,0.08); color: var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+
+  /* ====== NOTES ====== */
+  .note { display: flex; gap: 12px; padding: 14px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; }
+  .note-warn    { background: rgba(245,158,11,0.08);  border: 1px solid rgba(245,158,11,0.2);  color: #fcd34d; }
+  .note-info    { background: rgba(0,212,255,0.06);   border: 1px solid rgba(0,212,255,0.2);   color: var(--accent-cyan); }
+  .note-danger  { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,255,136,0.06);   border: 1px solid rgba(0,255,136,0.2);   color: var(--accent-green); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* ====== REFS ====== */
+  .ref-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    display: flex; align-items: flex-start; gap: 14px;
+    text-decoration: none; transition: all 0.15s; cursor: pointer;
+  }
+  .ref-card:hover { border-color: var(--accent-cyan); transform: translateX(2px); }
+  .ref-icon  { width: 38px; height: 38px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .ref-body  { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc  { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url   { font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* ====== COMPARE ====== */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .compare-head { padding: 12px 16px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; font-family: var(--font-mono); border-bottom: 1px solid var(--border); }
+  .compare-head.cyan   { background: rgba(0,212,255,0.08);  color: var(--accent-cyan); }
+  .compare-head.purple { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+  .compare-head.green  { background: rgba(0,255,136,0.08);  color: var(--accent-green); }
+  .compare-head.amber  { background: rgba(245,158,11,0.08); color: var(--accent-amber); }
+  .compare-head.coral  { background: rgba(255,107,107,0.08);color: var(--accent-coral); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); margin: 3px; }
+  .tag-good { background: rgba(0,255,136,0.08);  color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-bad  { background: rgba(255,107,107,0.08);color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+
+  .step-list { list-style: none; padding: 0; margin-bottom: 24px; }
+  .step-list li { display: flex; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-secondary); }
+  .step-list li:last-child { border-bottom: none; }
+  .step-num { width: 24px; height: 24px; border-radius: 50%; background: rgba(0,212,255,0.1); border: 1px solid rgba(0,212,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: var(--accent-cyan); flex-shrink: 0; font-family: var(--font-mono); }
+
+  /* UML-style boxes */
+  .uml-box { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+  .uml-head { padding: 8px 14px; font-family: var(--font-mono); font-size: 12px; font-weight: 700; border-bottom: 1px solid var(--border); }
+  .uml-body { padding: 8px 14px; font-family: var(--font-mono); font-size: 12px; color: var(--text-secondary); line-height: 1.8; }
+  .uml-interface .uml-head { background: rgba(0,212,255,0.08); color: var(--accent-cyan); }
+  .uml-struct    .uml-head { background: rgba(0,255,136,0.08);  color: var(--accent-green); }
+  .uml-concrete  .uml-head { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+  .uml-adapter   .uml-head { background: rgba(245,158,11,0.08); color: var(--accent-amber); }
+
+  @media(max-width:900px){
+    #sidebar { width: 220px; min-width: 220px; }
+    #main { margin-left: 220px; }
+    #topnav { left: 220px; }
+    .content-area { padding: 32px 24px; }
+    .card-grid, .compare-grid, .card-grid-3 { grid-template-columns: 1fr; }
+  }
+
+  /* ── CONCEPT ILLUSTRATIONS ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    background: var(--bg-card); padding: 12px;
+    transition: all 0.3s ease;
+  }
+  .concept-img-wrapper:hover {
+    transform: scale(1.01);
+    border-color: rgba(0,212,255,0.5);
+    box-shadow: 0 8px 30px rgba(0,212,255,0.2);
+  }
+  .concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .concept-img-caption {
+    text-align: center; font-size: 13px; color: var(--text-secondary);
+    margin-top: 10px; font-style: italic; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- ======== SIDEBAR ======== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">Structural Patterns</div>
+      <div class="logo-sub">// design-patterns in Go</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tổng quan</div>
+    <button class="nav-item active" onclick="showSection('intro')">🏛️ Giới thiệu</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">01 — Adapter</div>
+    <button class="nav-item" onclick="showSection('adapter-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('adapter-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">02 — Decorator</div>
+    <button class="nav-item" onclick="showSection('decorator-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('decorator-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">03 — Proxy</div>
+    <button class="nav-item" onclick="showSection('proxy-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('proxy-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">04 — Facade</div>
+    <button class="nav-item" onclick="showSection('facade-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('facade-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">05 — Composite</div>
+    <button class="nav-item" onclick="showSection('composite-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('composite-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">06 — Bridge</div>
+    <button class="nav-item" onclick="showSection('bridge-concept')">Khái niệm &amp; Định nghĩa</button>
+    <button class="nav-item" onclick="showSection('bridge-code')">Code Samples</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Tham khảo</div>
+    <button class="nav-item" onclick="showSection('refs')">📚 References</button>
+  </div>
+</nav>
+
+<!-- ======== TOP NAV ======== -->
+<nav id="topnav">
+  <button class="topnav-item active" onclick="showSection('intro')">Tổng quan</button>
+  <button class="topnav-item" onclick="showSection('adapter-concept')">Adapter</button>
+  <button class="topnav-item" onclick="showSection('decorator-concept')">Decorator</button>
+  <button class="topnav-item" onclick="showSection('proxy-concept')">Proxy</button>
+  <button class="topnav-item" onclick="showSection('facade-concept')">Facade</button>
+  <button class="topnav-item" onclick="showSection('composite-concept')">Composite</button>
+  <button class="topnav-item" onclick="showSection('bridge-concept')">Bridge</button>
+  <button class="topnav-item" onclick="showSection('refs')">References</button>
+</nav>
+
+<!-- ======== MAIN ======== -->
+<main id="main">
+<div class="content-area">
+
+<!-- ==================== INTRO ==================== -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">00</div>
+    <div>
+      <div class="section-title">Structural Design Patterns trong Go</div>
+      <div class="section-subtitle">6 pattern cấu trúc giúp tổ chức và kết hợp các object linh hoạt</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/structural_hero.png" alt="Go Structural Design Patterns Hub Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 0.1: Tổng quan các Mẫu thiết kế cấu trúc (Structural Patterns) được áp dụng phổ biến trong lập trình Go hiện đại</div>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Structural Patterns là gì?</div>
+    <p class="prose">
+      <strong>Structural Design Patterns</strong> (Mẫu thiết kế cấu trúc) là nhóm các pattern tập trung vào cách <em>kết hợp</em> các class và object để tạo thành cấu trúc lớn hơn, linh hoạt hơn và dễ bảo trì hơn. Chúng giải quyết bài toán: <strong>"Làm thế nào để các object hoạt động cùng nhau hiệu quả?"</strong>
+    </p>
+    <p class="prose">
+      Trong Go, Structural Patterns được biểu đạt qua <strong>interface composition</strong>, <strong>embedding</strong>, và <strong>struct wrapping</strong> — thay vì inheritance như Java/C++. Go's simplicity khiến các pattern này trở nên <em>tự nhiên</em> và <em>idiomatic</em> hơn bất kỳ ngôn ngữ OOP truyền thống nào.
+    </p>
+  </div>
+
+  <h3>6 Structural Patterns và vai trò</h3>
+  <div class="card-grid">
+    <div class="card" style="cursor:pointer" onclick="showSection('adapter-concept')">
+      <div class="card-title">🔌 01 — Adapter</div>
+      <p class="prose" style="margin:0;font-size:13px">Chuyển đổi interface của một class sang interface khác mà client mong đợi. <strong>"Ổ cắm điện đa năng"</strong> — cho phép các incompatible interfaces hoạt động cùng nhau.</p>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="showSection('decorator-concept')">
+      <div class="card-title">🎁 02 — Decorator</div>
+      <p class="prose" style="margin:0;font-size:13px">Thêm behavior mới vào object một cách động mà không thay đổi class gốc. <strong>"Lớp bọc ngoài"</strong> — wrap object trong wrapper cùng interface.</p>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="showSection('proxy-concept')">
+      <div class="card-title">🛡️ 03 — Proxy</div>
+      <p class="prose" style="margin:0;font-size:13px">Cung cấp surrogate hoặc placeholder cho object khác để kiểm soát access. <strong>"Người gác cổng"</strong> — logging, caching, access control, lazy init.</p>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="showSection('facade-concept')">
+      <div class="card-title">🏛️ 04 — Facade</div>
+      <p class="prose" style="margin:0;font-size:13px">Cung cấp interface đơn giản cho subsystem phức tạp. <strong>"Mặt tiền"</strong> — ẩn complexity phía sau một API gọn gàng dễ dùng.</p>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="showSection('composite-concept')">
+      <div class="card-title">🌲 05 — Composite</div>
+      <p class="prose" style="margin:0;font-size:13px">Tổ chức object thành cấu trúc cây, cho phép treat individual và composite uniformly. <strong>"Cây thư mục"</strong> — file system, UI components.</p>
+    </div>
+    <div class="card" style="cursor:pointer" onclick="showSection('bridge-concept')">
+      <div class="card-title">🌉 06 — Bridge</div>
+      <p class="prose" style="margin:0;font-size:13px">Tách rời abstraction khỏi implementation để cả hai có thể thay đổi độc lập. <strong>"Cầu nối"</strong> — decouples what from how.</p>
+    </div>
+  </div>
+
+  <h3>So sánh nhanh 6 Patterns</h3>
+  <table class="data-table">
+    <thead>
+      <tr><th>Pattern</th><th>Mục đích chính</th><th>Khi nào dùng</th><th>Go Idiom</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Adapter</strong></td><td>Interface conversion</td><td>Tích hợp thư viện bên ngoài không tương thích</td><td>Struct wrapping interface</td></tr>
+      <tr><td><strong>Decorator</strong></td><td>Thêm behavior động</td><td>Middleware, logging, caching theo tầng</td><td>Struct embed interface + forward</td></tr>
+      <tr><td><strong>Proxy</strong></td><td>Kiểm soát access</td><td>Lazy init, auth, rate limit, caching</td><td>Struct implement same interface</td></tr>
+      <tr><td><strong>Facade</strong></td><td>Đơn giản hóa API</td><td>Subsystem phức tạp cần API gọn</td><td>Struct aggregating multiple services</td></tr>
+      <tr><td><strong>Composite</strong></td><td>Cấu trúc cây</td><td>File system, UI tree, org chart</td><td>Interface + slice of same interface</td></tr>
+      <tr><td><strong>Bridge</strong></td><td>Decoupling</td><td>Cross-platform, multiple implementations</td><td>Interface field trong struct</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note note-info">
+    <div class="note-icon">💡</div>
+    <p>Tất cả code trong tài liệu này được viết theo <strong>Go 1.21+</strong>, idiomatic, production-ready. Mỗi pattern có ít nhất 2 ví dụ: <em>Advanced</em> (pattern thuần túy) và <em>Expert</em> (ứng dụng thực tế trong production).</p>
+  </div>
+
+  <!-- Overall Architecture Diagram -->
+  <div class="diagram-container">
+    <div class="diagram-title">Structural Patterns — Quan hệ và phân loại</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="marr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Group: Interface Conversion -->
+      <rect x="10" y="30" width="230" height="90" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="125" y="52" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono" text-decoration="none">Interface Conversion</text>
+      <rect x="25"  y="65" width="90"  height="40" rx="6" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="70"  y="90" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Adapter</text>
+      <rect x="130" y="65" width="90"  height="40" rx="6" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="175" y="90" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Facade</text>
+
+      <!-- Group: Wrapping -->
+      <rect x="255" y="30" width="230" height="90" rx="8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="370" y="52" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Object Wrapping</text>
+      <rect x="270" y="65" width="90"  height="40" rx="6" fill="rgba(0,255,136,0.1)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="315" y="90" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Decorator</text>
+      <rect x="375" y="65" width="90"  height="40" rx="6" fill="rgba(0,255,136,0.1)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="420" y="90" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Proxy</text>
+
+      <!-- Group: Structure -->
+      <rect x="500" y="30" width="310" height="90" rx="8" fill="rgba(168,85,247,0.04)" stroke="rgba(168,85,247,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="655" y="52" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Object Structure</text>
+      <rect x="515" y="65" width="90"  height="40" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="560" y="90" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Composite</text>
+      <rect x="700" y="65" width="90"  height="40" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="745" y="90" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Bridge</text>
+
+      <!-- Bottom description -->
+      <text x="125" y="160" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">Chuyển đổi interface</text>
+      <text x="125" y="178" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">giữa các component</text>
+      <text x="370" y="160" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">Bọc ngoài object để</text>
+      <text x="370" y="178" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">thêm hoặc kiểm soát</text>
+      <text x="655" y="160" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">Tổ chức object thành</text>
+      <text x="655" y="178" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">cấu trúc phức tạp hơn</text>
+
+      <!-- Shared principle -->
+      <rect x="200" y="210" width="420" height="40" rx="8" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.3)"/>
+      <text x="410" y="232" text-anchor="middle" font-size="12" fill="#f59e0b" font-family="Inter">Nguyên tắc chung: Composition over Inheritance — Go interface + struct embedding</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ==================== ADAPTER CONCEPT ==================== -->
+<section class="page-section" id="s-adapter-concept">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Adapter Pattern</div>
+      <div class="section-subtitle">Chuyển đổi interface — "Bộ chuyển đổi ổ cắm điện"</div>
+    </div>
+    <span class="badge badge-basic">CẤU TRÚC</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Adapter Pattern là gì?</div>
+    <p class="prose">
+      <strong>Adapter</strong> (còn gọi là Wrapper) là pattern cho phép hai interface <em>không tương thích</em> làm việc cùng nhau. Adapter hoạt động như một "bộ chuyển đổi" — nó wrap object từ interface cũ và expose interface mới mà client mong đợi.
+    </p>
+    <p class="prose">
+      Trong Go, Adapter thường được implement bằng cách tạo một <strong>struct mới</strong> chứa instance của class cũ (object adapter), implement interface mới, và delegate các method call sang class cũ. Go không cần "class adapter" vì không có inheritance.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/adapter.png" alt="Adapter Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: Kiến trúc Adapter Pattern trong Go — Chuyển đổi các interface không tương thích hoạt động ăn khớp với nhau</div>
+  </div>
+
+  <h3>Sơ đồ cấu trúc Adapter</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Adapter Pattern — Luồng gọi từ Client qua Adapter đến Adaptee</div>
+    <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Client -->
+      <rect x="20" y="80" width="120" height="60" rx="8" fill="rgba(0,212,255,0.08)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="80" y="108" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Client</text>
+      <text x="80" y="126" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Biết Target</text>
+
+      <!-- Arrow Client → Target Interface -->
+      <line x1="142" y1="110" x2="195" y2="110" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="168" y="104" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">uses</text>
+
+      <!-- Target Interface -->
+      <rect x="198" y="60" width="150" height="100" rx="8" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <text x="273" y="85" text-anchor="middle" font-size="11" fill="#64748b" font-family="JetBrains Mono">&lt;&lt;interface&gt;&gt;</text>
+      <text x="273" y="103" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Target</text>
+      <text x="273" y="120" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">+ Request()</text>
+      <line x1="273" y1="128" x2="273" y2="148" stroke="rgba(0,212,255,0.3)" stroke-width="1"/>
+      <text x="273" y="150" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">Client interface</text>
+
+      <!-- Arrow: Adapter implements Target -->
+      <line x1="350" y1="110" x2="416" y2="110" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="383" y="104" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">implements</text>
+
+      <!-- Adapter -->
+      <rect x="419" y="60" width="170" height="100" rx="8" fill="rgba(0,255,136,0.08)" stroke="#00ff88" stroke-width="2"/>
+      <text x="504" y="85" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Adapter</text>
+      <text x="504" y="103" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">- adaptee Adaptee</text>
+      <text x="504" y="120" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">+ Request()</text>
+      <text x="504" y="138" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">calls adaptee.SpecificRequest()</text>
+      <text x="504" y="152" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">translates result</text>
+
+      <!-- Arrow: Adapter → Adaptee -->
+      <line x1="591" y1="110" x2="654" y2="110" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="622" y="104" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">delegates</text>
+
+      <!-- Adaptee -->
+      <rect x="657" y="60" width="150" height="100" rx="8" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="732" y="85" text-anchor="middle" font-size="13" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">Adaptee</text>
+      <text x="732" y="103" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">+ SpecificRequest()</text>
+      <text x="732" y="120" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">Existing / legacy</text>
+      <text x="732" y="138" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">or 3rd-party code</text>
+      <text x="732" y="152" text-anchor="middle" font-size="10" fill="#4b5563" font-family="Inter">không thể thay đổi</text>
+
+      <!-- Timeline labels -->
+      <text x="80"  y="185" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Chỉ biết Target</text>
+      <text x="504" y="185" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">★ Adapter ★ là lõi pattern</text>
+      <text x="732" y="185" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Incompatible interface</text>
+    </svg>
+  </div>
+
+  <h3>Khi nào dùng Adapter?</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">📦 Tích hợp thư viện bên ngoài</div>
+      <p class="prose" style="font-size:13px;margin:0">Thư viện third-party có interface khác với interface bạn đang dùng. Adapter giúp tích hợp mà không sửa code gốc — ví dụ: wrap <code>aws-sdk</code> thành <code>StorageProvider</code> interface riêng.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔄 Legacy code migration</div>
+      <p class="prose" style="font-size:13px;margin:0">Chuyển đổi dần từ hệ thống cũ sang mới. Adapter cho phép code mới dùng interface mới trong khi vẫn delegate sang implementation cũ.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🧪 Testing &amp; Mocking</div>
+      <p class="prose" style="font-size:13px;margin:0">Wrap external service thành interface để có thể mock trong unit test. Adapter tạo seam để inject test double.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔌 Plugin systems</div>
+      <p class="prose" style="font-size:13px;margin:0">Mỗi plugin có thể implement interface riêng, Adapter normalize chúng về một interface chung mà hệ thống hiểu được.</p>
+    </div>
+  </div>
+
+  <h3>So sánh: Object Adapter vs Go Interface</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head cyan">Object Adapter (Go way)</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">Struct chứa <code>adaptee</code> field, implement target interface, forward calls. Đây là cách Go idiom nhất — composition, không inheritance.</p>
+        <div style="padding:8px">
+          <div class="tag tag-good">✓ Không sửa Adaptee</div>
+          <div class="tag tag-good">✓ Testable</div>
+          <div class="tag tag-good">✓ Multiple Adaptee</div>
+        </div>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head amber">Function Adapter (Go-only trick)</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">Dùng <code>type FuncAdapter func(...)</code> để convert function thành interface — tương tự <code>http.HandlerFunc</code>. Elegant cho single-method interfaces.</p>
+        <div style="padding:8px">
+          <div class="tag tag-good">✓ Concise</div>
+          <div class="tag tag-good">✓ First-class func</div>
+          <div class="tag tag-bad">✗ Single method only</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== ADAPTER CODE ==================== -->
+<section class="page-section" id="s-adapter-code">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Adapter — Code Samples</div>
+      <div class="section-subtitle">Advanced → Expert implementations</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <h4>Advanced: Payment Gateway Adapter</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">adapter/payment_adapter.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> adapter
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// ─── Target Interface ───────────────────────────────────────────────────────
+// PaymentProcessor là interface mà ứng dụng của chúng ta sử dụng.</span>
+<span class="kw">type</span> <span class="tp">PaymentProcessor</span> <span class="kw">interface</span> {
+    <span class="fn">Charge</span>(ctx <span class="tp">context.Context</span>, amount <span class="tp">float64</span>, currency, customerID <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>)
+    <span class="fn">Refund</span>(ctx <span class="tp">context.Context</span>, transactionID <span class="tp">string</span>, amount <span class="tp">float64</span>) <span class="tp">error</span>
+    <span class="fn">GetTransaction</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Transaction</span>, <span class="tp">error</span>)
+}
+
+<span class="kw">type</span> <span class="tp">Transaction</span> <span class="kw">struct</span> {
+    ID       <span class="tp">string</span>
+    Amount   <span class="tp">float64</span>
+    Currency <span class="tp">string</span>
+    Status   <span class="tp">string</span>
+    At       <span class="tp">time.Time</span>
+}
+
+<span class="cm">// ─── Adaptee #1: Stripe SDK (legacy, different interface) ───────────────────</span>
+<span class="kw">type</span> <span class="tp">StripeClient</span> <span class="kw">struct</span>{ apiKey <span class="tp">string</span> }
+
+<span class="kw">func</span> <span class="fn">NewStripeClient</span>(key <span class="tp">string</span>) *<span class="tp">StripeClient</span> { <span class="kw">return</span> &amp;<span class="tp">StripeClient</span>{apiKey: key} }
+
+<span class="kw">func</span> (s *<span class="tp">StripeClient</span>) <span class="fn">CreateCharge</span>(cents <span class="tp">int64</span>, cur, cus <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="cm">// Stripe dùng cents, không phải float64</span>
+    <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"ch_stripe_%d"</span>, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">UnixNano</span>()), <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">StripeClient</span>) <span class="fn">CreateRefund</span>(chargeID <span class="tp">string</span>, cents <span class="tp">int64</span>) <span class="tp">error</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+<span class="kw">func</span> (s *<span class="tp">StripeClient</span>) <span class="fn">RetrieveCharge</span>(chargeID <span class="tp">string</span>) (<span class="kw">map</span>[<span class="tp">string</span>]<span class="kw">any</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> <span class="kw">map</span>[<span class="tp">string</span>]<span class="kw">any</span>{<span class="str">"id"</span>: chargeID, <span class="str">"status"</span>: <span class="str">"succeeded"</span>, <span class="str">"amount"</span>: <span class="num">1000</span>}, <span class="kw">nil</span>
+}
+
+<span class="cm">// ─── Adapter #1: Stripe → PaymentProcessor ──────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">StripeAdapter</span> <span class="kw">struct</span> {
+    client *<span class="tp">StripeClient</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewStripeAdapter</span>(client *<span class="tp">StripeClient</span>) <span class="tp">PaymentProcessor</span> {
+    <span class="kw">return</span> &amp;<span class="tp">StripeAdapter</span>{client: client}
+}
+
+<span class="kw">func</span> (a *<span class="tp">StripeAdapter</span>) <span class="fn">Charge</span>(ctx <span class="tp">context.Context</span>, amount <span class="tp">float64</span>, currency, customerID <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="cm">// Chuyển đổi float64 → int64 cents (adaptation logic)</span>
+    cents := <span class="tp">int64</span>(amount * <span class="num">100</span>)
+    <span class="kw">return</span> a.client.<span class="fn">CreateCharge</span>(cents, currency, customerID)
+}
+
+<span class="kw">func</span> (a *<span class="tp">StripeAdapter</span>) <span class="fn">Refund</span>(_ <span class="tp">context.Context</span>, txID <span class="tp">string</span>, amount <span class="tp">float64</span>) <span class="tp">error</span> {
+    <span class="kw">return</span> a.client.<span class="fn">CreateRefund</span>(txID, <span class="tp">int64</span>(amount*<span class="num">100</span>))
+}
+
+<span class="kw">func</span> (a *<span class="tp">StripeAdapter</span>) <span class="fn">GetTransaction</span>(_ <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Transaction</span>, <span class="tp">error</span>) {
+    raw, err := a.client.<span class="fn">RetrieveCharge</span>(id)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+    <span class="cm">// Chuyển đổi map → struct (adaptation)</span>
+    <span class="kw">return</span> &amp;<span class="tp">Transaction</span>{
+        ID:     raw[<span class="str">"id"</span>].(<span class="tp">string</span>),
+        Status: raw[<span class="str">"status"</span>].(<span class="tp">string</span>),
+        Amount: <span class="tp">float64</span>(raw[<span class="str">"amount"</span>].(<span class="tp">int</span>)) / <span class="num">100</span>,
+        At:     <span class="pkg">time</span>.<span class="fn">Now</span>(),
+    }, <span class="kw">nil</span>
+}
+
+<span class="cm">// ─── Adaptee #2: PayPal SDK ──────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">PayPalClient</span> <span class="kw">struct</span>{ clientID, secret <span class="tp">string</span> }
+
+<span class="kw">func</span> (p *<span class="tp">PayPalClient</span>) <span class="fn">ExecutePayment</span>(amount <span class="tp">string</span>, cur, email <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"PAY-paypal-%d"</span>, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Unix</span>()), <span class="kw">nil</span>
+}
+<span class="kw">func</span> (p *<span class="tp">PayPalClient</span>) <span class="fn">RefundCapture</span>(captureID <span class="tp">string</span>) <span class="tp">error</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+
+<span class="cm">// ─── Adapter #2: PayPal → PaymentProcessor ───────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">PayPalAdapter</span> <span class="kw">struct</span>{ client *<span class="tp">PayPalClient</span> }
+
+<span class="kw">func</span> <span class="fn">NewPayPalAdapter</span>(c *<span class="tp">PayPalClient</span>) <span class="tp">PaymentProcessor</span> {
+    <span class="kw">return</span> &amp;<span class="tp">PayPalAdapter</span>{client: c}
+}
+
+<span class="kw">func</span> (a *<span class="tp">PayPalAdapter</span>) <span class="fn">Charge</span>(_ <span class="tp">context.Context</span>, amount <span class="tp">float64</span>, currency, customerID <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="cm">// PayPal dùng string amount</span>
+    amtStr := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%.2f"</span>, amount)
+    <span class="kw">return</span> a.client.<span class="fn">ExecutePayment</span>(amtStr, currency, customerID)
+}
+<span class="kw">func</span> (a *<span class="tp">PayPalAdapter</span>) <span class="fn">Refund</span>(_ <span class="tp">context.Context</span>, txID <span class="tp">string</span>, _ <span class="tp">float64</span>) <span class="tp">error</span> {
+    <span class="kw">return</span> a.client.<span class="fn">RefundCapture</span>(txID)
+}
+<span class="kw">func</span> (a *<span class="tp">PayPalAdapter</span>) <span class="fn">GetTransaction</span>(_ <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Transaction</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> &amp;<span class="tp">Transaction</span>{ID: id, Status: <span class="str">"COMPLETED"</span>}, <span class="kw">nil</span>
+}
+
+<span class="cm">// ─── Client: Dùng PaymentProcessor interface, không biết gì về Stripe/PayPal ─</span>
+<span class="kw">type</span> <span class="tp">OrderService</span> <span class="kw">struct</span> {
+    payment <span class="tp">PaymentProcessor</span> <span class="cm">// chỉ biết interface</span>
+}
+
+<span class="kw">func</span> (s *<span class="tp">OrderService</span>) <span class="fn">PlaceOrder</span>(ctx <span class="tp">context.Context</span>, amount <span class="tp">float64</span>, customerID <span class="tp">string</span>) <span class="tp">error</span> {
+    txID, err := s.payment.<span class="fn">Charge</span>(ctx, amount, <span class="str">"USD"</span>, customerID)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"charge failed: %w"</span>, err) }
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Order placed. Transaction: %s\n"</span>, txID)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <h4>Expert: Function Adapter + Logger Interface</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">adapter/function_adapter.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> adapter
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"go.uber.org/zap"</span>
+)
+
+<span class="cm">// ─── Target Logger Interface ─────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">Logger</span> <span class="kw">interface</span> {
+    <span class="fn">Info</span>(msg <span class="tp">string</span>, fields ...<span class="tp">any</span>)
+    <span class="fn">Error</span>(msg <span class="tp">string</span>, fields ...<span class="tp">any</span>)
+    <span class="fn">With</span>(fields ...<span class="tp">any</span>) <span class="tp">Logger</span>
+}
+
+<span class="cm">// ─── Adapter: zap.Logger → Logger interface ──────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">ZapAdapter</span> <span class="kw">struct</span>{ z *<span class="tp">zap.Logger</span> }
+
+<span class="kw">func</span> <span class="fn">NewZapAdapter</span>(z *<span class="tp">zap.Logger</span>) <span class="tp">Logger</span> { <span class="kw">return</span> &amp;<span class="tp">ZapAdapter</span>{z: z} }
+
+<span class="kw">func</span> (a *<span class="tp">ZapAdapter</span>) <span class="fn">Info</span>(msg <span class="tp">string</span>, fields ...<span class="tp">any</span>) {
+    a.z.<span class="fn">Sugar</span>().<span class="fn">Infow</span>(msg, fields...)
+}
+<span class="kw">func</span> (a *<span class="tp">ZapAdapter</span>) <span class="fn">Error</span>(msg <span class="tp">string</span>, fields ...<span class="tp">any</span>) {
+    a.z.<span class="fn">Sugar</span>().<span class="fn">Errorw</span>(msg, fields...)
+}
+<span class="kw">func</span> (a *<span class="tp">ZapAdapter</span>) <span class="fn">With</span>(fields ...<span class="tp">any</span>) <span class="tp">Logger</span> {
+    <span class="kw">return</span> &amp;<span class="tp">ZapAdapter</span>{z: a.z.<span class="fn">Sugar</span>().<span class="fn">With</span>(fields...).<span class="fn">Desugar</span>()}
+}
+
+<span class="cm">// ─── Adapter: slog.Logger → Logger interface ─────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">SlogAdapter</span> <span class="kw">struct</span>{ l *<span class="tp">slog.Logger</span> }
+
+<span class="kw">func</span> <span class="fn">NewSlogAdapter</span>(l *<span class="tp">slog.Logger</span>) <span class="tp">Logger</span> { <span class="kw">return</span> &amp;<span class="tp">SlogAdapter</span>{l: l} }
+
+<span class="kw">func</span> (a *<span class="tp">SlogAdapter</span>) <span class="fn">Info</span>(msg <span class="tp">string</span>, fields ...<span class="tp">any</span>) {
+    a.l.<span class="fn">InfoContext</span>(<span class="tp">context</span>.<span class="fn">Background</span>(), msg, fields...)
+}
+<span class="kw">func</span> (a *<span class="tp">SlogAdapter</span>) <span class="fn">Error</span>(msg <span class="tp">string</span>, fields ...<span class="tp">any</span>) {
+    a.l.<span class="fn">ErrorContext</span>(<span class="tp">context</span>.<span class="fn">Background</span>(), msg, fields...)
+}
+<span class="kw">func</span> (a *<span class="tp">SlogAdapter</span>) <span class="fn">With</span>(fields ...<span class="tp">any</span>) <span class="tp">Logger</span> {
+    <span class="kw">return</span> &amp;<span class="tp">SlogAdapter</span>{l: a.l.<span class="fn">With</span>(fields...)}
+}
+
+<span class="cm">// ─── Function Type Adapter — convert func → middleware Handler ───────────────
+// Cách Go chuẩn: http.HandlerFunc là ví dụ nổi tiếng nhất.</span>
+<span class="kw">type</span> <span class="tp">HandlerFunc</span> <span class="kw">func</span>(ctx <span class="tp">context.Context</span>, req <span class="kw">any</span>) (<span class="kw">any</span>, <span class="tp">error</span>)
+
+<span class="kw">type</span> <span class="tp">Handler</span> <span class="kw">interface</span> {
+    <span class="fn">Handle</span>(ctx <span class="tp">context.Context</span>, req <span class="kw">any</span>) (<span class="kw">any</span>, <span class="tp">error</span>)
+}
+
+<span class="cm">// HandlerFunc implements Handler — function adapter pattern</span>
+<span class="kw">func</span> (f <span class="tp">HandlerFunc</span>) <span class="fn">Handle</span>(ctx <span class="tp">context.Context</span>, req <span class="kw">any</span>) (<span class="kw">any</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> <span class="fn">f</span>(ctx, req)
+}
+
+<span class="cm">// Sử dụng: convert anonymous function thành Handler interface</span>
+<span class="kw">func</span> <span class="fn">ExampleUsage</span>() {
+    <span class="kw">var</span> h <span class="tp">Handler</span> = <span class="tp">HandlerFunc</span>(<span class="kw">func</span>(ctx <span class="tp">context.Context</span>, req <span class="kw">any</span>) (<span class="kw">any</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"processed: %v"</span>, req), <span class="kw">nil</span>
+    })
+    res, _ := h.<span class="fn">Handle</span>(<span class="tp">context</span>.<span class="fn">Background</span>(), <span class="str">"hello"</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(res) <span class="cm">// processed: hello</span>
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Go Idiom:</strong> Trong Go, <code>http.HandlerFunc</code> chính là Function Adapter kinh điển nhất — convert một function có đúng signature thành <code>http.Handler</code> interface. Pattern này cực kỳ phổ biến trong Go ecosystem.</p>
+  </div>
+</section>
+
+<!-- ==================== DECORATOR CONCEPT ==================== -->
+<section class="page-section" id="s-decorator-concept">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div>
+      <div class="section-title">Decorator Pattern</div>
+      <div class="section-subtitle">Thêm behavior động — "Lớp bọc ngoài"</div>
+    </div>
+    <span class="badge badge-basic">CẤU TRÚC</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Decorator Pattern là gì?</div>
+    <p class="prose">
+      <strong>Decorator</strong> attach thêm responsibilities vào object một cách <em>động</em>, không thay đổi class gốc. Decorators implement cùng interface với object gốc, wrap nó, và thêm behavior trước/sau khi call method gốc.
+    </p>
+    <p class="prose">
+      Go's interface system khiến Decorator cực kỳ elegant: bất kỳ struct nào implement interface đều có thể wrap một struct khác cùng interface. Đây là nền tảng của <strong>middleware pattern</strong> phổ biến trong Go HTTP servers.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/decorator.png" alt="Decorator Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 2.1: Kiến trúc Decorator Pattern trong Go — Đóng gói đệ quy (Wrapping Chain) để thêm hành vi động vào đối tượng gốc</div>
+  </div>
+
+  <h3>Cơ chế hoạt động — Decorator Chain</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Decorator Chain — Mỗi decorator wrap decorator bên trong</div>
+    <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="d1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Client Call -->
+      <rect x="15" y="70" width="80" height="60" rx="8" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="55" y="95" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Client</text>
+      <text x="55" y="112" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">calls Read()</text>
+      <line x1="97" y1="100" x2="130" y2="100" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#d1)"/>
+
+      <!-- Decorator 1: Auth -->
+      <rect x="133" y="40" width="140" height="120" rx="8" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="2"/>
+      <text x="203" y="62" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">AuthDecorator</text>
+      <text x="203" y="80" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">1. Check auth token</text>
+      <text x="203" y="98" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">→ call inner.Read()</text>
+      <text x="203" y="116" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">3. Return result</text>
+      <text x="203" y="148" text-anchor="middle" font-size="9" fill="#4b5563" font-family="JetBrains Mono">inner Storage</text>
+      <line x1="275" y1="100" x2="305" y2="100" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#d1)"/>
+
+      <!-- Decorator 2: Cache -->
+      <rect x="308" y="40" width="140" height="120" rx="8" fill="rgba(168,85,247,0.08)" stroke="#a855f7" stroke-width="2"/>
+      <text x="378" y="62" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">CacheDecorator</text>
+      <text x="378" y="80" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">1. Check cache</text>
+      <text x="378" y="98" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">→ call inner.Read()</text>
+      <text x="378" y="116" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">3. Store in cache</text>
+      <text x="378" y="148" text-anchor="middle" font-size="9" fill="#4b5563" font-family="JetBrains Mono">inner Storage</text>
+      <line x1="450" y1="100" x2="480" y2="100" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#d1)"/>
+
+      <!-- Decorator 3: Log -->
+      <rect x="483" y="40" width="140" height="120" rx="8" fill="rgba(0,255,136,0.08)" stroke="#00ff88" stroke-width="2"/>
+      <text x="553" y="62" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">LogDecorator</text>
+      <text x="553" y="80" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">1. Start timer</text>
+      <text x="553" y="98" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">→ call inner.Read()</text>
+      <text x="553" y="116" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">3. Log duration</text>
+      <text x="553" y="148" text-anchor="middle" font-size="9" fill="#4b5563" font-family="JetBrains Mono">inner Storage</text>
+      <line x1="625" y1="100" x2="658" y2="100" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#d1)"/>
+
+      <!-- Concrete -->
+      <rect x="661" y="55" width="140" height="90" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.3)"/>
+      <text x="731" y="82" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono" font-weight="700">FileStorage</text>
+      <text x="731" y="100" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Actual work</text>
+      <text x="731" y="116" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Read from disk</text>
+      <text x="731" y="133" text-anchor="middle" font-size="9" fill="#4b5563" font-family="JetBrains Mono">(Concrete Component)</text>
+    </svg>
+  </div>
+
+  <h3>Decorator vs các giải pháp khác</h3>
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head green">✅ Decorator (Runtime wrapping)</div>
+      <div style="padding:16px">
+        <ul class="step-list">
+          <li><div class="step-num">✓</div><span>Thêm/bỏ behavior <strong>runtime</strong> không cần recompile</span></li>
+          <li><div class="step-num">✓</div><span>Kết hợp nhiều behaviors linh hoạt</span></li>
+          <li><div class="step-num">✓</div><span>Single Responsibility: mỗi decorator một nhiệm vụ</span></li>
+          <li><div class="step-num">✓</div><span>Test từng decorator độc lập</span></li>
+        </ul>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head coral">❌ Inheritance / Subclassing</div>
+      <div style="padding:16px">
+        <ul class="step-list">
+          <li><div class="step-num">✗</div><span>Không có trong Go — không có class inheritance</span></li>
+          <li><div class="step-num">✗</div><span>Exploding class hierarchy: N features → 2^N classes</span></li>
+          <li><div class="step-num">✗</div><span>Static — phải biết combination tại compile time</span></li>
+          <li><div class="step-num">✗</div><span>Khó test từng layer riêng lẻ</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ==================== DECORATOR CODE ==================== -->
+<section class="page-section" id="s-decorator-code">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div>
+      <div class="section-title">Decorator — Code Samples</div>
+      <div class="section-subtitle">HTTP Middleware, Storage Layer, gRPC Interceptor</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <h4>Advanced: Storage Decorator Chain</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">decorator/storage.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> decorator
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// ─── Component Interface ─────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">Storage</span> <span class="kw">interface</span> {
+    <span class="fn">Read</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>)
+    <span class="fn">Write</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data []<span class="tp">byte</span>) <span class="tp">error</span>
+    <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span>
+}
+
+<span class="cm">// ─── Concrete Component ──────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">FileStorage</span> <span class="kw">struct</span>{ basePath <span class="tp">string</span> }
+
+<span class="kw">func</span> <span class="fn">NewFileStorage</span>(path <span class="tp">string</span>) <span class="tp">Storage</span> { <span class="kw">return</span> &amp;<span class="tp">FileStorage</span>{basePath: path} }
+
+<span class="kw">func</span> (f *<span class="tp">FileStorage</span>) <span class="fn">Read</span>(_ <span class="tp">context.Context</span>, key <span class="tp">string</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> []<span class="kw">byte</span>(<span class="str">"data-for-"</span> + key), <span class="kw">nil</span>
+}
+<span class="kw">func</span> (f *<span class="tp">FileStorage</span>) <span class="fn">Write</span>(_ <span class="tp">context.Context</span>, key <span class="tp">string</span>, data []<span class="tp">byte</span>) <span class="tp">error</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+<span class="kw">func</span> (f *<span class="tp">FileStorage</span>) <span class="fn">Delete</span>(_ <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span>          { <span class="kw">return</span> <span class="kw">nil</span> }
+
+<span class="cm">// ─── Decorator #1: Logging ───────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">LoggingStorage</span> <span class="kw">struct</span> {
+    inner  <span class="tp">Storage</span>       <span class="cm">// wrap bất kỳ Storage nào</span>
+    logger *<span class="tp">slog.Logger</span>
+}
+
+<span class="kw">func</span> <span class="fn">WithLogging</span>(s <span class="tp">Storage</span>, l *<span class="tp">slog.Logger</span>) <span class="tp">Storage</span> {
+    <span class="kw">return</span> &amp;<span class="tp">LoggingStorage</span>{inner: s, logger: l}
+}
+
+<span class="kw">func</span> (d *<span class="tp">LoggingStorage</span>) <span class="fn">Read</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>) {
+    start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    data, err := d.inner.<span class="fn">Read</span>(ctx, key)
+    d.logger.<span class="fn">InfoContext</span>(ctx, <span class="str">"storage.Read"</span>,
+        <span class="str">"key"</span>, key, <span class="str">"duration"</span>, <span class="pkg">time</span>.<span class="fn">Since</span>(start), <span class="str">"error"</span>, err)
+    <span class="kw">return</span> data, err
+}
+
+<span class="kw">func</span> (d *<span class="tp">LoggingStorage</span>) <span class="fn">Write</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data []<span class="tp">byte</span>) <span class="tp">error</span> {
+    start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    err := d.inner.<span class="fn">Write</span>(ctx, key, data)
+    d.logger.<span class="fn">InfoContext</span>(ctx, <span class="str">"storage.Write"</span>,
+        <span class="str">"key"</span>, key, <span class="str">"bytes"</span>, <span class="fn">len</span>(data), <span class="str">"duration"</span>, <span class="pkg">time</span>.<span class="fn">Since</span>(start), <span class="str">"error"</span>, err)
+    <span class="kw">return</span> err
+}
+
+<span class="kw">func</span> (d *<span class="tp">LoggingStorage</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span> {
+    err := d.inner.<span class="fn">Delete</span>(ctx, key)
+    d.logger.<span class="fn">InfoContext</span>(ctx, <span class="str">"storage.Delete"</span>, <span class="str">"key"</span>, key, <span class="str">"error"</span>, err)
+    <span class="kw">return</span> err
+}
+
+<span class="cm">// ─── Decorator #2: In-memory Cache ───────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">CachedStorage</span> <span class="kw">struct</span> {
+    inner  <span class="tp">Storage</span>
+    mu     <span class="pkg">sync</span>.<span class="tp">RWMutex</span>
+    cache  <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">cacheEntry</span>
+    ttl    <span class="tp">time.Duration</span>
+}
+
+<span class="kw">type</span> <span class="tp">cacheEntry</span> <span class="kw">struct</span>{ data []<span class="tp">byte</span>; expiresAt <span class="tp">time.Time</span> }
+
+<span class="kw">func</span> <span class="fn">WithCache</span>(s <span class="tp">Storage</span>, ttl <span class="tp">time.Duration</span>) <span class="tp">Storage</span> {
+    <span class="kw">return</span> &amp;<span class="tp">CachedStorage</span>{inner: s, cache: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">cacheEntry</span>), ttl: ttl}
+}
+
+<span class="kw">func</span> (d *<span class="tp">CachedStorage</span>) <span class="fn">Read</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>) {
+    d.mu.<span class="fn">RLock</span>()
+    entry, ok := d.cache[key]
+    d.mu.<span class="fn">RUnlock</span>()
+
+    <span class="kw">if</span> ok &amp;&amp; <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Before</span>(entry.expiresAt) {
+        <span class="kw">return</span> entry.data, <span class="kw">nil</span>
+    }
+
+    data, err := d.inner.<span class="fn">Read</span>(ctx, key)
+    <span class="kw">if</span> err == <span class="kw">nil</span> {
+        d.mu.<span class="fn">Lock</span>()
+        d.cache[key] = <span class="tp">cacheEntry</span>{data: data, expiresAt: <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Add</span>(d.ttl)}
+        d.mu.<span class="fn">Unlock</span>()
+    }
+    <span class="kw">return</span> data, err
+}
+
+<span class="kw">func</span> (d *<span class="tp">CachedStorage</span>) <span class="fn">Write</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data []<span class="tp">byte</span>) <span class="tp">error</span> {
+    d.mu.<span class="fn">Lock</span>()
+    <span class="fn">delete</span>(d.cache, key) <span class="cm">// invalidate on write</span>
+    d.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> d.inner.<span class="fn">Write</span>(ctx, key, data)
+}
+
+<span class="kw">func</span> (d *<span class="tp">CachedStorage</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span> {
+    d.mu.<span class="fn">Lock</span>()
+    <span class="fn">delete</span>(d.cache, key)
+    d.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> d.inner.<span class="fn">Delete</span>(ctx, key)
+}
+
+<span class="cm">// ─── Decorator #3: Metrics ───────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">MetricsStorage</span> <span class="kw">struct</span> {
+    inner   <span class="tp">Storage</span>
+    ops     <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int64</span>
+    mu      <span class="pkg">sync</span>.<span class="tp">Mutex</span>
+}
+
+<span class="kw">func</span> <span class="fn">WithMetrics</span>(s <span class="tp">Storage</span>) *<span class="tp">MetricsStorage</span> {
+    <span class="kw">return</span> &amp;<span class="tp">MetricsStorage</span>{inner: s, ops: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int64</span>)}
+}
+
+<span class="kw">func</span> (d *<span class="tp">MetricsStorage</span>) <span class="fn">record</span>(op <span class="tp">string</span>) {
+    d.mu.<span class="fn">Lock</span>(); d.ops[op]++; d.mu.<span class="fn">Unlock</span>()
+}
+
+<span class="kw">func</span> (d *<span class="tp">MetricsStorage</span>) <span class="fn">Read</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) ([]<span class="tp">byte</span>, <span class="tp">error</span>) {
+    d.<span class="fn">record</span>(<span class="str">"read"</span>); <span class="kw">return</span> d.inner.<span class="fn">Read</span>(ctx, key)
+}
+<span class="kw">func</span> (d *<span class="tp">MetricsStorage</span>) <span class="fn">Write</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data []<span class="tp">byte</span>) <span class="tp">error</span> {
+    d.<span class="fn">record</span>(<span class="str">"write"</span>); <span class="kw">return</span> d.inner.<span class="fn">Write</span>(ctx, key, data)
+}
+<span class="kw">func</span> (d *<span class="tp">MetricsStorage</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span> {
+    d.<span class="fn">record</span>(<span class="str">"delete"</span>); <span class="kw">return</span> d.inner.<span class="fn">Delete</span>(ctx, key)
+}
+<span class="kw">func</span> (d *<span class="tp">MetricsStorage</span>) <span class="fn">Stats</span>() <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int64</span> {
+    d.mu.<span class="fn">Lock</span>(); <span class="kw">defer</span> d.mu.<span class="fn">Unlock</span>()
+    out := <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int64</span>)
+    <span class="kw">for</span> k, v := <span class="kw">range</span> d.ops { out[k] = v }
+    <span class="kw">return</span> out
+}
+
+<span class="cm">// ─── Wiring: Decorator Chain ─────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BuildStorage</span>(basePath <span class="tp">string</span>) (<span class="tp">Storage</span>, *<span class="tp">MetricsStorage</span>) {
+    base    := <span class="fn">NewFileStorage</span>(basePath)
+    metrics := <span class="fn">WithMetrics</span>(base)
+    cached  := <span class="fn">WithCache</span>(metrics, <span class="num">5</span>*<span class="pkg">time</span>.Minute)
+    logged  := <span class="fn">WithLogging</span>(cached, <span class="pkg">slog</span>.<span class="fn">Default</span>())
+    <span class="cm">// Call order: logged → cached → metrics → base</span>
+    <span class="kw">return</span> logged, metrics
+}</pre>
+  </div>
+
+  <h4>Expert: HTTP Middleware Decorator (Production Pattern)</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">decorator/http_middleware.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> decorator
+
+<span class="kw">import</span> (
+    <span class="str">"net/http"</span>
+    <span class="str">"time"</span>
+    <span class="str">"log/slog"</span>
+    <span class="str">"strconv"</span>
+)
+
+<span class="cm">// Middleware là function type — decorator cho http.Handler</span>
+<span class="kw">type</span> <span class="tp">Middleware</span> <span class="kw">func</span>(<span class="tp">http.Handler</span>) <span class="tp">http.Handler</span>
+
+<span class="cm">// Chain kết hợp nhiều middleware theo thứ tự</span>
+<span class="kw">func</span> <span class="fn">Chain</span>(middlewares ...<span class="tp">Middleware</span>) <span class="tp">Middleware</span> {
+    <span class="kw">return func</span>(final <span class="tp">http.Handler</span>) <span class="tp">http.Handler</span> {
+        <span class="kw">for</span> i := <span class="fn">len</span>(middlewares) - <span class="num">1</span>; i &gt;= <span class="num">0</span>; i-- {
+            final = middlewares[i](final)
+        }
+        <span class="kw">return</span> final
+    }
+}
+
+<span class="cm">// ─── Decorator #1: Request Logging ───────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">WithRequestLogging</span>(logger *<span class="tp">slog.Logger</span>) <span class="tp">Middleware</span> {
+    <span class="kw">return func</span>(next <span class="tp">http.Handler</span>) <span class="tp">http.Handler</span> {
+        <span class="kw">return</span> <span class="tp">http.HandlerFunc</span>(<span class="kw">func</span>(w <span class="tp">http.ResponseWriter</span>, r *<span class="tp">http.Request</span>) {
+            start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+            rw := &amp;<span class="tp">responseWriter</span>{ResponseWriter: w, statusCode: <span class="tp">http.StatusOK</span>}
+            next.<span class="fn">ServeHTTP</span>(rw, r)
+            logger.<span class="fn">InfoContext</span>(r.<span class="fn">Context</span>(), <span class="str">"request"</span>,
+                <span class="str">"method"</span>,   r.Method,
+                <span class="str">"path"</span>,     r.URL.Path,
+                <span class="str">"status"</span>,   rw.statusCode,
+                <span class="str">"duration"</span>, <span class="pkg">time</span>.<span class="fn">Since</span>(start),
+            )
+        })
+    }
+}
+
+<span class="kw">type</span> <span class="tp">responseWriter</span> <span class="kw">struct</span> {
+    <span class="tp">http.ResponseWriter</span>
+    statusCode <span class="tp">int</span>
+}
+<span class="kw">func</span> (rw *<span class="tp">responseWriter</span>) <span class="fn">WriteHeader</span>(code <span class="tp">int</span>) {
+    rw.statusCode = code; rw.ResponseWriter.<span class="fn">WriteHeader</span>(code)
+}
+
+<span class="cm">// ─── Decorator #2: Recovery (Panic → 500) ────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">WithRecovery</span>(logger *<span class="tp">slog.Logger</span>) <span class="tp">Middleware</span> {
+    <span class="kw">return func</span>(next <span class="tp">http.Handler</span>) <span class="tp">http.Handler</span> {
+        <span class="kw">return</span> <span class="tp">http.HandlerFunc</span>(<span class="kw">func</span>(w <span class="tp">http.ResponseWriter</span>, r *<span class="tp">http.Request</span>) {
+            <span class="kw">defer func</span>() {
+                <span class="kw">if</span> rec := <span class="fn">recover</span>(); rec != <span class="kw">nil</span> {
+                    logger.<span class="fn">ErrorContext</span>(r.<span class="fn">Context</span>(), <span class="str">"panic recovered"</span>, <span class="str">"panic"</span>, rec)
+                    <span class="tp">http</span>.<span class="fn">Error</span>(w, <span class="str">"Internal Server Error"</span>, <span class="tp">http.StatusInternalServerError</span>)
+                }
+            }()
+            next.<span class="fn">ServeHTTP</span>(w, r)
+        })
+    }
+}
+
+<span class="cm">// ─── Decorator #3: Rate Limiter ───────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">WithRateLimit</span>(rps <span class="tp">int</span>) <span class="tp">Middleware</span> {
+    tokens := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, rps)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; rps; i++ { tokens &lt;- <span class="kw">struct</span>{}{} }
+    <span class="kw">go func</span>() {
+        t := <span class="pkg">time</span>.<span class="fn">NewTicker</span>(<span class="pkg">time</span>.Second)
+        <span class="kw">for</span> <span class="kw">range</span> t.C {
+            <span class="kw">for</span> i := <span class="num">0</span>; i &lt; rps; i++ {
+                <span class="kw">select</span> { <span class="kw">case</span> tokens &lt;- <span class="kw">struct</span>{}{}:<span class="kw">default</span>: }
+            }
+        }
+    }()
+
+    <span class="kw">return func</span>(next <span class="tp">http.Handler</span>) <span class="tp">http.Handler</span> {
+        <span class="kw">return</span> <span class="tp">http.HandlerFunc</span>(<span class="kw">func</span>(w <span class="tp">http.ResponseWriter</span>, r *<span class="tp">http.Request</span>) {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-tokens:
+                w.<span class="fn">Header</span>().<span class="fn">Set</span>(<span class="str">"X-RateLimit-Remaining"</span>, <span class="pkg">strconv</span>.<span class="fn">Itoa</span>(<span class="fn">len</span>(tokens)))
+                next.<span class="fn">ServeHTTP</span>(w, r)
+            <span class="kw">default</span>:
+                <span class="tp">http</span>.<span class="fn">Error</span>(w, <span class="str">"Too Many Requests"</span>, <span class="tp">http.StatusTooManyRequests</span>)
+            }
+        })
+    }
+}
+
+<span class="cm">// ─── Wiring ───────────────────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BuildServer</span>() *<span class="tp">http.ServeMux</span> {
+    logger := <span class="pkg">slog</span>.<span class="fn">Default</span>()
+    mux    := <span class="tp">http</span>.<span class="fn">NewServeMux</span>()
+    mux.<span class="fn">HandleFunc</span>(<span class="str">"/api"</span>, <span class="kw">func</span>(w <span class="tp">http.ResponseWriter</span>, r *<span class="tp">http.Request</span>) {
+        w.<span class="fn">Write</span>([]<span class="kw">byte</span>(<span class="str">"hello"</span>))
+    })
+    <span class="cm">// Apply decorator chain: Recovery → RateLimit → Logging → Handler</span>
+    stack := <span class="fn">Chain</span>(
+        <span class="fn">WithRecovery</span>(logger),
+        <span class="fn">WithRateLimit</span>(<span class="num">100</span>),
+        <span class="fn">WithRequestLogging</span>(logger),
+    )
+    <span class="tp">http</span>.<span class="fn">ListenAndServe</span>(<span class="str">":8080"</span>, stack(mux))
+    <span class="kw">return</span> mux
+}</pre>
+  </div>
+</section>
+
+<!-- ==================== PROXY CONCEPT ==================== -->
+<section class="page-section" id="s-proxy-concept">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div>
+      <div class="section-title">Proxy Pattern</div>
+      <div class="section-subtitle">Kiểm soát access — "Người gác cổng"</div>
+    </div>
+    <span class="badge badge-basic">CẤU TRÚC</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Proxy Pattern là gì?</div>
+    <p class="prose">
+      <strong>Proxy</strong> cung cấp một surrogate hoặc placeholder cho object khác để kiểm soát access đến nó. Proxy implement cùng interface với Real Subject, client không phân biệt được đang dùng Real hay Proxy.
+    </p>
+    <p class="prose">
+      Proxy <em>trông giống</em> Decorator nhưng khác về <strong>intent</strong>: Decorator thêm behavior, còn Proxy <strong>kiểm soát access</strong> đến object — lazy initialization, access control, caching, remote proxy, protection.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/proxy.png" alt="Proxy Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 3.1: Kiến trúc Proxy Pattern trong Go — Kiểm soát truy cập (Access Control) thông qua đối tượng ủy nhiệm bảo vệ</div>
+  </div>
+
+  <h3>4 loại Proxy phổ biến</h3>
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">💤 Virtual Proxy (Lazy Init)</div>
+      <p class="prose" style="font-size:13px;margin:0">Trì hoãn khởi tạo object tốn kém cho đến khi thực sự cần. Ví dụ: chỉ load image khi user scroll đến, chỉ kết nối DB khi có query đầu tiên.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🛡️ Protection Proxy (Access Control)</div>
+      <p class="prose" style="font-size:13px;margin:0">Kiểm soát quyền truy cập dựa trên role, permission. Proxy check auth trước khi delegate sang real object.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🗄️ Caching Proxy</div>
+      <p class="prose" style="font-size:13px;margin:0">Cache kết quả của expensive operations. Client không biết result đến từ cache hay real service. Khác Decorator Cache ở <em>intent</em>: đây về access control, không phải extension.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🌐 Remote Proxy (gRPC/REST)</div>
+      <p class="prose" style="font-size:13px;margin:0">Đại diện cho object ở remote location. gRPC client stub chính là Remote Proxy — client gọi method như local nhưng thực ra gọi qua network.</p>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Proxy vs Decorator — Cùng cấu trúc, khác mục đích</div>
+    <svg width="100%" viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg">
+      <!-- Proxy side -->
+      <rect x="10" y="20" width="380" height="140" rx="8" fill="rgba(0,212,255,0.03)" stroke="rgba(0,212,255,0.2)" stroke-dasharray="4,3"/>
+      <text x="200" y="42" text-anchor="middle" font-size="11" fill="#64748b" font-family="JetBrains Mono">PROXY — Kiểm soát access</text>
+
+      <rect x="25" y="60" width="80" height="80" rx="6" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="65" y="92" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Client</text>
+      <text x="65" y="110" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">không phân biệt</text>
+      <text x="65" y="124" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Proxy vs Real</text>
+
+      <text x="125" y="105" text-anchor="middle" font-size="18" fill="#64748b">→</text>
+
+      <rect x="150" y="55" width="100" height="90" rx="6" fill="rgba(0,255,136,0.08)" stroke="#00ff88" stroke-width="2"/>
+      <text x="200" y="78" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Proxy</text>
+      <text x="200" y="96" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Check auth/cache</text>
+      <text x="200" y="112" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Control access</text>
+      <text x="200" y="128" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">May not forward!</text>
+
+      <text x="270" y="105" text-anchor="middle" font-size="18" fill="#64748b">→</text>
+
+      <rect x="288" y="65" width="90" height="70" rx="6" fill="rgba(245,158,11,0.08)" stroke="#f59e0b"/>
+      <text x="333" y="90" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">Real</text>
+      <text x="333" y="108" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">Subject</text>
+      <text x="333" y="126" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Heavy resource</text>
+
+      <!-- Decorator side -->
+      <rect x="420" y="20" width="390" height="140" rx="8" fill="rgba(168,85,247,0.03)" stroke="rgba(168,85,247,0.2)" stroke-dasharray="4,3"/>
+      <text x="615" y="42" text-anchor="middle" font-size="11" fill="#64748b" font-family="JetBrains Mono">DECORATOR — Thêm behavior</text>
+
+      <rect x="435" y="60" width="80" height="80" rx="6" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="475" y="100" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Client</text>
+
+      <text x="535" y="105" text-anchor="middle" font-size="18" fill="#64748b">→</text>
+
+      <rect x="555" y="55" width="100" height="90" rx="6" fill="rgba(168,85,247,0.08)" stroke="#a855f7" stroke-width="2"/>
+      <text x="605" y="78" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Decorator</text>
+      <text x="605" y="96" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Add logging/cache</text>
+      <text x="605" y="112" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Always forwards!</text>
+
+      <text x="673" y="105" text-anchor="middle" font-size="18" fill="#64748b">→</text>
+
+      <rect x="690" y="65" width="90" height="70" rx="6" fill="rgba(245,158,11,0.08)" stroke="#f59e0b"/>
+      <text x="735" y="95" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">Component</text>
+      <text x="735" y="113" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Real impl</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ==================== PROXY CODE ==================== -->
+<section class="page-section" id="s-proxy-code">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div>
+      <div class="section-title">Proxy — Code Samples</div>
+      <div class="section-subtitle">Virtual Proxy, Protection Proxy, Caching Proxy</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <h4>Expert: Database Repository với Virtual + Protection + Caching Proxy</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">proxy/repository_proxy.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> proxy
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// ─── Subject Interface ───────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">UserRepository</span> <span class="kw">interface</span> {
+    <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) (*<span class="tp">User</span>, <span class="tp">error</span>)
+    <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, u *<span class="tp">User</span>) <span class="tp">error</span>
+    <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) <span class="tp">error</span>
+}
+
+<span class="kw">type</span> <span class="tp">User</span> <span class="kw">struct</span> {
+    ID    <span class="tp">int64</span>
+    Name  <span class="tp">string</span>
+    Email <span class="tp">string</span>
+    Role  <span class="tp">string</span>
+}
+
+<span class="cm">// ─── Real Subject ─────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">PostgresUserRepo</span> <span class="kw">struct</span>{ db <span class="tp">DBConn</span> }
+
+<span class="kw">type</span> <span class="tp">DBConn</span> <span class="kw">interface</span>{ <span class="fn">QueryRow</span>(<span class="tp">string</span>, ...<span class="kw">any</span>) *<span class="tp">Row</span>; <span class="fn">Exec</span>(<span class="tp">string</span>, ...<span class="kw">any</span>) <span class="tp">error</span> }
+<span class="kw">type</span> <span class="tp">Row</span>    <span class="kw">struct</span>{}
+
+<span class="kw">func</span> (r *<span class="tp">PostgresUserRepo</span>) <span class="fn">FindByID</span>(_ <span class="tp">context.Context</span>, id <span class="tp">int64</span>) (*<span class="tp">User</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> &amp;<span class="tp">User</span>{ID: id, Name: <span class="str">"Alice"</span>, Email: <span class="str">"alice@example.com"</span>, Role: <span class="str">"user"</span>}, <span class="kw">nil</span>
+}
+<span class="kw">func</span> (r *<span class="tp">PostgresUserRepo</span>) <span class="fn">Save</span>(_ <span class="tp">context.Context</span>, u *<span class="tp">User</span>) <span class="tp">error</span>  { <span class="kw">return</span> <span class="kw">nil</span> }
+<span class="kw">func</span> (r *<span class="tp">PostgresUserRepo</span>) <span class="fn">Delete</span>(_ <span class="tp">context.Context</span>, id <span class="tp">int64</span>) <span class="tp">error</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+
+<span class="cm">// ─── Virtual Proxy: Lazy DB Connection ───────────────────────────────────────
+// DB connection chỉ được tạo khi có query đầu tiên.</span>
+<span class="kw">type</span> <span class="tp">LazyUserRepo</span> <span class="kw">struct</span> {
+    once     <span class="pkg">sync</span>.<span class="tp">Once</span>
+    inner    <span class="tp">UserRepository</span>
+    initFunc <span class="kw">func</span>() (<span class="tp">UserRepository</span>, <span class="tp">error</span>)
+    initErr  <span class="tp">error</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewLazyUserRepo</span>(init <span class="kw">func</span>() (<span class="tp">UserRepository</span>, <span class="tp">error</span>)) <span class="tp">UserRepository</span> {
+    <span class="kw">return</span> &amp;<span class="tp">LazyUserRepo</span>{initFunc: init}
+}
+
+<span class="kw">func</span> (p *<span class="tp">LazyUserRepo</span>) <span class="fn">init</span>() <span class="tp">error</span> {
+    p.once.<span class="fn">Do</span>(<span class="kw">func</span>() { p.inner, p.initErr = p.initFunc() })
+    <span class="kw">return</span> p.initErr
+}
+
+<span class="kw">func</span> (p *<span class="tp">LazyUserRepo</span>) <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) (*<span class="tp">User</span>, <span class="tp">error</span>) {
+    <span class="kw">if</span> err := p.<span class="fn">init</span>(); err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+    <span class="kw">return</span> p.inner.<span class="fn">FindByID</span>(ctx, id)
+}
+<span class="kw">func</span> (p *<span class="tp">LazyUserRepo</span>) <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, u *<span class="tp">User</span>) <span class="tp">error</span> {
+    <span class="kw">if</span> err := p.<span class="fn">init</span>(); err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="kw">return</span> p.inner.<span class="fn">Save</span>(ctx, u)
+}
+<span class="kw">func</span> (p *<span class="tp">LazyUserRepo</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) <span class="tp">error</span> {
+    <span class="kw">if</span> err := p.<span class="fn">init</span>(); err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="kw">return</span> p.inner.<span class="fn">Delete</span>(ctx, id)
+}
+
+<span class="cm">// ─── Protection Proxy: Role-based Access ─────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">AuthContext</span> <span class="kw">struct</span>{ UserID <span class="tp">int64</span>; Role <span class="tp">string</span> }
+<span class="kw">type</span> <span class="tp">ctxKey</span> <span class="kw">struct</span>{}
+
+<span class="kw">var</span> <span class="tp">ErrForbidden</span> = <span class="pkg">errors</span>.<span class="fn">New</span>(<span class="str">"forbidden: insufficient permissions"</span>)
+
+<span class="kw">type</span> <span class="tp">AuthUserRepo</span> <span class="kw">struct</span>{ inner <span class="tp">UserRepository</span> }
+
+<span class="kw">func</span> <span class="fn">WithAuth</span>(r <span class="tp">UserRepository</span>) <span class="tp">UserRepository</span> { <span class="kw">return</span> &amp;<span class="tp">AuthUserRepo</span>{inner: r} }
+
+<span class="kw">func</span> <span class="fn">getAuth</span>(ctx <span class="tp">context.Context</span>) *<span class="tp">AuthContext</span> {
+    auth, _ := ctx.<span class="fn">Value</span>(<span class="tp">ctxKey</span>{}).(*<span class="tp">AuthContext</span>); <span class="kw">return</span> auth
+}
+
+<span class="kw">func</span> (p *<span class="tp">AuthUserRepo</span>) <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) (*<span class="tp">User</span>, <span class="tp">error</span>) {
+    auth := <span class="fn">getAuth</span>(ctx)
+    <span class="kw">if</span> auth == <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="tp">ErrForbidden</span> }
+    <span class="cm">// Non-admin chỉ xem được user của mình</span>
+    <span class="kw">if</span> auth.Role != <span class="str">"admin"</span> &amp;&amp; auth.UserID != id {
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="tp">ErrForbidden</span>
+    }
+    <span class="kw">return</span> p.inner.<span class="fn">FindByID</span>(ctx, id)
+}
+<span class="kw">func</span> (p *<span class="tp">AuthUserRepo</span>) <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, u *<span class="tp">User</span>) <span class="tp">error</span> {
+    auth := <span class="fn">getAuth</span>(ctx)
+    <span class="kw">if</span> auth == <span class="kw">nil</span> || auth.Role != <span class="str">"admin"</span> { <span class="kw">return</span> <span class="tp">ErrForbidden</span> }
+    <span class="kw">return</span> p.inner.<span class="fn">Save</span>(ctx, u)
+}
+<span class="kw">func</span> (p *<span class="tp">AuthUserRepo</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) <span class="tp">error</span> {
+    auth := <span class="fn">getAuth</span>(ctx)
+    <span class="kw">if</span> auth == <span class="kw">nil</span> || auth.Role != <span class="str">"admin"</span> { <span class="kw">return</span> <span class="tp">ErrForbidden</span> }
+    <span class="kw">return</span> p.inner.<span class="fn">Delete</span>(ctx, id)
+}
+
+<span class="cm">// ─── Caching Proxy ────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">CachingUserRepo</span> <span class="kw">struct</span> {
+    inner <span class="tp">UserRepository</span>
+    mu    <span class="pkg">sync</span>.<span class="tp">RWMutex</span>
+    store <span class="kw">map</span>[<span class="tp">int64</span>]*<span class="tp">User</span>
+    exp   <span class="kw">map</span>[<span class="tp">int64</span>]<span class="tp">time.Time</span>
+    ttl   <span class="tp">time.Duration</span>
+}
+
+<span class="kw">func</span> <span class="fn">WithCaching</span>(r <span class="tp">UserRepository</span>, ttl <span class="tp">time.Duration</span>) <span class="tp">UserRepository</span> {
+    <span class="kw">return</span> &amp;<span class="tp">CachingUserRepo</span>{inner: r, store: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int64</span>]*<span class="tp">User</span>), exp: <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">int64</span>]<span class="tp">time.Time</span>), ttl: ttl}
+}
+
+<span class="kw">func</span> (p *<span class="tp">CachingUserRepo</span>) <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) (*<span class="tp">User</span>, <span class="tp">error</span>) {
+    p.mu.<span class="fn">RLock</span>()
+    u, ok := p.store[id]; exp := p.exp[id]
+    p.mu.<span class="fn">RUnlock</span>()
+
+    <span class="kw">if</span> ok &amp;&amp; <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Before</span>(exp) { <span class="kw">return</span> u, <span class="kw">nil</span> }
+
+    u, err := p.inner.<span class="fn">FindByID</span>(ctx, id)
+    <span class="kw">if</span> err == <span class="kw">nil</span> {
+        p.mu.<span class="fn">Lock</span>()
+        p.store[id] = u; p.exp[id] = <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Add</span>(p.ttl)
+        p.mu.<span class="fn">Unlock</span>()
+    }
+    <span class="kw">return</span> u, err
+}
+<span class="kw">func</span> (p *<span class="tp">CachingUserRepo</span>) <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, u *<span class="tp">User</span>) <span class="tp">error</span> {
+    p.mu.<span class="fn">Lock</span>(); <span class="fn">delete</span>(p.store, u.ID); p.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> p.inner.<span class="fn">Save</span>(ctx, u)
+}
+<span class="kw">func</span> (p *<span class="tp">CachingUserRepo</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">int64</span>) <span class="tp">error</span> {
+    p.mu.<span class="fn">Lock</span>(); <span class="fn">delete</span>(p.store, id); p.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> p.inner.<span class="fn">Delete</span>(ctx, id)
+}
+
+<span class="cm">// ─── Wiring: Proxy Chain ──────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">NewUserRepository</span>() <span class="tp">UserRepository</span> {
+    lazy := <span class="fn">NewLazyUserRepo</span>(<span class="kw">func</span>() (<span class="tp">UserRepository</span>, <span class="tp">error</span>) {
+        <span class="cm">// expensive: open DB connection</span>
+        <span class="kw">return</span> &amp;<span class="tp">PostgresUserRepo</span>{}, <span class="kw">nil</span>
+    })
+    cached  := <span class="fn">WithCaching</span>(lazy, <span class="num">5</span>*<span class="pkg">time</span>.Minute)
+    secured := <span class="fn">WithAuth</span>(cached)
+    <span class="kw">return</span> secured
+}</pre>
+  </div>
+</section>
+
+<!-- ==================== FACADE CONCEPT ==================== -->
+<section class="page-section" id="s-facade-concept">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div>
+      <div class="section-title">Facade Pattern</div>
+      <div class="section-subtitle">Đơn giản hóa API phức tạp — "Mặt tiền"</div>
+    </div>
+    <span class="badge badge-basic">CẤU TRÚC</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Facade Pattern là gì?</div>
+    <p class="prose">
+      <strong>Facade</strong> cung cấp một interface <em>đơn giản, thống nhất</em> cho một tập hợp các interfaces phức tạp trong một subsystem. Facade định nghĩa higher-level interface giúp subsystem dễ sử dụng hơn.
+    </p>
+    <p class="prose">
+      Facade <strong>không ẩn</strong> subsystem — subsystem vẫn có thể được dùng trực tiếp. Facade chỉ cung cấp shortcut cho common use cases. Đây là pattern cực phổ biến trong Go để xây dựng service layer, API layer trên database/external service.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/facade.png" alt="Facade Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 4.1: Kiến trúc Facade Pattern trong Go — Đơn giản hóa hệ thống con phức tạp bằng một lớp giao diện (Facade Interface) hợp nhất</div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Facade — Client chỉ dùng một interface, Facade điều phối nhiều subsystem</div>
+    <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="f1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="f2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Client -->
+      <rect x="20" y="90" width="110" height="60" rx="8" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="75" y="116" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Client</text>
+      <text x="75" y="134" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Simple API</text>
+      <line x1="132" y1="120" x2="198" y2="120" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#f1)"/>
+
+      <!-- Facade -->
+      <rect x="200" y="50" width="180" height="140" rx="8" fill="rgba(0,255,136,0.08)" stroke="#00ff88" stroke-width="2"/>
+      <text x="290" y="76" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">OrderFacade</text>
+      <text x="290" y="97" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">PlaceOrder()</text>
+      <text x="290" y="115" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">CancelOrder()</text>
+      <text x="290" y="133" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">GetOrderStatus()</text>
+      <text x="290" y="165" text-anchor="middle" font-size="9" fill="#4b5563" font-family="Inter">Orchestrates multiple</text>
+      <text x="290" y="180" text-anchor="middle" font-size="9" fill="#4b5563" font-family="Inter">subsystems internally</text>
+
+      <!-- Subsystems -->
+      <line x1="382" y1="90"  x2="460" y2="65"  stroke="#f59e0b" stroke-width="1.5" marker-end="url(#f2)"/>
+      <line x1="382" y1="120" x2="460" y2="120" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#f2)"/>
+      <line x1="382" y1="150" x2="460" y2="175" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#f2)"/>
+      <line x1="382" y1="80"  x2="460" y2="200" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#f2)"/>
+
+      <rect x="463" y="35" width="130" height="50" rx="6" fill="rgba(168,85,247,0.08)" stroke="#a855f7"/>
+      <text x="528" y="57" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">InventoryService</text>
+      <text x="528" y="74" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">CheckStock, Reserve</text>
+
+      <rect x="463" y="95" width="130" height="50" rx="6" fill="rgba(245,158,11,0.08)" stroke="#f59e0b"/>
+      <text x="528" y="117" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">PaymentService</text>
+      <text x="528" y="134" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Charge, Refund</text>
+
+      <rect x="463" y="155" width="130" height="50" rx="6" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="528" y="177" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">ShippingService</text>
+      <text x="528" y="194" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">CreateShipment</text>
+
+      <rect x="463" y="210" width="130" height="22" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.25)"/>
+      <text x="528" y="225" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">NotificationSvc</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ==================== FACADE CODE ==================== -->
+<section class="page-section" id="s-facade-code">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div>
+      <div class="section-title">Facade — Code Samples</div>
+      <div class="section-subtitle">Order Facade, Home Theater, Cloud SDK Facade</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <h4>Expert: E-commerce Order Facade</h4>
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">facade/order_facade.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> facade
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cm">// ─── Subsystem 1: Inventory ──────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">InventoryService</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> (s *<span class="tp">InventoryService</span>) <span class="fn">CheckAvailability</span>(productID <span class="tp">string</span>, qty <span class="tp">int</span>) (<span class="tp">bool</span>, <span class="tp">error</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Inventory] checking %d units of %s\n"</span>, qty, productID)
+    <span class="kw">return</span> <span class="kw">true</span>, <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">InventoryService</span>) <span class="fn">Reserve</span>(productID <span class="tp">string</span>, qty <span class="tp">int</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    reserveID := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"rsv-%s-%d"</span>, productID, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Unix</span>())
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Inventory] reserved: %s\n"</span>, reserveID)
+    <span class="kw">return</span> reserveID, <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">InventoryService</span>) <span class="fn">Release</span>(reserveID <span class="tp">string</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Inventory] released: %s\n"</span>, reserveID)
+}
+
+<span class="cm">// ─── Subsystem 2: Payment ────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">PaymentService</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> (s *<span class="tp">PaymentService</span>) <span class="fn">Authorize</span>(customerID <span class="tp">string</span>, amount <span class="tp">float64</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    authCode := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"auth-%d"</span>, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">UnixNano</span>())
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Payment] authorized $%.2f for %s: %s\n"</span>, amount, customerID, authCode)
+    <span class="kw">return</span> authCode, <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">PaymentService</span>) <span class="fn">Capture</span>(authCode <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Payment] captured: %s\n"</span>, authCode)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">PaymentService</span>) <span class="fn">Void</span>(authCode <span class="tp">string</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Payment] voided: %s\n"</span>, authCode)
+}
+
+<span class="cm">// ─── Subsystem 3: Shipping ───────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">ShippingService</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> (s *<span class="tp">ShippingService</span>) <span class="fn">CreateLabel</span>(order <span class="tp">string</span>, addr <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    trackingNo := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"TRK-%s"</span>, order)
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Shipping] label created: %s → %s\n"</span>, trackingNo, addr)
+    <span class="kw">return</span> trackingNo, <span class="kw">nil</span>
+}
+
+<span class="cm">// ─── Subsystem 4: Notification ───────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">NotificationService</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> (s *<span class="tp">NotificationService</span>) <span class="fn">SendEmail</span>(to, subject, body <span class="tp">string</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"  [Email] to=%s subject=%q\n"</span>, to, subject)
+}
+
+<span class="cm">// ─── Order Result ─────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">OrderResult</span> <span class="kw">struct</span> {
+    OrderID    <span class="tp">string</span>
+    TrackingNo <span class="tp">string</span>
+    Status     <span class="tp">string</span>
+}
+
+<span class="cm">// ─── FACADE ───────────────────────────────────────────────────────────────────
+// OrderFacade mang lại API đơn giản. Client không cần biết gì về
+// inventory reservation, payment authorization, shipping label creation.</span>
+<span class="kw">type</span> <span class="tp">OrderFacade</span> <span class="kw">struct</span> {
+    inventory    *<span class="tp">InventoryService</span>
+    payment      *<span class="tp">PaymentService</span>
+    shipping     *<span class="tp">ShippingService</span>
+    notification *<span class="tp">NotificationService</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewOrderFacade</span>() *<span class="tp">OrderFacade</span> {
+    <span class="kw">return</span> &amp;<span class="tp">OrderFacade</span>{
+        inventory:    &amp;<span class="tp">InventoryService</span>{},
+        payment:      &amp;<span class="tp">PaymentService</span>{},
+        shipping:     &amp;<span class="tp">ShippingService</span>{},
+        notification: &amp;<span class="tp">NotificationService</span>{},
+    }
+}
+
+<span class="cm">// PlaceOrder — complex orchestration hidden behind one method call</span>
+<span class="kw">func</span> (f *<span class="tp">OrderFacade</span>) <span class="fn">PlaceOrder</span>(
+    ctx <span class="tp">context.Context</span>,
+    customerID, productID, address, email <span class="tp">string</span>,
+    qty <span class="tp">int</span>, amount <span class="tp">float64</span>,
+) (*<span class="tp">OrderResult</span>, <span class="tp">error</span>) {
+    orderID := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"ORD-%d"</span>, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Unix</span>())
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"[OrderFacade] placing order %s\n"</span>, orderID)
+
+    <span class="cm">// Step 1: Check inventory</span>
+    ok, err := f.inventory.<span class="fn">CheckAvailability</span>(productID, qty)
+    <span class="kw">if</span> err != <span class="kw">nil</span> || !ok { <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"out of stock"</span>) }
+
+    reserveID, err := f.inventory.<span class="fn">Reserve</span>(productID, qty)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+
+    <span class="cm">// Step 2: Authorize payment (with rollback on failure)</span>
+    authCode, err := f.payment.<span class="fn">Authorize</span>(customerID, amount)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        f.inventory.<span class="fn">Release</span>(reserveID) <span class="cm">// rollback</span>
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"payment failed: %w"</span>, err)
+    }
+
+    <span class="cm">// Step 3: Create shipping label</span>
+    trackingNo, err := f.shipping.<span class="fn">CreateLabel</span>(orderID, address)
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        f.inventory.<span class="fn">Release</span>(reserveID)
+        f.payment.<span class="fn">Void</span>(authCode)
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"shipping failed: %w"</span>, err)
+    }
+
+    <span class="cm">// Step 4: Capture payment</span>
+    f.payment.<span class="fn">Capture</span>(authCode)
+
+    <span class="cm">// Step 5: Send confirmation</span>
+    f.notification.<span class="fn">SendEmail</span>(email, <span class="str">"Order Confirmed"</span>,
+        <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"Your order %s is confirmed. Tracking: %s"</span>, orderID, trackingNo))
+
+    <span class="kw">return</span> &amp;<span class="tp">OrderResult</span>{OrderID: orderID, TrackingNo: trackingNo, Status: <span class="str">"confirmed"</span>}, <span class="kw">nil</span>
+}
+
+<span class="cm">// CancelOrder — complex cancellation hidden behind simple API</span>
+<span class="kw">func</span> (f *<span class="tp">OrderFacade</span>) <span class="fn">CancelOrder</span>(ctx <span class="tp">context.Context</span>, orderID, reserveID, authCode, email <span class="tp">string</span>) <span class="tp">error</span> {
+    f.inventory.<span class="fn">Release</span>(reserveID)
+    f.payment.<span class="fn">Void</span>(authCode)
+    f.notification.<span class="fn">SendEmail</span>(email, <span class="str">"Order Cancelled"</span>, <span class="str">"Your order has been cancelled."</span>)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ==================== COMPOSITE CONCEPT ==================== -->
+<section class="page-section" id="s-composite-concept">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div>
+      <div class="section-title">Composite Pattern</div>
+      <div class="section-subtitle">Cấu trúc cây — "File System"</div>
+    </div>
+    <span class="badge badge-basic">CẤU TRÚC</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Composite Pattern là gì?</div>
+    <p class="prose">
+      <strong>Composite</strong> tổ chức objects thành cấu trúc cây (tree structure) để represent part-whole hierarchies. Composite cho phép client treat individual objects và compositions uniformly — gọi cùng một method trên file hay folder đều hoạt động.
+    </p>
+    <p class="prose">
+      Trong Go, Composite được implement bằng <strong>interface chung</strong> cho cả leaf và composite nodes. Composite node chứa <code>[]Component</code> và delegate operations xuống children. Key insight: <em>cả leaf và composite implement cùng interface</em>.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/composite.png" alt="Composite Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 5.1: Kiến trúc Composite Pattern trong Go — Biểu diễn cấu trúc cây phân cấp (Tree Hierarchy) xử lý đồng nhất các đối tượng đơn và nhóm</div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Composite Tree — File System Example: Calculate total size</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <!-- Root -->
+      <rect x="340" y="10" width="140" height="40" rx="6" fill="rgba(0,255,136,0.12)" stroke="#00ff88" stroke-width="2"/>
+      <text x="410" y="35" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">📁 root/ [650KB]</text>
+
+      <!-- Level 1 -->
+      <line x1="410" y1="50" x2="200" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="410" y1="50" x2="410" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="410" y1="50" x2="620" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+
+      <rect x="120" y="100" width="150" height="35" rx="6" fill="rgba(0,255,136,0.08)" stroke="#00ff88"/>
+      <text x="195" y="122" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">📁 src/ [400KB]</text>
+
+      <rect x="335" y="100" width="150" height="35" rx="6" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="410" y="122" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">📄 main.go [50KB]</text>
+
+      <rect x="545" y="100" width="150" height="35" rx="6" fill="rgba(0,255,136,0.08)" stroke="#00ff88"/>
+      <text x="620" y="122" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">📁 docs/ [200KB]</text>
+
+      <!-- Level 2 from src -->
+      <line x1="195" y1="135" x2="130" y2="185" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="195" y1="135" x2="195" y2="185" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="195" y1="135" x2="265" y2="185" stroke="#1e293b" stroke-width="1.5"/>
+
+      <rect x="65"  y="185" width="130" height="32" rx="5" fill="rgba(245,158,11,0.08)" stroke="#f59e0b"/>
+      <text x="130" y="205" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">📄 app.go [150KB]</text>
+
+      <rect x="135" y="185" width="125" height="32" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="197" y="205" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">📄 util.go [80KB]</text>
+
+      <rect x="210" y="185" width="120" height="32" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="270" y="205" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">📄 api.go [170KB]</text>
+
+      <!-- Level 2 from docs -->
+      <line x1="620" y1="135" x2="580" y2="185" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="620" y1="135" x2="660" y2="185" stroke="#1e293b" stroke-width="1.5"/>
+
+      <rect x="515" y="185" width="130" height="32" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="580" y="205" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">📄 README [80KB]</text>
+
+      <rect x="655" y="185" width="135" height="32" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="722" y="205" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">📄 API.md [120KB]</text>
+
+      <!-- Legend -->
+      <rect x="60" y="232" width="14" height="14" rx="3" fill="rgba(0,255,136,0.12)" stroke="#00ff88"/>
+      <text x="80" y="244" font-size="10" fill="#94a3b8" font-family="Inter">Composite (folder) — có children</text>
+      <rect x="300" y="232" width="14" height="14" rx="3" fill="rgba(0,212,255,0.08)" stroke="#00d4ff"/>
+      <text x="320" y="244" font-size="10" fill="#94a3b8" font-family="Inter">Leaf (file) — không có children</text>
+      <text x="530" y="244" font-size="10" fill="#f59e0b" font-family="Inter">Size() gọi đồng nhất trên cả hai!</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ==================== COMPOSITE CODE ==================== -->
+<section class="page-section" id="s-composite-code">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div>
+      <div class="section-title">Composite — Code Samples</div>
+      <div class="section-subtitle">File System, UI Components, Expression Tree</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">composite/filesystem.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> composite
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"strings"</span>
+)
+
+<span class="cm">// ─── Component Interface ─────────────────────────────────────────────────────
+// Cả File và Directory đều implement interface này.</span>
+<span class="kw">type</span> <span class="tp">FSNode</span> <span class="kw">interface</span> {
+    <span class="fn">Name</span>() <span class="tp">string</span>
+    <span class="fn">Size</span>() <span class="tp">int64</span>
+    <span class="fn">Print</span>(indent <span class="tp">int</span>)
+    <span class="fn">Search</span>(name <span class="tp">string</span>) []<span class="tp">FSNode</span>
+}
+
+<span class="cm">// ─── Leaf: File ───────────────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">File</span> <span class="kw">struct</span> {
+    name    <span class="tp">string</span>
+    size    <span class="tp">int64</span>
+    content []<span class="tp">byte</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewFile</span>(name <span class="tp">string</span>, content []<span class="tp">byte</span>) *<span class="tp">File</span> {
+    <span class="kw">return</span> &amp;<span class="tp">File</span>{name: name, size: <span class="tp">int64</span>(<span class="fn">len</span>(content)), content: content}
+}
+
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Name</span>() <span class="tp">string</span>   { <span class="kw">return</span> f.name }
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Size</span>() <span class="tp">int64</span>   { <span class="kw">return</span> f.size }
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Print</span>(indent <span class="tp">int</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"%s📄 %s (%d bytes)\n"</span>, <span class="pkg">strings</span>.<span class="fn">Repeat</span>(<span class="str">"  "</span>, indent), f.name, f.size)
+}
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Search</span>(name <span class="tp">string</span>) []<span class="tp">FSNode</span> {
+    <span class="kw">if</span> <span class="pkg">strings</span>.<span class="fn">Contains</span>(f.name, name) { <span class="kw">return</span> []<span class="tp">FSNode</span>{f} }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// ─── Composite: Directory ─────────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">Directory</span> <span class="kw">struct</span> {
+    name     <span class="tp">string</span>
+    children []<span class="tp">FSNode</span> <span class="cm">// can hold Files or other Directories</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewDirectory</span>(name <span class="tp">string</span>) *<span class="tp">Directory</span> { <span class="kw">return</span> &amp;<span class="tp">Directory</span>{name: name} }
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Add</span>(node <span class="tp">FSNode</span>) *<span class="tp">Directory</span> {
+    d.children = <span class="fn">append</span>(d.children, node)
+    <span class="kw">return</span> d <span class="cm">// fluent API</span>
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> d.name }
+
+<span class="cm">// Size() delegates to all children — recursive tree traversal</span>
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Size</span>() <span class="tp">int64</span> {
+    <span class="kw">var</span> total <span class="tp">int64</span>
+    <span class="kw">for</span> _, child := <span class="kw">range</span> d.children { total += child.<span class="fn">Size</span>() }
+    <span class="kw">return</span> total
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Print</span>(indent <span class="tp">int</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"%s📁 %s/ (%d bytes)\n"</span>, <span class="pkg">strings</span>.<span class="fn">Repeat</span>(<span class="str">"  "</span>, indent), d.name, d.<span class="fn">Size</span>())
+    <span class="kw">for</span> _, child := <span class="kw">range</span> d.children { child.<span class="fn">Print</span>(indent + <span class="num">1</span>) }
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Search</span>(name <span class="tp">string</span>) []<span class="tp">FSNode</span> {
+    <span class="kw">var</span> results []<span class="tp">FSNode</span>
+    <span class="kw">if</span> <span class="pkg">strings</span>.<span class="fn">Contains</span>(d.name, name) { results = <span class="fn">append</span>(results, d) }
+    <span class="kw">for</span> _, child := <span class="kw">range</span> d.children {
+        results = <span class="fn">append</span>(results, child.<span class="fn">Search</span>(name)...)
+    }
+    <span class="kw">return</span> results
+}
+
+<span class="cm">// ─── Usage ────────────────────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BuildFileSystem</span>() <span class="tp">FSNode</span> {
+    root := <span class="fn">NewDirectory</span>(<span class="str">"project"</span>)
+
+    src := <span class="fn">NewDirectory</span>(<span class="str">"src"</span>).<span class="fn">Add</span>(
+        <span class="fn">NewFile</span>(<span class="str">"main.go"</span>, <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="num">1024</span>)),
+    ).<span class="fn">Add</span>(
+        <span class="fn">NewFile</span>(<span class="str">"app.go"</span>, <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="num">2048</span>)),
+    )
+
+    docs := <span class="fn">NewDirectory</span>(<span class="str">"docs"</span>).<span class="fn">Add</span>(
+        <span class="fn">NewFile</span>(<span class="str">"README.md"</span>, <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="num">512</span>)),
+    )
+
+    root.<span class="fn">Add</span>(src).<span class="fn">Add</span>(docs).<span class="fn">Add</span>(<span class="fn">NewFile</span>(<span class="str">"go.mod"</span>, <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="num">256</span>)))
+
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"=== File System Tree ==="</span>)
+    root.<span class="fn">Print</span>(<span class="num">0</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"\nTotal size: %d bytes\n"</span>, root.<span class="fn">Size</span>())
+
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"\n=== Search '.go' ==="</span>)
+    <span class="kw">for</span> _, n := <span class="kw">range</span> root.<span class="fn">Search</span>(<span class="str">".go"</span>) {
+        <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Found: %s (%d bytes)\n"</span>, n.<span class="fn">Name</span>(), n.<span class="fn">Size</span>())
+    }
+    <span class="kw">return</span> root
+}
+
+<span class="cm">// ─── Expert: Expression Tree (Composite for Math Expressions) ────────────────</span>
+<span class="kw">type</span> <span class="tp">Expr</span> <span class="kw">interface</span> {
+    <span class="fn">Evaluate</span>() <span class="tp">float64</span>
+    <span class="fn">String</span>() <span class="tp">string</span>
+}
+
+<span class="kw">type</span> <span class="tp">Number</span> <span class="kw">struct</span>{ val <span class="tp">float64</span> }
+<span class="kw">func</span> (n <span class="tp">Number</span>) <span class="fn">Evaluate</span>() <span class="tp">float64</span> { <span class="kw">return</span> n.val }
+<span class="kw">func</span> (n <span class="tp">Number</span>) <span class="fn">String</span>() <span class="tp">string</span>    { <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%.g"</span>, n.val) }
+
+<span class="kw">type</span> <span class="tp">BinaryOp</span> <span class="kw">struct</span> {
+    op    <span class="tp">string</span>
+    left  <span class="tp">Expr</span>
+    right <span class="tp">Expr</span>
+}
+
+<span class="kw">func</span> (b <span class="tp">BinaryOp</span>) <span class="fn">Evaluate</span>() <span class="tp">float64</span> {
+    l, r := b.left.<span class="fn">Evaluate</span>(), b.right.<span class="fn">Evaluate</span>()
+    <span class="kw">switch</span> b.op {
+    <span class="kw">case</span> <span class="str">"+"</span>: <span class="kw">return</span> l + r
+    <span class="kw">case</span> <span class="str">"-"</span>: <span class="kw">return</span> l - r
+    <span class="kw">case</span> <span class="str">"*"</span>: <span class="kw">return</span> l * r
+    <span class="kw">case</span> <span class="str">"/"</span>: <span class="kw">if</span> r != <span class="num">0</span> { <span class="kw">return</span> l / r }; <span class="kw">return</span> <span class="num">0</span>
+    }
+    <span class="kw">return</span> <span class="num">0</span>
+}
+<span class="kw">func</span> (b <span class="tp">BinaryOp</span>) <span class="fn">String</span>() <span class="tp">string</span> {
+    <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"(%s %s %s)"</span>, b.left.<span class="fn">String</span>(), b.op, b.right.<span class="fn">String</span>())
+}
+
+<span class="cm">// Build: (3 + 4) * (10 - 5)</span>
+<span class="kw">func</span> <span class="fn">BuildExpression</span>() {
+    expr := <span class="tp">BinaryOp</span>{
+        op:    <span class="str">"*"</span>,
+        left:  <span class="tp">BinaryOp</span>{op: <span class="str">"+"</span>, left: <span class="tp">Number</span>{<span class="num">3</span>}, right: <span class="tp">Number</span>{<span class="num">4</span>}},
+        right: <span class="tp">BinaryOp</span>{op: <span class="str">"-"</span>, left: <span class="tp">Number</span>{<span class="num">10</span>}, right: <span class="tp">Number</span>{<span class="num">5</span>}},
+    }
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"%s = %.g\n"</span>, expr.<span class="fn">String</span>(), expr.<span class="fn">Evaluate</span>()) <span class="cm">// (3 + 4) * (10 - 5) = 35</span>
+}</pre>
+  </div>
+</section>
+
+<!-- ==================== BRIDGE CONCEPT ==================== -->
+<section class="page-section" id="s-bridge-concept">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div>
+      <div class="section-title">Bridge Pattern</div>
+      <div class="section-subtitle">Tách abstraction khỏi implementation — "Cầu nối"</div>
+    </div>
+    <span class="badge badge-basic">CẤU TRÚC</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Bridge Pattern là gì?</div>
+    <p class="prose">
+      <strong>Bridge</strong> tách rời <em>abstraction</em> (what you do) khỏi <em>implementation</em> (how you do it), cho phép chúng thay đổi độc lập. Thay vì dùng inheritance để kết hợp, Bridge dùng <strong>composition</strong>.
+    </p>
+    <p class="prose">
+      Bài toán Bridge giải: Nếu có M abstractions và N implementations, inheritance cần <strong>M×N classes</strong>. Bridge chỉ cần <strong>M + N</strong> — abstraction struct chứa implementation interface. Ví dụ: Shape (Circle, Square) × Renderer (OpenGL, Vulkan, SVG) → không cần 6 classes, chỉ cần 5.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/bridge.png" alt="Bridge Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 6.1: Kiến trúc Bridge Pattern trong Go — Phân tách các khái niệm trừu tượng (Abstraction) và triển khai cụ thể (Implementation) qua cơ chế ủy thác</div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Bridge — Tách abstraction khỏi implementation: M×N → M+N</div>
+    <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="br1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- Left: Without Bridge -->
+      <text x="175" y="22" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="Inter">❌ Без Bridge: 3×3 = 9 classes</text>
+      <rect x="10" y="35" width="330" height="195" rx="8" fill="rgba(255,107,107,0.04)" stroke="rgba(255,107,107,0.2)" stroke-dasharray="4,3"/>
+
+      <g fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1" font-family="JetBrains Mono" font-size="10" fill-text="#ff6b6b">
+        <rect x="20"  y="50"  width="100" height="28" rx="4"/><text x="70"  y="69"  text-anchor="middle" fill="#ff6b6b">CircleGL</text>
+        <rect x="130" y="50"  width="100" height="28" rx="4"/><text x="180" y="69"  text-anchor="middle" fill="#ff6b6b">CircleVulkan</text>
+        <rect x="240" y="50"  width="90"  height="28" rx="4"/><text x="285" y="69"  text-anchor="middle" fill="#ff6b6b">CircleSVG</text>
+        <rect x="20"  y="90"  width="100" height="28" rx="4"/><text x="70"  y="109" text-anchor="middle" fill="#ff6b6b">SquareGL</text>
+        <rect x="130" y="90"  width="100" height="28" rx="4"/><text x="180" y="109" text-anchor="middle" fill="#ff6b6b">SquareVulkan</text>
+        <rect x="240" y="90"  width="90"  height="28" rx="4"/><text x="285" y="109" text-anchor="middle" fill="#ff6b6b">SquareSVG</text>
+        <rect x="20"  y="130" width="100" height="28" rx="4"/><text x="70"  y="149" text-anchor="middle" fill="#ff6b6b">TriangleGL</text>
+        <rect x="130" y="130" width="100" height="28" rx="4"/><text x="180" y="149" text-anchor="middle" fill="#ff6b6b">TriangleVulkan</text>
+        <rect x="240" y="130" width="90"  height="28" rx="4"/><text x="285" y="149" text-anchor="middle" fill="#ff6b6b">TriangleSVG</text>
+      </g>
+      <text x="175" y="195" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">Thêm renderer mới = 3 classes mới!</text>
+      <text x="175" y="213" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">Thêm shape mới = 3 classes mới!</text>
+
+      <!-- Right: With Bridge -->
+      <text x="615" y="22" text-anchor="middle" font-size="11" fill="#00ff88" font-family="Inter">✅ Với Bridge: 3+3 = 6 classes</text>
+      <rect x="450" y="35" width="360" height="195" rx="8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.2)" stroke-dasharray="4,3"/>
+
+      <!-- Abstraction side -->
+      <text x="520" y="55" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Abstraction</text>
+      <rect x="465" y="65"  width="110" height="28" rx="4" fill="rgba(0,255,136,0.1)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="520" y="84"  text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Circle</text>
+      <rect x="465" y="100" width="110" height="28" rx="4" fill="rgba(0,255,136,0.1)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="520" y="119" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Square</text>
+      <rect x="465" y="135" width="110" height="28" rx="4" fill="rgba(0,255,136,0.1)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="520" y="154" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Triangle</text>
+
+      <!-- Bridge arrows -->
+      <text x="615" y="120" text-anchor="middle" font-size="18" fill="#a855f7">⟵bridge⟶</text>
+      <line x1="577" y1="115" x2="647" y2="115" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+      <!-- Implementation side -->
+      <text x="720" y="55" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Implementation</text>
+      <rect x="650" y="65"  width="145" height="28" rx="4" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="722" y="84"  text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">OpenGLRenderer</text>
+      <rect x="650" y="100" width="145" height="28" rx="4" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="722" y="119" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">VulkanRenderer</text>
+      <rect x="650" y="135" width="145" height="28" rx="4" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="722" y="154" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">SVGRenderer</text>
+
+      <text x="615" y="185" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">Thêm renderer: 1 class mới!</text>
+      <text x="615" y="203" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">Thêm shape: 1 class mới!</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ==================== BRIDGE CODE ==================== -->
+<section class="page-section" id="s-bridge-code">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div>
+      <div class="section-title">Bridge — Code Samples</div>
+      <div class="section-subtitle">Shape+Renderer, Notification+Channel, Database+Driver</div>
+    </div>
+    <span class="badge badge-advanced">ADVANCED → EXPERT</span>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header"><span class="code-lang">go</span><span class="code-filename">bridge/notification.go</span><button class="code-copy" onclick="copyCode(this)">Copy</button></div>
+    <pre><span class="kw">package</span> bridge
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log"</span>
+    <span class="str">"strings"</span>
+)
+
+<span class="cm">// ─── Implementation Interface (Implementor) ───────────────────────────────────
+// Sender là implementation — cách gửi tin nhắn</span>
+<span class="kw">type</span> <span class="tp">Sender</span> <span class="kw">interface</span> {
+    <span class="fn">Send</span>(ctx <span class="tp">context.Context</span>, to, subject, body <span class="tp">string</span>) <span class="tp">error</span>
+    <span class="fn">Name</span>() <span class="tp">string</span>
+}
+
+<span class="cm">// ─── Concrete Implementations ─────────────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">EmailSender</span> <span class="kw">struct</span>{ smtpHost <span class="tp">string</span> }
+
+<span class="kw">func</span> <span class="fn">NewEmailSender</span>(host <span class="tp">string</span>) <span class="tp">Sender</span> { <span class="kw">return</span> &amp;<span class="tp">EmailSender</span>{smtpHost: host} }
+
+<span class="kw">func</span> (s *<span class="tp">EmailSender</span>) <span class="fn">Send</span>(_ <span class="tp">context.Context</span>, to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"[Email via %s] To: %s\n  Subject: %s\n  Body: %s\n"</span>, s.smtpHost, to, subject, body)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">EmailSender</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"email"</span> }
+
+<span class="kw">type</span> <span class="tp">SlackSender</span> <span class="kw">struct</span>{ webhookURL <span class="tp">string</span> }
+
+<span class="kw">func</span> <span class="fn">NewSlackSender</span>(url <span class="tp">string</span>) <span class="tp">Sender</span> { <span class="kw">return</span> &amp;<span class="tp">SlackSender</span>{webhookURL: url} }
+
+<span class="kw">func</span> (s *<span class="tp">SlackSender</span>) <span class="fn">Send</span>(_ <span class="tp">context.Context</span>, to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"[Slack → #%s] *%s*\n%s\n"</span>, to, subject, body)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">SlackSender</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"slack"</span> }
+
+<span class="kw">type</span> <span class="tp">SMSSender</span> <span class="kw">struct</span>{ apiKey <span class="tp">string</span> }
+
+<span class="kw">func</span> <span class="fn">NewSMSSender</span>(key <span class="tp">string</span>) <span class="tp">Sender</span> { <span class="kw">return</span> &amp;<span class="tp">SMSSender</span>{apiKey: key} }
+
+<span class="kw">func</span> (s *<span class="tp">SMSSender</span>) <span class="fn">Send</span>(_ <span class="tp">context.Context</span>, to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    msg := <span class="pkg">strings</span>.<span class="fn">TrimSpace</span>(subject + <span class="str">": "</span> + body)
+    <span class="kw">if</span> <span class="fn">len</span>(msg) &gt; <span class="num">160</span> { msg = msg[:<span class="num">157</span>] + <span class="str">"..."</span> }
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"[SMS → %s] %s\n"</span>, to, msg)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">SMSSender</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"sms"</span> }
+
+<span class="cm">// ─── Abstraction ─────────────────────────────────────────────────────────────
+// Notification là abstraction — loại thông báo (what)</span>
+<span class="kw">type</span> <span class="tp">Notification</span> <span class="kw">struct</span> {
+    sender   <span class="tp">Sender</span>  <span class="cm">// ← Bridge: injected implementation</span>
+    from     <span class="tp">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewNotification</span>(sender <span class="tp">Sender</span>, from <span class="tp">string</span>) *<span class="tp">Notification</span> {
+    <span class="kw">return</span> &amp;<span class="tp">Notification</span>{sender: sender, from: from}
+}
+
+<span class="cm">// Notify — high-level operation delegating to implementation</span>
+<span class="kw">func</span> (n *<span class="tp">Notification</span>) <span class="fn">Notify</span>(ctx <span class="tp">context.Context</span>, to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    fullBody := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%s\n\n-- Sent from %s via %s"</span>, body, n.from, n.sender.<span class="fn">Name</span>())
+    <span class="kw">return</span> n.sender.<span class="fn">Send</span>(ctx, to, subject, fullBody)
+}
+
+<span class="cm">// ─── Refined Abstraction: UrgentNotification ─────────────────────────────────
+// Mở rộng abstraction mà không thay đổi implementations</span>
+<span class="kw">type</span> <span class="tp">UrgentNotification</span> <span class="kw">struct</span> {
+    <span class="tp">Notification</span>
+    fallback <span class="tp">Sender</span> <span class="cm">// backup channel nếu primary fail</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewUrgentNotification</span>(primary, fallback <span class="tp">Sender</span>, from <span class="tp">string</span>) *<span class="tp">UrgentNotification</span> {
+    <span class="kw">return</span> &amp;<span class="tp">UrgentNotification</span>{
+        Notification: *<span class="fn">NewNotification</span>(primary, from),
+        fallback:     fallback,
+    }
+}
+
+<span class="kw">func</span> (u *<span class="tp">UrgentNotification</span>) <span class="fn">Notify</span>(ctx <span class="tp">context.Context</span>, to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    urgentSubject := <span class="str">"🚨 URGENT: "</span> + subject
+    <span class="kw">if</span> err := u.Notification.<span class="fn">Notify</span>(ctx, to, urgentSubject, body); err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"primary failed, using fallback: %v"</span>, err)
+        <span class="kw">return</span> u.fallback.<span class="fn">Send</span>(ctx, to, urgentSubject, body)
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// ─── Usage: Swap implementation at runtime ────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BridgeDemo</span>() {
+    ctx := <span class="tp">context</span>.<span class="fn">Background</span>()
+
+    <span class="cm">// Same notification type, different channel</span>
+    emailNotif := <span class="fn">NewNotification</span>(<span class="fn">NewEmailSender</span>(<span class="str">"smtp.gmail.com"</span>), <span class="str">"system"</span>)
+    slackNotif := <span class="fn">NewNotification</span>(<span class="fn">NewSlackSender</span>(<span class="str">"https://hooks.slack.com/..."</span>), <span class="str">"system"</span>)
+    smsNotif   := <span class="fn">NewNotification</span>(<span class="fn">NewSMSSender</span>(<span class="str">"twilio-key"</span>), <span class="str">"system"</span>)
+
+    <span class="kw">for</span> _, n := <span class="kw">range</span> []*<span class="tp">Notification</span>{emailNotif, slackNotif, smsNotif} {
+        n.<span class="fn">Notify</span>(ctx, <span class="str">"admin"</span>, <span class="str">"Deployment Done"</span>, <span class="str">"v2.5.0 deployed to production"</span>)
+    }
+
+    <span class="cm">// Urgent with fallback</span>
+    urgent := <span class="fn">NewUrgentNotification</span>(
+        <span class="fn">NewSlackSender</span>(<span class="str">"..."</span>),
+        <span class="fn">NewSMSSender</span>(<span class="str">"..."</span>), <span class="cm">// fallback to SMS</span>
+        <span class="str">"monitoring"</span>,
+    )
+    urgent.<span class="fn">Notify</span>(ctx, <span class="str">"oncall"</span>, <span class="str">"Production down!"</span>, <span class="str">"Error rate >50%"</span>)
+}</pre>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p><strong>Bridge vs Strategy:</strong> Bridge được thiết kế tại design time để tách structure, còn Strategy được dùng tại runtime để swap behavior. Thực tế, trong Go cả hai đều trông giống nhau — struct chứa interface field. Sự khác biệt chính là <em>intent</em> và mức độ abstraction hierarchy.</p>
+  </div>
+</section>
+
+<!-- ==================== REFS ==================== -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">07</div>
+    <div>
+      <div class="section-title">References &amp; Tài liệu tham khảo</div>
+      <div class="section-subtitle">Nguồn học Design Patterns chất lượng nhất</div>
+    </div>
+  </div>
+
+  <h3>📚 Sách kinh điển</h3>
+
+  <a class="ref-card" href="https://www.amazon.com/Design-Patterns-Elements-Reusable-Object-Oriented/dp/0201633612" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">📖</div>
+    <div class="ref-body">
+      <div class="ref-title">Design Patterns: Elements of Reusable Object-Oriented Software (GoF)</div>
+      <div class="ref-desc">Cuốn sách gốc định nghĩa 23 design patterns bởi Gang of Four (Gamma, Helm, Johnson, Vlissides). Nguồn gốc của mọi pattern học trong tài liệu này. Bắt buộc đọc.</div>
+      <div class="ref-url">ISBN: 978-0201633610 — Addison-Wesley, 1994</div>
+    </div>
+    <div class="ref-stars">⭐ Classic</div>
+  </a>
+
+  <a class="ref-card" href="https://refactoring.guru/design-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🌐</div>
+    <div class="ref-body">
+      <div class="ref-title">Refactoring.Guru — Design Patterns</div>
+      <div class="ref-desc">Website học design patterns minh họa trực quan nhất hiện nay. Mỗi pattern có: intent, problem, solution, code example (Go, Java, Python...), pros/cons. Có phần Go examples rất chất lượng.</div>
+      <div class="ref-url">refactoring.guru/design-patterns</div>
+    </div>
+    <div class="ref-stars">⭐ Best Visual</div>
+  </a>
+
+  <h3>🐙 GitHub Repositories</h3>
+
+  <a class="ref-card" href="https://github.com/tmrts/go-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">tmrts/go-patterns — Curated Go Design Patterns</div>
+      <div class="ref-desc">Repository nổi tiếng nhất về design patterns trong Go. Có Creational, Structural, Behavioral patterns với code Go idiomatic. Mỗi pattern có README giải thích và example code.</div>
+      <div class="ref-url">github.com/tmrts/go-patterns</div>
+    </div>
+    <div class="ref-stars">⭐ 25k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/nicholasgasior/golang-design-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(168,85,247,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">nicholasgasior/golang-design-patterns</div>
+      <div class="ref-desc">Triển khai đầy đủ 23 GoF patterns bằng Go. Mỗi pattern có test file đi kèm, giúp hiểu behavior qua test cases. Code sạch, idiomatic Go.</div>
+      <div class="ref-url">github.com/nicholasgasior/golang-design-patterns</div>
+    </div>
+    <div class="ref-stars">⭐ 3.2k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/AlexanderGrom/go-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">AlexanderGrom/go-patterns</div>
+      <div class="ref-desc">Implementation sạch và đơn giản 23 GoF patterns bằng Go. Cấu trúc thư mục rõ ràng, dễ tham khảo. Bao gồm cả README tiếng Anh và tiếng Nga.</div>
+      <div class="ref-url">github.com/AlexanderGrom/go-patterns</div>
+    </div>
+    <div class="ref-stars">⭐ 2.1k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/mingrammer/go-todo-backend" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Patterns trong Production Code</div>
+      <div class="ref-desc">Real-world Go projects thể hiện design patterns: Facade (service layer), Proxy (repository), Decorator (middleware). Học từ code production thực tế tốt hơn ví dụ toy.</div>
+      <div class="ref-url">github.com/search: "go design patterns production"</div>
+    </div>
+    <div class="ref-stars">⭐ Real World</div>
+  </a>
+
+  <h3>▶️ Video &amp; Khóa học</h3>
+
+  <a class="ref-card" href="https://www.udemy.com/course/design-patterns-go/" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,0.1)">🎓</div>
+    <div class="ref-body">
+      <div class="ref-title">Design Patterns in Go — Udemy (Dmitri Nesteruk)</div>
+      <div class="ref-desc">Khóa học video chuyên sâu về design patterns trong Go bởi Dmitri Nesteruk. Bao phủ đầy đủ 23 GoF patterns với Go code. Nhiều ví dụ thực tế và bài tập.</div>
+      <div class="ref-url">udemy.com/course/design-patterns-go</div>
+    </div>
+    <div class="ref-stars">⭐ Top Rated</div>
+  </a>
+
+  <a class="ref-card" href="https://www.youtube.com/watch?v=hkG7OQyKFpY" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,0.1)">▶️</div>
+    <div class="ref-body">
+      <div class="ref-title">GopherCon — Functional Design Patterns (Marty Schoch)</div>
+      <div class="ref-desc">Talk tại GopherCon về cách áp dụng design patterns theo phong cách Go (functional, interface-centric). Giải thích tại sao Go patterns khác Java patterns.</div>
+      <div class="ref-url">youtube.com — GopherCon Design Patterns Go</div>
+    </div>
+    <div class="ref-stars">⭐ GopherCon</div>
+  </a>
+
+  <h3>📝 Bài viết chất lượng cao</h3>
+
+  <a class="ref-card" href="https://golangbyexample.com/all-design-patterns-golang/" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">📝</div>
+    <div class="ref-body">
+      <div class="ref-title">golangbyexample.com — All Design Patterns in Go</div>
+      <div class="ref-desc">Tổng hợp toàn bộ design patterns trong Go với code ví dụ rõ ràng, giải thích tiếng Anh đơn giản. Cập nhật thường xuyên với Go versions mới nhất.</div>
+      <div class="ref-url">golangbyexample.com/all-design-patterns-golang</div>
+    </div>
+    <div class="ref-stars">⭐ Comprehensive</div>
+  </a>
+
+  <a class="ref-card" href="https://blog.golang.org/laws-of-reflection" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,212,255,0.1)">📝</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Blog — Interfaces in Go (Rob Pike)</div>
+      <div class="ref-desc">Bài viết bởi Rob Pike về Go interfaces — nền tảng để hiểu tại sao Structural Patterns trong Go khác biệt hoàn toàn. "If C++ and Java are about type hierarchies, Go is about composition."</div>
+      <div class="ref-url">go.dev/blog/interfaces</div>
+    </div>
+    <div class="ref-stars">⭐ Official</div>
+  </a>
+
+  <div class="divider"></div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p><strong>Nguyên tắc vàng khi dùng Design Patterns trong Go:</strong> <em>"Do not overuse patterns."</em> Go khuyến khích simplicity. Chỉ áp dụng pattern khi bạn thấy rõ benefit — loose coupling, testability, extensibility. Đừng apply pattern chỉ vì "nghe hay". Bắt đầu đơn giản, refactor sang pattern khi cần.</p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + name);
+  if (t) t.classList.add('active');
+  
+  // Sync the navigation highlights
+  document.querySelectorAll('.nav-item, .topnav-item').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + name + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // Smooth scroll to top of page/main container
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind dynamic click events for sidebar, topnav, opc cards, and tags
+document.querySelectorAll('.nav-item, .topnav-item, .opc, .tag').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  const target = el.getAttribute('data-target') || oc?.match(/showSection\('([^']+)'\)/)?.[1];
+  if (target) {
+    // Save original click handler target in dataset to assist highlighting
+    el.dataset.onclick = oc;
+    el.removeAttribute('onclick'); // prevent double execution
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'intro'
+    const activeSec = document.querySelector('.page-section.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    }
+  }
+});
+
+// Setup copy code buttons
+window.copyCode = function(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

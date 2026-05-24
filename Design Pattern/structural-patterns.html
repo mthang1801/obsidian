@@ -1,0 +1,2646 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Structural Design Patterns — Hướng dẫn chuyên sâu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg-primary:#0d0f14;--bg-secondary:#131720;--bg-card:#1a1f2e;--bg-code:#0f1319;
+  --c-cyan:#00d4ff;--c-green:#00ff88;--c-purple:#a855f7;--c-amber:#f59e0b;
+  --c-coral:#ff6b6b;--c-blue:#3b82f6;--c-pink:#ec4899;--c-teal:#2dd4bf;
+  --c-orange:#f97316;--c-lime:#84cc16;
+  --text-primary:#e2e8f0;--text-secondary:#94a3b8;--text-muted:#64748b;
+  --border:rgba(255,255,255,0.07);--font-mono:'JetBrains Mono',monospace;--font-sans:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-sans);display:flex;min-height:100vh;}
+/* SIDEBAR */
+#sidebar{width:270px;min-width:270px;background:var(--bg-secondary);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;}
+#sidebar::-webkit-scrollbar{width:4px;}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--c-teal),var(--c-blue));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;font-family:var(--font-mono);}
+.sb-text{font-size:14px;font-weight:600;}
+.sb-sub{font-size:11px;color:var(--c-teal);font-family:var(--font-mono);}
+.nav-sec{padding:14px 12px 6px;}
+.nav-sec-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:0 8px;margin-bottom:5px;}
+.nav-item{display:flex;align-items:center;padding:7px 8px;border-radius:6px;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:rgba(255,255,255,.05);color:var(--text-primary);}
+.nav-item.active{background:rgba(45,212,191,.1);color:var(--c-teal);border-left:2px solid var(--c-teal);padding-left:6px;}
+.ni{margin-right:8px;font-size:14px;}
+/* TOPNAV */
+#topnav{position:fixed;top:0;left:270px;right:0;height:52px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:6px;z-index:50;overflow-x:auto;}
+#topnav::-webkit-scrollbar{display:none;}
+.tnav{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none;}
+.tnav:hover{color:var(--text-primary);background:rgba(255,255,255,.05);}
+.tnav.active{color:var(--c-teal);background:rgba(45,212,191,.1);}
+/* MAIN */
+#main{margin-left:270px;margin-top:52px;flex:1;}
+.content{padding:44px 52px;max-width:980px;}
+/* SECTIONS */
+.page-section{display:none;}
+.page-section.active{display:block;}
+/* HEADER */
+.sec-header{display:flex;align-items:center;gap:14px;margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--border);}
+.sec-num{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--c-teal),var(--c-blue));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.sec-title{font-size:25px;font-weight:700;}
+.sec-sub{font-size:13px;color:var(--text-muted);margin-top:3px;}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;font-family:var(--font-mono);}
+.b-exp{background:rgba(249,115,22,.15);color:var(--c-orange);border:1px solid rgba(249,115,22,.3);}
+.b-adv{background:rgba(45,212,191,.12);color:var(--c-teal);border:1px solid rgba(45,212,191,.3);}
+.b-basic{background:rgba(59,130,246,.1);color:var(--c-blue);border:1px solid rgba(59,130,246,.25);}
+/* CONCEPT */
+.concept{background:linear-gradient(135deg,rgba(45,212,191,.05),rgba(59,130,246,.05));border:1px solid rgba(45,212,191,.2);border-radius:12px;padding:22px;margin-bottom:26px;}
+.concept .lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--c-teal);margin-bottom:8px;font-family:var(--font-mono);}
+.concept .ttl{font-size:19px;font-weight:700;margin-bottom:10px;}
+/* PROSE */
+.prose{font-size:14px;line-height:1.8;color:var(--text-secondary);margin-bottom:18px;}
+.prose strong{color:var(--text-primary);font-weight:600;}
+.prose code{background:rgba(45,212,191,.1);color:var(--c-teal);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:12px;}
+h3{font-size:17px;font-weight:600;color:var(--text-primary);margin:24px 0 10px;}
+/* CODE */
+.cb{background:var(--bg-code);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:22px;}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:9px 15px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);}
+.cl{font-size:11px;font-weight:600;color:var(--c-teal);font-family:var(--font-mono);text-transform:uppercase;}
+.cf{font-size:12px;color:var(--text-muted);font-family:var(--font-mono);}
+.cbadge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.cb-basic{background:rgba(59,130,246,.1);color:var(--c-blue);}
+.cb-adv{background:rgba(45,212,191,.1);color:var(--c-teal);}
+.cb-exp{background:rgba(249,115,22,.1);color:var(--c-orange);}
+.copy-btn{font-size:11px;cursor:pointer;background:none;border:1px solid var(--border);border-radius:4px;padding:3px 10px;color:var(--text-secondary);transition:all .15s;font-family:var(--font-sans);}
+.copy-btn:hover{border-color:var(--c-teal);color:var(--c-teal);}
+pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.7;}
+pre::-webkit-scrollbar{height:4px;}
+pre::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.kw{color:#c084fc;}.fn{color:#60a5fa;}.str{color:#86efac;}
+.cm{color:#4b5563;font-style:italic;}.num{color:#fb923c;}
+.tp{color:#67e8f9;}.pkg{color:#a78bfa;}
+/* DIAGRAM */
+.diagram{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:26px;overflow:hidden;}
+.diagram-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:18px;font-family:var(--font-mono);text-align:center;}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:13px;}
+.tbl th{padding:9px 13px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.tbl td{padding:9px 13px;border-bottom:1px solid var(--border);color:var(--text-secondary);}
+.tbl tr:hover td{background:rgba(255,255,255,.02);}
+.tbl td code{background:rgba(45,212,191,.08);color:var(--c-teal);padding:2px 5px;border-radius:3px;font-family:var(--font-mono);font-size:11px;}
+/* NOTE */
+.note{display:flex;gap:12px;padding:13px 15px;border-radius:8px;margin-bottom:18px;font-size:13px;}
+.n-ok{background:rgba(45,212,191,.05);border:1px solid rgba(45,212,191,.2);color:var(--c-teal);}
+.n-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d;}
+.n-info{background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);color:var(--c-blue);}
+.n-danger{background:rgba(255,107,107,.07);border:1px solid rgba(255,107,107,.2);color:var(--c-coral);}
+.ni2{font-size:15px;flex-shrink:0;margin-top:1px;}
+.note p{margin:0;line-height:1.6;}
+/* CARD */
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;}
+.cg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:22px;}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:18px;transition:border-color .2s;}
+.card:hover{border-color:rgba(45,212,191,.3);}
+.card-title{font-size:14px;font-weight:600;margin-bottom:8px;}
+/* COMPLEXITY */
+.cplx{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+.cp{padding:7px 14px;border-radius:7px;font-family:var(--font-mono);font-size:12px;font-weight:600;}
+.cp-t{background:rgba(45,212,191,.1);color:var(--c-teal);border:1px solid rgba(45,212,191,.2);}
+.cp-s{background:rgba(59,130,246,.1);color:var(--c-blue);border:1px solid rgba(59,130,246,.2);}
+.cp-lbl{font-size:9px;font-weight:400;opacity:.7;display:block;}
+/* TAGS */
+.tag{display:inline-block;padding:3px 9px;border-radius:4px;font-size:11px;font-weight:600;font-family:var(--font-mono);margin:2px;}
+.t-a{background:rgba(45,212,191,.1);color:var(--c-teal);border:1px solid rgba(45,212,191,.2);}
+.t-d{background:rgba(0,212,255,.1);color:var(--c-cyan);border:1px solid rgba(0,212,255,.2);}
+.t-p{background:rgba(168,85,247,.1);color:var(--c-purple);border:1px solid rgba(168,85,247,.2);}
+.t-f{background:rgba(0,255,136,.1);color:var(--c-green);border:1px solid rgba(0,255,136,.2);}
+.t-co{background:rgba(245,158,11,.1);color:var(--c-amber);border:1px solid rgba(245,158,11,.2);}
+.t-b{background:rgba(249,115,22,.1);color:var(--c-orange);border:1px solid rgba(249,115,22,.2);}
+/* OPC */
+.opc{background:var(--bg-card);border:1px solid var(--border);border-radius:11px;padding:18px 22px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .2s;margin-bottom:10px;}
+.opc:hover{border-color:rgba(45,212,191,.3);transform:translateX(3px);}
+.opc-icon{font-size:26px;flex-shrink:0;}
+.opc-name{font-size:15px;font-weight:600;margin-bottom:3px;}
+.opc-desc{font-size:12px;color:var(--text-muted);}
+.opc-meta{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap;}
+/* REFS */
+.ref{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;text-decoration:none;transition:all .15s;}
+.ref:hover{border-color:var(--c-teal);transform:translateX(2px);}
+.ref-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.ref-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.ref-desc{font-size:11px;color:var(--text-muted);line-height:1.5;}
+.ref-url{font-size:11px;color:var(--c-teal);font-family:var(--font-mono);margin-top:3px;}
+.ref-stars{font-size:11px;color:var(--c-amber);margin-left:auto;padding-left:10px;white-space:nowrap;}
+.divider{border:none;border-top:1px solid var(--border);margin:32px 0;}
+
+  /* ── CONCEPT ILLUSTRATIONS ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+    border: 1px solid rgba(45,212,191,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+    background: var(--bg-card); padding: 12px;
+    transition: all 0.3s ease;
+  }
+  .concept-img-wrapper:hover {
+    transform: scale(1.01);
+    border-color: rgba(45,212,191,0.5);
+    box-shadow: 0 8px 30px rgba(45,212,191,0.2);
+  }
+  .concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .concept-img-caption {
+    text-align: center; font-size: 13px; color: var(--text-secondary);
+    margin-top: 10px; font-style: italic; line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-icon">GoSP</div>
+    <div>
+      <div class="sb-text">Structural Patterns</div>
+      <div class="sb-sub">golang · design patterns</div>
+    </div>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-sec-title">Tổng quan</div>
+    <button class="nav-item active" onclick="show('intro')"><span class="ni">🏠</span>Giới thiệu</button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-sec-title">Structural Patterns</div>
+    <button class="nav-item" onclick="show('adapter')"><span class="ni">🔌</span>01 Adapter</button>
+    <button class="nav-item" onclick="show('decorator')"><span class="ni">🎨</span>02 Decorator</button>
+    <button class="nav-item" onclick="show('proxy')"><span class="ni">🛡️</span>03 Proxy</button>
+    <button class="nav-item" onclick="show('facade')"><span class="ni">🏛️</span>04 Facade</button>
+    <button class="nav-item" onclick="show('composite')"><span class="ni">🌲</span>05 Composite</button>
+    <button class="nav-item" onclick="show('bridge')"><span class="ni">🌉</span>06 Bridge</button>
+    <button class="nav-item" onclick="show('flyweight')"><span class="ni">🪶</span>07 Flyweight</button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-sec-title">Tổng kết</div>
+    <button class="nav-item" onclick="show('compare')"><span class="ni">⚡</span>So sánh &amp; Cheat Sheet</button>
+    <button class="nav-item" onclick="show('refs')"><span class="ni">📖</span>References</button>
+  </div>
+</nav>
+
+<!-- TOPNAV -->
+<nav id="topnav">
+  <button class="tnav active" onclick="show('intro')">Giới thiệu</button>
+  <button class="tnav" onclick="show('adapter')">Adapter</button>
+  <button class="tnav" onclick="show('decorator')">Decorator</button>
+  <button class="tnav" onclick="show('proxy')">Proxy</button>
+  <button class="tnav" onclick="show('facade')">Facade</button>
+  <button class="tnav" onclick="show('composite')">Composite</button>
+  <button class="tnav" onclick="show('bridge')">Bridge</button>
+  <button class="tnav" onclick="show('flyweight')">Flyweight</button>
+  <button class="tnav" onclick="show('compare')">Cheat Sheet</button>
+  <button class="tnav" onclick="show('refs')">References</button>
+</nav>
+
+<main id="main"><div class="content">
+
+<!-- ═══════════ INTRO ═══════════ -->
+<section class="page-section active" id="s-intro">
+  <div class="sec-header">
+    <div class="sec-num">★</div>
+    <div><div class="sec-title">Structural Design Patterns — Go</div>
+    <div class="sec-sub">6 mẫu cấu trúc · cách tổ chức &amp; ghép nối object, class, interface</div></div>
+    <span class="badge b-adv">OVERVIEW</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Structural Patterns là gì?</div>
+    <div class="ttl">Mẫu cấu trúc — Tổ chức &amp; kết hợp object/interface hiệu quả</div>
+    <p class="prose"><strong>Structural Patterns</strong> giải quyết bài toán <em>tổ chức các class và object thành cấu trúc lớn hơn</em>, đảm bảo cấu trúc đó vẫn <strong>linh hoạt và hiệu quả</strong>. Không quan tâm đến cách object được tạo (Creational) hay giao tiếp (Behavioral), mà quan tâm đến cách <strong>ghép các interface và class lại</strong>.</p>
+    <p class="prose">Trong Go, structural patterns phát huy mạnh mẽ nhờ: <strong>interface duck typing</strong> (không cần khai báo explicitly), <strong>struct embedding</strong> (composition thay inheritance), và <strong>function wrapping</strong> thay vì subclassing.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/structural_hero.png" alt="Go Structural Design Patterns Hub Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 3.1: Sơ đồ kiến trúc 7 Structural Design Patterns trong Go — Tối ưu hóa ghép nối, đóng gói và chia sẻ tài nguyên hệ thống</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">6 Structural Patterns — Vị trí &amp; Mục đích</div>
+    <svg width="100%" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Adapter -->
+      <rect x="30" y="24" width="230" height="76" rx="9" fill="rgba(45,212,191,0.08)" stroke="rgba(45,212,191,0.4)" stroke-width="1.5"/>
+      <text x="48" y="48" font-size="18">🔌</text>
+      <text x="72" y="46" font-size="13" font-weight="700" fill="#2dd4bf">Adapter</text>
+      <text x="72" y="62" font-size="11" fill="#64748b">Chuyển đổi interface này → interface kia</text>
+      <text x="72" y="77" font-size="11" fill="#94a3b8">Legacy ↔ New  |  Third-party ↔ Domain</text>
+      <rect x="36" y="82" width="80" height="12" rx="3" fill="rgba(45,212,191,0.15)"/>
+      <text x="76" y="92" text-anchor="middle" font-size="9" fill="#2dd4bf">Interface convert</text>
+
+      <!-- Decorator -->
+      <rect x="30" y="116" width="230" height="76" rx="9" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.35)" stroke-width="1.5"/>
+      <text x="48" y="140" font-size="18">🎨</text>
+      <text x="72" y="138" font-size="13" font-weight="700" fill="#00d4ff">Decorator</text>
+      <text x="72" y="154" font-size="11" fill="#64748b">Thêm chức năng mà không thay đổi object</text>
+      <text x="72" y="169" font-size="11" fill="#94a3b8">Wrap layer  |  Middleware  |  Logging</text>
+      <rect x="36" y="174" width="70" height="12" rx="3" fill="rgba(0,212,255,0.15)"/>
+      <text x="71" y="184" text-anchor="middle" font-size="9" fill="#00d4ff">Layer wrapping</text>
+
+      <!-- Proxy -->
+      <rect x="30" y="208" width="230" height="76" rx="9" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.35)" stroke-width="1.5"/>
+      <text x="48" y="232" font-size="18">🛡️</text>
+      <text x="72" y="230" font-size="13" font-weight="700" fill="#a855f7">Proxy</text>
+      <text x="72" y="246" font-size="11" fill="#64748b">Kiểm soát truy cập tới object thật</text>
+      <text x="72" y="261" font-size="11" fill="#94a3b8">Cache | Auth | Lazy init | Remote</text>
+      <rect x="36" y="266" width="75" height="12" rx="3" fill="rgba(168,85,247,0.15)"/>
+      <text x="73" y="276" text-anchor="middle" font-size="9" fill="#a855f7">Access control</text>
+
+      <!-- Facade -->
+      <rect x="290" y="24" width="230" height="76" rx="9" fill="rgba(0,255,136,0.07)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+      <text x="308" y="48" font-size="18">🏛️</text>
+      <text x="332" y="46" font-size="13" font-weight="700" fill="#00ff88">Facade</text>
+      <text x="332" y="62" font-size="11" fill="#64748b">Giao diện đơn giản cho hệ thống phức tạp</text>
+      <text x="332" y="77" font-size="11" fill="#94a3b8">Simplify API  |  Subsystem entry point</text>
+      <rect x="296" y="82" width="70" height="12" rx="3" fill="rgba(0,255,136,0.15)"/>
+      <text x="331" y="92" text-anchor="middle" font-size="9" fill="#00ff88">API simplify</text>
+
+      <!-- Composite -->
+      <rect x="290" y="116" width="230" height="76" rx="9" fill="rgba(245,158,11,0.07)" stroke="rgba(245,158,11,0.35)" stroke-width="1.5"/>
+      <text x="308" y="140" font-size="18">🌲</text>
+      <text x="332" y="138" font-size="13" font-weight="700" fill="#f59e0b">Composite</text>
+      <text x="332" y="154" font-size="11" fill="#64748b">Nhóm object thành cấu trúc cây</text>
+      <text x="332" y="169" font-size="11" fill="#94a3b8">File system | UI tree | Menu | DOM</text>
+      <rect x="296" y="174" width="70" height="12" rx="3" fill="rgba(245,158,11,0.15)"/>
+      <text x="331" y="184" text-anchor="middle" font-size="9" fill="#f59e0b">Tree structure</text>
+
+      <!-- Bridge -->
+      <rect x="290" y="208" width="230" height="76" rx="9" fill="rgba(249,115,22,0.07)" stroke="rgba(249,115,22,0.35)" stroke-width="1.5"/>
+      <text x="308" y="232" font-size="18">🌉</text>
+      <text x="332" y="230" font-size="13" font-weight="700" fill="#f97316">Bridge</text>
+      <text x="332" y="246" font-size="11" fill="#64748b">Tách abstraction khỏi implementation</text>
+      <text x="332" y="261" font-size="11" fill="#94a3b8">Cross-platform | Multi-DB | Renderer</text>
+      <rect x="296" y="266" width="80" height="12" rx="3" fill="rgba(249,115,22,0.15)"/>
+      <text x="336" y="276" text-anchor="middle" font-size="9" fill="#f97316">Abstraction split</text>
+
+      <!-- Right panel: comparison -->
+      <rect x="555" y="24" width="240" height="272" rx="9" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+      <text x="675" y="46" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">So sánh nhanh</text>
+      <line x1="555" y1="52" x2="795" y2="52" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="565" y="72" font-size="11" fill="#2dd4bf">Adapter</text>
+      <text x="640" y="72" font-size="11" fill="#64748b">→ wrap incompatible interface</text>
+      <text x="565" y="96" font-size="11" fill="#00d4ff">Decorator</text>
+      <text x="640" y="96" font-size="11" fill="#64748b">→ add features, same interface</text>
+      <text x="565" y="120" font-size="11" fill="#a855f7">Proxy</text>
+      <text x="640" y="120" font-size="11" fill="#64748b">→ control access, same interface</text>
+      <text x="565" y="144" font-size="11" fill="#00ff88">Facade</text>
+      <text x="640" y="144" font-size="11" fill="#64748b">→ simplify complex subsystem</text>
+      <text x="565" y="168" font-size="11" fill="#f59e0b">Composite</text>
+      <text x="640" y="168" font-size="11" fill="#64748b">→ tree of uniform components</text>
+      <text x="565" y="192" font-size="11" fill="#f97316">Bridge</text>
+      <text x="640" y="192" font-size="11" fill="#64748b">→ decouple abstraction/impl</text>
+      <line x1="555" y1="208" x2="795" y2="208" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="675" y="228" text-anchor="middle" font-size="10" fill="#64748b">Adapter vs Decorator vs Proxy:</text>
+      <text x="675" y="246" text-anchor="middle" font-size="10" fill="#64748b">đều wrap, nhưng MỤC ĐÍCH khác nhau</text>
+      <text x="675" y="263" text-anchor="middle" font-size="10" fill="#2dd4bf">Adapter: convert interface</text>
+      <text x="675" y="278" text-anchor="middle" font-size="10" fill="#00d4ff">Decorator: add behaviour</text>
+      <text x="675" y="293" text-anchor="middle" font-size="10" fill="#a855f7">Proxy: control access</text>
+
+      <!-- Venn-like lines -->
+      <path d="M260 60 L290 60" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M260 152 L290 152" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M260 245 L290 245" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M520 60 L555 60" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M520 152 L555 152" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,2"/>
+      <path d="M520 245 L555 245" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,2"/>
+    </svg>
+  </div>
+
+  <div class="opc" onclick="show('adapter')">
+    <div class="opc-icon">🔌</div>
+    <div><div class="opc-name">01 — Adapter</div>
+    <div class="opc-desc">Cho phép object với interface không tương thích làm việc cùng nhau. Wrap legacy API, third-party lib, external service.</div>
+    <div class="opc-meta"><span class="tag t-a">Object Adapter</span><span class="tag t-a">Class Adapter</span><span class="tag t-a">Two-Way</span></div></div>
+  </div>
+
+  <div class="opc" onclick="show('decorator')">
+    <div class="opc-icon">🎨</div>
+    <div><div class="opc-name">02 — Decorator</div>
+    <div class="opc-desc">Đính kèm thêm chức năng vào object bằng cách wrap bằng decorator object có cùng interface. Thay thế subclassing.</div>
+    <div class="opc-meta"><span class="tag t-d">Middleware</span><span class="tag t-d">Logging</span><span class="tag t-d">Caching</span><span class="tag t-d">Retry</span></div></div>
+  </div>
+
+  <div class="opc" onclick="show('proxy')">
+    <div class="opc-icon">🛡️</div>
+    <div><div class="opc-name">03 — Proxy</div>
+    <div class="opc-desc">Cung cấp surrogate/placeholder kiểm soát truy cập tới object thật. Giống Decorator nhưng mục đích là access control.</div>
+    <div class="opc-meta"><span class="tag t-p">Virtual Proxy</span><span class="tag t-p">Auth Proxy</span><span class="tag t-p">Cache Proxy</span><span class="tag t-p">Remote</span></div></div>
+  </div>
+
+  <div class="opc" onclick="show('facade')">
+    <div class="opc-icon">🏛️</div>
+    <div><div class="opc-name">04 — Facade</div>
+    <div class="opc-desc">Cung cấp giao diện đơn giản (high-level API) cho một subsystem phức tạp. Giảm coupling giữa client và nhiều subsystem.</div>
+    <div class="opc-meta"><span class="tag t-f">SDK API</span><span class="tag t-f">Service Layer</span><span class="tag t-f">Package API</span></div></div>
+  </div>
+
+  <div class="opc" onclick="show('composite')">
+    <div class="opc-icon">🌲</div>
+    <div><div class="opc-name">05 — Composite</div>
+    <div class="opc-desc">Tổ chức object thành cấu trúc cây để represent part-whole hierarchies. Client xử lý leaf và composite giống nhau.</div>
+    <div class="opc-meta"><span class="tag t-co">File System</span><span class="tag t-co">UI Component</span><span class="tag t-co">Rule Engine</span></div></div>
+  </div>
+
+  <div class="opc" onclick="show('bridge')">
+    <div class="opc-icon">🌉</div>
+    <div><div class="opc-name">06 — Bridge</div>
+    <div class="opc-desc">Tách abstraction khỏi implementation để cả hai có thể thay đổi độc lập. Ngăn class hierarchy bùng nổ khi cross multiply.</div>
+    <div class="opc-meta"><span class="tag t-b">Cross-platform</span><span class="tag t-b">Multi-DB</span><span class="tag t-b">Multi-renderer</span></div></div>
+  </div>
+
+  <div class="opc" onclick="show('flyweight')">
+    <div class="opc-icon">🪶</div>
+    <div><div class="opc-name">07 — Flyweight</div>
+    <div class="opc-desc">Chia sẻ trạng thái để hỗ trợ lượng lớn object có kích thước nhỏ hiệu quả. Tối ưu hóa bộ nhớ RAM cho game engine, text editor.</div>
+    <div class="opc-meta"><span class="tag t-co">Shared Intrinsic State</span><span class="tag t-co">Extrinsic State</span><span class="tag t-co">Object Pooling</span></div></div>
+  </div>
+</section>
+
+<!-- ═══════════ ADAPTER ═══════════ -->
+<section class="page-section" id="s-adapter">
+  <div class="sec-header">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Adapter Pattern</div>
+    <div class="sec-sub">Chuyển đổi interface — giúp các class không tương thích làm việc cùng nhau</div></div>
+    <span class="badge b-adv">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Adapter — Bộ chuyển đổi interface</div>
+    <p class="prose"><strong>Adapter</strong> chuyển đổi interface của một class thành interface khác mà client mong đợi. Adapter cho phép các class với interface <em>không tương thích</em> làm việc cùng nhau — như ổ cắm điện 3 chân cắm vào 2 lỗ cần adapter vậy. Trong Go, pattern này cực phổ biến khi tích hợp: <strong>third-party library → domain interface</strong>, <strong>legacy API → new protocol</strong>, hoặc <strong>external service → internal abstraction</strong>.</p>
+    <p class="prose"><strong>Hai dạng:</strong> <code>Object Adapter</code> (dùng composition — Go preferred) và <code>Class Adapter</code> (dùng embedding — Go idiom).</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/adapter.png" alt="Adapter Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: Kiến trúc Adapter Pattern trong Go — Bộ chuyển đổi giao diện giúp kết nối linh hoạt các thành phần không tương thích</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Adapter Pattern — Object Adapter &amp; Class Adapter (Go)</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="aa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- Client -->
+      <rect x="20" y="100" width="110" height="60" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" stroke-width="1.3"/>
+      <text x="75" y="124" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="600">Client</text>
+      <text x="75" y="141" text-anchor="middle" font-size="10" fill="#64748b">uses Target</text>
+      <line x1="130" y1="130" x2="160" y2="130" stroke="#475569" stroke-width="1.3" marker-end="url(#aa)"/>
+
+      <!-- Target Interface -->
+      <rect x="163" y="60" width="170" height="80" rx="7" fill="rgba(45,212,191,0.08)" stroke="rgba(45,212,191,0.4)" stroke-width="1.5"/>
+      <rect x="163" y="60" width="170" height="26" rx="7" fill="rgba(45,212,191,0.15)" stroke="none"/>
+      <text x="248" y="73" text-anchor="middle" font-size="10" fill="#2dd4bf">«interface»</text>
+      <text x="248" y="88" text-anchor="middle" font-size="12" font-weight="700" fill="#2dd4bf">Target</text>
+      <line x1="163" y1="86" x2="333" y2="86" stroke="rgba(45,212,191,0.2)" stroke-width="1"/>
+      <text x="173" y="103" font-size="11" fill="#60a5fa">+ Request() Response</text>
+      <text x="173" y="118" font-size="10" fill="#64748b">(domain interface)</text>
+
+      <!-- Adapter -->
+      <rect x="163" y="170" width="170" height="90" rx="7" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <rect x="163" y="170" width="170" height="26" rx="7" fill="rgba(0,212,255,0.12)" stroke="none"/>
+      <text x="248" y="188" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff">Adapter</text>
+      <line x1="163" y1="196" x2="333" y2="196" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+      <text x="173" y="213" font-size="11" fill="#94a3b8">- adaptee *Adaptee</text>
+      <text x="173" y="228" font-size="11" fill="#60a5fa">+ Request() Response</text>
+      <text x="173" y="243" font-size="10" fill="#64748b">calls adaptee.SpecificReq()</text>
+
+      <!-- Implements -->
+      <line x1="248" y1="170" x2="248" y2="140" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="260" y="160" font-size="9" fill="#4b5563">implements</text>
+
+      <!-- Adaptee (Incompatible) -->
+      <rect x="430" y="100" width="190" height="90" rx="7" fill="rgba(245,158,11,0.07)" stroke="rgba(245,158,11,0.35)" stroke-width="1.5"/>
+      <rect x="430" y="100" width="190" height="26" rx="7" fill="rgba(245,158,11,0.12)" stroke="none"/>
+      <text x="525" y="118" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b">Adaptee</text>
+      <line x1="430" y1="126" x2="620" y2="126" stroke="rgba(245,158,11,0.2)" stroke-width="1"/>
+      <text x="440" y="143" font-size="11" fill="#94a3b8">(third-party / legacy)</text>
+      <text x="440" y="160" font-size="11" fill="#60a5fa">+ SpecificRequest() RawData</text>
+      <text x="440" y="175" font-size="10" fill="#64748b">(incompatible interface)</text>
+
+      <!-- Adapter → Adaptee -->
+      <line x1="333" y1="215" x2="430" y2="155" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#aa)"/>
+      <text x="375" y="178" font-size="10" fill="#f59e0b">wraps &amp; calls</text>
+
+      <!-- Legend -->
+      <rect x="430" y="220" width="355" height="52" rx="7" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="440" y="240" font-size="11" fill="#64748b">Go Object Adapter (preferred): Adapter holds reference to Adaptee</text>
+      <text x="440" y="260" font-size="11" fill="#64748b">Go Class Adapter (embedding): Adapter embeds Adaptee struct</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Storage Adapter: S3 → Internal Interface (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">storage_adapter.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Adapter Pattern: AWS S3 SDK → internal Storage interface
+// Vấn đề: AWS SDK có interface riêng, domain code dùng interface của mình
+// Giải pháp: S3Adapter wrap S3 SDK, implement Storage interface</span>
+
+<span class="cm">// Target interface — domain abstraction</span>
+<span class="kw">type</span> <span class="tp">Storage</span> <span class="kw">interface</span> {
+    <span class="fn">Upload</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data <span class="tp">io.Reader</span>) <span class="tp">error</span>
+    <span class="fn">Download</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) (<span class="tp">io.ReadCloser</span>, <span class="tp">error</span>)
+    <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span>
+    <span class="fn">Exists</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) (<span class="tp">bool</span>, <span class="tp">error</span>)
+}
+
+<span class="cm">// Adaptee: AWS S3 client (third-party, incompatible interface)</span>
+<span class="kw">type</span> <span class="tp">AWSS3Client</span> <span class="kw">struct</span> {
+    bucket <span class="tp">string</span>
+    client *<span class="pkg">s3</span>.<span class="tp">Client</span>
+}
+
+<span class="kw">func</span> (a *<span class="tp">AWSS3Client</span>) <span class="fn">PutObject</span>(ctx <span class="tp">context.Context</span>, in *<span class="pkg">s3</span>.<span class="tp">PutObjectInput</span>) (*<span class="pkg">s3</span>.<span class="tp">PutObjectOutput</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> a.client.<span class="fn">PutObject</span>(ctx, in)
+}
+<span class="kw">func</span> (a *<span class="tp">AWSS3Client</span>) <span class="fn">GetObject</span>(ctx <span class="tp">context.Context</span>, in *<span class="pkg">s3</span>.<span class="tp">GetObjectInput</span>) (*<span class="pkg">s3</span>.<span class="tp">GetObjectOutput</span>, <span class="tp">error</span>) {
+    <span class="kw">return</span> a.client.<span class="fn">GetObject</span>(ctx, in)
+}
+
+<span class="cm">// Adapter: S3StorageAdapter — Object Adapter pattern
+// Wraps AWSS3Client, implements Storage interface</span>
+<span class="kw">type</span> <span class="tp">S3StorageAdapter</span> <span class="kw">struct</span> {
+    adaptee *<span class="tp">AWSS3Client</span>
+    bucket  <span class="tp">string</span>
+    prefix  <span class="tp">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewS3Storage</span>(client *<span class="pkg">s3</span>.<span class="tp">Client</span>, bucket, prefix <span class="tp">string</span>) <span class="tp">Storage</span> {
+    <span class="kw">return</span> &<span class="tp">S3StorageAdapter</span>{
+        adaptee: &<span class="tp">AWSS3Client</span>{bucket: bucket, client: client},
+        bucket:  bucket,
+        prefix:  prefix,
+    }
+}
+
+<span class="kw">func</span> (a *<span class="tp">S3StorageAdapter</span>) <span class="fn">Upload</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data <span class="tp">io.Reader</span>) <span class="tp">error</span> {
+    _, err := a.adaptee.<span class="fn">PutObject</span>(ctx, &<span class="pkg">s3</span>.<span class="tp">PutObjectInput</span>{
+        Bucket: <span class="pkg">aws</span>.<span class="fn">String</span>(a.bucket),
+        Key:    <span class="pkg">aws</span>.<span class="fn">String</span>(a.prefix + key),
+        Body:   data,
+    })
+    <span class="kw">return</span> <span class="fn">wrapErr</span>(<span class="str">"upload"</span>, key, err)
+}
+
+<span class="kw">func</span> (a *<span class="tp">S3StorageAdapter</span>) <span class="fn">Download</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) (<span class="tp">io.ReadCloser</span>, <span class="tp">error</span>) {
+    out, err := a.adaptee.<span class="fn">GetObject</span>(ctx, &<span class="pkg">s3</span>.<span class="tp">GetObjectInput</span>{
+        Bucket: <span class="pkg">aws</span>.<span class="fn">String</span>(a.bucket),
+        Key:    <span class="pkg">aws</span>.<span class="fn">String</span>(a.prefix + key),
+    })
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="fn">wrapErr</span>(<span class="str">"download"</span>, key, err) }
+    <span class="kw">return</span> out.Body, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (a *<span class="tp">S3StorageAdapter</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="cm">// Translate domain call → AWS SDK call</span>
+    _, err := a.adaptee.client.<span class="fn">DeleteObject</span>(ctx, &<span class="pkg">s3</span>.<span class="tp">DeleteObjectInput</span>{
+        Bucket: <span class="pkg">aws</span>.<span class="fn">String</span>(a.bucket),
+        Key:    <span class="pkg">aws</span>.<span class="fn">String</span>(a.prefix + key),
+    })
+    <span class="kw">return</span> <span class="fn">wrapErr</span>(<span class="str">"delete"</span>, key, err)
+}
+
+<span class="kw">func</span> (a *<span class="tp">S3StorageAdapter</span>) <span class="fn">Exists</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) (<span class="tp">bool</span>, <span class="tp">error</span>) {
+    _, err := a.adaptee.client.<span class="fn">HeadObject</span>(ctx, &<span class="pkg">s3</span>.<span class="tp">HeadObjectInput</span>{
+        Bucket: <span class="pkg">aws</span>.<span class="fn">String</span>(a.bucket),
+        Key:    <span class="pkg">aws</span>.<span class="fn">String</span>(a.prefix + key),
+    })
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">var</span> notFound *<span class="pkg">types</span>.<span class="tp">NoSuchKey</span>
+        <span class="kw">if</span> <span class="pkg">errors</span>.<span class="fn">As</span>(err, &notFound) { <span class="kw">return</span> <span class="kw">false</span>, <span class="kw">nil</span> }
+        <span class="kw">return</span> <span class="kw">false</span>, err
+    }
+    <span class="kw">return</span> <span class="kw">true</span>, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">wrapErr</span>(op, key <span class="tp">string</span>, err <span class="tp">error</span>) <span class="tp">error</span> {
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"storage.%s(%q): %w"</span>, op, key, err) }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// In-memory adapter for testing — same interface, no AWS needed</span>
+<span class="kw">type</span> <span class="tp">MemStorage</span> <span class="kw">struct</span> {
+    mu   <span class="pkg">sync</span>.<span class="tp">RWMutex</span>
+    data <span class="kw">map</span>[<span class="tp">string</span>][]<span class="tp">byte</span>
+}
+
+<span class="kw">func</span> (m *<span class="tp">MemStorage</span>) <span class="fn">Upload</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>, data <span class="tp">io.Reader</span>) <span class="tp">error</span> {
+    b, _ := <span class="pkg">io</span>.<span class="fn">ReadAll</span>(data)
+    m.mu.<span class="fn">Lock</span>(); m.data[key] = b; m.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="cm">// ... (same interface, swappable via DI)</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Two-Way Adapter: gRPC ↔ REST (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">grpc_rest_adapter.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Two-Way Adapter: expose gRPC service as HTTP REST và ngược lại
+// Một service vừa serve gRPC clients vừa serve REST clients</span>
+
+<span class="cm">// Domain interface — technology-agnostic</span>
+<span class="kw">type</span> <span class="tp">UserService</span> <span class="kw">interface</span> {
+    <span class="fn">GetUser</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">User</span>, <span class="tp">error</span>)
+    <span class="fn">CreateUser</span>(ctx <span class="tp">context.Context</span>, req <span class="tp">CreateUserRequest</span>) (*<span class="tp">User</span>, <span class="tp">error</span>)
+    <span class="fn">ListUsers</span>(ctx <span class="tp">context.Context</span>, page, size <span class="tp">int</span>) ([]*<span class="tp">User</span>, <span class="tp">int</span>, <span class="tp">error</span>)
+}
+
+<span class="kw">type</span> <span class="tp">User</span> <span class="kw">struct</span> {
+    ID, Name, Email <span class="tp">string</span>
+    CreatedAt       <span class="tp">time.Time</span>
+}
+
+<span class="cm">// gRPC Adapter: exposes UserService as gRPC server</span>
+<span class="kw">type</span> <span class="tp">GRPCUserAdapter</span> <span class="kw">struct</span> {
+    <span class="pkg">pb</span>.<span class="tp">UnimplementedUserServiceServer</span>
+    svc <span class="tp">UserService</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewGRPCAdapter</span>(svc <span class="tp">UserService</span>) *<span class="tp">GRPCUserAdapter</span> { <span class="kw">return</span> &<span class="tp">GRPCUserAdapter</span>{svc: svc} }
+
+<span class="kw">func</span> (g *<span class="tp">GRPCUserAdapter</span>) <span class="fn">GetUser</span>(ctx <span class="tp">context.Context</span>, req *<span class="pkg">pb</span>.<span class="tp">GetUserRequest</span>) (*<span class="pkg">pb</span>.<span class="tp">UserResponse</span>, <span class="tp">error</span>) {
+    user, err := g.svc.<span class="fn">GetUser</span>(ctx, req.Id)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="fn">toGRPCError</span>(err) }
+    <span class="kw">return</span> <span class="fn">toProto</span>(user), <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (g *<span class="tp">GRPCUserAdapter</span>) <span class="fn">CreateUser</span>(ctx <span class="tp">context.Context</span>, req *<span class="pkg">pb</span>.<span class="tp">CreateUserRequest</span>) (*<span class="pkg">pb</span>.<span class="tp">UserResponse</span>, <span class="tp">error</span>) {
+    user, err := g.svc.<span class="fn">CreateUser</span>(ctx, <span class="tp">CreateUserRequest</span>{
+        Name: req.Name, Email: req.Email,
+    })
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="fn">toGRPCError</span>(err) }
+    <span class="kw">return</span> <span class="fn">toProto</span>(user), <span class="kw">nil</span>
+}
+
+<span class="cm">// HTTP REST Adapter: exposes UserService as HTTP REST</span>
+<span class="kw">type</span> <span class="tp">HTTPUserAdapter</span> <span class="kw">struct</span>{ svc <span class="tp">UserService</span> }
+
+<span class="kw">func</span> <span class="fn">NewHTTPAdapter</span>(svc <span class="tp">UserService</span>) *<span class="tp">HTTPUserAdapter</span> { <span class="kw">return</span> &<span class="tp">HTTPUserAdapter</span>{svc: svc} }
+
+<span class="kw">func</span> (h *<span class="tp">HTTPUserAdapter</span>) <span class="fn">RegisterRoutes</span>(mux *<span class="pkg">http</span>.<span class="tp">ServeMux</span>) {
+    mux.<span class="fn">HandleFunc</span>(<span class="str">"GET /users/{id}"</span>, h.<span class="fn">getUser</span>)
+    mux.<span class="fn">HandleFunc</span>(<span class="str">"POST /users"</span>,    h.<span class="fn">createUser</span>)
+    mux.<span class="fn">HandleFunc</span>(<span class="str">"GET /users"</span>,     h.<span class="fn">listUsers</span>)
+}
+
+<span class="kw">func</span> (h *<span class="tp">HTTPUserAdapter</span>) <span class="fn">getUser</span>(w <span class="pkg">http</span>.<span class="tp">ResponseWriter</span>, r *<span class="pkg">http</span>.<span class="tp">Request</span>) {
+    id := r.<span class="fn">PathValue</span>(<span class="str">"id"</span>)
+    user, err := h.svc.<span class="fn">GetUser</span>(r.<span class="fn">Context</span>(), id)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="fn">writeErr</span>(w, err); <span class="kw">return</span> }
+    <span class="fn">writeJSON</span>(w, <span class="pkg">http</span>.<span class="tp">StatusOK</span>, user)
+}
+
+<span class="kw">func</span> (h *<span class="tp">HTTPUserAdapter</span>) <span class="fn">createUser</span>(w <span class="pkg">http</span>.<span class="tp">ResponseWriter</span>, r *<span class="pkg">http</span>.<span class="tp">Request</span>) {
+    <span class="kw">var</span> req <span class="tp">CreateUserRequest</span>
+    <span class="kw">if</span> err := <span class="pkg">json</span>.<span class="fn">NewDecoder</span>(r.Body).<span class="fn">Decode</span>(&req); err != <span class="kw">nil</span> {
+        <span class="fn">writeErr</span>(w, &<span class="tp">ErrBadRequest</span>{Msg: err.<span class="fn">Error</span>()}); <span class="kw">return</span>
+    }
+    user, err := h.svc.<span class="fn">CreateUser</span>(r.<span class="fn">Context</span>(), req)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="fn">writeErr</span>(w, err); <span class="kw">return</span> }
+    <span class="fn">writeJSON</span>(w, <span class="pkg">http</span>.<span class="tp">StatusCreated</span>, user)
+}
+
+<span class="cm">// Cùng một UserService có thể phục vụ cả gRPC lẫn REST
+// svc := NewUserServiceImpl(db)
+// grpcAdapter := NewGRPCAdapter(svc)   → cho gRPC server
+// httpAdapter := NewHTTPAdapter(svc)   → cho HTTP server</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — Database Adapter: Multi-Driver (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">db_adapter.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Adapter: Wrap nhiều DB drivers (pgx, sqlite, mysql) → 1 interface
+// Cho phép swap DB mà không đổi application code</span>
+
+<span class="kw">type</span> <span class="tp">Row</span>  <span class="kw">interface</span> { <span class="fn">Scan</span>(dest ...<span class="kw">any</span>) <span class="tp">error</span> }
+<span class="kw">type</span> <span class="tp">Rows</span> <span class="kw">interface</span> { <span class="fn">Next</span>() <span class="tp">bool</span>; <span class="fn">Scan</span>(...<span class="kw">any</span>) <span class="tp">error</span>; <span class="fn">Close</span>() <span class="tp">error</span>; <span class="fn">Err</span>() <span class="tp">error</span> }
+
+<span class="kw">type</span> <span class="tp">DB</span> <span class="kw">interface</span> {
+    <span class="fn">QueryRow</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) <span class="tp">Row</span>
+    <span class="fn">Query</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) (<span class="tp">Rows</span>, <span class="tp">error</span>)
+    <span class="fn">Exec</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) (<span class="tp">int64</span>, <span class="tp">error</span>)
+    <span class="fn">BeginTx</span>(ctx <span class="tp">context.Context</span>) (<span class="tp">Tx</span>, <span class="tp">error</span>)
+    <span class="fn">Close</span>() <span class="tp">error</span>
+}
+
+<span class="kw">type</span> <span class="tp">Tx</span> <span class="kw">interface</span> {
+    <span class="fn">Commit</span>() <span class="tp">error</span>
+    <span class="fn">Rollback</span>() <span class="tp">error</span>
+    <span class="tp">DB</span> <span class="cm">// embeds DB for queries within transaction</span>
+}
+
+<span class="cm">// PgxAdapter: adapts pgx.Pool → DB interface</span>
+<span class="kw">type</span> <span class="tp">PgxAdapter</span> <span class="kw">struct</span>{ pool *<span class="pkg">pgxpool</span>.<span class="tp">Pool</span> }
+
+<span class="kw">func</span> <span class="fn">NewPgxDB</span>(dsn <span class="tp">string</span>) (<span class="tp">DB</span>, <span class="tp">error</span>) {
+    pool, err := <span class="pkg">pgxpool</span>.<span class="fn">New</span>(<span class="pkg">context</span>.<span class="fn">Background</span>(), dsn)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+    <span class="kw">return</span> &<span class="tp">PgxAdapter</span>{pool: pool}, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (p *<span class="tp">PgxAdapter</span>) <span class="fn">QueryRow</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) <span class="tp">Row</span> {
+    <span class="kw">return</span> p.pool.<span class="fn">QueryRow</span>(ctx, sql, args...)
+}
+
+<span class="kw">func</span> (p *<span class="tp">PgxAdapter</span>) <span class="fn">Query</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) (<span class="tp">Rows</span>, <span class="tp">error</span>) {
+    rows, err := p.pool.<span class="fn">Query</span>(ctx, sql, args...)
+    <span class="kw">return</span> &<span class="tp">pgxRowsAdapter</span>{rows}, err
+}
+
+<span class="kw">func</span> (p *<span class="tp">PgxAdapter</span>) <span class="fn">Exec</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) (<span class="tp">int64</span>, <span class="tp">error</span>) {
+    tag, err := p.pool.<span class="fn">Exec</span>(ctx, sql, args...)
+    <span class="kw">return</span> tag.<span class="fn">RowsAffected</span>(), err
+}
+
+<span class="kw">func</span> (p *<span class="tp">PgxAdapter</span>) <span class="fn">BeginTx</span>(ctx <span class="tp">context.Context</span>) (<span class="tp">Tx</span>, <span class="tp">error</span>) {
+    tx, err := p.pool.<span class="fn">Begin</span>(ctx)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+    <span class="kw">return</span> &<span class="tp">pgxTxAdapter</span>{tx}, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (p *<span class="tp">PgxAdapter</span>) <span class="fn">Close</span>() <span class="tp">error</span> { p.pool.<span class="fn">Close</span>(); <span class="kw">return</span> <span class="kw">nil</span> }
+
+<span class="cm">// pgxRowsAdapter wraps pgx.Rows → Rows interface</span>
+<span class="kw">type</span> <span class="tp">pgxRowsAdapter</span> <span class="kw">struct</span>{ rows <span class="pkg">pgx</span>.<span class="tp">Rows</span> }
+<span class="kw">func</span> (r *<span class="tp">pgxRowsAdapter</span>) <span class="fn">Next</span>() <span class="tp">bool</span>           { <span class="kw">return</span> r.rows.<span class="fn">Next</span>() }
+<span class="kw">func</span> (r *<span class="tp">pgxRowsAdapter</span>) <span class="fn">Scan</span>(d ...<span class="kw">any</span>) <span class="tp">error</span> { <span class="kw">return</span> r.rows.<span class="fn">Scan</span>(d...) }
+<span class="kw">func</span> (r *<span class="tp">pgxRowsAdapter</span>) <span class="fn">Close</span>() <span class="tp">error</span>         { r.rows.<span class="fn">Close</span>(); <span class="kw">return</span> <span class="kw">nil</span> }
+<span class="kw">func</span> (r *<span class="tp">pgxRowsAdapter</span>) <span class="fn">Err</span>() <span class="tp">error</span>            { <span class="kw">return</span> r.rows.<span class="fn">Err</span>() }</pre>
+  </div>
+
+  <div class="note n-ok">
+    <div class="ni2">✅</div>
+    <p><strong>Go Best Practice:</strong> Định nghĩa interface ở phía <em>consumer</em>, không phải producer. Package A dùng Storage không nên import package S3 — thay vào đó A định nghĩa <code>Storage interface</code> và S3Adapter implement nó từ bên ngoài.</p>
+  </div>
+</section>
+
+<!-- ═══════════ DECORATOR ═══════════ -->
+<section class="page-section" id="s-decorator">
+  <div class="sec-header">
+    <div class="sec-num">02</div>
+    <div><div class="sec-title">Decorator Pattern</div>
+    <div class="sec-sub">Thêm chức năng vào object bằng wrapping — không cần thay đổi original class</div></div>
+    <span class="badge b-adv">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Decorator — Wrap để mở rộng hành vi</div>
+    <p class="prose"><strong>Decorator</strong> attach additional responsibilities lên object <em>dynamically</em>. Decorator cung cấp alternative linh hoạt cho subclassing để mở rộng chức năng. Cả Component và Decorator <strong>implement cùng interface</strong> — client không biết đang dùng decorated hay original object. Trong Go: HTTP middleware, gRPC interceptors, io.Reader/Writer wrapping.</p>
+    <p class="prose"><strong>Khác Adapter:</strong> Adapter thay đổi interface, Decorator <em>giữ nguyên interface</em> nhưng thêm behavior. <strong>Khác Proxy:</strong> Decorator thêm features, Proxy kiểm soát truy cập.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/decorator.png" alt="Decorator Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 2.1: Kiến trúc Decorator Pattern trong Go — Đóng gói đồng tâm giúp bổ sung hành vi (Middleware, Caching, Logging) mà không cần thay đổi mã nguồn gốc</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Decorator Pattern — Stacked io.Reader Layers</div>
+    <svg width="100%" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="da" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- Data flow label -->
+      <text x="30" y="22" font-size="11" font-weight="700" fill="#64748b">Data flows through layers →  (cùng interface io.Reader)</text>
+
+      <!-- File (base) -->
+      <rect x="30" y="36" width="120" height="70" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" stroke-width="1.3"/>
+      <text x="90" y="60" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">os.File</text>
+      <text x="90" y="76" text-anchor="middle" font-size="10" fill="#64748b">io.Reader</text>
+      <text x="90" y="92" text-anchor="middle" font-size="10" fill="#64748b">raw bytes</text>
+      <line x1="150" y1="71" x2="178" y2="71" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#da)"/>
+
+      <!-- Decompress layer -->
+      <rect x="180" y="36" width="130" height="70" rx="7" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="245" y="56" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff">gzip.Reader</text>
+      <text x="245" y="72" text-anchor="middle" font-size="10" fill="#94a3b8">io.Reader</text>
+      <text x="245" y="88" text-anchor="middle" font-size="10" fill="#64748b">decompress</text>
+      <line x1="310" y1="71" x2="338" y2="71" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#da)"/>
+
+      <!-- Decrypt layer -->
+      <rect x="340" y="36" width="130" height="70" rx="7" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+      <text x="405" y="56" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7">CipherReader</text>
+      <text x="405" y="72" text-anchor="middle" font-size="10" fill="#94a3b8">io.Reader</text>
+      <text x="405" y="88" text-anchor="middle" font-size="10" fill="#64748b">AES decrypt</text>
+      <line x1="470" y1="71" x2="498" y2="71" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#da)"/>
+
+      <!-- Buffer layer -->
+      <rect x="500" y="36" width="130" height="70" rx="7" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.35)" stroke-width="1.5"/>
+      <text x="565" y="56" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88">bufio.Reader</text>
+      <text x="565" y="72" text-anchor="middle" font-size="10" fill="#94a3b8">io.Reader</text>
+      <text x="565" y="88" text-anchor="middle" font-size="10" fill="#64748b">buffered</text>
+      <line x1="630" y1="71" x2="658" y2="71" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#da)"/>
+
+      <!-- Consumer -->
+      <rect x="660" y="36" width="130" height="70" rx="7" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.35)" stroke-width="1.5"/>
+      <text x="725" y="56" text-anchor="middle" font-size="11" font-weight="700" fill="#f59e0b">Consumer</text>
+      <text x="725" y="72" text-anchor="middle" font-size="10" fill="#94a3b8">io.Reader</text>
+      <text x="725" y="88" text-anchor="middle" font-size="10" fill="#64748b">read()</text>
+
+      <!-- Decorator structure labels -->
+      <text x="90" y="128" text-anchor="middle" font-size="10" fill="#64748b">base</text>
+      <text x="245" y="128" text-anchor="middle" font-size="10" fill="#00d4ff">Decorator 1</text>
+      <text x="405" y="128" text-anchor="middle" font-size="10" fill="#a855f7">Decorator 2</text>
+      <text x="565" y="128" text-anchor="middle" font-size="10" fill="#00ff88">Decorator 3</text>
+
+      <!-- Code pattern -->
+      <rect x="30" y="148" width="760" height="70" rx="7" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="40" y="168" font-size="11" fill="#64748b">// Xếp chồng decorators — thứ tự quan trọng:</text>
+      <text x="40" y="186" font-size="12" fill="#e2e8f0">r := bufio.NewReader( NewCipherReader( gzip.NewReader( file ) ) )</text>
+      <text x="40" y="204" font-size="11" fill="#94a3b8">// Tất cả implement io.Reader — consumer chỉ thấy io.Reader</text>
+      <text x="40" y="218" font-size="11" fill="#4b5563">// Thêm/bỏ layer mà không đổi consumer code</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Logger + Metrics Decorator (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">service_decorator.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Decorator Pattern: Service với logging + metrics + retry
+// Mỗi decorator wrap service, thêm 1 layer behavior</span>
+
+<span class="kw">type</span> <span class="tp">ProductService</span> <span class="kw">interface</span> {
+    <span class="fn">GetProduct</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>)
+    <span class="fn">CreateProduct</span>(ctx <span class="tp">context.Context</span>, p <span class="tp">Product</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>)
+    <span class="fn">Search</span>(ctx <span class="tp">context.Context</span>, q <span class="tp">string</span>, page, size <span class="tp">int</span>) ([]*<span class="tp">Product</span>, <span class="tp">error</span>)
+}
+
+<span class="cm">// Base implementation</span>
+<span class="kw">type</span> <span class="tp">productServiceImpl</span> <span class="kw">struct</span>{ repo <span class="tp">ProductRepo</span> }
+
+<span class="cm">// ─── Decorator 1: Logging ──────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">loggingProductService</span> <span class="kw">struct</span> {
+    next   <span class="tp">ProductService</span>
+    logger *<span class="pkg">slog</span>.<span class="tp">Logger</span>
+}
+
+<span class="kw">func</span> <span class="fn">WithLogging</span>(svc <span class="tp">ProductService</span>, l *<span class="pkg">slog</span>.<span class="tp">Logger</span>) <span class="tp">ProductService</span> {
+    <span class="kw">return</span> &<span class="tp">loggingProductService</span>{next: svc, logger: l}
+}
+
+<span class="kw">func</span> (d *<span class="tp">loggingProductService</span>) <span class="fn">GetProduct</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    p, err := d.next.<span class="fn">GetProduct</span>(ctx, id)
+    d.logger.<span class="fn">Info</span>(<span class="str">"GetProduct"</span>,
+        <span class="str">"id"</span>, id, <span class="str">"dur"</span>, <span class="pkg">time</span>.<span class="fn">Since</span>(start), <span class="str">"err"</span>, err)
+    <span class="kw">return</span> p, err
+}
+
+<span class="kw">func</span> (d *<span class="tp">loggingProductService</span>) <span class="fn">CreateProduct</span>(ctx <span class="tp">context.Context</span>, p <span class="tp">Product</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    result, err := d.next.<span class="fn">CreateProduct</span>(ctx, p)
+    d.logger.<span class="fn">Info</span>(<span class="str">"CreateProduct"</span>,
+        <span class="str">"name"</span>, p.Name, <span class="str">"dur"</span>, <span class="pkg">time</span>.<span class="fn">Since</span>(start), <span class="str">"err"</span>, err)
+    <span class="kw">return</span> result, err
+}
+
+<span class="kw">func</span> (d *<span class="tp">loggingProductService</span>) <span class="fn">Search</span>(ctx <span class="tp">context.Context</span>, q <span class="tp">string</span>, page, size <span class="tp">int</span>) ([]*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    res, err := d.next.<span class="fn">Search</span>(ctx, q, page, size)
+    d.logger.<span class="fn">Info</span>(<span class="str">"Search"</span>,
+        <span class="str">"q"</span>, q, <span class="str">"results"</span>, <span class="fn">len</span>(res), <span class="str">"dur"</span>, <span class="pkg">time</span>.<span class="fn">Since</span>(start))
+    <span class="kw">return</span> res, err
+}
+
+<span class="cm">// ─── Decorator 2: Metrics ──────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">metricsProductService</span> <span class="kw">struct</span> {
+    next     <span class="tp">ProductService</span>
+    requests *<span class="pkg">prometheus</span>.<span class="tp">CounterVec</span>
+    duration *<span class="pkg">prometheus</span>.<span class="tp">HistogramVec</span>
+}
+
+<span class="kw">func</span> <span class="fn">WithMetrics</span>(svc <span class="tp">ProductService</span>, reg <span class="pkg">prometheus</span>.<span class="tp">Registerer</span>) <span class="tp">ProductService</span> {
+    d := &<span class="tp">metricsProductService</span>{
+        next: svc,
+        requests: <span class="pkg">prometheus</span>.<span class="fn">NewCounterVec</span>(<span class="pkg">prometheus</span>.<span class="tp">CounterOpts</span>{
+            Name: <span class="str">"product_service_requests_total"</span>, Help: <span class="str">"Total requests"</span>,
+        }, []<span class="tp">string</span>{<span class="str">"method"</span>, <span class="str">"status"</span>}),
+        duration: <span class="pkg">prometheus</span>.<span class="fn">NewHistogramVec</span>(<span class="pkg">prometheus</span>.<span class="tp">HistogramOpts</span>{
+            Name: <span class="str">"product_service_duration_seconds"</span>,
+        }, []<span class="tp">string</span>{<span class="str">"method"</span>}),
+    }
+    reg.<span class="fn">MustRegister</span>(d.requests, d.duration)
+    <span class="kw">return</span> d
+}
+
+<span class="kw">func</span> (d *<span class="tp">metricsProductService</span>) <span class="fn">measure</span>(method <span class="tp">string</span>, fn <span class="kw">func</span>() <span class="tp">error</span>) <span class="tp">error</span> {
+    start := <span class="pkg">time</span>.<span class="fn">Now</span>()
+    err := <span class="fn">fn</span>()
+    status := <span class="str">"ok"</span>
+    <span class="kw">if</span> err != <span class="kw">nil</span> { status = <span class="str">"error"</span> }
+    d.requests.<span class="fn">WithLabelValues</span>(method, status).<span class="fn">Inc</span>()
+    d.duration.<span class="fn">WithLabelValues</span>(method).<span class="fn">Observe</span>(<span class="pkg">time</span>.<span class="fn">Since</span>(start).<span class="fn">Seconds</span>())
+    <span class="kw">return</span> err
+}
+
+<span class="kw">func</span> (d *<span class="tp">metricsProductService</span>) <span class="fn">GetProduct</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    <span class="kw">var</span> p *<span class="tp">Product</span>
+    err := d.<span class="fn">measure</span>(<span class="str">"GetProduct"</span>, <span class="kw">func</span>() <span class="tp">error</span> {
+        <span class="kw">var</span> e <span class="tp">error</span>; p, e = d.next.<span class="fn">GetProduct</span>(ctx, id); <span class="kw">return</span> e
+    })
+    <span class="kw">return</span> p, err
+}
+
+<span class="cm">// ─── Decorator 3: Retry ────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">WithRetry</span>(svc <span class="tp">ProductService</span>, maxAttempts <span class="tp">int</span>) <span class="tp">ProductService</span> {
+    <span class="kw">return</span> &<span class="tp">retryProductService</span>{next: svc, maxAttempts: maxAttempts}
+}
+
+<span class="cm">// ─── Wire up all decorators ────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">NewProductServiceWithAll</span>(repo <span class="tp">ProductRepo</span>, logger *<span class="pkg">slog</span>.<span class="tp">Logger</span>, reg <span class="pkg">prometheus</span>.<span class="tp">Registerer</span>) <span class="tp">ProductService</span> {
+    <span class="kw">var</span> svc <span class="tp">ProductService</span> = &<span class="tp">productServiceImpl</span>{repo: repo}
+    svc = <span class="fn">WithRetry</span>(svc, <span class="num">3</span>)           <span class="cm">// innermost — retry raw errors</span>
+    svc = <span class="fn">WithMetrics</span>(svc, reg)        <span class="cm">// metrics include retry time</span>
+    svc = <span class="fn">WithLogging</span>(svc, logger)     <span class="cm">// outermost — log everything</span>
+    <span class="kw">return</span> svc
+}
+<span class="cm">// Client thấy ProductService — không biết gì về decorators</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — io.Writer Decorator Chain (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">io_decorator.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Go stdlib thực sự dùng Decorator pattern cho io.Writer
+// Custom: encrypt → compress → hash → write</span>
+
+<span class="cm">// HashWriter: wrap io.Writer, tính checksum song song khi write</span>
+<span class="kw">type</span> <span class="tp">HashWriter</span> <span class="kw">struct</span> {
+    w    <span class="tp">io.Writer</span>
+    hash <span class="pkg">hash</span>.<span class="tp">Hash</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewHashWriter</span>(w <span class="tp">io.Writer</span>, h <span class="pkg">hash</span>.<span class="tp">Hash</span>) *<span class="tp">HashWriter</span> { <span class="kw">return</span> &<span class="tp">HashWriter</span>{w: w, hash: h} }
+
+<span class="kw">func</span> (hw *<span class="tp">HashWriter</span>) <span class="fn">Write</span>(p []<span class="tp">byte</span>) (<span class="tp">int</span>, <span class="tp">error</span>) {
+    n, err := hw.w.<span class="fn">Write</span>(p)
+    hw.hash.<span class="fn">Write</span>(p[:n]) <span class="cm">// compute hash of written bytes</span>
+    <span class="kw">return</span> n, err
+}
+
+<span class="kw">func</span> (hw *<span class="tp">HashWriter</span>) <span class="fn">Sum</span>() []<span class="tp">byte</span> { <span class="kw">return</span> hw.hash.<span class="fn">Sum</span>(<span class="kw">nil</span>) }
+
+<span class="cm">// LimitWriter: wrap io.Writer, giới hạn số byte có thể write</span>
+<span class="kw">type</span> <span class="tp">LimitWriter</span> <span class="kw">struct</span> {
+    w         <span class="tp">io.Writer</span>
+    remaining <span class="tp">int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewLimitWriter</span>(w <span class="tp">io.Writer</span>, limit <span class="tp">int64</span>) *<span class="tp">LimitWriter</span> {
+    <span class="kw">return</span> &<span class="tp">LimitWriter</span>{w: w, remaining: limit}
+}
+
+<span class="kw">func</span> (lw *<span class="tp">LimitWriter</span>) <span class="fn">Write</span>(p []<span class="tp">byte</span>) (<span class="tp">int</span>, <span class="tp">error</span>) {
+    <span class="kw">if</span> lw.remaining <= <span class="num">0</span> { <span class="kw">return</span> <span class="num">0</span>, <span class="pkg">errors</span>.<span class="fn">New</span>(<span class="str">"write limit exceeded"</span>) }
+    <span class="kw">if</span> <span class="tp">int64</span>(<span class="fn">len</span>(p)) > lw.remaining { p = p[:lw.remaining] }
+    n, err := lw.w.<span class="fn">Write</span>(p)
+    lw.remaining -= <span class="tp">int64</span>(n)
+    <span class="kw">return</span> n, err
+}
+
+<span class="cm">// TeeWriter: tee output to multiple writers (like io.MultiWriter but decorator)</span>
+<span class="kw">type</span> <span class="tp">TeeWriter</span> <span class="kw">struct</span> {
+    primary   <span class="tp">io.Writer</span>
+    secondary <span class="tp">io.Writer</span>
+}
+
+<span class="kw">func</span> (t *<span class="tp">TeeWriter</span>) <span class="fn">Write</span>(p []<span class="tp">byte</span>) (<span class="tp">int</span>, <span class="tp">error</span>) {
+    n, err := t.primary.<span class="fn">Write</span>(p)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> n, err }
+    t.secondary.<span class="fn">Write</span>(p[:n]) <span class="cm">// best-effort, ignore error</span>
+    <span class="kw">return</span> n, <span class="kw">nil</span>
+}
+
+<span class="cm">// Usage: stack decorators
+// file := os.Create("data.gz.enc")
+// hw := NewHashWriter(file, sha256.New())
+// lw := NewLimitWriter(hw, 100 * 1024 * 1024) // 100MB limit
+// gz := gzip.NewWriter(lw)
+// defer func() {
+//     gz.Close()
+//     fmt.Printf("SHA256: %x\n", hw.Sum())
+// }()
+// io.Copy(gz, source) // client chỉ thấy io.Writer</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════ PROXY ═══════════ -->
+<section class="page-section" id="s-proxy">
+  <div class="sec-header">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">Proxy Pattern</div>
+    <div class="sec-sub">Kiểm soát truy cập — Surrogate cho object thật</div></div>
+    <span class="badge b-adv">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Proxy — Thay thế và kiểm soát truy cập tới object</div>
+    <p class="prose"><strong>Proxy</strong> cung cấp một surrogate hoặc placeholder cho một object khác để <em>kiểm soát truy cập</em> tới nó. Các loại Proxy: <strong>Virtual Proxy</strong> (lazy init, tốn kém), <strong>Protection Proxy</strong> (auth/permission), <strong>Cache Proxy</strong> (cache kết quả), <strong>Remote Proxy</strong> (remote object). Proxy giữ nguyên interface với Subject thật — client không biết đang nói chuyện với proxy hay real object.</p>
+    <p class="prose"><strong>Khác Decorator:</strong> Decorator adds behavior; Proxy controls access to same behavior.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/proxy.png" alt="Proxy Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 3.2: Kiến trúc Proxy Pattern trong Go — Khung bảo vệ kiểm soát quyền truy cập, xác thực và lưu bộ nhớ đệm (Cache) trước khi đi vào đối tượng xử lý thực tế</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Proxy Variants — 4 loại Proxy trong Production Go</div>
+    <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Virtual Proxy -->
+      <rect x="20" y="24" width="185" height="90" rx="8" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.35)" stroke-width="1.5"/>
+      <text x="112" y="44" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7">Virtual Proxy</text>
+      <line x1="20" y1="50" x2="205" y2="50" stroke="rgba(168,85,247,0.2)" stroke-width="1"/>
+      <text x="30" y="68" font-size="11" fill="#64748b">Lazy initialization</text>
+      <text x="30" y="84" font-size="11" fill="#64748b">Heavy object created</text>
+      <text x="30" y="100" font-size="11" fill="#64748b">only when first needed</text>
+      <rect x="26" y="108" width="100" height="0" rx="0" fill="none"/>
+
+      <!-- Protection Proxy -->
+      <rect x="220" y="24" width="185" height="90" rx="8" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5"/>
+      <text x="312" y="44" text-anchor="middle" font-size="12" font-weight="700" fill="#ff6b6b">Protection Proxy</text>
+      <line x1="220" y1="50" x2="405" y2="50" stroke="rgba(255,107,107,0.2)" stroke-width="1"/>
+      <text x="230" y="68" font-size="11" fill="#64748b">Auth / Permissions</text>
+      <text x="230" y="84" font-size="11" fill="#64748b">Check before delegate</text>
+      <text x="230" y="100" font-size="11" fill="#64748b">Middleware / RBAC</text>
+
+      <!-- Cache Proxy -->
+      <rect x="420" y="24" width="185" height="90" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.35)" stroke-width="1.5"/>
+      <text x="512" y="44" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff">Cache Proxy</text>
+      <line x1="420" y1="50" x2="605" y2="50" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+      <text x="430" y="68" font-size="11" fill="#64748b">Memoize results</text>
+      <text x="430" y="84" font-size="11" fill="#64748b">TTL, LRU eviction</text>
+      <text x="430" y="100" font-size="11" fill="#64748b">Read-through cache</text>
+
+      <!-- Remote Proxy -->
+      <rect x="620" y="24" width="185" height="90" rx="8" fill="rgba(0,255,136,0.07)" stroke="rgba(0,255,136,0.3)" stroke-width="1.5"/>
+      <text x="712" y="44" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88">Remote Proxy</text>
+      <line x1="620" y1="50" x2="805" y2="50" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+      <text x="630" y="68" font-size="11" fill="#64748b">Represent remote obj</text>
+      <text x="630" y="84" font-size="11" fill="#64748b">Network transport</text>
+      <text x="630" y="100" font-size="11" fill="#64748b">gRPC client stub</text>
+
+      <!-- Subject Interface bar -->
+      <rect x="20" y="140" width="785" height="36" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <text x="412" y="154" text-anchor="middle" font-size="11" fill="#64748b">«interface» Subject  ← Proxy &amp; RealSubject implement same interface</text>
+      <text x="412" y="170" text-anchor="middle" font-size="11" fill="#94a3b8">+ Do(ctx, req) Response   (client không phân biệt Proxy hay RealSubject)</text>
+
+      <!-- Connect arrows -->
+      <line x1="112" y1="114" x2="112" y2="140" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="312" y1="114" x2="312" y2="140" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="512" y1="114" x2="512" y2="140" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="712" y1="114" x2="712" y2="140" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Cache Proxy với TTL &amp; LRU (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">cache_proxy.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Cache Proxy: transparent caching cho repository
+// Client dùng CachedProductRepo giống ProductRepo thật</span>
+
+<span class="kw">type</span> <span class="tp">ProductRepo</span> <span class="kw">interface</span> {
+    <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>)
+    <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, p *<span class="tp">Product</span>) <span class="tp">error</span>
+    <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) <span class="tp">error</span>
+}
+
+<span class="kw">type</span> <span class="tp">cacheEntry</span> <span class="kw">struct</span> {
+    value     *<span class="tp">Product</span>
+    expiresAt <span class="tp">time.Time</span>
+}
+
+<span class="kw">type</span> <span class="tp">CachedProductRepo</span> <span class="kw">struct</span> {
+    real <span class="tp">ProductRepo</span>                  <span class="cm">// delegate</span>
+    mu   <span class="pkg">sync</span>.<span class="tp">RWMutex</span>
+    data <span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">cacheEntry</span>
+    ttl  <span class="tp">time.Duration</span>
+    hits, misses <span class="tp">int64</span>               <span class="cm">// metrics</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewCachedRepo</span>(real <span class="tp">ProductRepo</span>, ttl <span class="tp">time.Duration</span>) <span class="tp">ProductRepo</span> {
+    r := &<span class="tp">CachedProductRepo</span>{real: real, data: <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">cacheEntry</span>), ttl: ttl}
+    <span class="kw">go</span> r.<span class="fn">evictLoop</span>() <span class="cm">// background cleanup</span>
+    <span class="kw">return</span> r
+}
+
+<span class="kw">func</span> (c *<span class="tp">CachedProductRepo</span>) <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    <span class="cm">// Check cache first</span>
+    c.mu.<span class="fn">RLock</span>()
+    entry, ok := c.data[id]
+    c.mu.<span class="fn">RUnlock</span>()
+
+    <span class="kw">if</span> ok && <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Before</span>(entry.expiresAt) {
+        <span class="pkg">atomic</span>.<span class="fn">AddInt64</span>(&c.hits, <span class="num">1</span>)
+        <span class="kw">return</span> entry.value, <span class="kw">nil</span> <span class="cm">// cache HIT</span>
+    }
+
+    <span class="cm">// Cache MISS — delegate to real repo</span>
+    <span class="pkg">atomic</span>.<span class="fn">AddInt64</span>(&c.misses, <span class="num">1</span>)
+    p, err := c.real.<span class="fn">FindByID</span>(ctx, id)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+
+    <span class="cm">// Populate cache</span>
+    c.mu.<span class="fn">Lock</span>()
+    c.data[id] = &<span class="tp">cacheEntry</span>{value: p, expiresAt: <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">Add</span>(c.ttl)}
+    c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> p, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">CachedProductRepo</span>) <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, p *<span class="tp">Product</span>) <span class="tp">error</span> {
+    <span class="kw">if</span> err := c.real.<span class="fn">Save</span>(ctx, p); err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="cm">// Invalidate cache on write</span>
+    c.mu.<span class="fn">Lock</span>(); <span class="kw">delete</span>(c.data, p.ID); c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">CachedProductRepo</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="kw">if</span> err := c.real.<span class="fn">Delete</span>(ctx, id); err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    c.mu.<span class="fn">Lock</span>(); <span class="kw">delete</span>(c.data, id); c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">CachedProductRepo</span>) <span class="fn">Stats</span>() (<span class="tp">int64</span>, <span class="tp">int64</span>) {
+    <span class="kw">return</span> <span class="pkg">atomic</span>.<span class="fn">LoadInt64</span>(&c.hits), <span class="pkg">atomic</span>.<span class="fn">LoadInt64</span>(&c.misses)
+}
+
+<span class="kw">func</span> (c *<span class="tp">CachedProductRepo</span>) <span class="fn">evictLoop</span>() {
+    t := <span class="pkg">time</span>.<span class="fn">NewTicker</span>(c.ttl / <span class="num">2</span>)
+    <span class="kw">for</span> <span class="kw">range</span> t.C {
+        now := <span class="pkg">time</span>.<span class="fn">Now</span>()
+        c.mu.<span class="fn">Lock</span>()
+        <span class="kw">for</span> k, v := <span class="kw">range</span> c.data {
+            <span class="kw">if</span> now.<span class="fn">After</span>(v.expiresAt) { <span class="kw">delete</span>(c.data, k) }
+        }
+        c.mu.<span class="fn">Unlock</span>()
+    }
+}</pre>
+  </div>
+
+  <h3>📝 Example 2 — Protection Proxy + Virtual Proxy (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">protection_proxy.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Protection Proxy: auth + RBAC cho service method
+// Virtual Proxy: lazy init cho heavy database connection</span>
+
+<span class="cm">// ─── Protection Proxy ─────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">Permission</span> <span class="tp">string</span>
+<span class="kw">const</span> (<span class="tp">PermRead</span> <span class="tp">Permission</span> = <span class="str">"read"</span>; <span class="tp">PermWrite</span> <span class="tp">Permission</span> = <span class="str">"write"</span>; <span class="tp">PermAdmin</span> <span class="tp">Permission</span> = <span class="str">"admin"</span>)
+
+<span class="kw">type</span> <span class="tp">AuthContext</span> <span class="kw">struct</span> {
+    UserID      <span class="tp">string</span>
+    Permissions []<span class="tp">Permission</span>
+}
+
+<span class="kw">func</span> (a *<span class="tp">AuthContext</span>) <span class="fn">Has</span>(p <span class="tp">Permission</span>) <span class="tp">bool</span> {
+    <span class="kw">for</span> _, perm := <span class="kw">range</span> a.Permissions { <span class="kw">if</span> perm == p { <span class="kw">return</span> <span class="kw">true</span> } }
+    <span class="kw">return</span> <span class="kw">false</span>
+}
+
+<span class="kw">type</span> <span class="tp">authProductRepo</span> <span class="kw">struct</span> {
+    real    <span class="tp">ProductRepo</span>
+    authCtx <span class="kw">func</span>(<span class="tp">context.Context</span>) (*<span class="tp">AuthContext</span>, <span class="tp">error</span>)
+}
+
+<span class="kw">func</span> <span class="fn">WithAuth</span>(real <span class="tp">ProductRepo</span>, getAuth <span class="kw">func</span>(<span class="tp">context.Context</span>) (*<span class="tp">AuthContext</span>, <span class="tp">error</span>)) <span class="tp">ProductRepo</span> {
+    <span class="kw">return</span> &<span class="tp">authProductRepo</span>{real: real, authCtx: getAuth}
+}
+
+<span class="kw">func</span> (a *<span class="tp">authProductRepo</span>) <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    auth, err := a.<span class="fn">authCtx</span>(ctx)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"auth: %w"</span>, err) }
+    <span class="kw">if</span> !auth.<span class="fn">Has</span>(<span class="tp">PermRead</span>) { <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">ErrForbidden</span> }
+    <span class="kw">return</span> a.real.<span class="fn">FindByID</span>(ctx, id)
+}
+
+<span class="kw">func</span> (a *<span class="tp">authProductRepo</span>) <span class="fn">Save</span>(ctx <span class="tp">context.Context</span>, p *<span class="tp">Product</span>) <span class="tp">error</span> {
+    auth, err := a.<span class="fn">authCtx</span>(ctx)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"auth: %w"</span>, err) }
+    <span class="kw">if</span> !auth.<span class="fn">Has</span>(<span class="tp">PermWrite</span>) { <span class="kw">return</span> <span class="pkg">ErrForbidden</span> }
+    <span class="kw">return</span> a.real.<span class="fn">Save</span>(ctx, p)
+}
+<span class="kw">func</span> (a *<span class="tp">authProductRepo</span>) <span class="fn">Delete</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) <span class="tp">error</span> {
+    auth, err := a.<span class="fn">authCtx</span>(ctx)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="kw">if</span> !auth.<span class="fn">Has</span>(<span class="tp">PermAdmin</span>) { <span class="kw">return</span> <span class="pkg">ErrForbidden</span> }
+    <span class="kw">return</span> a.real.<span class="fn">Delete</span>(ctx, id)
+}
+
+<span class="cm">// ─── Virtual Proxy: lazy-init heavy DB connection ──────────────</span>
+<span class="kw">type</span> <span class="tp">lazyProductRepo</span> <span class="kw">struct</span> {
+    once   <span class="pkg">sync</span>.<span class="tp">Once</span>
+    real   <span class="tp">ProductRepo</span>
+    initFn <span class="kw">func</span>() (<span class="tp">ProductRepo</span>, <span class="tp">error</span>)
+    initErr <span class="tp">error</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewLazyRepo</span>(initFn <span class="kw">func</span>() (<span class="tp">ProductRepo</span>, <span class="tp">error</span>)) <span class="tp">ProductRepo</span> {
+    <span class="kw">return</span> &<span class="tp">lazyProductRepo</span>{initFn: initFn}
+}
+
+<span class="kw">func</span> (l *<span class="tp">lazyProductRepo</span>) <span class="fn">init</span>() <span class="tp">error</span> {
+    l.once.<span class="fn">Do</span>(<span class="kw">func</span>() { l.real, l.initErr = l.<span class="fn">initFn</span>() })
+    <span class="kw">return</span> l.initErr
+}
+
+<span class="kw">func</span> (l *<span class="tp">lazyProductRepo</span>) <span class="fn">FindByID</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">string</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    <span class="kw">if</span> err := l.<span class="fn">init</span>(); err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, err }
+    <span class="kw">return</span> l.real.<span class="fn">FindByID</span>(ctx, id)
+}
+<span class="cm">// DB chỉ khởi tạo khi lần đầu tiên FindByID được gọi</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════ FACADE ═══════════ -->
+<section class="page-section" id="s-facade">
+  <div class="sec-header">
+    <div class="sec-num">04</div>
+    <div><div class="sec-title">Facade Pattern</div>
+    <div class="sec-sub">Cổng vào đơn giản cho hệ thống phức tạp — giảm coupling</div></div>
+    <span class="badge b-adv">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Facade — Giao diện thống nhất cho một tập subsystem</div>
+    <p class="prose"><strong>Facade</strong> cung cấp một <em>high-level interface đơn giản</em> cho một tập hợp interface phức tạp trong một subsystem. Facade định nghĩa higher-level interface làm cho subsystem dễ sử dụng hơn. Client không cần biết tất cả các class bên trong — chỉ cần biết Facade.</p>
+    <p class="prose">Trong Go: package-level API functions (như <code>http.ListenAndServe</code> là Facade cho toàn bộ net/http), <code>log.Fatal</code>, service layer che giấu repository/cache/queue phức tạp.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/facade.png" alt="Facade Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 4.1: Kiến trúc Facade Pattern trong Go — Cung cấp một cổng giao diện thống nhất, tinh gọn làm giảm mức độ liên kết (Coupling) giữa Client và nhiều hệ thống con phức tạp bên dưới</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Facade Pattern — Order Processing Subsystem</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="fa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- Client -->
+      <rect x="20" y="100" width="100" height="60" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" stroke-width="1.3"/>
+      <text x="70" y="126" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="600">Client</text>
+      <text x="70" y="142" text-anchor="middle" font-size="10" fill="#64748b">PlaceOrder()</text>
+      <line x1="120" y1="130" x2="158" y2="130" stroke="#00ff88" stroke-width="1.5" marker-end="url(#fa)"/>
+      <text x="138" y="124" font-size="9" fill="#00ff88">calls</text>
+
+      <!-- Facade -->
+      <rect x="160" y="60" width="190" height="140" rx="9" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.45)" stroke-width="2"/>
+      <rect x="160" y="60" width="190" height="28" rx="9" fill="rgba(0,255,136,0.18)" stroke="none"/>
+      <text x="255" y="79" text-anchor="middle" font-size="13" font-weight="700" fill="#00ff88">OrderFacade</text>
+      <line x1="160" y1="88" x2="350" y2="88" stroke="rgba(0,255,136,0.25)" stroke-width="1"/>
+      <text x="170" y="106" font-size="11" fill="#60a5fa">+ PlaceOrder(req)</text>
+      <text x="170" y="122" font-size="11" fill="#60a5fa">+ CancelOrder(id)</text>
+      <text x="170" y="138" font-size="11" fill="#60a5fa">+ TrackOrder(id)</text>
+      <text x="170" y="154" font-size="11" fill="#60a5fa">+ Refund(id)</text>
+      <text x="255" y="184" text-anchor="middle" font-size="10" fill="#2dd4bf">Orchestrates subsystems</text>
+
+      <!-- Subsystems -->
+      <line x1="350" y1="100" x2="408" y2="82" stroke="#475569" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#fa)"/>
+      <line x1="350" y1="115" x2="408" y2="132" stroke="#475569" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#fa)"/>
+      <line x1="350" y1="130" x2="408" y2="180" stroke="#475569" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#fa)"/>
+
+      <rect x="410" y="40" width="155" height="60" rx="7" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="487" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">InventoryService</text>
+      <text x="487" y="78" text-anchor="middle" font-size="10" fill="#64748b">Reserve / Release stock</text>
+
+      <rect x="410" y="112" width="155" height="60" rx="7" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="487" y="134" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">PaymentService</text>
+      <text x="487" y="150" text-anchor="middle" font-size="10" fill="#64748b">Charge / Refund</text>
+
+      <rect x="410" y="184" width="155" height="60" rx="7" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="487" y="206" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">ShippingService</text>
+      <text x="487" y="222" text-anchor="middle" font-size="10" fill="#64748b">Create shipment / Track</text>
+
+      <rect x="600" y="40" width="155" height="60" rx="7" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="677" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">NotificationSvc</text>
+      <text x="677" y="78" text-anchor="middle" font-size="10" fill="#64748b">Email / SMS / Push</text>
+
+      <rect x="600" y="184" width="155" height="60" rx="7" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="677" y="206" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8">AuditService</text>
+      <text x="677" y="222" text-anchor="middle" font-size="10" fill="#64748b">Log events / Compliance</text>
+
+      <line x1="565" y1="70" x2="600" y2="70" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="565" y1="214" x2="600" y2="214" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+
+      <!-- Crossed out direct lines -->
+      <text x="410" y="253" font-size="10" fill="#ff6b6b">✗ Client KHÔNG gọi trực tiếp subsystem</text>
+      <text x="600" y="253" font-size="10" fill="#00ff88">✓ Chỉ gọi qua Facade</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Order Processing Facade (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">order_facade.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Facade Pattern: Order processing orchestration
+// Che giấu phức tạp của 5 subsystem sau 1 API đơn giản</span>
+
+<span class="kw">type</span> <span class="tp">PlaceOrderRequest</span> <span class="kw">struct</span> {
+    CustomerID <span class="tp">string</span>
+    Items      []<span class="tp">OrderItem</span>
+    PayToken   <span class="tp">string</span>
+    ShipAddr   <span class="tp">Address</span>
+}
+
+<span class="kw">type</span> <span class="tp">PlaceOrderResult</span> <span class="kw">struct</span> {
+    OrderID    <span class="tp">string</span>
+    TrackingNo <span class="tp">string</span>
+    EstDelivery <span class="tp">time.Time</span>
+}
+
+<span class="cm">// Facade — single entry point</span>
+<span class="kw">type</span> <span class="tp">OrderFacade</span> <span class="kw">struct</span> {
+    inventory    <span class="tp">InventoryService</span>
+    payment      <span class="tp">PaymentService</span>
+    shipping     <span class="tp">ShippingService</span>
+    notification <span class="tp">NotificationService</span>
+    audit        <span class="tp">AuditService</span>
+    orders       <span class="tp">OrderRepository</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewOrderFacade</span>(
+    inv <span class="tp">InventoryService</span>, pay <span class="tp">PaymentService</span>,
+    ship <span class="tp">ShippingService</span>, notif <span class="tp">NotificationService</span>,
+    audit <span class="tp">AuditService</span>, repo <span class="tp">OrderRepository</span>,
+) *<span class="tp">OrderFacade</span> {
+    <span class="kw">return</span> &<span class="tp">OrderFacade</span>{
+        inventory: inv, payment: pay, shipping: ship,
+        notification: notif, audit: audit, orders: repo,
+    }
+}
+
+<span class="cm">// PlaceOrder: orchestrate toàn bộ flow phức tạp sau 1 method call</span>
+<span class="kw">func</span> (f *<span class="tp">OrderFacade</span>) <span class="fn">PlaceOrder</span>(ctx <span class="tp">context.Context</span>, req <span class="tp">PlaceOrderRequest</span>) (*<span class="tp">PlaceOrderResult</span>, <span class="tp">error</span>) {
+    <span class="cm">// Step 1: Reserve inventory (saga compensation)</span>
+    reservationID, err := f.inventory.<span class="fn">Reserve</span>(ctx, req.Items)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"inventory: %w"</span>, err) }
+
+    <span class="cm">// Step 2: Charge payment</span>
+    paymentID, err := f.payment.<span class="fn">Charge</span>(ctx, req.PayToken, f.<span class="fn">totalAmount</span>(req.Items))
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        f.inventory.<span class="fn">Release</span>(ctx, reservationID) <span class="cm">// rollback</span>
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"payment: %w"</span>, err)
+    }
+
+    <span class="cm">// Step 3: Create order record</span>
+    order, err := f.orders.<span class="fn">Create</span>(ctx, <span class="tp">Order</span>{
+        CustomerID:    req.CustomerID,
+        Items:         req.Items,
+        PaymentID:     paymentID,
+        ReservationID: reservationID,
+    })
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        f.payment.<span class="fn">Refund</span>(ctx, paymentID)
+        f.inventory.<span class="fn">Release</span>(ctx, reservationID)
+        <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"create order: %w"</span>, err)
+    }
+
+    <span class="cm">// Step 4: Create shipment</span>
+    shipment, err := f.shipping.<span class="fn">CreateShipment</span>(ctx, <span class="tp">ShipmentRequest</span>{
+        OrderID: order.ID, Items: req.Items, Addr: req.ShipAddr,
+    })
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"shipping failed for order %s: %v"</span>, order.ID, err)
+        <span class="cm">// Non-fatal: order exists, ship later</span>
+    }
+
+    <span class="cm">// Step 5: Notify customer (async, non-blocking)</span>
+    <span class="kw">go</span> f.notification.<span class="fn">SendOrderConfirmation</span>(<span class="pkg">context</span>.<span class="fn">Background</span>(), <span class="tp">NotifReq</span>{
+        CustomerID: req.CustomerID, OrderID: order.ID,
+    })
+
+    <span class="cm">// Step 6: Audit log</span>
+    f.audit.<span class="fn">Log</span>(ctx, <span class="tp">AuditEvent</span>{
+        Action: <span class="str">"order.placed"</span>, ActorID: req.CustomerID, ResourceID: order.ID,
+    })
+
+    <span class="kw">return</span> &<span class="tp">PlaceOrderResult</span>{
+        OrderID:     order.ID,
+        TrackingNo:  shipment.<span class="fn">TrackingNumber</span>(),
+        EstDelivery: shipment.<span class="fn">EstimatedDelivery</span>(),
+    }, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (f *<span class="tp">OrderFacade</span>) <span class="fn">CancelOrder</span>(ctx <span class="tp">context.Context</span>, orderID <span class="tp">string</span>) <span class="tp">error</span> {
+    order, err := f.orders.<span class="fn">FindByID</span>(ctx, orderID)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+
+    <span class="kw">var</span> errs []<span class="tp">error</span>
+    errs = <span class="fn">append</span>(errs, f.payment.<span class="fn">Refund</span>(ctx, order.PaymentID))
+    errs = <span class="fn">append</span>(errs, f.inventory.<span class="fn">Release</span>(ctx, order.ReservationID))
+    errs = <span class="fn">append</span>(errs, f.shipping.<span class="fn">Cancel</span>(ctx, orderID))
+    errs = <span class="fn">append</span>(errs, f.orders.<span class="fn">UpdateStatus</span>(ctx, orderID, <span class="str">"cancelled"</span>))
+
+    <span class="kw">go</span> f.notification.<span class="fn">SendCancellation</span>(<span class="pkg">context</span>.<span class="fn">Background</span>(), order.CustomerID, orderID)
+
+    <span class="kw">return</span> <span class="pkg">errors</span>.<span class="fn">Join</span>(errs...)
+}
+
+<span class="kw">func</span> (f *<span class="tp">OrderFacade</span>) <span class="fn">totalAmount</span>(items []<span class="tp">OrderItem</span>) <span class="tp">int64</span> {
+    <span class="kw">var</span> total <span class="tp">int64</span>
+    <span class="kw">for</span> _, item := <span class="kw">range</span> items { total += item.Price * <span class="tp">int64</span>(item.Qty) }
+    <span class="kw">return</span> total
+}</pre>
+  </div>
+</section>
+
+<!-- ═══════════ COMPOSITE ═══════════ -->
+<section class="page-section" id="s-composite">
+  <div class="sec-header">
+    <div class="sec-num">05</div>
+    <div><div class="sec-title">Composite Pattern</div>
+    <div class="sec-sub">Cấu trúc cây — xử lý leaf và composite như nhau</div></div>
+    <span class="badge b-adv">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Composite — Part-whole hierarchy với giao diện đồng nhất</div>
+    <p class="prose"><strong>Composite</strong> tổ chức objects thành <em>cấu trúc cây</em> để represent part-whole hierarchies. Composite cho phép client xử lý <strong>individual objects (leaf)</strong> và <strong>compositions (composite)</strong> theo cùng một cách qua interface chung. Ví dụ điển hình: file system (file &amp; folder), UI components (widget &amp; container), menu items, arithmetic expression trees.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/composite.png" alt="Composite Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 5.1: Kiến trúc Composite Pattern trong Go — Biểu diễn cấu trúc cây phân cấp (Part-Whole) cho phép tương tác đồng nhất giữa nút lá (Leaf) và nút phức hợp (Composite Node)</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Composite Pattern — File System Tree</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="cma" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#475569" stroke-width="1.2" stroke-linecap="round"/></marker></defs>
+
+      <!-- Component interface -->
+      <rect x="310" y="10" width="200" height="70" rx="7" fill="rgba(45,212,191,0.08)" stroke="rgba(45,212,191,0.4)" stroke-width="1.5"/>
+      <rect x="310" y="10" width="200" height="26" rx="7" fill="rgba(45,212,191,0.15)" stroke="none"/>
+      <text x="410" y="22" text-anchor="middle" font-size="10" fill="#2dd4bf">«interface»</text>
+      <text x="410" y="38" text-anchor="middle" font-size="12" font-weight="700" fill="#2dd4bf">Component</text>
+      <line x1="310" y1="36" x2="510" y2="36" stroke="rgba(45,212,191,0.2)" stroke-width="1"/>
+      <text x="320" y="53" font-size="11" fill="#60a5fa">+ Name() string</text>
+      <text x="320" y="68" font-size="11" fill="#60a5fa">+ Size() int64</text>
+
+      <!-- File (Leaf) -->
+      <rect x="100" y="130" width="170" height="80" rx="7" fill="rgba(59,130,246,0.08)" stroke="rgba(59,130,246,0.35)" stroke-width="1.5"/>
+      <rect x="100" y="130" width="170" height="26" rx="7" fill="rgba(59,130,246,0.15)" stroke="none"/>
+      <text x="185" y="148" text-anchor="middle" font-size="12" font-weight="700" fill="#3b82f6">File (Leaf)</text>
+      <line x1="100" y1="156" x2="270" y2="156" stroke="rgba(59,130,246,0.2)" stroke-width="1"/>
+      <text x="110" y="172" font-size="11" fill="#94a3b8">- name, size</text>
+      <text x="110" y="188" font-size="11" fill="#60a5fa">+ Name() string</text>
+      <text x="110" y="202" font-size="11" fill="#60a5fa">+ Size() int64</text>
+
+      <!-- Directory (Composite) -->
+      <rect x="550" y="130" width="200" height="100" rx="7" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.35)" stroke-width="1.5"/>
+      <rect x="550" y="130" width="200" height="26" rx="7" fill="rgba(245,158,11,0.15)" stroke="none"/>
+      <text x="650" y="148" text-anchor="middle" font-size="12" font-weight="700" fill="#f59e0b">Directory (Composite)</text>
+      <line x1="550" y1="156" x2="750" y2="156" stroke="rgba(245,158,11,0.2)" stroke-width="1"/>
+      <text x="560" y="172" font-size="11" fill="#94a3b8">- children []Component</text>
+      <text x="560" y="188" font-size="11" fill="#60a5fa">+ Add(c Component)</text>
+      <text x="560" y="204" font-size="11" fill="#60a5fa">+ Name() string</text>
+      <text x="560" y="218" font-size="11" fill="#60a5fa">+ Size() int64 ← sum children</text>
+
+      <!-- Implements arrows -->
+      <line x1="185" y1="130" x2="380" y2="80" stroke="#475569" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#cma)"/>
+      <line x1="650" y1="130" x2="440" y2="80" stroke="#475569" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#cma)"/>
+      <text x="262" y="102" font-size="9" fill="#4b5563">implements</text>
+      <text x="524" y="102" font-size="9" fill="#4b5563">implements</text>
+
+      <!-- Self-reference arrow for composite -->
+      <path d="M650 230 Q650 252 560 252 Q490 252 490 200 Q490 156 550 156" fill="none" stroke="#f59e0b" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#cma)"/>
+      <text x="490" y="246" font-size="9" fill="#f59e0b">children: []Component</text>
+
+      <!-- Tree example on right -->
+      <text x="30" y="146" font-size="11" font-weight="700" fill="#64748b">File tree example:</text>
+      <text x="30" y="165" font-size="11" fill="#f59e0b">📁 /root (3KB)</text>
+      <text x="44" y="182" font-size="11" fill="#3b82f6">📄 main.go (2KB)</text>
+      <text x="44" y="199" font-size="11" fill="#f59e0b">📁 /pkg (1KB)</text>
+      <text x="60" y="216" font-size="11" fill="#3b82f6">📄 util.go (1KB)</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — File System Composite (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">filesystem_composite.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Composite Pattern: File System với unified interface
+// Client gọi Size() / Print() trên cả File và Directory giống nhau</span>
+
+<span class="kw">type</span> <span class="tp">FSComponent</span> <span class="kw">interface</span> {
+    <span class="fn">Name</span>() <span class="tp">string</span>
+    <span class="fn">Size</span>() <span class="tp">int64</span>
+    <span class="fn">Print</span>(indent <span class="tp">string</span>)
+    <span class="fn">Find</span>(name <span class="tp">string</span>) <span class="tp">FSComponent</span>
+}
+
+<span class="cm">// Leaf: File</span>
+<span class="kw">type</span> <span class="tp">File</span> <span class="kw">struct</span> {
+    name    <span class="tp">string</span>
+    size    <span class="tp">int64</span>
+    content []<span class="tp">byte</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewFile</span>(name <span class="tp">string</span>, content []<span class="tp">byte</span>) *<span class="tp">File</span> {
+    <span class="kw">return</span> &<span class="tp">File</span>{name: name, size: <span class="tp">int64</span>(<span class="fn">len</span>(content)), content: content}
+}
+
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Name</span>() <span class="tp">string</span>               { <span class="kw">return</span> f.name }
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Size</span>() <span class="tp">int64</span>                { <span class="kw">return</span> f.size }
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Find</span>(name <span class="tp">string</span>) <span class="tp">FSComponent</span> {
+    <span class="kw">if</span> f.name == name { <span class="kw">return</span> f }; <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="kw">func</span> (f *<span class="tp">File</span>) <span class="fn">Print</span>(indent <span class="tp">string</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"%s📄 %s (%d bytes)\n"</span>, indent, f.name, f.size)
+}
+
+<span class="cm">// Composite: Directory</span>
+<span class="kw">type</span> <span class="tp">Directory</span> <span class="kw">struct</span> {
+    name     <span class="tp">string</span>
+    children []<span class="tp">FSComponent</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewDirectory</span>(name <span class="tp">string</span>) *<span class="tp">Directory</span> { <span class="kw">return</span> &<span class="tp">Directory</span>{name: name} }
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Add</span>(c <span class="tp">FSComponent</span>) *<span class="tp">Directory</span> {
+    d.children = <span class="fn">append</span>(d.children, c); <span class="kw">return</span> d
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Remove</span>(name <span class="tp">string</span>) {
+    <span class="kw">for</span> i, c := <span class="kw">range</span> d.children {
+        <span class="kw">if</span> c.<span class="fn">Name</span>() == name {
+            d.children = <span class="fn">append</span>(d.children[:i], d.children[i+<span class="num">1</span>:]...)
+            <span class="kw">return</span>
+        }
+    }
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> d.name }
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Size</span>() <span class="tp">int64</span> {
+    <span class="kw">var</span> total <span class="tp">int64</span>
+    <span class="kw">for</span> _, c := <span class="kw">range</span> d.children { total += c.<span class="fn">Size</span>() } <span class="cm">// recursive</span>
+    <span class="kw">return</span> total
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Print</span>(indent <span class="tp">string</span>) {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"%s📁 %s/ (%d bytes)\n"</span>, indent, d.name, d.<span class="fn">Size</span>())
+    <span class="kw">for</span> _, c := <span class="kw">range</span> d.children {
+        c.<span class="fn">Print</span>(indent + <span class="str">"  "</span>) <span class="cm">// recursive — both File and Dir handled same way</span>
+    }
+}
+
+<span class="kw">func</span> (d *<span class="tp">Directory</span>) <span class="fn">Find</span>(name <span class="tp">string</span>) <span class="tp">FSComponent</span> {
+    <span class="kw">if</span> d.name == name { <span class="kw">return</span> d }
+    <span class="kw">for</span> _, c := <span class="kw">range</span> d.children {
+        <span class="kw">if</span> found := c.<span class="fn">Find</span>(name); found != <span class="kw">nil</span> { <span class="kw">return</span> found }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// Usage</span>
+<span class="kw">func</span> <span class="fn">main</span>() {
+    root := <span class="fn">NewDirectory</span>(<span class="str">"root"</span>)
+    src  := <span class="fn">NewDirectory</span>(<span class="str">"src"</span>)
+    src.<span class="fn">Add</span>(<span class="fn">NewFile</span>(<span class="str">"main.go"</span>,   []<span class="tp">byte</span>(<span class="str">"package main..."</span>)))
+    src.<span class="fn">Add</span>(<span class="fn">NewFile</span>(<span class="str">"config.go"</span>, []<span class="tp">byte</span>(<span class="str">"package main..."</span>)))
+    root.<span class="fn">Add</span>(src).<span class="fn">Add</span>(<span class="fn">NewFile</span>(<span class="str">"go.mod"</span>, []<span class="tp">byte</span>(<span class="str">"module app"</span>)))
+    root.<span class="fn">Print</span>(<span class="str">""</span>)
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Total: %d bytes\n"</span>, root.<span class="fn">Size</span>())
+}</pre>
+  </div>
+
+  <h3>📝 Example 2 — Rule Engine Composite (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">rule_engine.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Composite Pattern: Rule Engine
+// Leaf = simple rule, Composite = AND/OR group of rules
+// Client evaluate() tree without knowing if it's leaf or group</span>
+
+<span class="kw">type</span> <span class="tp">RuleContext</span> <span class="kw">struct</span> {
+    User    <span class="tp">User</span>
+    Product <span class="tp">Product</span>
+    Cart    <span class="tp">Cart</span>
+    Meta    <span class="kw">map</span>[<span class="tp">string</span>]<span class="kw">any</span>
+}
+
+<span class="kw">type</span> <span class="tp">Rule</span> <span class="kw">interface</span> {
+    <span class="fn">Evaluate</span>(ctx <span class="tp">RuleContext</span>) (<span class="tp">bool</span>, <span class="tp">string</span>) <span class="cm">// (match, reason)</span>
+    <span class="fn">Name</span>() <span class="tp">string</span>
+}
+
+<span class="cm">// Leaf rules</span>
+<span class="kw">type</span> <span class="tp">AgeRule</span> <span class="kw">struct</span>{ MinAge <span class="tp">int</span> }
+<span class="kw">func</span> (r <span class="tp">AgeRule</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"age >= %d"</span>, r.MinAge) }
+<span class="kw">func</span> (r <span class="tp">AgeRule</span>) <span class="fn">Evaluate</span>(ctx <span class="tp">RuleContext</span>) (<span class="tp">bool</span>, <span class="tp">string</span>) {
+    ok := ctx.User.Age >= r.MinAge
+    <span class="kw">if</span> !ok { <span class="kw">return</span> <span class="kw">false</span>, <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"user age %d < %d"</span>, ctx.User.Age, r.MinAge) }
+    <span class="kw">return</span> <span class="kw">true</span>, <span class="str">""</span>
+}
+
+<span class="kw">type</span> <span class="tp">MinCartRule</span> <span class="kw">struct</span>{ Min <span class="tp">float64</span> }
+<span class="kw">func</span> (r <span class="tp">MinCartRule</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"cart >= $%.2f"</span>, r.Min) }
+<span class="kw">func</span> (r <span class="tp">MinCartRule</span>) <span class="fn">Evaluate</span>(ctx <span class="tp">RuleContext</span>) (<span class="tp">bool</span>, <span class="tp">string</span>) {
+    ok := ctx.Cart.Total >= r.Min
+    <span class="kw">if</span> !ok { <span class="kw">return</span> <span class="kw">false</span>, <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"cart $%.2f < $%.2f"</span>, ctx.Cart.Total, r.Min) }
+    <span class="kw">return</span> <span class="kw">true</span>, <span class="str">""</span>
+}
+
+<span class="cm">// Composite: AndRule — all children must pass</span>
+<span class="kw">type</span> <span class="tp">AndRule</span> <span class="kw">struct</span> {
+    name     <span class="tp">string</span>
+    children []<span class="tp">Rule</span>
+}
+
+<span class="kw">func</span> <span class="fn">And</span>(name <span class="tp">string</span>, rules ...<span class="tp">Rule</span>) *<span class="tp">AndRule</span> { <span class="kw">return</span> &<span class="tp">AndRule</span>{name: name, children: rules} }
+<span class="kw">func</span> (r *<span class="tp">AndRule</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> r.name }
+<span class="kw">func</span> (r *<span class="tp">AndRule</span>) <span class="fn">Evaluate</span>(ctx <span class="tp">RuleContext</span>) (<span class="tp">bool</span>, <span class="tp">string</span>) {
+    <span class="kw">for</span> _, child := <span class="kw">range</span> r.children {
+        ok, reason := child.<span class="fn">Evaluate</span>(ctx)
+        <span class="kw">if</span> !ok { <span class="kw">return</span> <span class="kw">false</span>, <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"[%s] %s"</span>, child.<span class="fn">Name</span>(), reason) }
+    }
+    <span class="kw">return</span> <span class="kw">true</span>, <span class="str">""</span>
+}
+
+<span class="cm">// Composite: OrRule — at least one child must pass</span>
+<span class="kw">type</span> <span class="tp">OrRule</span> <span class="kw">struct</span>{ name <span class="tp">string</span>; children []<span class="tp">Rule</span> }
+<span class="kw">func</span> <span class="fn">Or</span>(name <span class="tp">string</span>, rules ...<span class="tp">Rule</span>) *<span class="tp">OrRule</span> { <span class="kw">return</span> &<span class="tp">OrRule</span>{name: name, children: rules} }
+<span class="kw">func</span> (r *<span class="tp">OrRule</span>) <span class="fn">Name</span>() <span class="tp">string</span> { <span class="kw">return</span> r.name }
+<span class="kw">func</span> (r *<span class="tp">OrRule</span>) <span class="fn">Evaluate</span>(ctx <span class="tp">RuleContext</span>) (<span class="tp">bool</span>, <span class="tp">string</span>) {
+    reasons := []<span class="tp">string</span>{}
+    <span class="kw">for</span> _, child := <span class="kw">range</span> r.children {
+        ok, reason := child.<span class="fn">Evaluate</span>(ctx)
+        <span class="kw">if</span> ok { <span class="kw">return</span> <span class="kw">true</span>, <span class="str">""</span> }
+        reasons = <span class="fn">append</span>(reasons, reason)
+    }
+    <span class="kw">return</span> <span class="kw">false</span>, <span class="pkg">strings</span>.<span class="fn">Join</span>(reasons, <span class="str">" AND "</span>)
+}
+
+<span class="cm">// Build rule tree:
+// (age >= 18 AND cart >= $50) OR (premium_member AND cart >= $20)
+// discountRule := Or("discount-eligible",
+//     And("standard",  AgeRule{18}, MinCartRule{50}),
+//     And("premium",   PremiumMemberRule{}, MinCartRule{20}),
+// )
+// ok, reason := discountRule.Evaluate(ctx)</span></pre>
+  </div>
+</section>
+
+<!-- ═══════════ BRIDGE ═══════════ -->
+<section class="page-section" id="s-bridge">
+  <div class="sec-header">
+    <div class="sec-num">06</div>
+    <div><div class="sec-title">Bridge Pattern</div>
+    <div class="sec-sub">Tách Abstraction khỏi Implementation — hai chiều thay đổi độc lập</div></div>
+    <span class="badge b-exp">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Bridge — Cầu nối để tránh class hierarchy bùng nổ</div>
+    <p class="prose"><strong>Bridge</strong> tách rời một abstraction khỏi implementation để cả hai có thể <em>thay đổi độc lập</em>. Thay vì kế thừa (một class kết hợp cả abstraction và implementation), Bridge dùng <strong>composition</strong>: abstraction giữ reference đến implementation object. Điều này tránh "cartesian product" class explosion khi có N abstraction × M implementation.</p>
+    <p class="prose"><strong>Ví dụ kinh điển:</strong> 3 Platform (Windows, macOS, Linux) × 3 Renderer (OpenGL, DirectX, Vulkan) → thay vì 9 subclass, Bridge chỉ cần 3+3 = 6 class.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/bridge.png" alt="Bridge Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 6.1: Kiến trúc Bridge Pattern trong Go — Phân tách tường minh phần trừu tượng (Abstraction) khỏi phần triển khai (Implementation) thông qua liên kết Composition thay vì Inheritance</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Bridge Pattern — Without Bridge vs With Bridge</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Without Bridge — Explosion -->
+      <text x="150" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#ff6b6b">Without Bridge: 3×3 = 9 classes !</text>
+      <rect x="20" y="32" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="70" y="48" text-anchor="middle" font-size="10" fill="#ff6b6b">Win+OpenGL</text>
+      <rect x="130" y="32" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="180" y="48" text-anchor="middle" font-size="10" fill="#ff6b6b">Win+DirectX</text>
+      <rect x="240" y="32" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="290" y="48" text-anchor="middle" font-size="10" fill="#ff6b6b">Win+Vulkan</text>
+      <rect x="20" y="64" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="70" y="80" text-anchor="middle" font-size="10" fill="#ff6b6b">Mac+OpenGL</text>
+      <rect x="130" y="64" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="180" y="80" text-anchor="middle" font-size="10" fill="#ff6b6b">Mac+DirectX</text>
+      <rect x="240" y="64" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="290" y="80" text-anchor="middle" font-size="10" fill="#ff6b6b">Mac+Vulkan</text>
+      <rect x="20" y="96" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="70" y="112" text-anchor="middle" font-size="10" fill="#ff6b6b">Linux+OpenGL</text>
+      <rect x="130" y="96" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="180" y="112" text-anchor="middle" font-size="10" fill="#ff6b6b">Linux+DX</text>
+      <rect x="240" y="96" width="100" height="24" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="290" y="112" text-anchor="middle" font-size="10" fill="#ff6b6b">Linux+Vulkan</text>
+
+      <!-- Arrow between -->
+      <text x="390" y="80" font-size="22" fill="#64748b">→</text>
+
+      <!-- With Bridge -->
+      <text x="620" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88">With Bridge: 3+3 = 6 classes ✓</text>
+      <!-- Abstraction side -->
+      <text x="500" y="42" font-size="11" fill="#64748b">Abstraction (Platform):</text>
+      <rect x="500" y="50" width="90" height="24" rx="4" fill="rgba(249,115,22,0.1)" stroke="rgba(249,115,22,0.3)" stroke-width="1.3"/>
+      <text x="545" y="66" text-anchor="middle" font-size="11" fill="#f97316">Windows</text>
+      <rect x="500" y="82" width="90" height="24" rx="4" fill="rgba(249,115,22,0.1)" stroke="rgba(249,115,22,0.3)" stroke-width="1.3"/>
+      <text x="545" y="98" text-anchor="middle" font-size="11" fill="#f97316">macOS</text>
+      <rect x="500" y="114" width="90" height="24" rx="4" fill="rgba(249,115,22,0.1)" stroke="rgba(249,115,22,0.3)" stroke-width="1.3"/>
+      <text x="545" y="130" text-anchor="middle" font-size="11" fill="#f97316">Linux</text>
+
+      <!-- Bridge arrow -->
+      <line x1="596" y1="92" x2="645" y2="92" stroke="#2dd4bf" stroke-width="2.5"/>
+      <text x="620" y="86" text-anchor="middle" font-size="10" fill="#2dd4bf" font-weight="700">bridge</text>
+      <text x="620" y="104" text-anchor="middle" font-size="9" fill="#64748b">impl ref</text>
+
+      <!-- Implementation side -->
+      <text x="720" y="42" font-size="11" fill="#64748b">Implementation (Renderer):</text>
+      <rect x="650" y="50" width="90" height="24" rx="4" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.3)" stroke-width="1.3"/>
+      <text x="695" y="66" text-anchor="middle" font-size="11" fill="#2dd4bf">OpenGL</text>
+      <rect x="650" y="82" width="90" height="24" rx="4" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.3)" stroke-width="1.3"/>
+      <text x="695" y="98" text-anchor="middle" font-size="11" fill="#2dd4bf">DirectX</text>
+      <rect x="650" y="114" width="90" height="24" rx="4" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.3)" stroke-width="1.3"/>
+      <text x="695" y="130" text-anchor="middle" font-size="11" fill="#2dd4bf">Vulkan</text>
+
+      <!-- Runtime combination -->
+      <rect x="420" y="165" width="375" height="60" rx="7" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+      <text x="607" y="183" text-anchor="middle" font-size="11" fill="#64748b">Kết hợp tại runtime — không cần compile-time:</text>
+      <text x="607" y="200" text-anchor="middle" font-size="12" fill="#e2e8f0">p := NewWindows(NewOpenGLRenderer())</text>
+      <text x="607" y="216" text-anchor="middle" font-size="11" fill="#94a3b8">p.Render()  → Windows calls OpenGL impl</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Notification Bridge (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">notification_bridge.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Bridge Pattern: Notification system
+// Abstraction: Notification type (urgent, marketing, reminder)
+// Implementation: Channel (email, SMS, push, Slack)
+// Thêm notification type hoặc channel mới không ảnh hưởng nhau</span>
+
+<span class="cm">// Implementation interface</span>
+<span class="kw">type</span> <span class="tp">NotificationSender</span> <span class="kw">interface</span> {
+    <span class="fn">Send</span>(to, subject, body <span class="tp">string</span>) <span class="tp">error</span>
+    <span class="fn">ChannelName</span>() <span class="tp">string</span>
+}
+
+<span class="cm">// Concrete Implementations (Channels)</span>
+<span class="kw">type</span> <span class="tp">EmailSender</span> <span class="kw">struct</span>{ smtp *<span class="tp">SMTPClient</span> }
+<span class="kw">func</span> (e *<span class="tp">EmailSender</span>) <span class="fn">Send</span>(to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="kw">return</span> e.smtp.<span class="fn">SendMail</span>(<span class="tp">Mail</span>{To: to, Subject: subject, HTML: body})
+}
+<span class="kw">func</span> (e *<span class="tp">EmailSender</span>) <span class="fn">ChannelName</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"email"</span> }
+
+<span class="kw">type</span> <span class="tp">SMSSender</span> <span class="kw">struct</span>{ provider <span class="tp">SMSProvider</span> }
+<span class="kw">func</span> (s *<span class="tp">SMSSender</span>) <span class="fn">Send</span>(to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="kw">return</span> s.provider.<span class="fn">SendSMS</span>(to, subject+<span class="str">": "</span>+body)
+}
+<span class="kw">func</span> (s *<span class="tp">SMSSender</span>) <span class="fn">ChannelName</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"sms"</span> }
+
+<span class="kw">type</span> <span class="tp">SlackSender</span> <span class="kw">struct</span>{ webhookURL <span class="tp">string</span> }
+<span class="kw">func</span> (s *<span class="tp">SlackSender</span>) <span class="fn">Send</span>(to, subject, body <span class="tp">string</span>) <span class="tp">error</span> {
+    payload := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">`{"text":"*%s*\n%s"}`</span>, subject, body)
+    resp, err := <span class="pkg">http</span>.<span class="fn">Post</span>(s.webhookURL, <span class="str">"application/json"</span>, <span class="pkg">strings</span>.<span class="fn">NewReader</span>(payload))
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="kw">defer</span> resp.Body.<span class="fn">Close</span>()
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+<span class="kw">func</span> (s *<span class="tp">SlackSender</span>) <span class="fn">ChannelName</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"slack"</span> }
+
+<span class="cm">// Abstraction: Notification base</span>
+<span class="kw">type</span> <span class="tp">Notification</span> <span class="kw">struct</span> {
+    sender <span class="tp">NotificationSender</span> <span class="cm">// bridge to implementation</span>
+}
+
+<span class="kw">func</span> (n *<span class="tp">Notification</span>) <span class="fn">SetSender</span>(s <span class="tp">NotificationSender</span>) { n.sender = s }
+
+<span class="cm">// Refined Abstraction 1: UrgentNotification</span>
+<span class="kw">type</span> <span class="tp">UrgentNotification</span> <span class="kw">struct</span> {
+    <span class="tp">Notification</span>
+}
+
+<span class="kw">func</span> (u *<span class="tp">UrgentNotification</span>) <span class="fn">Notify</span>(to, message <span class="tp">string</span>) <span class="tp">error</span> {
+    subject := <span class="str">"🚨 URGENT ACTION REQUIRED"</span>
+    body := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"&lt;b&gt;HIGH PRIORITY&lt;/b&gt;\n\n%s\n\nPlease respond immediately."</span>, message)
+    <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"[URGENT] sending via %s to %s"</span>, u.sender.<span class="fn">ChannelName</span>(), to)
+    <span class="kw">return</span> u.sender.<span class="fn">Send</span>(to, subject, body)
+}
+
+<span class="cm">// Refined Abstraction 2: MarketingNotification</span>
+<span class="kw">type</span> <span class="tp">MarketingNotification</span> <span class="kw">struct</span> {
+    <span class="tp">Notification</span>
+    UnsubscribeURL <span class="tp">string</span>
+}
+
+<span class="kw">func</span> (m *<span class="tp">MarketingNotification</span>) <span class="fn">Notify</span>(to, message <span class="tp">string</span>) <span class="tp">error</span> {
+    subject := <span class="str">"💡 Special Offer Just For You"</span>
+    body := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%s\n\n&lt;a href='%s'&gt;Unsubscribe&lt;/a&gt;"</span>, message, m.UnsubscribeURL)
+    <span class="kw">return</span> m.sender.<span class="fn">Send</span>(to, subject, body)
+}
+
+<span class="cm">// Refined Abstraction 3: ScheduledNotification</span>
+<span class="kw">type</span> <span class="tp">ScheduledNotification</span> <span class="kw">struct</span> {
+    <span class="tp">Notification</span>
+    SendAt <span class="tp">time.Time</span>
+}
+
+<span class="kw">func</span> (s *<span class="tp">ScheduledNotification</span>) <span class="fn">Notify</span>(to, message <span class="tp">string</span>) <span class="tp">error</span> {
+    delay := <span class="pkg">time</span>.<span class="fn">Until</span>(s.SendAt)
+    <span class="kw">if</span> delay > <span class="num">0</span> {
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="pkg">time</span>.<span class="fn">Sleep</span>(delay)
+            s.sender.<span class="fn">Send</span>(to, <span class="str">"Scheduled Reminder"</span>, message)
+        }()
+        <span class="kw">return</span> <span class="kw">nil</span>
+    }
+    <span class="kw">return</span> s.sender.<span class="fn">Send</span>(to, <span class="str">"Reminder"</span>, message)
+}
+
+<span class="cm">// Usage — mix abstraction × implementation at runtime:
+// urgent := &UrgentNotification{}
+// urgent.SetSender(&SMSSender{provider: twilio})         // urgent via SMS
+// urgent.Notify("+84901234567", "Server is down!")
+//
+// marketing := &MarketingNotification{UnsubscribeURL: "..."}
+// marketing.SetSender(&EmailSender{smtp: smtpClient})    // marketing via email
+// marketing.Notify("user@example.com", "Sale: 50% off")</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Database Bridge: Multiple Drivers (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">db_bridge.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Bridge Pattern: Report Generator × Storage Driver
+// Abstraction: Report type (PDF, Excel, CSV)
+// Implementation: Storage (local disk, S3, Google Drive)
+// Thêm report format mới hoặc storage mới không ảnh hưởng nhau</span>
+
+<span class="cm">// Implementation: StorageDriver</span>
+<span class="kw">type</span> <span class="tp">StorageDriver</span> <span class="kw">interface</span> {
+    <span class="fn">Write</span>(ctx <span class="tp">context.Context</span>, path <span class="tp">string</span>, data []<span class="tp">byte</span>, contentType <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>)
+    <span class="fn">DriverName</span>() <span class="tp">string</span>
+}
+
+<span class="kw">type</span> <span class="tp">LocalDriver</span>  <span class="kw">struct</span>{ BaseDir <span class="tp">string</span> }
+<span class="kw">type</span> <span class="tp">S3Driver</span>     <span class="kw">struct</span>{ Bucket, Region <span class="tp">string</span>; Client *<span class="pkg">s3</span>.<span class="tp">Client</span> }
+<span class="kw">type</span> <span class="tp">GDriveDriver</span> <span class="kw">struct</span>{ FolderID <span class="tp">string</span>; Creds *<span class="pkg">oauth2</span>.<span class="tp">Token</span> }
+
+<span class="kw">func</span> (l *<span class="tp">LocalDriver</span>) <span class="fn">DriverName</span>()  <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"local"</span> }
+<span class="kw">func</span> (s *<span class="tp">S3Driver</span>) <span class="fn">DriverName</span>()     <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"s3"</span> }
+<span class="kw">func</span> (g *<span class="tp">GDriveDriver</span>) <span class="fn">DriverName</span>() <span class="tp">string</span> { <span class="kw">return</span> <span class="str">"gdrive"</span> }
+
+<span class="kw">func</span> (l *<span class="tp">LocalDriver</span>) <span class="fn">Write</span>(ctx <span class="tp">context.Context</span>, path <span class="tp">string</span>, data []<span class="tp">byte</span>, _ <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    fullPath := <span class="pkg">filepath</span>.<span class="fn">Join</span>(l.BaseDir, path)
+    <span class="kw">if</span> err := <span class="pkg">os</span>.<span class="fn">MkdirAll</span>(<span class="pkg">filepath</span>.<span class="fn">Dir</span>(fullPath), <span class="num">0755</span>); err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="str">""</span>, err }
+    <span class="kw">return</span> fullPath, <span class="pkg">os</span>.<span class="fn">WriteFile</span>(fullPath, data, <span class="num">0644</span>)
+}
+
+<span class="cm">// Abstraction: Report base</span>
+<span class="kw">type</span> <span class="tp">ReportGenerator</span> <span class="kw">struct</span> {
+    storage <span class="tp">StorageDriver</span> <span class="cm">// bridge</span>
+    logger  *<span class="pkg">slog</span>.<span class="tp">Logger</span>
+}
+
+<span class="kw">func</span> (r *<span class="tp">ReportGenerator</span>) <span class="fn">Store</span>(ctx <span class="tp">context.Context</span>, path <span class="tp">string</span>, data []<span class="tp">byte</span>, ct <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    url, err := r.storage.<span class="fn">Write</span>(ctx, path, data, ct)
+    <span class="kw">if</span> err == <span class="kw">nil</span> {
+        r.logger.<span class="fn">Info</span>(<span class="str">"report stored"</span>, <span class="str">"driver"</span>, r.storage.<span class="fn">DriverName</span>(), <span class="str">"path"</span>, url)
+    }
+    <span class="kw">return</span> url, err
+}
+
+<span class="cm">// Refined Abstraction 1: PDFReport</span>
+<span class="kw">type</span> <span class="tp">PDFReport</span> <span class="kw">struct</span> {
+    <span class="tp">ReportGenerator</span>
+    Template <span class="tp">string</span>
+}
+
+<span class="kw">func</span> (p *<span class="tp">PDFReport</span>) <span class="fn">Generate</span>(ctx <span class="tp">context.Context</span>, data <span class="kw">any</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    pdfBytes, err := <span class="fn">renderPDF</span>(p.Template, data)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="str">""</span>, err }
+    fname := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"reports/%d.pdf"</span>, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">UnixMilli</span>())
+    <span class="kw">return</span> p.<span class="fn">Store</span>(ctx, fname, pdfBytes, <span class="str">"application/pdf"</span>)
+}
+
+<span class="cm">// Refined Abstraction 2: ExcelReport</span>
+<span class="kw">type</span> <span class="tp">ExcelReport</span> <span class="kw">struct</span> {
+    <span class="tp">ReportGenerator</span>
+    SheetName <span class="tp">string</span>
+}
+
+<span class="kw">func</span> (e *<span class="tp">ExcelReport</span>) <span class="fn">Generate</span>(ctx <span class="tp">context.Context</span>, rows [][]<span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    xlsxBytes, err := <span class="fn">renderExcel</span>(e.SheetName, rows)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="str">""</span>, err }
+    fname := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"reports/%d.xlsx"</span>, <span class="pkg">time</span>.<span class="fn">Now</span>().<span class="fn">UnixMilli</span>())
+    <span class="kw">return</span> e.<span class="fn">Store</span>(ctx, fname, xlsxBytes, <span class="str">"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"</span>)
+}
+
+<span class="cm">// Usage — bridge at runtime:
+// pdfLocal := &PDFReport{Template: "invoice.tmpl"}
+// pdfLocal.ReportGenerator.storage = &LocalDriver{BaseDir: "/tmp"}
+// pdfLocal.Generate(ctx, invoiceData)
+
+// pdfCloud := &PDFReport{Template: "invoice.tmpl"}
+// pdfCloud.ReportGenerator.storage = &S3Driver{Bucket: "reports", ...}
+// pdfCloud.Generate(ctx, invoiceData)  // same PDF, different storage</span></pre>
+  </div>
+
+  <div class="note n-info">
+    <div class="ni2">💡</div>
+    <p><strong>Bridge vs Strategy:</strong> Trông giống nhau (cả hai dùng composition + interface). Sự khác biệt: <strong>Strategy</strong> thay đổi <em>cách làm</em> một việc (algorithm), trong khi <strong>Bridge</strong> tách <em>khái niệm abstraction</em> khỏi <em>platform implementation</em> để cả hai evolve độc lập theo chiều dọc và ngang.</p>
+  </div>
+</section>
+
+<!-- ═══ ADAPTER — Extra example ═══ -->
+<section class="page-section" id="s-adapter-extra" style="display:none"></section>
+
+<!-- ─── Facade extra example injected inline ─── -->
+
+<!-- ═══ Extra Facade examples appended to s-facade via JS; kept in own block ═══ -->
+
+<!-- ═══════════ FLYWEIGHT ═══════════ -->
+<section class="page-section" id="s-flyweight">
+  <div class="sec-header">
+    <div class="sec-num">07</div>
+    <div><div class="sec-title">Flyweight Pattern</div>
+    <div class="sec-sub">Chia sẻ trạng thái chung — tiết kiệm bộ nhớ khi tạo hàng triệu object</div></div>
+    <span class="badge b-exp">STRUCTURAL</span>
+  </div>
+
+  <div class="concept">
+    <div class="lbl">💡 Định nghĩa — GoF</div>
+    <div class="ttl">Flyweight — Chia sẻ intrinsic state để giảm memory footprint</div>
+    <p class="prose"><strong>Flyweight</strong> dùng sharing để hỗ trợ hiệu quả một số lượng lớn fine-grained objects. Ý tưởng cốt lõi: tách <strong>Intrinsic State</strong> (shared, immutable — màu chữ, font, texture) khỏi <strong>Extrinsic State</strong> (unique per instance — vị trí, size). Flyweight Factory quản lý pool các flyweight objects và tái sử dụng chúng. Trong Go, pattern này hay thấy trong: <strong>string interning, connection pool, icon/image cache, particle system</strong>.</p>
+    <p class="prose"><strong>Khi nào dùng:</strong> Ứng dụng dùng số lượng rất lớn object (hàng nghìn/triệu), nhiều object có state giống nhau, extrinsic state có thể tách ra được.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/flyweight.png" alt="Flyweight Pattern Architecture" loading="lazy">
+    <div class="concept-img-caption">Hình 7.1: Phân tách rõ ràng trạng thái nội tại (Intrinsic State) có thể chia sẻ và trạng thái bên ngoài (Extrinsic State) để tối ưu hóa tài nguyên bộ nhớ</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Flyweight Pattern — Intrinsic vs Extrinsic State</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="fwa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#475569" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- Problem: Without Flyweight -->
+      <text x="180" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#ff6b6b">Without Flyweight — 1M objects × 1KB = 1GB RAM!</text>
+      <rect x="20" y="32" width="90" height="60" rx="5" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="65" y="52" text-anchor="middle" font-size="10" fill="#ff6b6b">Particle</text>
+      <text x="65" y="66" text-anchor="middle" font-size="9" fill="#64748b">color=red</text>
+      <text x="65" y="78" text-anchor="middle" font-size="9" fill="#64748b">sprite=fire</text>
+      <text x="65" y="88" text-anchor="middle" font-size="9" fill="#64748b">x=120,y=50</text>
+
+      <rect x="120" y="32" width="90" height="60" rx="5" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="165" y="52" text-anchor="middle" font-size="10" fill="#ff6b6b">Particle</text>
+      <text x="165" y="66" text-anchor="middle" font-size="9" fill="#64748b">color=red</text>
+      <text x="165" y="78" text-anchor="middle" font-size="9" fill="#64748b">sprite=fire</text>
+      <text x="165" y="88" text-anchor="middle" font-size="9" fill="#64748b">x=200,y=80</text>
+
+      <rect x="220" y="32" width="90" height="60" rx="5" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" stroke-width="1"/>
+      <text x="265" y="52" text-anchor="middle" font-size="10" fill="#ff6b6b">Particle</text>
+      <text x="265" y="66" text-anchor="middle" font-size="9" fill="#64748b">color=red</text>
+      <text x="265" y="78" text-anchor="middle" font-size="9" fill="#64748b">sprite=fire</text>
+      <text x="265" y="88" text-anchor="middle" font-size="9" fill="#64748b">x=300,y=90</text>
+      <text x="330" y="65" font-size="16" fill="#ff6b6b">... ×10⁶</text>
+
+      <!-- Solution: With Flyweight -->
+      <text x="620" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88">With Flyweight — Shared types + light particles</text>
+
+      <!-- Flyweight (shared) -->
+      <rect x="430" y="30" width="160" height="90" rx="7" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5"/>
+      <text x="510" y="48" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88">ParticleType (Flyweight)</text>
+      <text x="510" y="63" text-anchor="middle" font-size="10" fill="#64748b">color = "red" (shared)</text>
+      <text x="510" y="77" text-anchor="middle" font-size="10" fill="#64748b">sprite = fireSprite (shared)</text>
+      <text x="510" y="91" text-anchor="middle" font-size="10" fill="#64748b">physics params (shared)</text>
+      <text x="510" y="108" text-anchor="middle" font-size="9" fill="#00ff88">← 1 object per type</text>
+
+      <!-- Particles (extrinsic) -->
+      <rect x="640" y="30" width="80" height="26" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="680" y="47" text-anchor="middle" font-size="10" fill="#94a3b8">x=120,y=50</text>
+      <rect x="640" y="62" width="80" height="26" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="680" y="79" text-anchor="middle" font-size="10" fill="#94a3b8">x=200,y=80</text>
+      <rect x="640" y="94" width="80" height="26" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="680" y="111" text-anchor="middle" font-size="10" fill="#94a3b8">×1M positions</text>
+      <line x1="590" y1="75" x2="638" y2="45" stroke="#00ff88" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#fwa)"/>
+      <line x1="590" y1="75" x2="638" y2="75" stroke="#00ff88" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#fwa)"/>
+      <line x1="590" y1="75" x2="638" y2="107" stroke="#00ff88" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#fwa)"/>
+
+      <!-- Comparison table -->
+      <rect x="20" y="140" width="780" height="128" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="30" y="158" font-size="11" font-weight="700" fill="#94a3b8">Memory comparison:</text>
+      <rect x="20" y="164" width="780" height="20" fill="rgba(255,255,255,0.02)"/>
+      <text x="30"  y="178" font-size="11" fill="#64748b">Scenario</text>
+      <text x="250" y="178" font-size="11" fill="#64748b">Without Flyweight</text>
+      <text x="450" y="178" font-size="11" fill="#64748b">With Flyweight</text>
+      <text x="620" y="178" font-size="11" fill="#64748b">Savings</text>
+      <line x1="20" y1="183" x2="800" y2="183" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="30"  y="200" font-size="11" fill="#94a3b8">1M fire particles (color+sprite+pos)</text>
+      <text x="250" y="200" font-size="11" fill="#ff6b6b">~1 GB (1KB each)</text>
+      <text x="450" y="200" font-size="11" fill="#00ff88">~8 MB (8 bytes pos each)</text>
+      <text x="620" y="200" font-size="11" fill="#00ff88">99.2% reduction</text>
+      <line x1="20" y1="206" x2="800" y2="206" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <text x="30"  y="222" font-size="11" fill="#94a3b8">10K text chars (font+color+pos)</text>
+      <text x="250" y="222" font-size="11" fill="#ff6b6b">~10 MB</text>
+      <text x="450" y="222" font-size="11" fill="#00ff88">~80 KB</text>
+      <text x="620" y="222" font-size="11" fill="#00ff88">99.2% reduction</text>
+      <line x1="20" y1="228" x2="800" y2="228" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+      <text x="30"  y="244" font-size="11" fill="#94a3b8">DB connection pool (params+conn)</text>
+      <text x="250" y="244" font-size="11" fill="#ff6b6b">100 heavy conns</text>
+      <text x="450" y="244" font-size="11" fill="#00ff88">10 shared + 90 refs</text>
+      <text x="620" y="244" font-size="11" fill="#00ff88">90% reduction</text>
+      <text x="30" y="262" font-size="10" fill="#64748b">Intrinsic = immutable shared (stored in flyweight)  |  Extrinsic = per-instance (passed as param)</text>
+    </svg>
+  </div>
+
+  <h3>📝 Example 1 — Text Editor Character Flyweight (Basic)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">text_flyweight.go</span><span class="cbadge cb-basic">BASIC</span></div>
+    <pre><span class="cm">// Flyweight: Text editor characters
+// Intrinsic (shared): font, size, color — identical across many chars
+// Extrinsic (per instance): position (row, col) — unique per character</span>
+
+<span class="cm">// Flyweight: shared character format</span>
+<span class="kw">type</span> <span class="tp">CharFormat</span> <span class="kw">struct</span> {
+    Font  <span class="tp">string</span>
+    Size  <span class="tp">int</span>
+    Color <span class="tp">string</span>
+    Bold  <span class="tp">bool</span>
+}
+
+<span class="cm">// Flyweight Factory: ensures shared instances</span>
+<span class="kw">type</span> <span class="tp">CharFormatFactory</span> <span class="kw">struct</span> {
+    mu      <span class="pkg">sync</span>.<span class="tp">RWMutex</span>
+    formats <span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">CharFormat</span>
+}
+
+<span class="kw">var</span> <span class="tp">DefaultFactory</span> = &<span class="tp">CharFormatFactory</span>{formats: <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">CharFormat</span>)}
+
+<span class="kw">func</span> (f *<span class="tp">CharFormatFactory</span>) <span class="fn">Get</span>(font <span class="tp">string</span>, size <span class="tp">int</span>, color <span class="tp">string</span>, bold <span class="tp">bool</span>) *<span class="tp">CharFormat</span> {
+    key := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%s-%d-%s-%v"</span>, font, size, color, bold)
+    f.mu.<span class="fn">RLock</span>()
+    if fw, ok := f.formats[key]; ok {
+        f.mu.<span class="fn">RUnlock</span>()
+        <span class="kw">return</span> fw <span class="cm">// reuse existing flyweight</span>
+    }
+    f.mu.<span class="fn">RUnlock</span>()
+    f.mu.<span class="fn">Lock</span>(); <span class="kw">defer</span> f.mu.<span class="fn">Unlock</span>()
+    <span class="cm">// double-check after acquiring write lock</span>
+    if fw, ok := f.formats[key]; ok { <span class="kw">return</span> fw }
+    fw := &<span class="tp">CharFormat</span>{Font: font, Size: size, Color: color, Bold: bold}
+    f.formats[key] = fw
+    <span class="kw">return</span> fw
+}
+
+<span class="kw">func</span> (f *<span class="tp">CharFormatFactory</span>) <span class="fn">Count</span>() <span class="tp">int</span> {
+    f.mu.<span class="fn">RLock</span>(); <span class="kw">defer</span> f.mu.<span class="fn">RUnlock</span>()
+    <span class="kw">return</span> <span class="fn">len</span>(f.formats)
+}
+
+<span class="cm">// Context: Character — holds extrinsic state + ref to shared flyweight</span>
+<span class="kw">type</span> <span class="tp">Character</span> <span class="kw">struct</span> {
+    Glyph  <span class="tp">rune</span>         <span class="cm">// the actual char</span>
+    Row    <span class="tp">int</span>          <span class="cm">// extrinsic: position</span>
+    Col    <span class="tp">int</span>          <span class="cm">// extrinsic: position</span>
+    Format *<span class="tp">CharFormat</span>  <span class="cm">// intrinsic: shared flyweight (pointer!)</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">Character</span>) <span class="fn">Render</span>() <span class="tp">string</span> {
+    bold := <span class="str">""</span>; <span class="kw">if</span> c.Format.Bold { bold = <span class="str">"**"</span> }
+    <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"[%s%c%s @(%d,%d) %s/%d/%s]"</span>,
+        bold, c.Glyph, bold, c.Row, c.Col, c.Format.Font, c.Format.Size, c.Format.Color)
+}
+
+<span class="cm">// TextDocument: collection of characters</span>
+<span class="kw">type</span> <span class="tp">TextDocument</span> <span class="kw">struct</span> {
+    chars   []*<span class="tp">Character</span>
+    factory *<span class="tp">CharFormatFactory</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewTextDocument</span>() *<span class="tp">TextDocument</span> {
+    <span class="kw">return</span> &<span class="tp">TextDocument</span>{factory: <span class="tp">DefaultFactory</span>}
+}
+
+<span class="kw">func</span> (d *<span class="tp">TextDocument</span>) <span class="fn">AddChar</span>(ch <span class="tp">rune</span>, row, col <span class="tp">int</span>, font <span class="tp">string</span>, size <span class="tp">int</span>, color <span class="tp">string</span>, bold <span class="tp">bool</span>) {
+    fmt := d.factory.<span class="fn">Get</span>(font, size, color, bold) <span class="cm">// reuse shared format</span>
+    d.chars = <span class="fn">append</span>(d.chars, &<span class="tp">Character</span>{Glyph: ch, Row: row, Col: col, Format: fmt})
+}
+
+<span class="kw">func</span> (d *<span class="tp">TextDocument</span>) <span class="fn">Stats</span>() {
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Chars: %d  |  Unique formats: %d\n"</span>, <span class="fn">len</span>(d.chars), d.factory.<span class="fn">Count</span>())
+    <span class="cm">// 10000 chars, same format → 10000 chars sharing 1 CharFormat object</span>
+}
+
+<span class="cm">// Usage:
+// doc := NewTextDocument()
+// for i, ch := range "Hello World" × 1000 {
+//     doc.AddChar(ch, i/80, i%80, "Arial", 12, "black", false)
+// }
+// doc.Stats() → "Chars: 11000  |  Unique formats: 1"</span></pre>
+  </div>
+
+  <h3>📝 Example 2 — Connection Pool Flyweight (Advanced)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">conn_pool_flyweight.go</span><span class="cbadge cb-adv">ADVANCED</span></div>
+    <pre><span class="cm">// Flyweight Pattern: Database connection pooling
+// Intrinsic: connection params (DSN, driver, TLS config) — shared
+// Extrinsic: current transaction, timeout per request — caller-managed</span>
+
+<span class="kw">type</span> <span class="tp">DBParams</span> <span class="kw">struct</span> {
+    Driver   <span class="tp">string</span>
+    DSN      <span class="tp">string</span>
+    MaxConns <span class="tp">int</span>
+    TLSMode  <span class="tp">string</span>
+}
+
+<span class="cm">// Flyweight: shared DB pool (intrinsic config)</span>
+<span class="kw">type</span> <span class="tp">DBPool</span> <span class="kw">struct</span> {
+    params   <span class="tp">DBParams</span>
+    pool     *<span class="pkg">sql</span>.<span class="tp">DB</span>
+    createdAt <span class="tp">time.Time</span>
+}
+
+<span class="kw">func</span> (p *<span class="tp">DBPool</span>) <span class="fn">Key</span>() <span class="tp">string</span> {
+    <span class="kw">return</span> <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%s://%s"</span>, p.params.Driver, p.params.DSN)
+}
+
+<span class="cm">// Flyweight Factory: connection pool registry</span>
+<span class="kw">type</span> <span class="tp">PoolRegistry</span> <span class="kw">struct</span> {
+    mu    <span class="pkg">sync</span>.<span class="tp">RWMutex</span>
+    pools <span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">DBPool</span>
+}
+
+<span class="kw">var</span> <span class="tp">GlobalRegistry</span> = &<span class="tp">PoolRegistry</span>{pools: <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">DBPool</span>)}
+
+<span class="kw">func</span> (r *<span class="tp">PoolRegistry</span>) <span class="fn">Get</span>(params <span class="tp">DBParams</span>) (*<span class="tp">DBPool</span>, <span class="tp">error</span>) {
+    key := <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"%s://%s"</span>, params.Driver, params.DSN)
+
+    r.mu.<span class="fn">RLock</span>()
+    if p, ok := r.pools[key]; ok {
+        r.mu.<span class="fn">RUnlock</span>()
+        <span class="kw">return</span> p, <span class="kw">nil</span> <span class="cm">// reuse shared pool</span>
+    }
+    r.mu.<span class="fn">RUnlock</span>()
+
+    r.mu.<span class="fn">Lock</span>(); <span class="kw">defer</span> r.mu.<span class="fn">Unlock</span>()
+    if p, ok := r.pools[key]; ok { <span class="kw">return</span> p, <span class="kw">nil</span> }
+
+    db, err := <span class="pkg">sql</span>.<span class="fn">Open</span>(params.Driver, params.DSN)
+    if err != <span class="kw">nil</span> { <span class="kw">return</span> <span class="kw">nil</span>, <span class="pkg">fmt</span>.<span class="fn">Errorf</span>(<span class="str">"open db: %w"</span>, err) }
+    db.<span class="fn">SetMaxOpenConns</span>(params.MaxConns)
+    db.<span class="fn">SetMaxIdleConns</span>(params.MaxConns / <span class="num">2</span>)
+    db.<span class="fn">SetConnMaxLifetime</span>(<span class="num">30</span> * <span class="pkg">time</span>.<span class="tp">Minute</span>)
+
+    pool := &<span class="tp">DBPool</span>{params: params, pool: db, createdAt: <span class="pkg">time</span>.<span class="fn">Now</span>()}
+    r.pools[key] = pool
+    <span class="pkg">log</span>.<span class="fn">Printf</span>(<span class="str">"created new pool for %s (total pools: %d)"</span>, key, <span class="fn">len</span>(r.pools))
+    <span class="kw">return</span> pool, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (r *<span class="tp">PoolRegistry</span>) <span class="fn">Stats</span>() <span class="kw">map</span>[<span class="tp">string</span>]<span class="pkg">sql</span>.<span class="tp">DBStats</span> {
+    r.mu.<span class="fn">RLock</span>(); <span class="kw">defer</span> r.mu.<span class="fn">RUnlock</span>()
+    stats := <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="pkg">sql</span>.<span class="tp">DBStats</span>)
+    <span class="kw">for</span> k, p := <span class="kw">range</span> r.pools { stats[k] = p.pool.<span class="fn">Stats</span>() }
+    <span class="kw">return</span> stats
+}
+
+<span class="kw">func</span> (r *<span class="tp">PoolRegistry</span>) <span class="fn">Close</span>() {
+    r.mu.<span class="fn">Lock</span>(); <span class="kw">defer</span> r.mu.<span class="fn">Unlock</span>()
+    <span class="kw">for</span> _, p := <span class="kw">range</span> r.pools { p.pool.<span class="fn">Close</span>() }
+}
+
+<span class="cm">// Context: Repository uses pool as flyweight
+// Extrinsic: ctx, query timeout — passed at call time</span>
+<span class="kw">type</span> <span class="tp">Repository</span> <span class="kw">struct</span> {
+    pool *<span class="tp">DBPool</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewRepository</span>(params <span class="tp">DBParams</span>) (*<span class="tp">Repository</span>, <span class="tp">error</span>) {
+    pool, err := <span class="tp">GlobalRegistry</span>.<span class="fn">Get</span>(params)
+    <span class="kw">return</span> &<span class="tp">Repository</span>{pool: pool}, err
+}
+
+<span class="kw">func</span> (r *<span class="tp">Repository</span>) <span class="fn">QueryRow</span>(ctx <span class="tp">context.Context</span>, sql <span class="tp">string</span>, args ...<span class="kw">any</span>) *<span class="pkg">sql</span>.<span class="tp">Row</span> {
+    <span class="cm">// extrinsic ctx carries per-request timeout/cancellation</span>
+    <span class="kw">return</span> r.pool.pool.<span class="fn">QueryRowContext</span>(ctx, sql, args...)
+}
+<span class="cm">// 100 Repositories sharing the same DBPool → O(1) connections, O(n) repos</span></pre>
+  </div>
+
+  <h3>📝 Example 3 — Particle System Flyweight (Expert)</h3>
+  <div class="cb">
+    <div class="ch"><span class="cl">GO</span><span class="cf">particle_flyweight.go</span><span class="cbadge cb-exp">EXPERT</span></div>
+    <pre><span class="cm">// Flyweight Pattern: Game particle system
+// Hàng triệu particles, chỉ vài kiểu — chia sẻ texture/color/physics
+// extrinsic: position, velocity, lifetime — per-particle (nhẹ, chỉ ~24 bytes)</span>
+
+<span class="cm">// Flyweight: shared particle type data (heavy — texture, shader, etc.)</span>
+<span class="kw">type</span> <span class="tp">ParticleType</span> <span class="kw">struct</span> {
+    Name       <span class="tp">string</span>
+    Color      [<span class="num">4</span>]<span class="tp">uint8</span>    <span class="cm">// RGBA</span>
+    Texture    []<span class="tp">byte</span>      <span class="cm">// shared texture data (can be MBs)</span>
+    Mass       <span class="tp">float32</span>
+    Drag       <span class="tp">float32</span>
+    Lifespan   <span class="tp">float32</span>    <span class="cm">// default seconds</span>
+}
+
+<span class="cm">// Flyweight Factory</span>
+<span class="kw">type</span> <span class="tp">ParticleTypeRegistry</span> <span class="kw">struct</span> {
+    types <span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">ParticleType</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewRegistry</span>() *<span class="tp">ParticleTypeRegistry</span> {
+    r := &<span class="tp">ParticleTypeRegistry</span>{types: <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">ParticleType</span>)}
+    r.<span class="fn">Register</span>(&<span class="tp">ParticleType</span>{Name: <span class="str">"fire"</span>,   Color: [<span class="num">4</span>]<span class="tp">uint8</span>{<span class="num">255</span>,<span class="num">80</span>,<span class="num">0</span>,<span class="num">200</span>},   Mass: <span class="num">0.01</span>, Drag: <span class="num">0.98</span>, LifeSpan: <span class="num">1.5</span>})
+    r.<span class="fn">Register</span>(&<span class="tp">ParticleType</span>{Name: <span class="str">"smoke"</span>,  Color: [<span class="num">4</span>]<span class="tp">uint8</span>{<span class="num">128</span>,<span class="num">128</span>,<span class="num">128</span>,<span class="num">100</span>}, Mass: <span class="num">0.001</span>, Drag: <span class="num">0.95</span>, LifeSpan: <span class="num">3.0</span>})
+    r.<span class="fn">Register</span>(&<span class="tp">ParticleType</span>{Name: <span class="str">"spark"</span>,  Color: [<span class="num">4</span>]<span class="tp">uint8</span>{<span class="num">255</span>,<span class="num">255</span>,<span class="num">0</span>,<span class="num">255</span>},   Mass: <span class="num">0.05</span>, Drag: <span class="num">0.99</span>, LifeSpan: <span class="num">0.5</span>})
+    r.<span class="fn">Register</span>(&<span class="tp">ParticleType</span>{Name: <span class="str">"water"</span>,  Color: [<span class="num">4</span>]<span class="tp">uint8</span>{<span class="num">0</span>,<span class="num">100</span>,<span class="num">255</span>,<span class="num">180</span>},  Mass: <span class="num">1.0</span>,  Drag: <span class="num">0.99</span>, LifeSpan: <span class="num">2.0</span>})
+    <span class="kw">return</span> r
+}
+
+<span class="kw">func</span> (r *<span class="tp">ParticleTypeRegistry</span>) <span class="fn">Register</span>(t *<span class="tp">ParticleType</span>) { r.types[t.Name] = t }
+<span class="kw">func</span> (r *<span class="tp">ParticleTypeRegistry</span>) <span class="fn">Get</span>(name <span class="tp">string</span>) *<span class="tp">ParticleType</span> { <span class="kw">return</span> r.types[name] }
+
+<span class="cm">// Particle: extremely lightweight context — only extrinsic state</span>
+<span class="kw">type</span> <span class="tp">Particle</span> <span class="kw">struct</span> {
+    X, Y, Z    <span class="tp">float32</span>  <span class="cm">// position (extrinsic)</span>
+    VX, VY, VZ <span class="tp">float32</span>  <span class="cm">// velocity (extrinsic)</span>
+    Life       <span class="tp">float32</span>  <span class="cm">// remaining life (extrinsic)</span>
+    ptype      *<span class="tp">ParticleType</span> <span class="cm">// flyweight reference (just 8 bytes ptr)</span>
+}
+
+<span class="cm">// Particle size: 7×4 + 8 = 36 bytes
+// Without flyweight: 36 + texture(~1MB) per particle → 1M particles = 1TB!</span>
+
+<span class="kw">func</span> (p *<span class="tp">Particle</span>) <span class="fn">Update</span>(dt <span class="tp">float32</span>) <span class="tp">bool</span> {
+    <span class="cm">// Use intrinsic physics from flyweight</span>
+    p.VX *= p.ptype.Drag; p.VY *= p.ptype.Drag; p.VZ *= p.ptype.Drag
+    p.VY -= <span class="num">9.8</span> * p.ptype.Mass * dt <span class="cm">// gravity</span>
+    p.X += p.VX * dt; p.Y += p.VY * dt; p.Z += p.VZ * dt
+    p.Life -= dt
+    <span class="kw">return</span> p.Life > <span class="num">0</span>
+}
+
+<span class="kw">func</span> (p *<span class="tp">Particle</span>) <span class="fn">Color</span>() [<span class="num">4</span>]<span class="tp">uint8</span> {
+    c := p.ptype.Color
+    c[<span class="num">3</span>] = <span class="tp">uint8</span>(<span class="tp">float32</span>(c[<span class="num">3</span>]) * (p.Life / p.ptype.LifeSpan)) <span class="cm">// fade out</span>
+    <span class="kw">return</span> c
+}
+
+<span class="cm">// ParticleSystem: manages millions of lightweight particles</span>
+<span class="kw">type</span> <span class="tp">ParticleSystem</span> <span class="kw">struct</span> {
+    registry  *<span class="tp">ParticleTypeRegistry</span>
+    particles []<span class="tp">Particle</span> <span class="cm">// value slice — no alloc per particle</span>
+    pool      []<span class="tp">Particle</span> <span class="cm">// pre-allocated pool</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewParticleSystem</span>(reg *<span class="tp">ParticleTypeRegistry</span>, capacity <span class="tp">int</span>) *<span class="tp">ParticleSystem</span> {
+    <span class="kw">return</span> &<span class="tp">ParticleSystem</span>{
+        registry:  reg,
+        particles: <span class="kw">make</span>([]<span class="tp">Particle</span>, <span class="num">0</span>, capacity),
+    }
+}
+
+<span class="kw">func</span> (ps *<span class="tp">ParticleSystem</span>) <span class="fn">Emit</span>(typeName <span class="tp">string</span>, x, y, z, vx, vy, vz <span class="tp">float32</span>) {
+    pt := ps.registry.<span class="fn">Get</span>(typeName)
+    if pt == <span class="kw">nil</span> { <span class="kw">return</span> }
+    ps.particles = <span class="fn">append</span>(ps.particles, <span class="tp">Particle</span>{
+        X: x, Y: y, Z: z, VX: vx, VY: vy, VZ: vz,
+        Life: pt.LifeSpan, ptype: pt, <span class="cm">// share flyweight</span>
+    })
+}
+
+<span class="kw">func</span> (ps *<span class="tp">ParticleSystem</span>) <span class="fn">Update</span>(dt <span class="tp">float32</span>) {
+    alive := ps.particles[:0] <span class="cm">// reuse backing array, avoid alloc</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> ps.particles {
+        if ps.particles[i].<span class="fn">Update</span>(dt) {
+            alive = <span class="fn">append</span>(alive, ps.particles[i])
+        }
+    }
+    ps.particles = alive
+}
+
+<span class="cm">// Emit 1M particles: 36 bytes each = ~36MB (shared 4 ParticleTypes = ~4MB textures)</span>
+<span class="cm">// Without flyweight: 1M × (36 + 1MB texture) ≈ 1TB — impossible</span></pre>
+  </div>
+
+  <div class="note n-warn">
+    <div class="ni2">⚠️</div>
+    <p><strong>Flyweight Pitfall:</strong> Flyweight object phải <strong>immutable (thread-safe)</strong> vì được share bởi nhiều goroutine. Không bao giờ để Flyweight có mutable state. Nếu cần modify, tạo new flyweight thay vì sửa existing. Flyweight Factory cần concurrent-safe (dùng <code>sync.RWMutex</code> hoặc <code>sync.Map</code>).</p>
+  </div>
+</section>
+
+<!-- ═══════════ COMPARE ═══════════ -->
+<section class="page-section" id="s-compare">
+  <div class="sec-header">
+    <div class="sec-num">★</div>
+    <div><div class="sec-title">Cheat Sheet &amp; So sánh</div>
+    <div class="sec-sub">Tổng kết 7 Structural Patterns — khi nào dùng, khi nào không</div></div>
+    <span class="badge b-adv">SUMMARY</span>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Structural Patterns — Relationship Map</div>
+    <svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Interface question -->
+      <rect x="310" y="14" width="200" height="36" rx="7" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" stroke-width="1.3"/>
+      <text x="410" y="32" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="600">Mục đích wrapping?</text>
+      <text x="410" y="46" text-anchor="middle" font-size="10" fill="#64748b">Tất cả wrap một object khác</text>
+
+      <!-- Convert interface -->
+      <line x1="310" y1="32" x2="218" y2="80" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="250" y="66" font-size="10" fill="#64748b">convert interface</text>
+      <rect x="60" y="80" width="150" height="44" rx="7" fill="rgba(45,212,191,0.1)" stroke="rgba(45,212,191,0.4)" stroke-width="1.5"/>
+      <text x="135" y="98" text-anchor="middle" font-size="13" fill="#2dd4bf">🔌 Adapter</text>
+      <text x="135" y="113" text-anchor="middle" font-size="10" fill="#64748b">A→B interface</text>
+
+      <!-- Add behaviour -->
+      <line x1="410" y1="50" x2="410" y2="80" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="420" y="70" font-size="10" fill="#64748b">add behaviour</text>
+      <rect x="310" y="80" width="200" height="44" rx="7" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5"/>
+      <text x="410" y="98" text-anchor="middle" font-size="13" fill="#00d4ff">🎨 Decorator</text>
+      <text x="410" y="113" text-anchor="middle" font-size="10" fill="#64748b">add features, same interface</text>
+
+      <!-- Control access -->
+      <line x1="510" y1="32" x2="605" y2="80" stroke="#475569" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="560" y="66" font-size="10" fill="#64748b">control access</text>
+      <rect x="540" y="80" width="200" height="44" rx="7" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5"/>
+      <text x="640" y="98" text-anchor="middle" font-size="13" fill="#a855f7">🛡️ Proxy</text>
+      <text x="640" y="113" text-anchor="middle" font-size="10" fill="#64748b">access control, same interface</text>
+
+      <!-- Other patterns row 2 -->
+      <rect x="20" y="192" width="165" height="44" rx="7" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" stroke-width="1.5"/>
+      <text x="102" y="210" text-anchor="middle" font-size="13" fill="#00ff88">🏛️ Facade</text>
+      <text x="102" y="225" text-anchor="middle" font-size="10" fill="#64748b">simplify subsystem API</text>
+
+      <rect x="210" y="192" width="165" height="44" rx="7" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" stroke-width="1.5"/>
+      <text x="292" y="210" text-anchor="middle" font-size="13" fill="#f59e0b">🌲 Composite</text>
+      <text x="292" y="225" text-anchor="middle" font-size="10" fill="#64748b">tree of uniform objects</text>
+
+      <rect x="400" y="192" width="165" height="44" rx="7" fill="rgba(249,115,22,0.08)" stroke="rgba(249,115,22,0.3)" stroke-width="1.5"/>
+      <text x="482" y="210" text-anchor="middle" font-size="13" fill="#f97316">🌉 Bridge</text>
+      <text x="482" y="225" text-anchor="middle" font-size="10" fill="#64748b">split abstraction/impl</text>
+
+      <rect x="590" y="192" width="165" height="44" rx="7" fill="rgba(132,204,22,0.08)" stroke="rgba(132,204,22,0.3)" stroke-width="1.5"/>
+      <text x="672" y="210" text-anchor="middle" font-size="13" fill="#84cc16">🪶 Flyweight</text>
+      <text x="672" y="225" text-anchor="middle" font-size="10" fill="#64748b">share intrinsic state</text>
+
+      <!-- Confusable pairs -->
+      <rect x="20" y="258" width="780" height="36" rx="6" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="30" y="273" font-size="11" fill="#64748b">Dễ nhầm:</text>
+      <text x="100" y="273" font-size="11" fill="#2dd4bf">Adapter</text><text x="145" y="273" font-size="11" fill="#64748b"> (convert) ≠ </text>
+      <text x="218" y="273" font-size="11" fill="#00d4ff">Decorator</text><text x="268" y="273" font-size="11" fill="#64748b"> (add) ≠ </text>
+      <text x="318" y="273" font-size="11" fill="#a855f7">Proxy</text><text x="350" y="273" font-size="11" fill="#64748b"> (control)  |  </text>
+      <text x="434" y="273" font-size="11" fill="#f97316">Bridge</text><text x="472" y="273" font-size="11" fill="#64748b"> (split) ≠ </text>
+      <text x="520" y="273" font-size="11" fill="#a855f7">Strategy</text><text x="568" y="273" font-size="11" fill="#64748b"> (swap algo)  |  </text>
+      <text x="640" y="273" font-size="11" fill="#84cc16">Flyweight</text><text x="698" y="273" font-size="11" fill="#64748b"> (share) ≠ </text>
+      <text x="740" y="273" font-size="11" fill="#00d4ff">Cache</text>
+    </svg>
+  </div>
+
+  <h3>Bảng so sánh toàn diện</h3>
+  <table class="tbl">
+    <thead>
+      <tr>
+        <th>Pattern</th><th>Wrap?</th><th>Interface?</th><th>Mục đích</th>
+        <th>Overhead</th><th>Go Idiom</th><th>Test</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="tag t-a">Adapter</span></td>
+        <td>✅ Yes</td><td>Thay đổi</td>
+        <td>Convert incompatible interface</td>
+        <td>Minimal</td>
+        <td><code>struct + implement</code></td>
+        <td>Dễ — test mapping</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-d">Decorator</span></td>
+        <td>✅ Yes</td><td>Giữ nguyên</td>
+        <td>Add cross-cutting concerns</td>
+        <td>1 call per layer</td>
+        <td><code>func(T) T</code></td>
+        <td>Dễ — test each layer</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-p">Proxy</span></td>
+        <td>✅ Yes</td><td>Giữ nguyên</td>
+        <td>Control access / lazy init</td>
+        <td>Auth/cache check</td>
+        <td><code>struct + delegate</code></td>
+        <td>Medium — mock control</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-f">Facade</span></td>
+        <td>⚠️ Hides</td><td>New simple</td>
+        <td>Simplify complex subsystem</td>
+        <td>Orchestration</td>
+        <td><code>service struct</code></td>
+        <td>Integration test</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-co">Composite</span></td>
+        <td>⚠️ Contains</td><td>Uniform</td>
+        <td>Tree structure</td>
+        <td>Recursive traversal</td>
+        <td><code>[]Component</code></td>
+        <td>Test leaf + tree</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-b">Bridge</span></td>
+        <td>⚠️ References</td><td>2 layers</td>
+        <td>Decouple abstraction/impl</td>
+        <td>One indirection</td>
+        <td>Struct holds impl</td>
+        <td>Dễ — mock impl</td>
+      </tr>
+      <tr>
+        <td><span class="tag" style="background:rgba(132,204,22,.1);color:#84cc16;border:1px solid rgba(132,204,22,.2)">Flyweight</span></td>
+        <td>❌ Shares</td><td>Unchanged</td>
+        <td>Reduce memory footprint</td>
+        <td>Factory lookup</td>
+        <td><code>map[key]*shared</code></td>
+        <td>Test immutability</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Bảng phức tạp thời gian / không gian</h3>
+  <table class="tbl">
+    <thead><tr><th>Pattern</th><th>Lookup Time</th><th>Memory</th><th>Runtime coupling</th><th>Compile coupling</th></tr></thead>
+    <tbody>
+      <tr><td><span class="tag t-a">Adapter</span></td>
+        <td class="tc-ok">O(1)</td><td class="tc-ok">+0</td><td>Low</td><td>Med (knows adaptee type)</td></tr>
+      <tr><td><span class="tag t-d">Decorator</span></td>
+        <td class="tc-ok">O(depth)</td><td class="tc-ok">+small</td><td>Low</td><td>Low (same interface)</td></tr>
+      <tr><td><span class="tag t-p">Proxy</span></td>
+        <td class="tc-warn">O(1)+check</td><td class="tc-ok">+small</td><td>Low</td><td>Low (same interface)</td></tr>
+      <tr><td><span class="tag t-f">Facade</span></td>
+        <td class="tc-ok">O(1)</td><td class="tc-ok">+small</td><td>High (orchestrates all)</td><td>High (depends on all)</td></tr>
+      <tr><td><span class="tag t-co">Composite</span></td>
+        <td class="tc-warn">O(n) traverse</td><td class="tc-warn">O(n) tree</td><td>Low</td><td>Med</td></tr>
+      <tr><td><span class="tag t-b">Bridge</span></td>
+        <td class="tc-ok">O(1)</td><td class="tc-ok">+ref</td><td>Low</td><td>Low (two interfaces)</td></tr>
+      <tr><td><span class="tag" style="background:rgba(132,204,22,.1);color:#84cc16;border:1px solid rgba(132,204,22,.2)">Flyweight</span></td>
+        <td class="tc-ok">O(1) cache hit</td><td class="tc-ok">Huge savings</td><td>Low</td><td>Med (knows factory)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>⚡ Pattern Combination Examples</h3>
+  <div class="cg2">
+    <div class="card">
+      <div class="card-title">🔌 + 🎨 Adapter + Decorator</div>
+      <p class="prose" style="font-size:13px;margin:0">Adapt third-party service → domain interface, then decorate với logging/metrics. Thứ tự: <code>WithLogging(NewS3Adapter(s3Client))</code></p>
+    </div>
+    <div class="card">
+      <div class="card-title">🛡️ + 🎨 Proxy + Decorator</div>
+      <p class="prose" style="font-size:13px;margin:0">Cache Proxy (result memoization) bên trong, Logging Decorator bên ngoài: <code>WithLog(NewCacheProxy(real))</code></p>
+    </div>
+    <div class="card">
+      <div class="card-title">🏛️ + 🌲 Facade + Composite</div>
+      <p class="prose" style="font-size:13px;margin:0">Facade expose simple API, internally uses Composite tree để process rules/validation step.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🌉 + 🎨 Bridge + Decorator</div>
+      <p class="prose" style="font-size:13px;margin:0">Bridge tách platform/renderer, Decorator thêm logging hoặc profiling lên implementation side.</p>
+    </div>
+  </div>
+
+  <h3>Anti-Patterns cần tránh</h3>
+  <div class="cg2">
+    <div class="card">
+      <div class="card-title">❌ God Facade</div>
+      <p class="prose" style="font-size:13px;margin:0">Facade trở thành God Object khi expose quá nhiều hoặc có business logic bên trong. Facade nên chỉ <em>orchestrate</em>, không chứa logic.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">❌ Decorator Hell</div>
+      <p class="prose" style="font-size:13px;margin:0">Stack quá nhiều decorator layers làm stack trace khó đọc và debug khó. Mỗi layer cần có 1 trách nhiệm rõ ràng. Không nên có hơn 5-6 layers.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">❌ Proxy Leaking</div>
+      <p class="prose" style="font-size:13px;margin:0">Proxy expose type của real object (via type assertion). Client không bao giờ nên biết hoặc cast về real type — đây là vi phạm encapsulation.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">❌ Mutable Flyweight</div>
+      <p class="prose" style="font-size:13px;margin:0">Flyweight bị sửa bởi một client ảnh hưởng tất cả clients. Flyweight phải immutable sau khi tạo. Nếu cần modify, tạo new flyweight instance qua factory.</p>
+    </div>
+  </div>
+
+  <div class="note n-ok">
+    <div class="ni2">✅</div>
+    <p><strong>Go-specific summary:</strong> Trong Go, <strong>composition + interface</strong> là nền tảng tự nhiên cho structural patterns. Không cần class hierarchy phức tạp. Quy tắc vàng: <em>"Accept interfaces, return concrete types"</em> (Rob Pike). Định nghĩa interface ở phía consumer. Dùng struct embedding thay inheritance. Flyweight qua <code>sync.Map</code> hoặc <code>sync.RWMutex</code> + map cho thread safety.</p>
+  </div>
+</section>
+
+<!-- ═══════════ REFERENCES ═══════════ -->
+<section class="page-section" id="s-refs">
+  <div class="sec-header">
+    <div class="sec-num">★</div>
+    <div><div class="sec-title">References &amp; Tài liệu tham khảo</div>
+    <div class="sec-sub">Nguồn học tập uy tín nhất về Structural Design Patterns trong Go</div></div>
+    <span class="badge b-adv">REFS</span>
+  </div>
+
+  <h3>📚 GitHub Repositories</h3>
+
+  <a class="ref" href="https://github.com/tmrts/go-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(45,212,191,0.1)">🐱</div>
+    <div>
+      <div class="ref-title">go-patterns — tmrts</div>
+      <div class="ref-desc">Curated list of Go design &amp; application patterns, idioms, and best practices. Bao gồm đầy đủ Structural, Behavioral, Creational với Go code sạch, không phụ thuộc framework.</div>
+      <div class="ref-url">github.com/tmrts/go-patterns</div>
+    </div>
+    <div class="ref-stars">⭐ 25k+</div>
+  </a>
+
+  <a class="ref" href="https://github.com/AlexanderGrom/go-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(59,130,246,0.1)">📦</div>
+    <div>
+      <div class="ref-title">go-patterns — AlexanderGrom</div>
+      <div class="ref-desc">Triển khai đầy đủ 23 GoF patterns trong Go. Adapter, Decorator, Proxy, Facade, Composite, Bridge đều có file riêng và runnable examples. Code đơn giản, dễ hiểu.</div>
+      <div class="ref-url">github.com/AlexanderGrom/go-patterns</div>
+    </div>
+    <div class="ref-stars">⭐ 2k+</div>
+  </a>
+
+  <a class="ref" href="https://github.com/uber-go/guide" target="_blank">
+    <div class="ref-icon" style="background:rgba(245,158,11,0.1)">🚖</div>
+    <div>
+      <div class="ref-title">Uber Go Style Guide</div>
+      <div class="ref-desc">Hướng dẫn coding style của Uber. Interface design (consumer-side), embedding, composition, pointer receivers. Nền tảng để implement Adapter &amp; Decorator đúng Go idiom.</div>
+      <div class="ref-url">github.com/uber-go/guide</div>
+    </div>
+    <div class="ref-stars">⭐ 15k+</div>
+  </a>
+
+  <a class="ref" href="https://github.com/golang-standards/project-layout" target="_blank">
+    <div class="ref-icon" style="background:rgba(0,255,136,0.1)">🏗️</div>
+    <div>
+      <div class="ref-title">Go Project Layout Standards</div>
+      <div class="ref-desc">Cấu trúc project Go chuẩn. Facade pattern được dùng trong package API design, internal/ hierarchy. Hiểu layout để apply patterns đúng layer.</div>
+      <div class="ref-url">github.com/golang-standards/project-layout</div>
+    </div>
+    <div class="ref-stars">⭐ 47k+</div>
+  </a>
+
+  <h3>🌐 Online Resources</h3>
+
+  <a class="ref" href="https://refactoring.guru/design-patterns/structural-patterns" target="_blank">
+    <div class="ref-icon" style="background:rgba(249,115,22,0.1)">🔮</div>
+    <div>
+      <div class="ref-title">Refactoring.Guru — Structural Patterns</div>
+      <div class="ref-desc">Giải thích visual, UML, và Go code examples cho tất cả 7 structural patterns (Adapter, Bridge, Composite, Decorator, Facade, Flyweight, Proxy). Đây là tài liệu học patterns tốt nhất hiện tại với animation.</div>
+      <div class="ref-url">refactoring.guru/design-patterns/structural-patterns</div>
+    </div>
+  </a>
+
+  <a class="ref" href="https://go.dev/doc/effective_go" target="_blank">
+    <div class="ref-icon" style="background:rgba(45,212,191,0.1)">📘</div>
+    <div>
+      <div class="ref-title">Effective Go — Official Guide</div>
+      <div class="ref-desc">Interface, embedding, composition — nền tảng Go để hiểu tại sao structural patterns trong Go khác Java. Phần Interfaces &amp; Embedding trực tiếp liên quan đến Adapter &amp; Decorator.</div>
+      <div class="ref-url">go.dev/doc/effective_go</div>
+    </div>
+  </a>
+
+  <a class="ref" href="https://www.oreilly.com/library/view/learning-go/9781492077206/" target="_blank">
+    <div class="ref-icon" style="background:rgba(255,107,107,0.1)">📕</div>
+    <div>
+      <div class="ref-title">Learning Go — Jon Bodner (O'Reilly)</div>
+      <div class="ref-desc">Chapter về Interfaces in Go — duck typing, implicit implementation. Chapter về Composition — embedding, wrapping. Hiểu sâu các cơ chế này là nền tảng để apply structural patterns thành thạo.</div>
+      <div class="ref-url">oreilly.com/library/view/learning-go</div>
+    </div>
+  </a>
+
+  <hr class="divider">
+
+  <h3>📊 Structural Patterns Comparison</h3>
+  <table class="tbl">
+    <thead><tr><th>Pattern</th><th>Mục đích chính</th><th>Interface</th><th>Go Idiom</th><th>Khi nào dùng</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="tag t-a">Adapter</span></td>
+        <td>Convert interface A → B</td>
+        <td>Khác nhau</td>
+        <td>Struct wrap + implement</td>
+        <td>Third-party / legacy integration</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-d">Decorator</span></td>
+        <td>Thêm behavior</td>
+        <td>Giống nhau</td>
+        <td>Middleware / func wrap</td>
+        <td>Cross-cutting: log, metric, cache</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-p">Proxy</span></td>
+        <td>Kiểm soát truy cập</td>
+        <td>Giống nhau</td>
+        <td>Struct wrap + control logic</td>
+        <td>Cache, auth, lazy init, remote</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-f">Facade</span></td>
+        <td>Đơn giản hóa API</td>
+        <td>High-level mới</td>
+        <td>Orchestrator struct</td>
+        <td>Complex subsystem, service layer</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-co">Composite</span></td>
+        <td>Part-whole tree</td>
+        <td>Uniform interface</td>
+        <td>Recursive component slice</td>
+        <td>File system, UI tree, rule engine</td>
+      </tr>
+      <tr>
+        <td><span class="tag t-b">Bridge</span></td>
+        <td>Tách abstraction/impl</td>
+        <td>2 interface layers</td>
+        <td>Abstraction holds impl ref</td>
+        <td>Cross-platform, multi-driver</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note n-ok">
+    <div class="ni2">✅</div>
+    <p><strong>Go-specific insight:</strong> Trong Go, Adapter, Decorator, và Proxy trông rất giống nhau về cấu trúc code (đều wrap một struct và implement cùng interface). Cách phân biệt: <strong>Adapter</strong> = interface không khớp (phải convert), <strong>Decorator</strong> = thêm behavior vào cùng interface, <strong>Proxy</strong> = kiểm soát access vào cùng behavior. <em>Mục đích</em> quyết định pattern, không phải cấu trúc code.</p>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + id);
+  if (t) t.classList.add('active');
+  
+  // Sync the navigation highlights
+  document.querySelectorAll('.nav-item, .tnav').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + id + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // Smooth scroll to top of page/main container
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind dynamic click events for sidebar, topnav, opc cards, and tags
+document.querySelectorAll('.nav-item, .tnav, .opc, .tag').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  const target = el.getAttribute('data-target') || oc?.match(/show\('([^']+)'\)/)?.[1];
+  if (target) {
+    // Save original click handler target in dataset to assist highlighting
+    el.dataset.onclick = oc;
+    el.removeAttribute('onclick'); // prevent double execution
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      show(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL (e.g. from links or Obsidian page jumps)
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    show(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+window.addEventListener('DOMContentLoaded', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    show(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'intro'
+    const activeSec = document.querySelector('.page-section.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      show(activeId);
+    }
+  }
+});
+
+// Setup copy code buttons
+document.querySelectorAll('.cb').forEach(block => {
+  const h = block.querySelector('.ch');
+  if (h && !h.querySelector('.copy-btn')) {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn'; btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(block.querySelector('pre').innerText).then(() => {
+        btn.textContent = '✓ Copied'; btn.style.color = '#2dd4bf'; btn.style.borderColor = '#2dd4bf';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; btn.style.borderColor = ''; }, 1800);
+      });
+    });
+    h.appendChild(btn);
+  }
+});
+</script>
+</body>
+</html>
