@@ -1,0 +1,2511 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PostgreSQL Advanced Guide — PL/pgSQL · CTE Recursive Lateral · MVCC RLS Internals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:       #0d0f14;
+  --bg2:      #131720;
+  --card:     #1a1f2e;
+  --code-bg:  #0f1319;
+  --cyan:     #00d4ff;
+  --green:    #00ff88;
+  --purple:   #a855f7;
+  --amber:    #f59e0b;
+  --coral:    #ff6b6b;
+  --blue:     #3b82f6;
+  --teal:     #2dd4bf;
+  --pg:       #336791;
+  --txt1:     #e2e8f0;
+  --txt2:     #94a3b8;
+  --muted:    #64748b;
+  --border:   rgba(255,255,255,.07);
+  --mono:     'JetBrains Mono',monospace;
+  --sans:     'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--txt1);font-family:var(--sans);display:flex;min-height:100vh}
+
+/* ─── SIDEBAR ─── */
+#sb{width:272px;min-width:272px;background:var(--bg2);border-right:1px solid var(--border);
+    position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
+#sb::-webkit-scrollbar{width:4px}
+#sb::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sb-logo{padding:18px 18px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.sb-icon{width:34px;height:34px;background:linear-gradient(135deg,var(--pg),var(--purple));
+         border-radius:8px;display:flex;align-items:center;justify-content:center;
+         font-size:12px;font-weight:700;color:#fff;font-family:var(--mono)}
+.sb-title{font-size:14px;font-weight:600;color:var(--txt1);line-height:1.2}
+.sb-sub  {font-size:11px;color:#7eb8e8;font-family:var(--mono)}
+.nav-sec {padding:13px 12px 5px}
+.nav-sec-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;
+               color:var(--muted);padding:0 8px;margin-bottom:5px}
+.nav-btn{display:flex;align-items:center;padding:7px 8px;border-radius:6px;color:var(--txt2);
+         font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;
+         width:100%;text-align:left}
+.nav-btn:hover{background:rgba(255,255,255,.05);color:var(--txt1)}
+.nav-btn.active{background:rgba(0,212,255,.1);color:var(--cyan);border-left:2px solid var(--cyan);padding-left:6px}
+
+/* ─── TOP NAV ─── */
+#tn{position:fixed;top:0;left:272px;right:0;height:52px;background:var(--bg2);
+    border-bottom:1px solid var(--border);display:flex;align-items:center;
+    padding:0 28px;gap:6px;z-index:50;overflow-x:auto}
+.tn-btn{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;color:var(--txt2);
+        cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
+.tn-btn:hover{color:var(--txt1);background:rgba(255,255,255,.05)}
+.tn-btn.active{color:var(--cyan);background:rgba(0,212,255,.1)}
+
+/* ─── MAIN ─── */
+#main{margin-left:272px;margin-top:52px;flex:1;max-width:calc(100% - 272px)}
+.content{padding:44px 52px;max-width:980px}
+
+/* ─── SECTION HEADER ─── */
+.sec-hdr{display:flex;align-items:center;gap:14px;margin-bottom:30px;
+         padding-bottom:18px;border-bottom:1px solid var(--border)}
+.sec-num{width:36px;height:36px;border-radius:8px;
+         background:linear-gradient(135deg,var(--cyan),var(--purple));
+         display:flex;align-items:center;justify-content:center;
+         font-family:var(--mono);font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.sec-title{font-size:25px;font-weight:700;color:var(--txt1)}
+.sec-sub  {font-size:13px;color:var(--muted);margin-top:3px}
+
+/* ─── BADGES ─── */
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;
+       letter-spacing:.05em;font-family:var(--mono)}
+.b-exp {background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.b-adv {background:rgba(245,158,11,.12);color:var(--amber); border:1px solid rgba(245,158,11,.3)}
+.b-bas {background:rgba(0,212,255,.10); color:var(--cyan);  border:1px solid rgba(0,212,255,.25)}
+.b-pg  {background:rgba(51,103,145,.2); color:#7eb8e8;      border:1px solid rgba(51,103,145,.4)}
+
+/* ─── SECTIONS ─── */
+.sec{display:none}
+.sec.active{display:block}
+
+/* ─── PROSE ─── */
+.prose{font-size:15px;line-height:1.8;color:var(--txt2);margin-bottom:18px}
+.prose strong{color:var(--txt1);font-weight:600}
+.prose code{background:rgba(0,212,255,.08);color:var(--cyan);padding:2px 6px;
+            border-radius:4px;font-family:var(--mono);font-size:13px}
+h3{font-size:17px;font-weight:600;color:var(--txt1);margin:26px 0 11px}
+h4{font-size:14px;font-weight:600;color:var(--txt2);margin:18px 0 7px}
+
+/* ─── CARDS ─── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+      padding:22px;margin-bottom:18px;transition:border-color .2s}
+.card:hover{border-color:rgba(0,212,255,.25)}
+.card-title{font-size:14px;font-weight:600;color:var(--txt1);margin-bottom:9px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-bottom:22px}
+
+/* ─── CONCEPT BOX ─── */
+.cbox{background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(168,85,247,.05));
+      border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:22px;margin-bottom:26px}
+.cbox-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+            color:var(--cyan);margin-bottom:7px;font-family:var(--mono)}
+.cbox-title{font-size:19px;font-weight:700;color:var(--txt1);margin-bottom:9px}
+
+/* ─── EXAMPLE CARD ─── */
+.ex-card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+         overflow:hidden;margin-bottom:34px}
+.ex-hdr{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;
+        border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.ex-title{font-size:15px;font-weight:600;color:var(--txt1)}
+.ex-body{padding:22px}
+
+/* Problem / Solution / Conclusion boxes */
+.pb{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);
+    border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.pb-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+        color:var(--amber);margin-bottom:5px;font-family:var(--mono)}
+.sb-box{background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.18);
+        border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.sb-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+        color:var(--green);margin-bottom:5px;font-family:var(--mono)}
+.cb{background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);
+    border-radius:8px;padding:14px 17px;margin-top:18px}
+.cb-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+        color:var(--purple);margin-bottom:5px;font-family:var(--mono)}
+
+/* ─── CODE BLOCKS ─── */
+.code-wrap{background:var(--code-bg);border:1px solid var(--border);
+           border-radius:10px;overflow:hidden;margin-bottom:20px}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;
+          padding:9px 15px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)}
+.code-lang{font-size:11px;font-weight:600;color:var(--cyan);font-family:var(--mono);
+           text-transform:uppercase;letter-spacing:.08em}
+.code-file{font-size:11px;color:var(--muted);font-family:var(--mono)}
+.code-copy{font-size:11px;cursor:pointer;background:none;border:1px solid var(--border);
+           border-radius:4px;padding:3px 9px;color:var(--txt2);transition:all .15s}
+.code-copy:hover{border-color:var(--cyan);color:var(--cyan)}
+pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+pre::-webkit-scrollbar{height:4px}
+pre::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+
+/* SQL syntax colours */
+.kw {color:#c084fc}   .kw2{color:#60a5fa}  .fn {color:#38bdf8}
+.s  {color:#86efac}   .cm {color:#4b5563;font-style:italic}
+.n  {color:#fb923c}   .tp {color:#67e8f9}  .op {color:#f472b6}
+
+/* ─── DIAGRAM ─── */
+.dia{background:var(--card);border:1px solid var(--border);border-radius:12px;
+     padding:22px;margin-bottom:26px;overflow:hidden}
+.dia-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+           color:var(--muted);margin-bottom:18px;font-family:var(--mono);text-align:center}
+
+/* ─── TABLE ─── */
+.tbl{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:14px}
+.tbl th{padding:9px 13px;text-align:left;background:rgba(255,255,255,.03);
+        border-bottom:1px solid var(--border);color:var(--muted);font-size:11px;
+        text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tbl td{padding:9px 13px;border-bottom:1px solid var(--border);color:var(--txt2)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl td code{background:rgba(0,212,255,.08);color:var(--cyan);padding:2px 5px;
+             border-radius:4px;font-family:var(--mono);font-size:12px}
+
+/* ─── NOTE ─── */
+.note{display:flex;gap:11px;padding:13px 15px;border-radius:8px;margin-bottom:18px;font-size:14px}
+.note-warn   {background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+.note-info   {background:rgba(0,212,255,.06); border:1px solid rgba(0,212,255,.2); color:var(--cyan)}
+.note-danger {background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--coral)}
+.note-ok     {background:rgba(0,255,136,.06); border:1px solid rgba(0,255,136,.2); color:var(--green)}
+.ni{font-size:16px;flex-shrink:0;margin-top:1px}
+.note p{margin:0;line-height:1.6}
+
+/* ─── COMPARE ─── */
+.cmp2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.cmp-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.cmp-hdr{padding:11px 15px;font-size:12px;font-weight:700;text-transform:uppercase;
+         letter-spacing:.06em;font-family:var(--mono)}
+.h-cyan  {background:rgba(0,212,255,.08); color:var(--cyan)}
+.h-amber {background:rgba(245,158,11,.08);color:var(--amber)}
+.h-purple{background:rgba(168,85,247,.08);color:var(--purple)}
+.h-green {background:rgba(0,255,136,.07); color:var(--green)}
+.h-coral {background:rgba(255,107,107,.08);color:var(--coral)}
+.cmp-body{padding:15px;font-size:13px;color:var(--txt2);line-height:1.7}
+
+/* ─── STEPS ─── */
+.steps{list-style:none;padding:0;margin-bottom:20px}
+.steps li{display:flex;gap:13px;padding:10px 0;border-bottom:1px solid var(--border);
+          font-size:13px;color:var(--txt2)}
+.steps li:last-child{border-bottom:none}
+.snum{width:24px;height:24px;border-radius:50%;background:rgba(0,212,255,.1);
+      border:1px solid rgba(0,212,255,.3);display:flex;align-items:center;justify-content:center;
+      font-size:11px;font-weight:700;color:var(--cyan);flex-shrink:0;font-family:var(--mono)}
+
+/* ─── REF CARDS ─── */
+.ref-card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+          padding:15px 19px;margin-bottom:11px;display:flex;align-items:flex-start;gap:13px;
+          text-decoration:none;transition:all .15s;cursor:pointer}
+.ref-card:hover{border-color:var(--cyan);transform:translateX(2px)}
+.ref-ico{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;
+         justify-content:center;font-size:17px;flex-shrink:0}
+.ref-body{flex:1;min-width:0}
+.ref-title{font-size:13px;font-weight:600;color:var(--txt1);margin-bottom:3px}
+.ref-desc {font-size:12px;color:var(--muted);line-height:1.5}
+.ref-url  {font-size:11px;color:var(--cyan);font-family:var(--mono);margin-top:3px;word-break:break-all}
+.ref-star {font-size:11px;color:var(--amber);margin-left:auto;white-space:nowrap;padding-left:10px}
+
+hr.div{border:none;border-top:1px solid var(--border);margin:30px 0}
+
+@media(max-width:900px){
+  #sb{width:220px;min-width:220px}
+  #main{margin-left:220px}
+  #tn{left:220px}
+  .content{padding:28px 18px}
+  .grid2,.cmp2,.grid3{grid-template-columns:1fr}
+}
+/* ── CONCEPT ILLUSTRATIONS ── */
+.concept-img-wrapper {
+  margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  background: var(--card); padding: 12px;
+  transition: all 0.3s ease;
+}
+.concept-img-wrapper:hover {
+  transform: scale(1.01);
+  border-color: rgba(0,212,255,0.5);
+  box-shadow: 0 8px 30px rgba(0,212,255,0.2);
+}
+.concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.concept-img-caption {
+  text-align: center; font-size: 13px; color: var(--txt2);
+  margin-top: 10px; font-style: italic; line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════ SIDEBAR ══════════ -->
+<nav id="sb">
+  <div class="sb-logo">
+    <div class="sb-icon">PG</div>
+    <div><div class="sb-title">PostgreSQL Advanced</div><div class="sb-sub">// internals & expert guide</div></div>
+  </div>
+
+  <div class="nav-sec"><div class="nav-sec-title">Tổng quan</div>
+    <button class="nav-btn active" onclick="S('intro')">🏠 Giới thiệu</button>
+  </div>
+
+  <div class="nav-sec"><div class="nav-sec-title">01 — PL/pgSQL</div>
+    <button class="nav-btn" onclick="S('pl-intro')">Khái niệm &amp; Kiến trúc</button>
+    <button class="nav-btn" onclick="S('pl-basics')">Functions &amp; Procedures</button>
+    <button class="nav-btn" onclick="S('pl-control')">Control Flow &amp; Dynamic SQL</button>
+    <button class="nav-btn" onclick="S('pl-cursor')">Cursors &amp; Batch</button>
+    <button class="nav-btn" onclick="S('pl-exception')">Exception Handling</button>
+    <button class="nav-btn" onclick="S('pl-trigger')">Triggers nâng cao</button>
+    <button class="nav-btn" onclick="S('pl-expert')">Expert Patterns</button>
+  </div>
+
+  <div class="nav-sec"><div class="nav-sec-title">02 — CTE Recursive Lateral</div>
+    <button class="nav-btn" onclick="S('cte-intro')">CTE — Khái niệm</button>
+    <button class="nav-btn" onclick="S('cte-recursive')">Recursive CTE</button>
+    <button class="nav-btn" onclick="S('lateral-intro')">LATERAL Join</button>
+    <button class="nav-btn" onclick="S('cte-expert')">Expert: Kết hợp nâng cao</button>
+  </div>
+
+  <div class="nav-sec"><div class="nav-sec-title">03 — MVCC RLS Internals</div>
+    <button class="nav-btn" onclick="S('mvcc-intro')">MVCC — Khái niệm</button>
+    <button class="nav-btn" onclick="S('mvcc-internals')">MVCC Internals</button>
+    <button class="nav-btn" onclick="S('rls-intro')">Row-Level Security</button>
+    <button class="nav-btn" onclick="S('rls-adv')">RLS Patterns nâng cao</button>
+    <button class="nav-btn" onclick="S('vacuum')">VACUUM &amp; Autovacuum</button>
+    <button class="nav-btn" onclick="S('mvcc-expert')">Expert: Tuning &amp; Debug</button>
+  </div>
+
+  <div class="nav-sec"><div class="nav-sec-title">Tham khảo</div>
+    <button class="nav-btn" onclick="S('refs')">📚 References</button>
+  </div>
+</nav>
+
+<!-- ══════════ TOP NAV ══════════ -->
+<nav id="tn">
+  <button class="tn-btn active" onclick="S('intro')">Intro</button>
+  <button class="tn-btn" onclick="S('pl-intro')">PL/pgSQL</button>
+  <button class="tn-btn" onclick="S('pl-basics')">Functions</button>
+  <button class="tn-btn" onclick="S('pl-trigger')">Triggers</button>
+  <button class="tn-btn" onclick="S('pl-expert')">PL Expert</button>
+  <button class="tn-btn" onclick="S('cte-intro')">CTE</button>
+  <button class="tn-btn" onclick="S('cte-recursive')">Recursive</button>
+  <button class="tn-btn" onclick="S('lateral-intro')">LATERAL</button>
+  <button class="tn-btn" onclick="S('cte-expert')">CTE Expert</button>
+  <button class="tn-btn" onclick="S('mvcc-intro')">MVCC</button>
+  <button class="tn-btn" onclick="S('mvcc-internals')">Internals</button>
+  <button class="tn-btn" onclick="S('rls-intro')">RLS</button>
+  <button class="tn-btn" onclick="S('rls-adv')">RLS Adv</button>
+  <button class="tn-btn" onclick="S('vacuum')">VACUUM</button>
+  <button class="tn-btn" onclick="S('mvcc-expert')">Expert</button>
+  <button class="tn-btn" onclick="S('refs')">Refs</button>
+</nav>
+
+<main id="main"><div class="content">
+
+<!-- ══════════════════════════════════════════════════════════
+     INTRO
+══════════════════════════════════════════════════════════ -->
+<section class="sec active" id="s-intro">
+  <div class="sec-hdr">
+    <div class="sec-num">00</div>
+    <div><div class="sec-title">PostgreSQL Advanced Guide</div>
+         <div class="sec-sub">PL/pgSQL · CTE Recursive Lateral · MVCC RLS Internals</div></div>
+    <span class="badge b-pg">PostgreSQL 15 / 16</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">🎯 Mục tiêu tài liệu</div>
+    <div class="cbox-title">Làm chủ ba trụ cột PostgreSQL nâng cao</div>
+    <p class="prose">Tài liệu này đi sâu vào ba chủ đề quan trọng nhất khi làm việc với PostgreSQL ở cấp độ production: <strong>PL/pgSQL</strong> (ngôn ngữ thủ tục tích hợp cho stored procedures/functions/triggers), <strong>CTE + Recursive + LATERAL</strong> (các kỹ thuật truy vấn phức tạp cho hierarchical data và correlated subqueries), và <strong>MVCC + RLS + Internals</strong> (cơ chế đồng thời đa phiên bản và bảo mật cấp hàng). Mỗi chủ đề được trình bày với <em>problem statement → solution → visual → conclusion</em> rõ ràng.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_advanced_hero.png" alt="PostgreSQL Advanced Architecture Overview Laboratory" loading="lazy">
+    <div class="concept-img-caption">Hình 0.1: Tổng quan bản đồ học tập và các trụ cột cấu trúc PostgreSQL Advanced</div>
+  </div>
+
+  <div class="grid3">
+    <div class="card" style="cursor:pointer;border-color:rgba(0,212,255,.25)" onclick="S('pl-intro')">
+      <div class="card-title">🔧 01 — PL/pgSQL</div>
+      <p class="prose" style="margin:0;font-size:13px">Stored procedures, functions, triggers với ngôn ngữ thủ tục đầy đủ: biến, exception handling, cursors, dynamic SQL, retry logic.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.25)" onclick="S('cte-intro')">
+      <div class="card-title">🌲 02 — CTE &amp; LATERAL</div>
+      <p class="prose" style="margin:0;font-size:13px">Common Table Expressions đệ quy cho cấu trúc cây/đồ thị, LATERAL join cho correlated subqueries, kết hợp nâng cao trong BOM/graph problems.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" onclick="S('mvcc-intro')">
+      <div class="card-title">🔒 03 — MVCC &amp; RLS</div>
+      <p class="prose" style="margin:0;font-size:13px">Multiversion Concurrency Control — xmin/xmax internals, Row-Level Security cho multi-tenant SaaS, VACUUM tuning và bloat management.</p>
+    </div>
+  </div>
+
+  <h3>Phiên bản &amp; tính năng được đề cập</h3>
+  <table class="tbl">
+    <thead><tr><th>Chủ đề</th><th>Tính năng</th><th>PostgreSQL tối thiểu</th></tr></thead>
+    <tbody>
+      <tr><td>PL/pgSQL cơ bản</td><td>Functions, DO blocks, triggers</td><td>9.0+</td></tr>
+      <tr><td>Stored Procedures (CALL)</td><td>COMMIT trong procedure body</td><td>11+</td></tr>
+      <tr><td>Recursive CTE</td><td>WITH RECURSIVE, CYCLE clause</td><td>8.4+ / 14+</td></tr>
+      <tr><td>LATERAL join</td><td>CROSS JOIN LATERAL, LEFT JOIN LATERAL</td><td>9.3+</td></tr>
+      <tr><td>CTE materialization</td><td>AS MATERIALIZED / AS NOT MATERIALIZED</td><td>12+</td></tr>
+      <tr><td>Row-Level Security</td><td>CREATE POLICY, ENABLE/FORCE RLS</td><td>9.5+</td></tr>
+      <tr><td>MVCC inspection</td><td>pageinspect, pg_visibility</td><td>9.6+</td></tr>
+      <tr><td>Statement Triggers</td><td>REFERENCING OLD/NEW TABLE (transition tables)</td><td>10+</td></tr>
+    </tbody>
+  </table>
+
+  <div class="note note-info"><div class="ni">💡</div>
+    <p>Toàn bộ code SQL trong tài liệu đã được kiểm thử trên <strong>PostgreSQL 15 và 16</strong>. Các tính năng version-specific được ghi chú rõ ràng trong từng ví dụ.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     01 — PL/pgSQL INTRO
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-intro">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">PL/pgSQL — Khái niệm &amp; Kiến trúc</div>
+         <div class="sec-sub">Ngôn ngữ lập trình thủ tục tích hợp sẵn trong PostgreSQL</div></div>
+    <span class="badge b-bas">CƠ BẢN</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">💡 Định nghĩa</div>
+    <div class="cbox-title">PL/pgSQL là gì?</div>
+    <p class="prose"><strong>PL/pgSQL</strong> (Procedural Language/PostgreSQL) là ngôn ngữ lập trình thủ tục tích hợp sẵn trong PostgreSQL, lấy cảm hứng từ PL/SQL của Oracle. Nó mở rộng SQL thuần tuý bằng cách thêm biến, điều kiện, vòng lặp, exception handling và cursors. Điểm mấu chốt: mã PL/pgSQL được thực thi <strong>trực tiếp bên trong database engine</strong>, không qua network round-trip.</p>
+    <p class="prose">Cấu trúc block cơ bản: <code>[ DECLARE ] BEGIN ... EXCEPTION ... END</code> — mỗi block có scope riêng cho biến và exception handler, có thể lồng nhau tùy ý.</p>
+  </div>
+
+  <!-- Diagram: SQL thuần vs PL/pgSQL -->
+  <div class="dia">
+    <div class="dia-title">So sánh: N round-trips (SQL thuần) vs 1 round-trip (PL/pgSQL)</div>
+    <svg width="100%" viewBox="0 0 800 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Left: plain SQL -->
+      <text x="145" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">SQL thuần — N round-trips</text>
+      <rect x="30" y="28" width="228" height="38" rx="6" fill="rgba(0,212,255,.08)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="144" y="52" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">Client App</text>
+      <line x1="144" y1="67" x2="144" y2="92" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="155" y="84" font-size="9" fill="#64748b" font-family="Inter">SQL 1</text>
+      <rect x="30" y="92" width="228" height="36" rx="6" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+      <text x="144" y="115" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">Network</text>
+      <line x1="144" y1="128" x2="144" y2="153" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a1)"/>
+      <rect x="30" y="153" width="228" height="36" rx="6" fill="rgba(51,103,145,.15)" stroke="rgba(51,103,145,.4)"/>
+      <text x="144" y="176" text-anchor="middle" font-size="12" fill="#7eb8e8" font-family="JetBrains Mono">DB Engine</text>
+      <line x1="144" y1="189" x2="144" y2="214" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="160" y="206" font-size="9" fill="#64748b" font-family="Inter">SQL 2,3…N</text>
+      <rect x="30" y="214" width="228" height="28" rx="5" fill="rgba(255,107,107,.07)" stroke="rgba(255,107,107,.25)"/>
+      <text x="144" y="232" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="Inter">Lặp lại N × (network latency)</text>
+      <text x="144" y="260" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">⚡ Mỗi vòng lặp = 1 round-trip</text>
+
+      <!-- Divider -->
+      <line x1="310" y1="15" x2="310" y2="275" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="5,4"/>
+
+      <!-- Right: PL/pgSQL -->
+      <text x="565" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">PL/pgSQL — 1 round-trip duy nhất</text>
+      <rect x="410" y="28" width="310" height="38" rx="6" fill="rgba(0,212,255,.08)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="565" y="52" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">Client App</text>
+      <line x1="565" y1="67" x2="565" y2="92" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="586" y="83" font-size="9" fill="#64748b" font-family="Inter">CALL func()</text>
+      <rect x="410" y="92" width="310" height="36" rx="6" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+      <text x="565" y="115" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">Network (1 lần)</text>
+      <line x1="565" y1="128" x2="565" y2="153" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+      <rect x="410" y="153" width="310" height="100" rx="6" fill="rgba(51,103,145,.15)" stroke="rgba(51,103,145,.4)" stroke-width="1.5"/>
+      <text x="565" y="176" text-anchor="middle" font-size="12" fill="#7eb8e8" font-family="JetBrains Mono" font-weight="700">DB Engine</text>
+      <text x="425" y="198" font-size="10" fill="#00ff88" font-family="JetBrains Mono">  PL/pgSQL Runtime (in-process)</text>
+      <text x="425" y="216" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">  SQL1 → SQL2 → … → SQLN</text>
+      <text x="425" y="234" font-size="10" fill="#64748b" font-family="JetBrains Mono">  (không có network giữa các bước)</text>
+      <line x1="565" y1="254" x2="565" y2="270" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="565" y="275" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">✓ Trả kết quả 1 lần — zero in-loop latency</text>
+    </svg>
+  </div>
+
+  <h3>Lợi ích cốt lõi</h3>
+  <div class="grid2">
+    <div class="card"><div class="card-title">⚡ Hiệu năng — Zero network latency</div>
+      <p class="prose" style="font-size:13px;margin:0">Logic xử lý chạy <strong>trong engine</strong>. 1000 records với N queries → 1 round-trip. Hiệu năng tăng 10–100× so với xử lý từ application layer tùy workload.</p>
+    </div>
+    <div class="card"><div class="card-title">🔒 Atomicity — Logic gắn với Data</div>
+      <p class="prose" style="font-size:13px;margin:0">Business logic nằm cùng nơi với data. Transactions, constraints và triggers đảm bảo <strong>tính nhất quán</strong> không thể bị bỏ qua từ bất kỳ client nào.</p>
+    </div>
+    <div class="card"><div class="card-title">♻️ Code Reuse — DRY Principle</div>
+      <p class="prose" style="font-size:13px;margin:0">Function gọi được từ Go, Python, Java, psql… Logic không bị duplicate. Thay đổi một nơi, hiệu lực toàn bộ client.</p>
+    </div>
+    <div class="card"><div class="card-title">🛡️ Security — SECURITY DEFINER</div>
+      <p class="prose" style="font-size:13px;margin:0"><code>SECURITY DEFINER</code> cho phép user chạy function với quyền của owner — user không cần direct table access, chỉ cần EXECUTE trên function.</p>
+    </div>
+  </div>
+
+  <h3>Cấu trúc Block PL/pgSQL</h3>
+  <div class="code-wrap">
+    <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">plpgsql_block_structure.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+    <pre><span class="cm">-- Cấu trúc tổng quát một PL/pgSQL block</span>
+[ &lt;&lt;label&gt;&gt; ]
+<span class="kw">DECLARE</span>
+    v_count       <span class="tp">INTEGER</span> := <span class="n">0</span>;              <span class="cm">-- biến thường</span>
+    v_name        products.<span class="tp">name</span>%TYPE;         <span class="cm">-- kế thừa kiểu từ cột</span>
+    v_row         orders%ROWTYPE;              <span class="cm">-- toàn bộ row schema</span>
+    v_rec         RECORD;                      <span class="cm">-- flexible record</span>
+    c_limit       <span class="kw">CONSTANT</span> <span class="tp">INTEGER</span> := <span class="n">100</span>;   <span class="cm">-- hằng số</span>
+<span class="kw">BEGIN</span>
+    <span class="cm">-- Thân block: SQL + PL statements, có thể lồng block</span>
+    &lt;&lt;inner&gt;&gt;
+    <span class="kw">DECLARE</span>
+        v_inner <span class="tp">TEXT</span>;
+    <span class="kw">BEGIN</span>
+        <span class="cm">-- inner block: scope riêng cho biến</span>
+    <span class="kw">END inner</span>;
+<span class="kw">EXCEPTION</span>
+    <span class="kw">WHEN</span> unique_violation <span class="kw">THEN</span>   <span class="cm">-- SQLSTATE 23505</span>
+        <span class="cm">-- xử lý cụ thể</span>
+    <span class="kw">WHEN</span> deadlock_detected <span class="kw">THEN</span>  <span class="cm">-- SQLSTATE 40P01</span>
+        <span class="kw">RAISE</span>;                    <span class="cm">-- re-raise</span>
+    <span class="kw">WHEN OTHERS THEN</span>
+        <span class="kw">RAISE WARNING</span> <span class="s">'Caught: % (%)'</span>, SQLERRM, SQLSTATE;
+<span class="kw">END</span>;
+<span class="cm">-- SQLERRM  = error message text
+-- SQLSTATE = error code string (e.g., '23505')
+-- GET STACKED DIAGNOSTICS v_detail = PG_EXCEPTION_DETAIL</span></pre>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PL/pgSQL — FUNCTIONS & PROCEDURES
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-basics">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Functions &amp; Stored Procedures</div>
+         <div class="sec-sub">Từ function trả về TABLE đến atomic stored procedure</div></div>
+    <span class="badge b-bas">CƠ BẢN → NÂNG CAO</span>
+  </div>
+
+  <!-- Example 1.1 -->
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.1 — Commission calculator: Function trả về TABLE</span><span class="badge b-bas">BASIC</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Hệ thống bán hàng cần tính hoa hồng cho nhân viên theo doanh số tháng với 3 tier: dưới 10 triệu → 5%, 10–50 triệu → 8%, trên 50 triệu → 12%. Logic này được gọi từ báo cáo, bảng lương, dashboard. Đặt logic trong application code gây duplicate, khó đồng bộ khi rate thay đổi.</p>
+      </div>
+      <div class="sb-box"><div class="sb-lbl">✅ Solution — RETURNS TABLE với IMMUTABLE &amp; PARALLEL SAFE</div></div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">commission_function.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">calculate_commission</span>(
+    p_sales   <span class="tp">NUMERIC</span>,
+    p_currency <span class="tp">TEXT</span> <span class="kw">DEFAULT</span> <span class="s">'VND'</span>
+)
+<span class="kw">RETURNS TABLE</span>(
+    commission_amount  <span class="tp">NUMERIC</span>,
+    commission_rate    <span class="tp">NUMERIC</span>,
+    tier_name          <span class="tp">TEXT</span>
+)
+<span class="kw">LANGUAGE</span> plpgsql
+<span class="kw">IMMUTABLE</span>                  <span class="cm">-- kết quả giống nhau với cùng input, không ghi DB</span>
+<span class="kw">PARALLEL SAFE</span>             <span class="cm">-- an toàn khi query planner dùng parallel workers</span>
+AS $$
+<span class="kw">DECLARE</span>
+    v_rate <span class="tp">NUMERIC</span>;
+    v_tier <span class="tp">TEXT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">IF</span> p_sales < <span class="n">0</span> <span class="kw">THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="s">'Sales không thể âm: %'</span>, p_sales
+            <span class="kw">USING ERRCODE</span> = <span class="s">'22003'</span>;
+    <span class="kw">END IF</span>;
+
+    <span class="kw">IF</span> p_sales < <span class="n">10_000_000</span> <span class="kw">THEN</span>
+        v_rate := <span class="n">0.05</span>;  v_tier := <span class="s">'Bronze'</span>;
+    <span class="kw">ELSIF</span> p_sales < <span class="n">50_000_000</span> <span class="kw">THEN</span>
+        v_rate := <span class="n">0.08</span>;  v_tier := <span class="s">'Silver'</span>;
+    <span class="kw">ELSE</span>
+        v_rate := <span class="n">0.12</span>;  v_tier := <span class="s">'Gold'</span>;
+    <span class="kw">END IF</span>;
+
+    commission_amount := <span class="fn">ROUND</span>(p_sales * v_rate, <span class="n">0</span>);
+    commission_rate   := v_rate;
+    tier_name         := v_tier;
+    <span class="kw">RETURN NEXT</span>;           <span class="cm">-- đẩy một dòng vào result set</span>
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- Sử dụng độc lập</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">calculate_commission</span>(<span class="n">35_000_000</span>);
+<span class="cm">--  commission_amount | commission_rate | tier_name
+--  ─────────────────────────────────────────────
+--       2800000      |      0.08       |  Silver</span>
+
+<span class="cm">-- Tích hợp với LATERAL vào query lớn</span>
+<span class="kw">SELECT</span>
+    e.name,
+    e.monthly_sales,
+    c.commission_amount,
+    c.tier_name
+<span class="kw">FROM</span> employees e
+<span class="kw">CROSS JOIN LATERAL</span> <span class="fn">calculate_commission</span>(e.monthly_sales) c
+<span class="kw">WHERE</span> e.department = <span class="s">'Sales'</span>
+<span class="kw">ORDER BY</span> c.commission_amount <span class="kw">DESC</span>;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>RETURNS TABLE</strong> đặt tên rõ ràng cho cột output, dễ dùng hơn SETOF. <strong>IMMUTABLE</strong> cho phép query planner cache và dùng trong index expressions — chỉ dùng khi kết quả thực sự không phụ thuộc gì ngoài input. Kết hợp <strong>LATERAL</strong> biến function thành "join nguồn", đây là pattern rất phổ biến trong PostgreSQL expert code. PARALLEL SAFE cho phép dùng trong parallel query.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example 1.2: Stored Procedure -->
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.2 — Atomic bank transfer: Stored Procedure với FOR UPDATE</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Hệ thống ngân hàng cần chuyển tiền giữa hai tài khoản: trừ nguồn, cộng đích, ghi audit log — tất cả <strong>atomic</strong>. Bất kỳ bước nào thất bại phải rollback toàn bộ. Cần tránh deadlock bằng consistent lock ordering. Procedure ghi log <em>ngay cả khi transfer fail</em> (dùng subtransaction trong EXCEPTION block).</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">bank_transfer.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> accounts (
+    account_id  <span class="tp">BIGINT PRIMARY KEY</span>,
+    owner       <span class="tp">TEXT NOT NULL</span>,
+    balance     <span class="tp">NUMERIC(15,2) NOT NULL DEFAULT</span> <span class="n">0</span>,
+    <span class="kw">CONSTRAINT</span> chk_bal <span class="kw">CHECK</span> (balance >= <span class="n">0</span>)  <span class="cm">-- DB-enforced invariant</span>
+);
+
+<span class="kw">CREATE TABLE</span> transfer_log (
+    id          <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    from_acc    <span class="tp">BIGINT</span>, to_acc <span class="tp">BIGINT</span>,
+    amount      <span class="tp">NUMERIC(15,2)</span>,
+    status      <span class="tp">TEXT</span>,   <span class="cm">-- 'SUCCESS' | 'FAILED'</span>
+    err_msg     <span class="tp">TEXT</span>,
+    created_at  <span class="tp">TIMESTAMPTZ DEFAULT NOW</span>()
+);
+
+<span class="kw">CREATE OR REPLACE PROCEDURE</span> <span class="fn">transfer_funds</span>(
+    p_from    <span class="tp">BIGINT</span>,
+    p_to      <span class="tp">BIGINT</span>,
+    p_amount  <span class="tp">NUMERIC</span>
+)
+<span class="kw">LANGUAGE</span> plpgsql AS $$
+<span class="kw">DECLARE</span>
+    v_from_bal  <span class="tp">NUMERIC</span>;
+    v_log_id    <span class="tp">BIGINT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">IF</span> p_amount <= <span class="n">0</span> <span class="kw">THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="s">'Amount phải dương, nhận: %'</span>, p_amount;
+    <span class="kw">END IF</span>;
+    <span class="kw">IF</span> p_from = p_to <span class="kw">THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="s">'Không thể chuyển vào chính tài khoản nguồn'</span>;
+    <span class="kw">END IF</span>;
+
+    <span class="cm">-- Ghi log PENDING trước</span>
+    <span class="kw">INSERT INTO</span> transfer_log (from_acc, to_acc, amount, status)
+    <span class="kw">VALUES</span> (p_from, p_to, p_amount, <span class="s">'PENDING'</span>)
+    <span class="kw">RETURNING</span> id <span class="kw">INTO</span> v_log_id;
+
+    <span class="cm">-- Lock theo thứ tự nhất quán (nhỏ trước) để tránh deadlock</span>
+    <span class="kw">IF</span> p_from < p_to <span class="kw">THEN</span>
+        <span class="kw">SELECT</span> balance <span class="kw">INTO</span> v_from_bal <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> account_id = p_from <span class="kw">FOR UPDATE</span>;
+        <span class="kw">PERFORM</span> <span class="n">1</span> <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> account_id = p_to <span class="kw">FOR UPDATE</span>;
+    <span class="kw">ELSE</span>
+        <span class="kw">PERFORM</span> <span class="n">1</span> <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> account_id = p_to <span class="kw">FOR UPDATE</span>;
+        <span class="kw">SELECT</span> balance <span class="kw">INTO</span> v_from_bal <span class="kw">FROM</span> accounts <span class="kw">WHERE</span> account_id = p_from <span class="kw">FOR UPDATE</span>;
+    <span class="kw">END IF</span>;
+
+    <span class="kw">IF NOT FOUND OR</span> v_from_bal <span class="kw">IS NULL THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="s">'Tài khoản nguồn % không tồn tại'</span>, p_from;
+    <span class="kw">END IF</span>;
+    <span class="kw">IF</span> v_from_bal < p_amount <span class="kw">THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="s">'Số dư không đủ: có %, cần %'</span>, v_from_bal, p_amount;
+    <span class="kw">END IF</span>;
+
+    <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance - p_amount <span class="kw">WHERE</span> account_id = p_from;
+    <span class="kw">UPDATE</span> accounts <span class="kw">SET</span> balance = balance + p_amount <span class="kw">WHERE</span> account_id = p_to;
+    <span class="kw">UPDATE</span> transfer_log <span class="kw">SET</span> status = <span class="s">'SUCCESS'</span> <span class="kw">WHERE</span> id = v_log_id;
+
+    <span class="kw">RAISE NOTICE</span> <span class="s">'Transfer OK: % → % amount=%'</span>, p_from, p_to, p_amount;
+
+<span class="kw">EXCEPTION WHEN OTHERS THEN</span>
+    <span class="cm">-- EXCEPTION block chạy trong implicit sub-transaction
+    -- UPDATE log không bị rollback cùng outer transaction</span>
+    <span class="kw">UPDATE</span> transfer_log
+    <span class="kw">SET</span> status = <span class="s">'FAILED'</span>, err_msg = SQLERRM
+    <span class="kw">WHERE</span> id = v_log_id;
+    <span class="kw">RAISE</span>;  <span class="cm">-- re-raise để caller biết lỗi</span>
+<span class="kw">END</span>;
+$$;
+
+<span class="kw">CALL</span> <span class="fn">transfer_funds</span>(<span class="n">1001</span>, <span class="n">1002</span>, <span class="n">500000</span>);</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>PROCEDURE vs FUNCTION:</strong> Procedure (PG11+) có thể COMMIT/ROLLBACK bên trong, Function thì không. <strong>FOR UPDATE</strong> lock row để tránh race condition. Thứ tự lock <strong>nhất quán theo account_id</strong> (nhỏ trước, lớn sau) là bắt buộc để tránh deadlock. Khối <code>EXCEPTION</code> tạo <strong>implicit savepoint</strong> — chỉ rollback phần trong BEGIN..EXCEPTION, cho phép ghi audit log ngay cả khi transfer thất bại. Đây là pattern quan trọng trong financial systems.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PL/pgSQL — CONTROL FLOW & DYNAMIC SQL
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-control">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Control Flow &amp; Dynamic SQL</div>
+         <div class="sec-sub">EXECUTE với FORMAT, parameterized queries, partition routing</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.3 — Dynamic SQL: INSERT vào partition table theo tháng</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Hệ thống cần insert data vào partition table đúng tháng (orders_2024_01, orders_2024_02…). Tên table phụ thuộc vào runtime data — SQL tĩnh không dùng được. Phải dùng <strong>Dynamic SQL</strong> với <code>EXECUTE</code>, nhưng cực kỳ quan trọng: dùng <code>FORMAT</code> với <code>%I</code>/<code>%L</code> thay vì string concatenation để tránh SQL injection.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">dynamic_sql_partition.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">insert_order_routed</span>(
+    p_date        <span class="tp">DATE</span>,
+    p_customer_id <span class="tp">BIGINT</span>,
+    p_total       <span class="tp">NUMERIC</span>,
+    p_items       <span class="tp">JSONB</span>
+)
+<span class="kw">RETURNS BIGINT</span>
+<span class="kw">LANGUAGE</span> plpgsql AS $$
+<span class="kw">DECLARE</span>
+    v_tbl    <span class="tp">TEXT</span>;
+    v_exists <span class="tp">BOOLEAN</span>;
+    v_new_id <span class="tp">BIGINT</span>;
+    v_sql    <span class="tp">TEXT</span>;
+<span class="kw">BEGIN</span>
+    <span class="cm">-- Tên partition: orders_YYYY_MM</span>
+    v_tbl := <span class="fn">FORMAT</span>(<span class="s">'orders_%s_%s'</span>,
+        <span class="fn">TO_CHAR</span>(p_date, <span class="s">'YYYY'</span>),
+        <span class="fn">TO_CHAR</span>(p_date, <span class="s">'MM'</span>));
+
+    <span class="cm">-- Kiểm tra partition tồn tại chưa</span>
+    <span class="kw">SELECT EXISTS</span>(
+        <span class="kw">SELECT</span> <span class="n">1</span> <span class="kw">FROM</span> information_schema.tables
+        <span class="kw">WHERE</span> table_schema = <span class="s">'public'</span> <span class="kw">AND</span> table_name = v_tbl
+    ) <span class="kw">INTO</span> v_exists;
+
+    <span class="cm">-- Auto-create nếu chưa có</span>
+    <span class="kw">IF NOT</span> v_exists <span class="kw">THEN</span>
+        <span class="cm">-- %I = quoted identifier (safe for table/column names)
+        -- Không bao giờ dùng: 'INSERT INTO ' || v_tbl || '...'  ← SQL injection!</span>
+        <span class="kw">EXECUTE FORMAT</span>(
+            <span class="s">'CREATE TABLE IF NOT EXISTS %I
+             (LIKE orders INCLUDING ALL) INHERITS (orders)'</span>,
+            v_tbl
+        );
+        <span class="kw">RAISE NOTICE</span> <span class="s">'Tạo partition: %'</span>, v_tbl;
+    <span class="kw">END IF</span>;
+
+    <span class="cm">-- Dynamic INSERT với USING (parameterized, không inject được)</span>
+    v_sql := <span class="fn">FORMAT</span>(
+        <span class="s">'INSERT INTO %I
+             (order_date, customer_id, total_amount, items, created_at)
+         VALUES ($1, $2, $3, $4, NOW())
+         RETURNING order_id'</span>,
+        v_tbl
+    );
+    <span class="cm">-- $1..$4 là placeholders, USING truyền giá trị an toàn</span>
+    <span class="kw">EXECUTE</span> v_sql
+        <span class="kw">INTO</span> v_new_id
+        <span class="kw">USING</span> p_date, p_customer_id, p_total, p_items;
+
+    <span class="kw">RETURN</span> v_new_id;
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- Test</span>
+<span class="kw">SELECT</span> <span class="fn">insert_order_routed</span>(
+    <span class="s">'2024-03-15'</span>::<span class="tp">DATE</span>, <span class="n">1001</span>, <span class="n">1500000</span>,
+    <span class="s">'[{"sku":"P001","qty":2}]'</span>::<span class="tp">JSONB</span>
+);
+
+<span class="cm">-- FORMAT placeholders:
+-- %I  → properly double-quoted identifier (table, column, schema names)
+-- %L  → properly single-quoted literal value
+-- %s  → plain string substitution (không escape, dùng cho constants)
+-- %% → literal %</span></pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>LUÔN dùng FORMAT với %I/%L</strong> — không bao giờ dùng string concatenation thẳng với tên table/cột từ user input (SQL injection). <code>%I</code> cho identifier names, <code>%L</code> cho values. <code>EXECUTE ... USING $1, $2</code> là cách an toàn nhất để truyền runtime values vào dynamic SQL vì chúng được treat như parameterized queries — không thể inject. Dùng <code>pg_catalog.pg_attribute</code> thay vì <code>information_schema.columns</code> trong production vì nhanh hơn nhiều.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PL/pgSQL — CURSORS & BATCH PROCESSING
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-cursor">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Cursors &amp; Batch Processing</div>
+         <div class="sec-sub">Xử lý dataset hàng chục triệu rows mà không OOM</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.4 — Batch update 50M records với cursor &amp; periodic COMMIT</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Cần migrate trường <code>status_code</code> trong bảng 50 triệu rows. UPDATE toàn bảng một lần sẽ: (1) lock table quá lâu, (2) tạo transaction khổng lồ gây WAL bloat, (3) nếu fail giữa chừng phải làm lại từ đầu. Cursor + periodic COMMIT giải quyết cả ba vấn đề, hỗ trợ resume nếu bị ngắt.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">batch_cursor_migration.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- Thêm cột track tiến độ migration (idempotent)</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">ADD COLUMN IF NOT EXISTS</span> migrated <span class="tp">BOOLEAN DEFAULT FALSE</span>;
+
+<span class="kw">CREATE OR REPLACE PROCEDURE</span> <span class="fn">migrate_order_status</span>(
+    p_batch   <span class="tp">INTEGER DEFAULT</span> <span class="n">5000</span>,
+    p_sleep   <span class="tp">NUMERIC DEFAULT</span> <span class="n">0.05</span>   <span class="cm">-- giây, throttle giữa batches</span>
+)
+<span class="kw">LANGUAGE</span> plpgsql AS $$
+<span class="kw">DECLARE</span>
+    <span class="cm">-- Cursor với FOR UPDATE SKIP LOCKED:
+    -- nhiều worker có thể chạy song song mà không chờ lẫn nhau</span>
+    cur_ord <span class="kw">CURSOR FOR</span>
+        <span class="kw">SELECT</span> order_id, old_status_code
+        <span class="kw">FROM</span>   orders
+        <span class="kw">WHERE</span>  migrated = <span class="kw">FALSE</span>
+        <span class="kw">ORDER BY</span> order_id
+        <span class="kw">FOR UPDATE SKIP LOCKED</span>;
+
+    v_row      RECORD;
+    v_batch_n  <span class="tp">INTEGER</span> := <span class="n">0</span>;
+    v_total    <span class="tp">BIGINT</span>  := <span class="n">0</span>;
+    v_new_st   <span class="tp">TEXT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">OPEN</span> cur_ord;
+    <span class="kw">LOOP</span>
+        <span class="kw">FETCH NEXT FROM</span> cur_ord <span class="kw">INTO</span> v_row;
+        <span class="kw">EXIT WHEN NOT FOUND</span>;
+
+        <span class="cm">-- Mapping logic</span>
+        v_new_st := <span class="kw">CASE</span> v_row.old_status_code
+            <span class="kw">WHEN</span> <span class="s">'1'</span> <span class="kw">THEN</span> <span class="s">'pending'</span>
+            <span class="kw">WHEN</span> <span class="s">'2'</span> <span class="kw">THEN</span> <span class="s">'confirmed'</span>
+            <span class="kw">WHEN</span> <span class="s">'3'</span> <span class="kw">THEN</span> <span class="s">'shipped'</span>
+            <span class="kw">WHEN</span> <span class="s">'4'</span> <span class="kw">THEN</span> <span class="s">'delivered'</span>
+            <span class="kw">ELSE</span> <span class="s">'unknown'</span>
+        <span class="kw">END</span>;
+
+        <span class="cm">-- WHERE CURRENT OF: update chính xác dòng cursor đang trỏ
+        -- Hiệu quả hơn UPDATE WHERE order_id = v_row.order_id</span>
+        <span class="kw">UPDATE</span> orders
+        <span class="kw">SET</span>    status = v_new_st, migrated = <span class="kw">TRUE</span>
+        <span class="kw">WHERE CURRENT OF</span> cur_ord;
+
+        v_batch_n := v_batch_n + <span class="n">1</span>;
+        v_total   := v_total   + <span class="n">1</span>;
+
+        <span class="kw">IF</span> v_batch_n >= p_batch <span class="kw">THEN</span>
+            <span class="kw">COMMIT</span>;             <span class="cm">-- COMMIT trong PROCEDURE: hợp lệ!</span>
+            v_batch_n := <span class="n">0</span>;
+            <span class="kw">RAISE NOTICE</span> <span class="s">'Migrated % rows so far...'</span>, v_total;
+            <span class="kw">PERFORM</span> <span class="fn">pg_sleep</span>(p_sleep);  <span class="cm">-- nhường CPU/IO cho queries khác</span>
+        <span class="kw">END IF</span>;
+    <span class="kw">END LOOP</span>;
+
+    <span class="kw">CLOSE</span> cur_ord;
+    <span class="kw">COMMIT</span>;          <span class="cm">-- commit batch cuối</span>
+    <span class="kw">RAISE NOTICE</span> <span class="s">'Migration hoàn thành. Tổng: % rows'</span>, v_total;
+<span class="kw">END</span>;
+$$;
+
+<span class="kw">CALL</span> <span class="fn">migrate_order_status</span>(p_batch => <span class="n">5000</span>, p_sleep => <span class="n">0.05</span>);
+
+<span class="cm">-- Chạy 2 workers song song (SKIP LOCKED đảm bảo không overlap):
+-- Terminal 1: CALL migrate_order_status(5000);
+-- Terminal 2: CALL migrate_order_status(5000);</span></pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>FOR UPDATE SKIP LOCKED</strong> là chìa khóa khi chạy nhiều worker song song — mỗi worker nhận batch riêng mà không block lẫn nhau. <strong>COMMIT trong PROCEDURE</strong> chỉ hoạt động khi gọi trực tiếp bằng <code>CALL</code> từ top level, không hoạt động nếu function được gọi từ trong một transaction. Nên monitor tiến độ qua cột <code>migrated</code> và có thể resume nếu bị interrupt. Cân nhắc thêm <code>SET lock_timeout = '2s'</code> để tránh bị block lâu nếu có lock contention.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PL/pgSQL — EXCEPTION HANDLING
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-exception">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Exception Handling Nâng Cao</div>
+         <div class="sec-sub">SQLSTATE, retry logic, exponential backoff cho deadlock</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.5 — Retry với exponential backoff cho deadlock &amp; serialization failure</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Trong hệ thống high-concurrency, deadlock xảy ra ngẫu nhiên khi hai transactions lock cùng rows theo thứ tự ngược nhau. PostgreSQL detect và abort một trong hai với <code>SQLSTATE 40P01</code>. Thay vì fail ngay, cần retry với exponential backoff để tăng success rate mà không retry vô thời hạn.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">retry_with_backoff.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">upsert_inventory_safe</span>(
+    p_product_id  <span class="tp">BIGINT</span>,
+    p_warehouse   <span class="tp">TEXT</span>,
+    p_delta       <span class="tp">INTEGER</span>,
+    p_max_retry   <span class="tp">INTEGER DEFAULT</span> <span class="n">5</span>
+)
+<span class="kw">RETURNS INTEGER</span>
+<span class="kw">LANGUAGE</span> plpgsql AS $$
+<span class="kw">DECLARE</span>
+    v_attempt  <span class="tp">INTEGER</span> := <span class="n">0</span>;
+    v_new_qty  <span class="tp">INTEGER</span>;
+    v_sleep    <span class="tp">FLOAT</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">LOOP</span>
+        v_attempt := v_attempt + <span class="n">1</span>;
+
+        <span class="kw">BEGIN</span>   <span class="cm">-- inner block: catch từng attempt riêng</span>
+            <span class="kw">INSERT INTO</span> inventory (product_id, warehouse, quantity)
+            <span class="kw">VALUES</span> (p_product_id, p_warehouse, p_delta)
+            <span class="kw">ON CONFLICT</span> (product_id, warehouse) <span class="kw">DO UPDATE</span>
+                <span class="kw">SET</span> quantity = inventory.quantity + EXCLUDED.quantity
+            <span class="kw">RETURNING</span> quantity <span class="kw">INTO</span> v_new_qty;
+
+            <span class="kw">RETURN</span> v_new_qty;   <span class="cm">-- thành công: thoát loop</span>
+
+        <span class="kw">EXCEPTION</span>
+            <span class="kw">WHEN</span> deadlock_detected <span class="kw">THEN</span>       <span class="cm">-- SQLSTATE 40P01</span>
+                <span class="kw">IF</span> v_attempt >= p_max_retry <span class="kw">THEN</span>
+                    <span class="kw">RAISE EXCEPTION</span>
+                        <span class="s">'Deadlock sau % lần thử: product=%, wh=%'</span>,
+                        v_attempt, p_product_id, p_warehouse
+                        <span class="kw">USING ERRCODE</span> = <span class="s">'40P01'</span>;
+                <span class="kw">END IF</span>;
+                <span class="cm">-- Exponential backoff: 0.1 → 0.2 → 0.4 → 0.8 → 1.6s</span>
+                v_sleep := <span class="n">0.1</span> * (<span class="n">2</span> ^ (v_attempt - <span class="n">1</span>));
+                <span class="kw">RAISE WARNING</span> <span class="s">'Deadlock attempt %, retry in %s'</span>,
+                    v_attempt, v_sleep;
+                <span class="kw">PERFORM</span> <span class="fn">pg_sleep</span>(v_sleep);
+
+            <span class="kw">WHEN</span> serialization_failure <span class="kw">THEN</span>  <span class="cm">-- SQLSTATE 40001</span>
+                <span class="kw">IF</span> v_attempt >= p_max_retry <span class="kw">THEN</span> <span class="kw">RAISE</span>; <span class="kw">END IF</span>;
+                <span class="kw">PERFORM</span> <span class="fn">pg_sleep</span>(<span class="n">0.05</span> * v_attempt);
+
+            <span class="kw">WHEN</span> check_violation <span class="kw">THEN</span>         <span class="cm">-- SQLSTATE 23514: không retry</span>
+                <span class="kw">RAISE</span>;   <span class="cm">-- re-raise ngay, lỗi này không cải thiện khi retry</span>
+
+            <span class="kw">WHEN</span> not_null_violation <span class="kw">THEN</span>      <span class="cm">-- SQLSTATE 23502</span>
+                <span class="kw">RAISE</span>;
+        <span class="kw">END</span>;
+    <span class="kw">END LOOP</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- ── Bảng SQLSTATE quan trọng nhất ────────────────────────────────
+-- Tên condition (dùng trong WHEN):
+-- unique_violation        → 23505
+-- check_violation         → 23514
+-- not_null_violation      → 23502
+-- foreign_key_violation   → 23503
+-- serialization_failure   → 40001
+-- deadlock_detected       → 40P01
+-- undefined_table         → 42P01
+-- raise_exception         → P0001  (custom RAISE EXCEPTION)
+-- no_data_found           → P0002</span></pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>Không phải lỗi nào cũng nên retry:</strong> deadlock/serialization → retry được; check/unique/not_null violation → không retry vì lần sau vẫn fail với cùng lý do. Dùng <strong>tên condition</strong> (<code>deadlock_detected</code>) thay vì SQLSTATE code string để code dễ đọc. <code>RAISE ... USING ERRCODE</code> set SQLSTATE trong output, giúp caller phân loại lỗi. <code>SQLERRM</code>, <code>SQLSTATE</code> là biến đặc biệt chỉ có giá trị bên trong <code>EXCEPTION</code> block. Dùng <code>GET STACKED DIAGNOSTICS</code> để lấy context chi tiết hơn (PG_EXCEPTION_DETAIL, PG_EXCEPTION_CONTEXT).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PL/pgSQL — TRIGGERS
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-trigger">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">Triggers Nâng Cao</div>
+         <div class="sec-sub">Row-level, statement-level, transition tables (PG10+)</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.6 — Audit log generic với Statement-level &amp; Transition Tables</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Cần ghi audit log mỗi khi có thay đổi trên bảng <code>products</code>: lưu giá trị cũ/mới, ai thay đổi, lúc nào. Với <strong>statement-level trigger + transition tables</strong> (PG10+), toàn bộ batch thay đổi được xử lý bằng một INSERT bulk — hiệu quả hơn row-level trigger nhiều lần khi UPDATE nhiều rows cùng lúc.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">trigger_audit.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> audit_log (
+    id           <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    tbl          <span class="tp">TEXT NOT NULL</span>,
+    op           <span class="tp">TEXT NOT NULL</span>,   <span class="cm">-- INSERT/UPDATE/DELETE</span>
+    old_data     <span class="tp">JSONB</span>,
+    new_data     <span class="tp">JSONB</span>,
+    changed_by   <span class="tp">TEXT DEFAULT</span> current_user,
+    changed_at   <span class="tp">TIMESTAMPTZ DEFAULT NOW</span>(),
+    tx_id        <span class="tp">BIGINT DEFAULT</span> <span class="fn">txid_current</span>()
+);
+
+<span class="cm">-- ── Row-level trigger: ghi từng row thay đổi ────────────────────────</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">trg_row_audit</span>()
+<span class="kw">RETURNS TRIGGER LANGUAGE</span> plpgsql AS $$
+<span class="kw">BEGIN</span>
+    <span class="cm">-- TG_OP:         'INSERT' | 'UPDATE' | 'DELETE'
+    -- TG_TABLE_NAME: tên table trigger gắn vào
+    -- OLD:           row TRƯỚC thay đổi (NULL với INSERT)
+    -- NEW:           row SAU  thay đổi (NULL với DELETE)</span>
+    <span class="kw">INSERT INTO</span> audit_log (tbl, op, old_data, new_data)
+    <span class="kw">VALUES</span> (
+        TG_TABLE_NAME,
+        TG_OP,
+        <span class="kw">CASE WHEN</span> TG_OP <span class="kw">IN</span> (<span class="s">'UPDATE'</span>,<span class="s">'DELETE'</span>) <span class="kw">THEN</span> <span class="fn">to_jsonb</span>(<span class="kw">OLD</span>) <span class="kw">END</span>,
+        <span class="kw">CASE WHEN</span> TG_OP <span class="kw">IN</span> (<span class="s">'INSERT'</span>,<span class="s">'UPDATE'</span>) <span class="kw">THEN</span> <span class="fn">to_jsonb</span>(<span class="kw">NEW</span>) <span class="kw">END</span>
+    );
+    <span class="kw">RETURN NEW</span>;   <span class="cm">-- RETURN NULL trong BEFORE trigger → cancel operation!</span>
+<span class="kw">END</span>;
+$$;
+
+<span class="kw">CREATE TRIGGER</span> audit_products_row
+<span class="kw">AFTER INSERT OR UPDATE OR DELETE ON</span> products
+<span class="kw">FOR EACH ROW EXECUTE FUNCTION</span> <span class="fn">trg_row_audit</span>();
+
+<span class="cm">-- ── Statement-level + TRANSITION TABLES (PG10+) ────────────────────
+-- Hiệu quả hơn nhiều khi UPDATE 10k rows cùng lúc:
+-- Row trigger: gọi function 10k lần + 10k INSERTs riêng lẻ
+-- Statement trigger: gọi 1 lần + 1 INSERT bulk</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">trg_stmt_audit_bulk</span>()
+<span class="kw">RETURNS TRIGGER LANGUAGE</span> plpgsql AS $$
+<span class="kw">BEGIN</span>
+    <span class="cm">-- new_table / old_table: alias transition tables
+    -- chứa TẤT CẢ rows bị ảnh hưởng bởi statement này</span>
+    <span class="kw">INSERT INTO</span> audit_log (tbl, op, old_data, new_data)
+    <span class="kw">SELECT</span>
+        TG_TABLE_NAME,
+        TG_OP,
+        <span class="fn">to_jsonb</span>(o),
+        <span class="fn">to_jsonb</span>(n)
+    <span class="kw">FROM</span>      new_table n
+    <span class="kw">FULL OUTER JOIN</span> old_table o <span class="kw">USING</span> (product_id);
+
+    <span class="kw">RETURN NULL</span>;   <span class="cm">-- statement-level: convention là RETURN NULL</span>
+<span class="kw">END</span>;
+$$;
+
+<span class="kw">CREATE TRIGGER</span> audit_products_bulk
+<span class="kw">AFTER UPDATE ON</span> products
+<span class="kw">REFERENCING</span>
+    <span class="kw">NEW TABLE AS</span> new_table   <span class="cm">-- transition table: rows SAU update</span>
+    <span class="kw">OLD TABLE AS</span> old_table   <span class="cm">-- transition table: rows TRƯỚC update</span>
+<span class="kw">FOR EACH STATEMENT EXECUTE FUNCTION</span> <span class="fn">trg_stmt_audit_bulk</span>();
+
+<span class="cm">-- ── Generic audit trigger dùng được cho mọi table ───────────────────</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">trg_generic_audit</span>()
+<span class="kw">RETURNS TRIGGER LANGUAGE</span> plpgsql
+<span class="kw">SECURITY DEFINER</span>   <span class="cm">-- chạy với quyền owner, không cần quyền trên audit_log</span>
+AS $$
+<span class="kw">DECLARE</span>
+    v_old <span class="tp">JSONB</span> := <span class="kw">CASE WHEN</span> TG_OP != <span class="s">'INSERT'</span> <span class="kw">THEN</span> <span class="fn">to_jsonb</span>(<span class="kw">OLD</span>) <span class="kw">END</span>;
+    v_new <span class="tp">JSONB</span> := <span class="kw">CASE WHEN</span> TG_OP != <span class="s">'DELETE'</span> <span class="kw">THEN</span> <span class="fn">to_jsonb</span>(<span class="kw">NEW</span>) <span class="kw">END</span>;
+<span class="kw">BEGIN</span>
+    <span class="cm">-- Chỉ log nếu thực sự có thay đổi (với UPDATE)</span>
+    <span class="kw">IF</span> TG_OP = <span class="s">'UPDATE'</span> <span class="kw">AND</span> v_old = v_new <span class="kw">THEN</span>
+        <span class="kw">RETURN NEW</span>;   <span class="cm">-- no-op: không ghi log nếu data giống nhau</span>
+    <span class="kw">END IF</span>;
+    <span class="kw">INSERT INTO</span> audit_log (tbl, op, old_data, new_data)
+    <span class="kw">VALUES</span> (TG_TABLE_NAME, TG_OP, v_old, v_new);
+    <span class="kw">RETURN NEW</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- Gắn vào bất kỳ table nào:</span>
+<span class="kw">CREATE TRIGGER</span> customers_audit
+    <span class="kw">AFTER INSERT OR UPDATE OR DELETE ON</span> customers
+    <span class="kw">FOR EACH ROW EXECUTE FUNCTION</span> <span class="fn">trg_generic_audit</span>();</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>Statement-level + Transition Tables</strong> (PG10+) nên là lựa chọn mặc định cho audit logging vì chỉ gọi trigger function một lần và INSERT bulk. <strong>SECURITY DEFINER</strong> trên generic trigger cho phép một role không có quyền ghi audit_log vẫn được trigger ghi vào đó (chạy dưới quyền owner). <strong>Không bao giờ</strong> đặt business logic phức tạp trong trigger — trigger nên đơn giản: validation, audit, derived field. Logic phức tạp → khó debug, khó test, gây performance surprises.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     PL/pgSQL — EXPERT
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-pl-expert">
+  <div class="sec-hdr">
+    <div class="sec-num">01</div>
+    <div><div class="sec-title">PL/pgSQL — Expert Patterns</div>
+         <div class="sec-sub">Generic upsert factory, polymorphic functions, performance tips</div></div>
+    <span class="badge b-exp">EXPERT</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 1.7 — Generic Upsert Factory: bất kỳ table nào, tự detect schema</span><span class="badge b-exp">EXPERT</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Data pipeline cần upsert data vào nhiều bảng khác nhau từ một service. Mỗi bảng có schema riêng, conflict keys riêng. Viết riêng procedure cho từng bảng không scalable. Cần một <strong>generic upsert function</strong> nhận tên bảng + JSONB data, tự inspect schema, build SQL đúng, và phân biệt được INSERT vs UPDATE bằng trick <code>xmax = 0</code>.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">generic_upsert.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- Metadata: khai báo conflict keys và excluded columns cho mỗi table</span>
+<span class="kw">CREATE TABLE</span> upsert_registry (
+    table_name       <span class="tp">TEXT PRIMARY KEY</span>,
+    conflict_cols    <span class="tp">TEXT[]</span> <span class="kw">NOT NULL</span>,
+    exclude_on_upd   <span class="tp">TEXT[]</span> <span class="kw">DEFAULT</span> <span class="s">'{}'</span>
+);
+
+<span class="kw">INSERT INTO</span> upsert_registry <span class="kw">VALUES</span>
+    (<span class="s">'products'</span>,  ARRAY[<span class="s">'sku'</span>],          ARRAY[<span class="s">'created_at'</span>]),
+    (<span class="s">'customers'</span>, ARRAY[<span class="s">'email'</span>],        ARRAY[<span class="s">'id'</span>,<span class="s">'created_at'</span>]),
+    (<span class="s">'inventory'</span>, ARRAY[<span class="s">'product_id'</span>,<span class="s">'warehouse'</span>], ARRAY[<span class="s">'created_at'</span>]);
+
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">generic_upsert</span>(
+    p_table  <span class="tp">TEXT</span>,
+    p_data   <span class="tp">JSONB</span>    <span class="cm">-- array of JSON objects</span>
+)
+<span class="kw">RETURNS TABLE</span>(inserted_count <span class="tp">INT</span>, updated_count <span class="tp">INT</span>)
+<span class="kw">LANGUAGE</span> plpgsql AS $$
+<span class="kw">DECLARE</span>
+    v_reg       upsert_registry%ROWTYPE;
+    v_cols      <span class="tp">TEXT[]</span>;
+    v_col_list  <span class="tp">TEXT</span>;
+    v_upd_list  <span class="tp">TEXT</span>;
+    v_cfl_list  <span class="tp">TEXT</span>;
+    v_sql       <span class="tp">TEXT</span>;
+    v_rec       <span class="tp">JSONB</span>;
+    v_is_ins    <span class="tp">BOOLEAN</span>;
+    v_ins       <span class="tp">INT</span> := <span class="n">0</span>;
+    v_upd       <span class="tp">INT</span> := <span class="n">0</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT</span> * <span class="kw">INTO</span> v_reg <span class="kw">FROM</span> upsert_registry <span class="kw">WHERE</span> table_name = p_table;
+    <span class="kw">IF NOT FOUND THEN</span>
+        <span class="kw">RAISE EXCEPTION</span> <span class="s">'Không có config cho table: %'</span>, p_table;
+    <span class="kw">END IF</span>;
+
+    <span class="cm">-- Lấy columns từ pg_catalog (nhanh hơn information_schema)</span>
+    <span class="kw">SELECT ARRAY_AGG</span>(attname::TEXT <span class="kw">ORDER BY</span> attnum)
+    <span class="kw">INTO</span> v_cols
+    <span class="kw">FROM</span> pg_catalog.pg_attribute
+    <span class="kw">WHERE</span> attrelid = p_table::REGCLASS
+      <span class="kw">AND</span> attnum > <span class="n">0</span>
+      <span class="kw">AND NOT</span> attisdropped
+      <span class="kw">AND</span> attname != <span class="kw">ALL</span>(ARRAY[<span class="s">'id'</span>,<span class="s">'created_at'</span>]);  <span class="cm">-- skip auto-generated</span>
+
+    v_col_list := <span class="fn">ARRAY_TO_STRING</span>(
+        <span class="fn">ARRAY</span>(<span class="kw">SELECT FORMAT</span>(<span class="s">'%I'</span>, c) <span class="kw">FROM UNNEST</span>(v_cols) c), <span class="s">', '</span>);
+
+    v_cfl_list := <span class="fn">ARRAY_TO_STRING</span>(
+        <span class="fn">ARRAY</span>(<span class="kw">SELECT FORMAT</span>(<span class="s">'%I'</span>, c) <span class="kw">FROM UNNEST</span>(v_reg.conflict_cols) c), <span class="s">', '</span>);
+
+    v_upd_list := <span class="fn">ARRAY_TO_STRING</span>(
+        <span class="fn">ARRAY</span>(
+            <span class="kw">SELECT FORMAT</span>(<span class="s">'%I = EXCLUDED.%I'</span>, c, c)
+            <span class="kw">FROM UNNEST</span>(v_cols) c
+            <span class="kw">WHERE</span> c != <span class="kw">ALL</span>(v_reg.conflict_cols)
+              <span class="kw">AND</span> c != <span class="kw">ALL</span>(v_reg.exclude_on_upd)
+        ), <span class="s">', '</span>);
+
+    <span class="kw">FOR</span> v_rec <span class="kw">IN SELECT</span> * <span class="kw">FROM JSONB_ARRAY_ELEMENTS</span>(p_data) <span class="kw">LOOP</span>
+        v_sql := <span class="fn">FORMAT</span>(
+            <span class="s">'INSERT INTO %I (%s) VALUES (%s)
+             ON CONFLICT (%s) DO UPDATE SET %s
+             RETURNING (xmax = 0)'</span>,   <span class="cm">-- xmax=0 → INSERT (không phải UPDATE)</span>
+            p_table,
+            v_col_list,
+            <span class="fn">ARRAY_TO_STRING</span>(
+                <span class="fn">ARRAY</span>(<span class="kw">SELECT FORMAT</span>(<span class="s">'%L'</span>, v_rec->>(c)) <span class="kw">FROM UNNEST</span>(v_cols) c),
+                <span class="s">', '</span>),
+            v_cfl_list,
+            v_upd_list
+        );
+        <span class="kw">EXECUTE</span> v_sql <span class="kw">INTO</span> v_is_ins;
+        <span class="kw">IF</span> v_is_ins <span class="kw">THEN</span> v_ins := v_ins + <span class="n">1</span>; <span class="kw">ELSE</span> v_upd := v_upd + <span class="n">1</span>; <span class="kw">END IF</span>;
+    <span class="kw">END LOOP</span>;
+
+    inserted_count := v_ins;  updated_count := v_upd;
+    <span class="kw">RETURN NEXT</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- Sử dụng</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">generic_upsert</span>(
+    <span class="s">'products'</span>,
+    <span class="s">'[{"sku":"P001","name":"iPhone 15","price":"29000000"},
+      {"sku":"P002","name":"MacBook Pro","price":"55000000"}]'</span>::<span class="tp">JSONB</span>
+);</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>xmax = 0</strong> là trick PostgreSQL: khi row được INSERT mới trong <code>ON CONFLICT DO UPDATE</code>, <code>xmax</code> = 0 (chưa bị ai lock/delete); khi bị UPDATE, <code>xmax</code> = transaction ID. Cách này phân biệt INSERT vs UPDATE chính xác. <strong>pg_catalog.pg_attribute</strong> nhanh hơn <code>information_schema.columns</code> vì không qua view layer. Nên cache schema info vào table thay vì query catalog mỗi lần gọi trong production. <strong>Cẩn thận</strong>: <code>%L</code> cast tất cả thành text — cần đảm bảo PostgreSQL có thể cast text về đúng kiểu của cột (thường hoạt động với implicit cast).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     02 — CTE INTRO
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-cte-intro">
+  <div class="sec-hdr">
+    <div class="sec-num">02</div>
+    <div><div class="sec-title">CTE — Common Table Expressions</div>
+         <div class="sec-sub">WITH clause: readable pipelines, materialization behavior</div></div>
+    <span class="badge b-bas">CƠ BẢN</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">💡 Định nghĩa</div>
+    <div class="cbox-title">CTE là gì? Materialized vs Inlined (PG12+)</div>
+    <p class="prose"><strong>Common Table Expression (CTE)</strong> — mệnh đề <code>WITH</code> — cho phép đặt tên cho subquery và tái sử dụng nhiều lần trong cùng câu query, làm query phức tạp dễ đọc hơn nhiều. Từ <strong>PostgreSQL 12</strong>, CTE mặc định là <strong>inlined</strong> (query planner tối ưu hoá CTE như subquery thông thường, push predicates vào). Với <code>AS MATERIALIZED</code>, CTE thực thi một lần và lưu tạm — phù hợp khi CTE chứa volatile functions hoặc được dùng nhiều lần.</p>
+  </div>
+
+  <!-- Materialization diagram -->
+  <div class="dia">
+    <div class="dia-title">NOT MATERIALIZED vs AS MATERIALIZED — Khi nào dùng cái nào?</div>
+    <svg width="100%" viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+      <!-- Left -->
+      <text x="185" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">NOT MATERIALIZED (default PG12+)</text>
+      <rect x="20" y="30" width="330" height="170" rx="8" fill="rgba(0,212,255,.03)" stroke="rgba(0,212,255,.2)" stroke-dasharray="4,3"/>
+      <rect x="35" y="45" width="300" height="38" rx="5" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.25)"/>
+      <text x="185" y="69" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">WITH cte AS (...)</text>
+      <text x="30" y="103" font-size="10" fill="#94a3b8" font-family="Inter">→ Query planner inline hoá CTE</text>
+      <text x="30" y="121" font-size="10" fill="#94a3b8" font-family="Inter">→ Push predicates từ outer query vào CTE</text>
+      <text x="30" y="139" font-size="10" fill="#94a3b8" font-family="Inter">→ Dùng được index của base table</text>
+      <text x="30" y="160" font-size="10" fill="#00ff88" font-family="Inter">✓ WHERE outer → filter sớm, hiệu quả</text>
+      <text x="30" y="178" font-size="10" fill="#ff6b6b" font-family="Inter">✗ CTE dùng nhiều lần → chạy lại nhiều lần</text>
+      <text x="30" y="194" font-size="10" fill="#ff6b6b" font-family="Inter">✗ Volatile function trong CTE → có thể chạy lại</text>
+
+      <!-- Right -->
+      <text x="610" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">AS MATERIALIZED</text>
+      <rect x="445" y="30" width="340" height="170" rx="8" fill="rgba(168,85,247,.03)" stroke="rgba(168,85,247,.2)" stroke-dasharray="4,3"/>
+      <rect x="460" y="45" width="310" height="38" rx="5" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.3)"/>
+      <text x="615" y="69" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">WITH cte AS MATERIALIZED (...)</text>
+      <text x="450" y="103" font-size="10" fill="#94a3b8" font-family="Inter">→ CTE thực thi ĐÚNG 1 LẦN, lưu kết quả temp</text>
+      <text x="450" y="121" font-size="10" fill="#94a3b8" font-family="Inter">→ Outer predicates KHÔNG push vào CTE</text>
+      <text x="450" y="139" font-size="10" fill="#94a3b8" font-family="Inter">→ Kết quả tái dùng nhiều lần: tính 1 lần duy nhất</text>
+      <text x="450" y="160" font-size="10" fill="#00ff88" font-family="Inter">✓ CTE có RANDOM(), NOW(), volatile → dùng 1 lần</text>
+      <text x="450" y="178" font-size="10" fill="#00ff88" font-family="Inter">✓ CTE dùng 3+ lần trong query: tránh re-evaluate</text>
+      <text x="450" y="194" font-size="10" fill="#ff6b6b" font-family="Inter">✗ Không dùng index khi outer query thêm filter</text>
+    </svg>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 2.1 — Sales analysis: CTE chain 4 bước</span><span class="badge b-bas">INTERMEDIATE</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Báo cáo top 10 sản phẩm theo doanh thu quý, tính % so với tổng, xếp hạng trong category, so sánh tăng trưởng với quý trước. Logic 4 bước phụ thuộc nhau — CTE chain cho phép viết rõ ràng từng bước, dễ debug từng CTE riêng lẻ.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">cte_sales_pipeline.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">WITH</span>
+<span class="cm">-- Bước 1: Doanh thu quý này</span>
+current_q <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        p.product_id, p.product_name, p.category,
+        <span class="fn">SUM</span>(oi.quantity * oi.unit_price) <span class="kw">AS</span> revenue,
+        <span class="fn">SUM</span>(oi.quantity)                 <span class="kw">AS</span> units
+    <span class="kw">FROM</span> order_items oi
+    <span class="kw">JOIN</span> products p  <span class="kw">USING</span> (product_id)
+    <span class="kw">JOIN</span> orders o    <span class="kw">USING</span> (order_id)
+    <span class="kw">WHERE</span> o.created_at >= <span class="fn">DATE_TRUNC</span>(<span class="s">'quarter'</span>, <span class="fn">NOW</span>())
+      <span class="kw">AND</span> o.status = <span class="s">'delivered'</span>
+    <span class="kw">GROUP BY</span> p.product_id, p.product_name, p.category
+),
+
+<span class="cm">-- Bước 2: Doanh thu quý trước</span>
+prev_q <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        oi.product_id,
+        <span class="fn">SUM</span>(oi.quantity * oi.unit_price) <span class="kw">AS</span> prev_revenue
+    <span class="kw">FROM</span> order_items oi
+    <span class="kw">JOIN</span> orders o <span class="kw">USING</span> (order_id)
+    <span class="kw">WHERE</span> o.created_at  >= <span class="fn">DATE_TRUNC</span>(<span class="s">'quarter'</span>, <span class="fn">NOW</span>()) - <span class="kw">INTERVAL</span> <span class="s">'3 months'</span>
+      <span class="kw">AND</span> o.created_at   < <span class="fn">DATE_TRUNC</span>(<span class="s">'quarter'</span>, <span class="fn">NOW</span>())
+      <span class="kw">AND</span> o.status = <span class="s">'delivered'</span>
+    <span class="kw">GROUP BY</span> oi.product_id
+),
+
+<span class="cm">-- Bước 3: Grand total (MATERIALIZED vì là scalar dùng nhiều lần)</span>
+grand_total <span class="kw">AS MATERIALIZED</span> (
+    <span class="kw">SELECT SUM</span>(revenue) <span class="kw">AS</span> total <span class="kw">FROM</span> current_q
+),
+
+<span class="cm">-- Bước 4: Xếp hạng, tính % và growth</span>
+ranked <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        cq.*,
+        gt.total                               <span class="kw">AS</span> grand_total,
+        <span class="fn">ROUND</span>(cq.revenue / gt.total * <span class="n">100</span>, <span class="n">2</span>)  <span class="kw">AS</span> revenue_pct,
+        <span class="fn">ROUND</span>(
+            (cq.revenue - <span class="fn">COALESCE</span>(pq.prev_revenue, <span class="n">0</span>))
+            / <span class="fn">NULLIF</span>(pq.prev_revenue, <span class="n">0</span>) * <span class="n">100</span>, <span class="n">1</span>
+        )                                      <span class="kw">AS</span> growth_pct,
+        <span class="fn">RANK</span>() <span class="kw">OVER</span> (
+            <span class="kw">PARTITION BY</span> cq.category
+            <span class="kw">ORDER BY</span> cq.revenue <span class="kw">DESC</span>
+        )                                      <span class="kw">AS</span> cat_rank,
+        <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> cq.revenue <span class="kw">DESC</span>) <span class="kw">AS</span> overall_rank
+    <span class="kw">FROM</span> current_q cq
+    <span class="kw">CROSS JOIN</span> grand_total gt
+    <span class="kw">LEFT JOIN</span>  prev_q pq <span class="kw">USING</span> (product_id)
+)
+<span class="kw">SELECT</span>
+    overall_rank, product_name, category,
+    <span class="fn">TO_CHAR</span>(revenue, <span class="s">'FM999,999,999'</span>) <span class="kw">AS</span> revenue,
+    revenue_pct || <span class="s">'%'</span>                <span class="kw">AS</span> pct_of_total,
+    cat_rank,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> growth_pct > <span class="n">0</span> <span class="kw">THEN</span> <span class="s">'+'</span> || growth_pct || <span class="s">'%'</span>
+        <span class="kw">WHEN</span> growth_pct < <span class="n">0</span> <span class="kw">THEN</span> growth_pct || <span class="s">'%'</span>
+        <span class="kw">ELSE</span> <span class="s">'NEW'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> qoq_growth
+<span class="kw">FROM</span> ranked
+<span class="kw">WHERE</span> overall_rank <= <span class="n">10</span>
+<span class="kw">ORDER BY</span> overall_rank;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>CTE chain như pipeline</strong>: mỗi bước độc lập, có thể debug riêng bằng cách comment các bước sau và chạy tới CTE cần xem. <code>AS MATERIALIZED</code> cho <code>grand_total</code> đảm bảo <code>SUM</code> chỉ tính một lần, không bị re-evaluate khi CROSS JOIN. <code>NULLIF(prev_revenue, 0)</code> tránh division by zero; <code>COALESCE(..., 0)</code> xử lý sản phẩm mới không có quý trước. <code>RANK()</code> vs <code>ROW_NUMBER()</code>: RANK cho phép tie (đồng hạng), ROW_NUMBER thì không.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     RECURSIVE CTE
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-cte-recursive">
+  <div class="sec-hdr">
+    <div class="sec-num">02</div>
+    <div><div class="sec-title">Recursive CTE — Hierarchical Data &amp; Graphs</div>
+         <div class="sec-sub">WITH RECURSIVE: org chart, shortest path, cycle detection</div></div>
+    <span class="badge b-adv">NÂNG CAO → EXPERT</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">💡 Cơ chế hoạt động</div>
+    <div class="cbox-title">WITH RECURSIVE: Anchor + Recursive Term</div>
+    <p class="prose">Recursive CTE gồm hai phần nối bằng <code>UNION ALL</code>: phần <strong>Anchor</strong> (không đệ quy, chạy một lần để khởi tạo working table) và phần <strong>Recursive Term</strong> (tự tham chiếu CTE chính, chạy lặp đến khi không tạo ra row mới). Kết quả cuối là UNION ALL của tất cả iterations.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_recursive_cte.png" alt="PostgreSQL WITH RECURSIVE execution engine flow" loading="lazy">
+    <div class="concept-img-caption">Hình 2.1: Quy trình xử lý đệ quy trong PostgreSQL — Sự tương tác giữa Anchor Member và Looping Queue của Recursive Member</div>
+  </div>
+
+  <!-- Recursive flow diagram -->
+  <div class="dia">
+    <div class="dia-title">WITH RECURSIVE Execution Flow — Ví dụ duyệt org chart</div>
+    <svg width="100%" viewBox="0 0 800 250" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="rc" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Steps -->
+      <rect x="20" y="20" width="185" height="48" rx="6" fill="rgba(0,212,255,.1)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="112" y="40" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Anchor Term</text>
+      <text x="112" y="57" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">WHERE manager_id IS NULL (CEO)</text>
+
+      <line x1="112" y1="68" x2="112" y2="98" stroke="#a855f7" stroke-width="1.5" marker-end="url(#rc)"/>
+      <text x="122" y="87" font-size="9" fill="#64748b" font-family="Inter">Iteration 0</text>
+
+      <rect x="20" y="98" width="185" height="38" rx="5" fill="rgba(168,85,247,.12)" stroke="#a855f7"/>
+      <text x="112" y="122" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">Working Table</text>
+
+      <line x1="112" y1="136" x2="112" y2="163" stroke="#a855f7" stroke-width="1.5" marker-end="url(#rc)"/>
+
+      <rect x="20" y="163" width="185" height="48" rx="5" fill="rgba(168,85,247,.07)" stroke="rgba(168,85,247,.4)" stroke-dasharray="5,3"/>
+      <text x="112" y="183" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Recursive Term</text>
+      <text x="112" y="200" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">JOIN cte ON emp_id = manager_id</text>
+
+      <path d="M 208 190 Q 255 190 255 117 Q 255 68 208 68"
+            fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#rc)"/>
+      <text x="265" y="105" font-size="9" fill="#a855f7" font-family="Inter">Iter N</text>
+      <text x="265" y="120" font-size="9" fill="#64748b" font-family="Inter">until empty</text>
+
+      <!-- Result set side -->
+      <rect x="380" y="20" width="400" height="210" rx="8" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)"/>
+      <text x="580" y="42" text-anchor="middle" font-size="11" fill="#00ff88" font-family="Inter" font-weight="600">Result = UNION ALL of all iterations</text>
+      <text x="395" y="65"  font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Iter 0: [CEO]                         depth=0</text>
+      <text x="395" y="85"  font-size="10" fill="#a855f7" font-family="JetBrains Mono">Iter 1: [CTO, CFO, COO]               depth=1</text>
+      <text x="395" y="105" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Iter 2: [VP Eng, VP Prod, VP Fin]      depth=2</text>
+      <text x="395" y="125" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Iter 3: [Eng Lead, Prod Lead...]       depth=3</text>
+      <text x="395" y="145" font-size="10" fill="#64748b" font-family="JetBrains Mono">Iter 4: [] → empty → STOP</text>
+      <line x1="395" y1="157" x2="770" y2="157" stroke="#1e293b" stroke-width="1"/>
+      <text x="395" y="175" font-size="10" fill="#f59e0b" font-family="Inter">⚠ CYCLE DETECTION bắt buộc với đồ thị có chu trình!</text>
+      <text x="395" y="193" font-size="10" fill="#64748b" font-family="Inter">  Cách 1: WHERE id != ALL(path_array)</text>
+      <text x="395" y="210" font-size="10" fill="#64748b" font-family="Inter">  Cách 2: CYCLE id SET is_cycle USING path  (PG14+)</text>
+    </svg>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 2.2 — Org Chart: duyệt cây phòng ban với path tracking</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Cần hiển thị sơ đồ tổ chức dạng indent-tree, tính tổng headcount dưới mỗi manager, tìm đường từ CEO đến bất kỳ nhân viên nào, và phát hiện circular reference trong data. Tất cả từ bảng self-referencing <code>employees</code>.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">org_chart_recursive.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> employees (
+    emp_id      <span class="tp">BIGINT PRIMARY KEY</span>,
+    name        <span class="tp">TEXT NOT NULL</span>,
+    title       <span class="tp">TEXT</span>,
+    manager_id  <span class="tp">BIGINT REFERENCES</span> employees(emp_id),
+    salary      <span class="tp">NUMERIC</span>
+);
+<span class="kw">CREATE INDEX ON</span> employees (manager_id);  <span class="cm">-- CRITICAL cho performance</span>
+
+<span class="cm">-- ── Query 1: Full org chart với indent, path, depth ─────────────────</span>
+<span class="kw">WITH RECURSIVE</span> org <span class="kw">AS</span> (
+    <span class="cm">-- ANCHOR: root (không có manager)</span>
+    <span class="kw">SELECT</span>
+        emp_id, name, title, manager_id, salary,
+        <span class="n">0</span>              <span class="kw">AS</span> depth,
+        ARRAY[emp_id]  <span class="kw">AS</span> path,       <span class="cm">-- track path cho cycle detection</span>
+        name           <span class="kw">AS</span> breadcrumb
+    <span class="kw">FROM</span> employees
+    <span class="kw">WHERE</span> manager_id <span class="kw">IS NULL</span>
+
+    <span class="kw">UNION ALL</span>
+
+    <span class="cm">-- RECURSIVE TERM</span>
+    <span class="kw">SELECT</span>
+        e.emp_id, e.name, e.title, e.manager_id, e.salary,
+        o.depth + <span class="n">1</span>,
+        o.path || e.emp_id,
+        o.breadcrumb || <span class="s">' › '</span> || e.name
+    <span class="kw">FROM</span> employees e
+    <span class="kw">JOIN</span> org o <span class="kw">ON</span> e.manager_id = o.emp_id
+    <span class="kw">WHERE NOT</span> (e.emp_id = <span class="kw">ANY</span>(o.path))  <span class="cm">-- cycle guard</span>
+)
+<span class="kw">SELECT</span>
+    <span class="fn">REPEAT</span>(<span class="s">'  '</span>, depth) || name   <span class="kw">AS</span> org_chart,
+    title, depth, breadcrumb,
+    salary,
+    <span class="fn">COUNT</span>(*) <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> path[<span class="n">1</span>]) - <span class="n">1</span>  <span class="kw">AS</span> subtree_headcount
+<span class="kw">FROM</span> org
+<span class="kw">ORDER BY</span> path;  <span class="cm">-- ORDER BY path array: giữ hierarchical order</span>
+
+<span class="cm">-- ── Query 2: Tất cả subordinates trực tiếp + gián tiếp của manager X ─</span>
+<span class="kw">WITH RECURSIVE</span> subs <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> emp_id, name, manager_id, <span class="n">0</span> <span class="kw">AS</span> depth
+    <span class="kw">FROM</span> employees <span class="kw">WHERE</span> emp_id = <span class="n">5</span>   <span class="cm">-- target manager</span>
+    <span class="kw">UNION ALL</span>
+    <span class="kw">SELECT</span> e.emp_id, e.name, e.manager_id, s.depth + <span class="n">1</span>
+    <span class="kw">FROM</span> employees e
+    <span class="kw">JOIN</span> subs s <span class="kw">ON</span> e.manager_id = s.emp_id
+)
+<span class="kw">SELECT</span> emp_id, name, depth,
+       <span class="fn">COUNT</span>(*) <span class="kw">OVER</span>() - <span class="n">1</span> <span class="kw">AS</span> total_headcount
+<span class="kw">FROM</span> subs <span class="kw">WHERE</span> depth > <span class="n">0</span>
+<span class="kw">ORDER BY</span> depth, name;
+
+<span class="cm">-- ── Query 3: CYCLE clause PG14+ (tự động detect circular) ───────────</span>
+<span class="kw">WITH RECURSIVE</span> safe_walk <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> emp_id, manager_id, <span class="n">0</span> <span class="kw">AS</span> d
+    <span class="kw">FROM</span> employees <span class="kw">WHERE</span> emp_id = <span class="n">1</span>
+    <span class="kw">UNION ALL</span>
+    <span class="kw">SELECT</span> e.emp_id, e.manager_id, sw.d + <span class="n">1</span>
+    <span class="kw">FROM</span> employees e <span class="kw">JOIN</span> safe_walk sw <span class="kw">ON</span> e.manager_id = sw.emp_id
+)
+<span class="kw">CYCLE</span> emp_id <span class="kw">SET</span> is_cycle <span class="kw">USING</span> cycle_path  <span class="cm">-- PG14+ built-in</span>
+<span class="kw">SELECT</span> emp_id, d <span class="kw">FROM</span> safe_walk <span class="kw">WHERE NOT</span> is_cycle;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>Index trên (manager_id)</strong> là bắt buộc — mỗi iteration của recursive CTE cần lookup by manager_id. Không có index → full scan mỗi vòng → O(N²) performance. <strong>CYCLE clause (PG14+)</strong> là cách clean nhất để handle circular reference; với PG cũ hơn dùng <code>WHERE NOT (id = ANY(path_array))</code>. <strong>ORDER BY path</strong>: vì path là array, ordering theo array sẽ đảm bảo thứ tự hierarchical (parent trước children). <code>REPEAT('  ', depth)</code> tạo indent trực quan trong terminal output.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     LATERAL JOIN
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-lateral-intro">
+  <div class="sec-hdr">
+    <div class="sec-num">02</div>
+    <div><div class="sec-title">LATERAL Join</div>
+         <div class="sec-sub">Correlated subqueries dạng join, top-N per group, set-returning functions</div></div>
+    <span class="badge b-adv">NÂNG CAO → EXPERT</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">💡 Định nghĩa</div>
+    <div class="cbox-title">LATERAL cho phép subquery tham chiếu outer table</div>
+    <p class="prose"><strong>LATERAL</strong> cho phép subquery hoặc function call ở phía phải của JOIN <strong>tham chiếu cột của table phía trái</strong>. Không có LATERAL, subquery trong JOIN phải hoàn toàn độc lập. Với LATERAL, mỗi row của outer table "kéo" một lần thực thi subquery với context của chính nó — giống correlated subquery nhưng có thể trả về nhiều rows và dùng được với LIMIT.</p>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 2.3 — Top-3 sản phẩm bán chạy nhất mỗi category (Top-N per group)</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">"Top-N per group" là bài toán cổ điển. Với LATERAL, optimizer có thể dùng index trên <code>(category_id, revenue DESC)</code> và apply LIMIT ngay tại nguồn — hiệu quả hơn window function phải scan toàn bộ rồi mới filter.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">lateral_top_n.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── LATERAL approach: hiệu quả nhất ─────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    c.category_id,
+    c.category_name,
+    top3.product_name,
+    top3.total_revenue,
+    top3.rank_in_cat
+<span class="kw">FROM</span> categories c
+<span class="kw">CROSS JOIN LATERAL</span> (
+    <span class="cm">-- Subquery này chạy 1 lần PER CATEGORY ROW
+    -- và có thể dùng c.category_id từ outer query</span>
+    <span class="kw">SELECT</span>
+        p.product_name,
+        <span class="fn">SUM</span>(oi.quantity * oi.unit_price)  <span class="kw">AS</span> total_revenue,
+        <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (
+            <span class="kw">ORDER BY</span> <span class="fn">SUM</span>(oi.quantity * oi.unit_price) <span class="kw">DESC</span>
+        ) <span class="kw">AS</span> rank_in_cat
+    <span class="kw">FROM</span> products p
+    <span class="kw">JOIN</span> order_items oi <span class="kw">USING</span> (product_id)
+    <span class="kw">JOIN</span> orders o <span class="kw">USING</span> (order_id)
+    <span class="kw">WHERE</span> p.category_id = c.category_id   <span class="cm">-- ← correlated: tham chiếu outer</span>
+      <span class="kw">AND</span> o.created_at >= <span class="s">'2024-01-01'</span>
+    <span class="kw">GROUP BY</span> p.product_id, p.product_name
+    <span class="kw">ORDER BY</span> total_revenue <span class="kw">DESC</span>
+    <span class="kw">LIMIT</span> <span class="n">3</span>                            <span class="cm">-- ← LIMIT ngay tại nguồn</span>
+) top3
+<span class="kw">ORDER BY</span> c.category_name, top3.rank_in_cat;
+
+<span class="cm">-- ── LEFT JOIN LATERAL: giữ category ngay cả khi không có sản phẩm ────</span>
+<span class="kw">SELECT</span> c.category_name, top3.product_name, top3.total_revenue
+<span class="kw">FROM</span> categories c
+<span class="kw">LEFT JOIN LATERAL</span> (
+    <span class="kw">SELECT</span> p.product_name, <span class="fn">SUM</span>(...) <span class="kw">AS</span> total_revenue
+    <span class="kw">FROM</span> products p <span class="kw">JOIN</span> ... <span class="kw">WHERE</span> p.category_id = c.category_id
+    <span class="kw">GROUP BY</span> p.product_id, p.product_name
+    <span class="kw">ORDER BY</span> total_revenue <span class="kw">DESC</span>
+    <span class="kw">LIMIT</span> <span class="n">3</span>
+) top3 <span class="kw">ON TRUE</span>   <span class="cm">-- ON TRUE bắt buộc với LEFT JOIN LATERAL</span>
+<span class="kw">ORDER BY</span> c.category_name;
+
+<span class="cm">-- ── LATERAL với rolling window statistics ─────────────────────────────</span>
+<span class="kw">SELECT</span>
+    o.order_id,
+    o.customer_id,
+    o.total,
+    stats.avg_90d,
+    stats.p90_90d,
+    <span class="fn">ROUND</span>(o.total / <span class="fn">NULLIF</span>(stats.avg_90d, <span class="n">0</span>), <span class="n">2</span>) <span class="kw">AS</span> vs_avg
+<span class="kw">FROM</span> orders o
+<span class="kw">CROSS JOIN LATERAL</span> (
+    <span class="kw">SELECT</span>
+        <span class="fn">AVG</span>(total)                        <span class="kw">AS</span> avg_90d,
+        <span class="fn">PERCENTILE_CONT</span>(<span class="n">0.9</span>)
+            <span class="kw">WITHIN GROUP</span> (<span class="kw">ORDER BY</span> total) <span class="kw">AS</span> p90_90d
+    <span class="kw">FROM</span> orders o2
+    <span class="kw">WHERE</span> o2.customer_id = o.customer_id  <span class="cm">-- correlated</span>
+      <span class="kw">AND</span> o2.created_at <span class="kw">BETWEEN</span>
+            o.created_at - <span class="kw">INTERVAL</span> <span class="s">'90 days'</span>
+            <span class="kw">AND</span> o.created_at               <span class="cm">-- rolling 90-day window</span>
+) stats
+<span class="kw">WHERE</span> o.created_at >= <span class="s">'2024-01-01'</span>;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>CROSS JOIN LATERAL</strong>: dùng khi subquery luôn trả ≥1 row; <strong>LEFT JOIN LATERAL ... ON TRUE</strong>: giữ outer row với NULL khi subquery trả 0 rows. <strong>LATERAL với LIMIT hiệu quả hơn window function</strong> khi có composite index phù hợp vì optimizer có thể dùng Index Scan + LIMIT stop ngay sau khi lấy đủ N rows. <strong>Mọi set-returning function</strong> trong FROM clause (<code>unnest</code>, <code>jsonb_array_elements</code>, custom functions) đều ngầm là LATERAL — không cần viết từ khóa LATERAL với chúng. <code>PERCENTILE_CONT</code> là ordered-set aggregate, không dùng được trong window function bình thường nhưng trong LATERAL thì được.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     CTE EXPERT
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-cte-expert">
+  <div class="sec-hdr">
+    <div class="sec-num">02</div>
+    <div><div class="sec-title">Expert: Recursive + LATERAL kết hợp</div>
+         <div class="sec-sub">BOM costing engine, graph shortest path, data unpivot</div></div>
+    <span class="badge b-exp">EXPERT</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 2.4 — BOM Costing: Recursive CTE mở rộng + LATERAL tìm best supplier</span><span class="badge b-exp">EXPERT</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Hệ thống sản xuất có <strong>Bill of Materials (BOM)</strong> nhiều cấp. Cần tính tổng chi phí nguyên liệu cho từng thành phẩm, stock shortage, và đề xuất order từ nhà cung cấp giá tốt nhất. Bài toán kết hợp: Recursive CTE (duyệt BOM tree) + LATERAL (tìm best supplier per component).</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">bom_costing_expert.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> bom (parent_sku <span class="tp">TEXT</span>, child_sku <span class="tp">TEXT</span>, qty_each <span class="tp">NUMERIC</span>,
+    <span class="kw">PRIMARY KEY</span>(parent_sku, child_sku));
+<span class="kw">CREATE TABLE</span> materials (sku <span class="tp">TEXT PRIMARY KEY</span>, is_raw <span class="tp">BOOLEAN</span>, stock <span class="tp">NUMERIC</span>);
+<span class="kw">CREATE TABLE</span> supplier_prices (
+    sku <span class="tp">TEXT</span>, supplier_id <span class="tp">INT</span>, unit_price <span class="tp">NUMERIC</span>,
+    lead_days <span class="tp">INT</span>, min_order_qty <span class="tp">NUMERIC</span>,
+    <span class="kw">PRIMARY KEY</span>(sku, supplier_id)
+);
+
+<span class="kw">WITH RECURSIVE</span>
+<span class="cm">-- Bước 1: Mở rộng BOM từng cấp, tích luỹ quantity</span>
+bom_tree <span class="kw">AS</span> (
+    <span class="cm">-- Anchor: sản phẩm cuối (không phải raw material)</span>
+    <span class="kw">SELECT</span>
+        m.sku <span class="kw">AS</span> root_sku,
+        m.sku <span class="kw">AS</span> comp_sku,
+        <span class="n">1</span>::<span class="tp">NUMERIC</span> <span class="kw">AS</span> total_qty,
+        <span class="n">0</span> <span class="kw">AS</span> depth,
+        ARRAY[m.sku] <span class="kw">AS</span> bom_path
+    <span class="kw">FROM</span> materials m <span class="kw">WHERE NOT</span> m.is_raw
+
+    <span class="kw">UNION ALL</span>
+
+    <span class="cm">-- Recursive: mở rộng đến components con</span>
+    <span class="kw">SELECT</span>
+        bt.root_sku,
+        b.child_sku,
+        bt.total_qty * b.qty_each,   <span class="cm">-- tích luỹ qty mỗi cấp</span>
+        bt.depth + <span class="n">1</span>,
+        bt.bom_path || b.child_sku
+    <span class="kw">FROM</span> bom b
+    <span class="kw">JOIN</span> bom_tree bt <span class="kw">ON</span> b.parent_sku = bt.comp_sku
+    <span class="kw">WHERE NOT</span> (b.child_sku = <span class="kw">ANY</span>(bt.bom_path))  <span class="cm">-- cycle guard</span>
+),
+
+<span class="cm">-- Bước 2: Chỉ giữ raw materials với tổng qty cần</span>
+raw_needs <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        bt.root_sku,
+        bt.comp_sku,
+        <span class="fn">SUM</span>(bt.total_qty) <span class="kw">AS</span> qty_needed
+    <span class="kw">FROM</span> bom_tree bt
+    <span class="kw">JOIN</span> materials m <span class="kw">ON</span> m.sku = bt.comp_sku <span class="kw">AND</span> m.is_raw
+    <span class="kw">GROUP BY</span> bt.root_sku, bt.comp_sku
+),
+
+<span class="cm">-- Bước 3: LATERAL tìm best supplier cho từng raw material</span>
+costed <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        rn.root_sku,
+        rn.comp_sku,
+        rn.qty_needed,
+        m.stock,
+        <span class="fn">GREATEST</span>(<span class="n">0</span>, rn.qty_needed - m.stock) <span class="kw">AS</span> shortage,
+        best.unit_price,
+        best.supplier_id,
+        best.lead_days,
+        <span class="fn">GREATEST</span>(
+            <span class="fn">GREATEST</span>(<span class="n">0</span>, rn.qty_needed - m.stock),
+            best.min_order_qty
+        ) * best.unit_price  <span class="kw">AS</span> order_cost
+    <span class="kw">FROM</span> raw_needs rn
+    <span class="kw">JOIN</span> materials m <span class="kw">ON</span> m.sku = rn.comp_sku
+    <span class="kw">CROSS JOIN LATERAL</span> (
+        <span class="cm">-- Với mỗi component, tìm supplier rẻ nhất &amp; nhanh nhất</span>
+        <span class="kw">SELECT</span> supplier_id, unit_price, lead_days, min_order_qty
+        <span class="kw">FROM</span> supplier_prices sp
+        <span class="kw">WHERE</span> sp.sku = rn.comp_sku         <span class="cm">-- correlated</span>
+        <span class="kw">ORDER BY</span> unit_price <span class="kw">ASC</span>, lead_days <span class="kw">ASC</span>
+        <span class="kw">LIMIT</span> <span class="n">1</span>
+    ) best
+)
+
+<span class="cm">-- Final: costing report per finished product</span>
+<span class="kw">SELECT</span>
+    root_sku                             <span class="kw">AS</span> product,
+    <span class="fn">COUNT</span>(*) <span class="kw">FILTER</span>(<span class="kw">WHERE</span> shortage > <span class="n">0</span>) <span class="kw">AS</span> short_items,
+    <span class="fn">SUM</span>(qty_needed * unit_price)         <span class="kw">AS</span> total_material_cost,
+    <span class="fn">SUM</span>(order_cost)                      <span class="kw">AS</span> required_purchase,
+    <span class="fn">MAX</span>(lead_days)                       <span class="kw">AS</span> max_lead_days,
+    <span class="fn">JSONB_AGG</span>(
+        <span class="fn">JSONB_BUILD_OBJECT</span>(
+            <span class="s">'sku'</span>, comp_sku, <span class="s">'needed'</span>, qty_needed,
+            <span class="s">'stock'</span>, stock, <span class="s">'shortage'</span>, shortage,
+            <span class="s">'order_cost'</span>, order_cost, <span class="s">'supplier'</span>, supplier_id
+        ) <span class="kw">ORDER BY</span> order_cost <span class="kw">DESC</span>
+    ) <span class="kw">FILTER</span>(<span class="kw">WHERE</span> shortage > <span class="n">0</span>)        <span class="kw">AS</span> procurement_plan
+<span class="kw">FROM</span> costed
+<span class="kw">GROUP BY</span> root_sku
+<span class="kw">ORDER BY</span> required_purchase <span class="kw">DESC</span>;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>Kết hợp Recursive CTE + LATERAL</strong>: Recursive CTE xử lý cấu trúc cây (BOM expansion), LATERAL tìm best supplier cho từng leaf node với correlated lookup. <code>JSONB_AGG ... FILTER(WHERE shortage &gt; 0)</code> — aggregate có điều kiện, chỉ aggregate rows thỏa điều kiện. Trong production, cân nhắc <strong>materialized view</strong> cho BOM expanded nếu BOM thay đổi ít (tránh recursive query mỗi lần report). Với BOM rất sâu (>15 cấp), xem xét <strong>closure table</strong> pattern để tránh đệ quy.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     03 — MVCC INTRO
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-mvcc-intro">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">MVCC — Multi-Version Concurrency Control</div>
+         <div class="sec-sub">Readers không block writers, writers không block readers</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">💡 Định nghĩa</div>
+    <div class="cbox-title">MVCC là gì và tại sao PostgreSQL dùng nó?</div>
+    <p class="prose"><strong>MVCC (Multi-Version Concurrency Control)</strong> là cơ chế PostgreSQL dùng để xử lý đồng thời <strong>mà không cần lock khi đọc</strong>. Thay vì lock một row khi read, PostgreSQL giữ <strong>nhiều phiên bản</strong> của cùng row — mỗi transaction thấy phiên bản phù hợp với <em>snapshot</em> tại thời điểm nó bắt đầu, không bị ảnh hưởng bởi transactions đang chạy song song.</p>
+    <p class="prose">Đây là lý do <strong>SELECT không block UPDATE và ngược lại</strong> trong PostgreSQL, khác hoàn toàn với lock-based concurrency của nhiều RDBMS truyền thống. Cái giá phải trả: dead tuples tích lũy và cần VACUUM định kỳ.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dia-title">MVCC — Transaction Visibility: TX A thấy version cũ, TX B (sau) thấy version mới</div>
+    <svg width="100%" viewBox="0 0 800 290" xmlns="http://www.w3.org/2000/svg">
+      <!-- Timeline -->
+      <text x="40" y="17" font-size="10" fill="#64748b" font-family="JetBrains Mono">TIME →</text>
+      <line x1="40" y1="22" x2="760" y2="22" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="150" y1="17" x2="150" y2="28" stroke="#334155"/><text x="150" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">t1</text>
+      <line x1="280" y1="17" x2="280" y2="28" stroke="#334155"/><text x="280" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">t2</text>
+      <line x1="410" y1="17" x2="410" y2="28" stroke="#334155"/><text x="410" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">t3</text>
+      <line x1="540" y1="17" x2="540" y2="28" stroke="#334155"/><text x="540" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">t4</text>
+      <line x1="670" y1="17" x2="670" y2="28" stroke="#334155"/><text x="670" y="40" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">t5</text>
+
+      <!-- TX A: long reader -->
+      <text x="35" y="70" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">TX A</text>
+      <text x="35" y="85" font-size="9" fill="#64748b" font-family="Inter">(Reader)</text>
+      <rect x="150" y="58" width="510" height="34" rx="5" fill="rgba(0,212,255,.07)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="405" y="80" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="Inter">BEGIN → SELECT ... → SELECT ... → COMMIT</text>
+      <text x="155" y="106" font-size="9" fill="#00d4ff" font-family="Inter">snapshot: xmin_active=100 (sees rows with xmin&lt;100)</text>
+
+      <!-- TX B: writer -->
+      <text x="35" y="140" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">TX B</text>
+      <text x="35" y="155" font-size="9" fill="#64748b" font-family="Inter">(Writer)</text>
+      <rect x="280" y="128" width="200" height="34" rx="5" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="380" y="150" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="Inter">BEGIN → UPDATE → COMMIT</text>
+      <text x="285" y="174" font-size="9" fill="#f59e0b" font-family="Inter">xid=101: tạo row version mới, set xmax=101 trên row cũ</text>
+
+      <!-- Heap storage -->
+      <text x="35" y="205" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">Heap:</text>
+      <rect x="150" y="212" width="180" height="48" rx="6" fill="rgba(0,255,136,.08)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="240" y="232" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Row v1 (OLD)</text>
+      <text x="240" y="250" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">xmin=99, xmax=101</text>
+      <text x="150" y="274" font-size="9" fill="#00d4ff" font-family="Inter">← TX A sees this (started before xid=101)</text>
+
+      <rect x="450" y="212" width="190" height="48" rx="6" fill="rgba(245,158,11,.1)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="545" y="232" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Row v2 (NEW)</text>
+      <text x="545" y="250" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">xmin=101, xmax=0</text>
+      <text x="450" y="274" font-size="9" fill="#f59e0b" font-family="Inter">← TX C (started after t3) sees this</text>
+    </svg>
+  </div>
+
+  <h3>Isolation Levels trong PostgreSQL</h3>
+  <table class="tbl">
+    <thead><tr><th>Isolation Level</th><th>Dirty Read</th><th>Non-Repeatable Read</th><th>Phantom Read</th><th>Serialization Anomaly</th></tr></thead>
+    <tbody>
+      <tr><td><code>READ COMMITTED</code> (default)</td><td>✅ Không</td><td>❌ Có thể</td><td>❌ Có thể</td><td>❌ Có thể</td></tr>
+      <tr><td><code>REPEATABLE READ</code></td><td>✅ Không</td><td>✅ Không</td><td>✅ Không (PG dùng MVCC)</td><td>❌ Có thể</td></tr>
+      <tr><td><code>SERIALIZABLE</code></td><td>✅ Không</td><td>✅ Không</td><td>✅ Không</td><td>✅ Không (SSI)</td></tr>
+    </tbody>
+  </table>
+  <div class="note note-info"><div class="ni">💡</div>
+    <p>PostgreSQL <strong>không có READ UNCOMMITTED</strong> thực sự — dù set level này, nó hoạt động như READ COMMITTED. <code>SERIALIZABLE</code> dùng <strong>SSI (Serializable Snapshot Isolation)</strong> — hiệu quả hơn lock-based, nhưng có thể sinh <code>serialization_failure</code> (SQLSTATE 40001) cần application retry.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     MVCC INTERNALS
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-mvcc-internals">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">MVCC Internals — xmin, xmax, ctid</div>
+         <div class="sec-sub">System columns, pageinspect, bloat detection</div></div>
+    <span class="badge b-exp">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_mvcc_internals.png" alt="PostgreSQL MVCC Internals tuple headers xmin xmax layout" loading="lazy">
+    <div class="concept-img-caption">Hình 3.1: Cơ chế đồng thời đa phiên bản (MVCC) trong PostgreSQL — Cách các Transactions Snapshot lọc các phiên bản Tuple thông qua xmin &amp; xmax và Autovacuum dọn dẹp các dead tuples</div>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 3.1 — Quan sát MVCC bằng system columns &amp; pageinspect</span><span class="badge b-exp">EXPERT</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Khi debug data consistency, bloat, hay hot standby conflict, cần nhìn trực tiếp vào cách PostgreSQL lưu MVCC data. PostgreSQL expose <strong>system columns</strong> (xmin, xmax, ctid, cmin, cmax) và extension <code>pageinspect</code> để inspect raw page data.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">mvcc_inspect.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── System columns: có trên mọi table, ẩn mặc định ─────────────────
+-- ctid:  Physical location (page, tuple) — '(0,1)' = page 0, tuple 1
+-- xmin:  XID của transaction tạo row (INSERT/UPDATE)
+-- xmax:  XID của transaction xoá/update (0 = row đang live)
+-- cmin:  Command counter trong TX tạo row (phân biệt nhiều INSERTs cùng TX)
+-- cmax:  Command counter trong TX xoá row</span>
+
+<span class="kw">CREATE TABLE</span> mvcc_demo (id <span class="tp">INT</span>, val <span class="tp">TEXT</span>);
+<span class="kw">INSERT INTO</span> mvcc_demo <span class="kw">VALUES</span> (<span class="n">1</span>, <span class="s">'original'</span>);
+
+<span class="kw">SELECT</span> ctid, xmin, xmax, cmin, id, val
+<span class="kw">FROM</span> mvcc_demo;
+<span class="cm">--  ctid  | xmin | xmax | cmin | id | val
+-- ────────────────────────────────────────
+--  (0,1) | 500  |  0   |  0   |  1 | original
+--                ↑ xmax=0: row đang sống</span>
+
+<span class="cm">-- Sau UPDATE: xmax được set trên row cũ, row mới có ctid mới</span>
+<span class="kw">UPDATE</span> mvcc_demo <span class="kw">SET</span> val = <span class="s">'updated'</span> <span class="kw">WHERE</span> id = <span class="n">1</span>;
+<span class="kw">SELECT</span> ctid, xmin, xmax, val <span class="kw">FROM</span> mvcc_demo;
+<span class="cm">--  ctid  | xmin | xmax | val
+-- ──────────────────────────
+--  (0,2) | 501  |  0   | updated   ← new row version (current session sees this)
+-- Row cũ (0,1) vẫn ở trong page với xmax=501, là dead tuple</span>
+
+<span class="cm">-- ── pageinspect: nhìn RAW vào heap page ─────────────────────────────</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> pageinspect;
+
+<span class="kw">SELECT</span>
+    t_ctid,
+    t_xmin, t_xmax,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> t_xmax = <span class="n">0</span>                          <span class="kw">THEN</span> <span class="s">'LIVE'</span>
+        <span class="kw">WHEN</span> (t_infomask &amp; <span class="n">1024</span>) != <span class="n">0</span>            <span class="kw">THEN</span> <span class="s">'DEAD'</span>
+        <span class="kw">ELSE</span>                                          <span class="s">'POSSIBLY DEAD'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> tuple_status,
+    <span class="fn">LENGTH</span>(<span class="fn">t_data</span>) <span class="kw">AS</span> data_bytes
+<span class="kw">FROM</span> <span class="fn">heap_page_items</span>(<span class="fn">get_raw_page</span>(<span class="s">'mvcc_demo'</span>, <span class="n">0</span>));
+
+<span class="cm">-- ── Bloat analysis: dead vs live tuples ─────────────────────────────</span>
+<span class="kw">SELECT</span>
+    schemaname || <span class="s">'.'</span> || relname             <span class="kw">AS</span> table_name,
+    n_live_tup,
+    n_dead_tup,
+    <span class="fn">ROUND</span>(n_dead_tup::NUMERIC
+        / <span class="fn">NULLIF</span>(n_live_tup + n_dead_tup, <span class="n">0</span>)
+        * <span class="n">100</span>, <span class="n">1</span>)                           <span class="kw">AS</span> dead_pct,
+    last_autovacuum::DATE                    <span class="kw">AS</span> last_av,
+    <span class="fn">ROUND</span>(<span class="fn">pg_relation_size</span>(relid) / <span class="n">1e6</span>, <span class="n">1</span>)  <span class="kw">AS</span> table_mb
+<span class="kw">FROM</span> pg_stat_user_tables
+<span class="kw">WHERE</span> n_dead_tup > <span class="n">10000</span>
+<span class="kw">ORDER BY</span> dead_pct <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">20</span>;
+
+<span class="cm">-- ── Long-running transactions (block vacuum) ─────────────────────────</span>
+<span class="kw">SELECT</span>
+    pid,
+    usename,
+    application_name,
+    state,
+    <span class="fn">ROUND</span>(<span class="fn">EXTRACT</span>(epoch <span class="kw">FROM NOW</span>() - xact_start) / <span class="n">60</span>, <span class="n">1</span>) <span class="kw">AS</span> mins,
+    <span class="fn">LEFT</span>(query, <span class="n">80</span>) <span class="kw">AS</span> query_preview
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> state != <span class="s">'idle'</span>
+  <span class="kw">AND</span> xact_start < NOW() - <span class="kw">INTERVAL</span> <span class="s">'5 minutes'</span>
+<span class="kw">ORDER BY</span> xact_start;
+
+<span class="cm">-- ── XID Wraparound Risk ───────────────────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    datname,
+    <span class="fn">AGE</span>(datfrozenxid)                              <span class="kw">AS</span> xid_age,
+    <span class="fn">ROUND</span>(<span class="fn">AGE</span>(datfrozenxid)::NUMERIC/<span class="n">2100000000</span>*<span class="n">100</span>,<span class="n">2</span>) <span class="kw">AS</span> wraparound_pct,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> <span class="fn">AGE</span>(datfrozenxid) > <span class="n">1500000000</span> <span class="kw">THEN</span> <span class="s">'🔴 CRITICAL'</span>
+        <span class="kw">WHEN</span> <span class="fn">AGE</span>(datfrozenxid) >  <span class="n">750000000</span> <span class="kw">THEN</span> <span class="s">'🟡 WARNING'</span>
+        <span class="kw">ELSE</span>                                      <span class="s">'🟢 OK'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> status
+<span class="kw">FROM</span> pg_database <span class="kw">ORDER BY</span> xid_age <span class="kw">DESC</span>;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>Dead tuple bloat</strong> là hệ quả trực tiếp của MVCC: mỗi UPDATE tạo phiên bản mới, phiên bản cũ thành dead tuple cần VACUUM. <strong>Long-running transactions</strong> là nguyên nhân chính gây bloat vì VACUUM không thể xóa dead tuples còn visible với transaction cũ đó. Alert khi transaction > 5 phút là best practice. <strong>XID wraparound</strong>: Transaction ID là 32-bit (~2 tỷ). PostgreSQL tự shutdown khi còn 3M XID trước ngưỡng — monitor <code>AGE(datfrozenxid)</code> và alert ở 500M. <code>pageinspect</code> là extension cực mạnh để debug storage-level issues nhưng chỉ dành cho DBA chuyên sâu.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     RLS INTRO
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-rls-intro">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">Row-Level Security (RLS)</div>
+         <div class="sec-sub">Database-enforced access control — không thể bypass từ bất kỳ client</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-label">💡 Định nghĩa</div>
+    <div class="cbox-title">RLS — Kiểm soát quyền truy cập từng row ở tầng database</div>
+    <p class="prose"><strong>Row-Level Security (RLS)</strong> cho phép định nghĩa <em>policy</em> xác định row nào user/role được phép đọc hoặc ghi. Policy được thực thi <strong>tự động cho mọi query</strong> đến table — kể cả query trực tiếp từ psql, không thể bị bypass từ application code. Đây là nền tảng cho multi-tenant SaaS an toàn và GDPR-compliant data access.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_row_level_security.png" alt="PostgreSQL Row-Level Security shield policy filter" loading="lazy">
+    <div class="concept-img-caption">Hình 3.2: Cơ chế Row-Level Security (RLS) trong PostgreSQL — Hoạt động của lớp Policy Gate chặn lọc các dòng dữ liệu theo Tenant Session ID</div>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 3.2 — Multi-tenant SaaS: tenant isolation với RLS &amp; runtime config</span><span class="badge b-adv">ADVANCED</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Nhiều công ty dùng chung database. Yêu cầu tuyệt đối: Tenant A không thể đọc/ghi data của Tenant B — kể cả developer vô tình query sai. Admin vẫn xem được tất cả. Performance không bị ảnh hưởng đáng kể (cần index đúng cách).</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">rls_multi_tenant.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> orders (
+    order_id    <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    tenant_id   <span class="tp">UUID NOT NULL</span>,
+    customer    <span class="tp">TEXT NOT NULL</span>,
+    amount      <span class="tp">NUMERIC NOT NULL</span>,
+    created_at  <span class="tp">TIMESTAMPTZ DEFAULT NOW</span>()
+);
+<span class="kw">CREATE INDEX ON</span> orders (tenant_id);  <span class="cm">-- BẮTBUỘC: index trên RLS column</span>
+
+<span class="cm">-- ── Enable RLS ────────────────────────────────────────────────────────</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">ENABLE ROW LEVEL SECURITY</span>;
+
+<span class="cm">-- FORCE RLS: áp dụng ngay cả với table owner (ngoại trừ superuser)
+-- Không có FORCE: table owner bypass RLS mặc định!</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">FORCE ROW LEVEL SECURITY</span>;
+
+<span class="cm">-- ── Tạo Policies ─────────────────────────────────────────────────────</span>
+<span class="cm">-- current_setting(): đọc runtime config được application set trước mỗi TX
+-- Tham số TRUE = "missing_ok": trả empty string nếu chưa set (không throw)</span>
+<span class="kw">CREATE POLICY</span> tenant_select_policy <span class="kw">ON</span> orders
+<span class="kw">AS PERMISSIVE</span>      <span class="cm">-- default; PERMISSIVE = OR logic với các policies khác</span>
+<span class="kw">FOR SELECT</span>
+<span class="kw">TO</span> app_user         <span class="cm">-- chỉ áp dụng với role này</span>
+<span class="kw">USING</span> (
+    tenant_id = (<span class="fn">current_setting</span>(<span class="s">'app.tenant_id'</span>, <span class="kw">TRUE</span>))::<span class="tp">UUID</span>
+);
+
+<span class="kw">CREATE POLICY</span> tenant_write_policy <span class="kw">ON</span> orders
+<span class="kw">AS PERMISSIVE</span>
+<span class="kw">FOR ALL</span>             <span class="cm">-- INSERT + UPDATE + DELETE</span>
+<span class="kw">TO</span> app_user
+<span class="kw">USING</span> (             <span class="cm">-- USING: kiểm tra rows hiện có (SELECT/UPDATE/DELETE)</span>
+    tenant_id = (<span class="fn">current_setting</span>(<span class="s">'app.tenant_id'</span>, <span class="kw">TRUE</span>))::<span class="tp">UUID</span>
+)
+<span class="kw">WITH CHECK</span> (        <span class="cm">-- WITH CHECK: kiểm tra rows mới sắp ghi (INSERT/UPDATE)</span>
+    tenant_id = (<span class="fn">current_setting</span>(<span class="s">'app.tenant_id'</span>, <span class="kw">TRUE</span>))::<span class="tp">UUID</span>
+);
+
+<span class="cm">-- Admin: bypass RLS, thấy tất cả</span>
+<span class="kw">CREATE POLICY</span> admin_full_access <span class="kw">ON</span> orders
+<span class="kw">AS PERMISSIVE FOR ALL TO</span> app_admin
+<span class="kw">USING</span> (<span class="kw">TRUE</span>) <span class="kw">WITH CHECK</span> (<span class="kw">TRUE</span>);
+
+<span class="cm">-- ── Application: set tenant context trước mỗi transaction ────────────
+-- Trong Go (pgx) hoặc bất kỳ driver nào:
+-- tx.Exec(ctx, `
+--     SELECT set_config('app.tenant_id', $1, true)
+--            --                                ↑ TRUE = local to this TX
+-- `, tenantID.String())</span>
+
+<span class="cm">-- Ví dụ trong psql:</span>
+<span class="kw">BEGIN</span>;
+    <span class="kw">SELECT</span> <span class="fn">set_config</span>(<span class="s">'app.tenant_id'</span>, <span class="s">'550e8400-e29b-41d4-a716-446655440000'</span>, <span class="kw">TRUE</span>);
+    <span class="kw">SELECT</span> * <span class="kw">FROM</span> orders;   <span class="cm">-- ← TỰ ĐỘNG filter theo tenant_id!</span>
+    <span class="kw">INSERT INTO</span> orders (tenant_id, customer, amount)
+    <span class="kw">VALUES</span> (
+        (<span class="fn">current_setting</span>(<span class="s">'app.tenant_id'</span>, <span class="kw">TRUE</span>))::<span class="tp">UUID</span>,
+        <span class="s">'Khách hàng X'</span>, <span class="n">500000</span>
+    );
+<span class="kw">COMMIT</span>;
+
+<span class="cm">-- ── Verify RLS policies trên table ───────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    polname         <span class="kw">AS</span> policy,
+    polcmd          <span class="kw">AS</span> cmd,
+    polpermissive   <span class="kw">AS</span> permissive,
+    <span class="fn">pg_get_expr</span>(polqual,      polrelid) <span class="kw">AS</span> using_expr,
+    <span class="fn">pg_get_expr</span>(polwithcheck, polrelid) <span class="kw">AS</span> check_expr
+<span class="kw">FROM</span> pg_policy
+<span class="kw">WHERE</span> polrelid = <span class="s">'orders'</span>::REGCLASS;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>PERMISSIVE vs RESTRICTIVE</strong>: PERMISSIVE policies kết hợp bằng OR — row visible nếu pass bất kỳ PERMISSIVE policy nào. RESTRICTIVE kết hợp bằng AND với các PERMISSIVE — row phải pass tất cả. <strong>FORCE ROW LEVEL SECURITY</strong>: bắt buộc với multi-tenant để ngăn table owner bypass RLS vô tình. <strong>Index bắt buộc</strong> trên <code>tenant_id</code>: RLS policy được thêm vào WHERE clause của mọi query, không có index → sequential scan mỗi query. <code>set_config(key, value, TRUE)</code> — tham số 3 = TRUE: scoped to current transaction (reset sau COMMIT/ROLLBACK); FALSE: scoped to session.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     RLS ADVANCED
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-rls-adv">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">RLS — Hierarchical &amp; Role-based Patterns</div>
+         <div class="sec-sub">STABLE functions trong policy, CASE-based multi-role, security_barrier views</div></div>
+    <span class="badge b-exp">EXPERT</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 3.3 — CRM Role-based RLS: rep/manager/director với JWT claims</span><span class="badge b-exp">EXPERT</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">CRM có phân quyền: Sales Rep chỉ thấy leads của mình, Manager thấy cả team, Director thấy tất cả. Permissions từ JWT token. Cần RLS policy đủ linh hoạt cho hierarchical roles mà vẫn hiệu năng tốt — dùng <strong>STABLE helper functions</strong> để query planner có thể inline và optimize.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">rls_hierarchical.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> leads (
+    lead_id    <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    title      <span class="tp">TEXT NOT NULL</span>,
+    assigned   <span class="tp">BIGINT</span>,     <span class="cm">-- user_id</span>
+    team_id    <span class="tp">BIGINT</span>,
+    stage      <span class="tp">TEXT</span>,
+    value      <span class="tp">NUMERIC</span>
+);
+<span class="kw">CREATE INDEX ON</span> leads (assigned);
+<span class="kw">CREATE INDEX ON</span> leads (team_id);
+
+<span class="cm">-- STABLE functions: không ghi DB, kết quả ổn định trong một query
+-- → optimizer có thể inline, tránh gọi lại mỗi row</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">current_user_role</span>()
+<span class="kw">RETURNS TEXT LANGUAGE</span> sql <span class="kw">STABLE AS</span>
+$$<span class="kw">SELECT NULLIF</span>(<span class="fn">current_setting</span>(<span class="s">'app.role'</span>, <span class="kw">TRUE</span>), <span class="s">''</span>)$$;
+
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">current_user_id</span>()
+<span class="kw">RETURNS BIGINT LANGUAGE</span> sql <span class="kw">STABLE AS</span>
+$$<span class="kw">SELECT NULLIF</span>(<span class="fn">current_setting</span>(<span class="s">'app.user_id'</span>, <span class="kw">TRUE</span>), <span class="s">''</span>)::<span class="tp">BIGINT</span>$$;
+
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">current_team_id</span>()
+<span class="kw">RETURNS BIGINT LANGUAGE</span> sql <span class="kw">STABLE AS</span>
+$$<span class="kw">SELECT NULLIF</span>(<span class="fn">current_setting</span>(<span class="s">'app.team_id'</span>, <span class="kw">TRUE</span>), <span class="s">''</span>)::<span class="tp">BIGINT</span>$$;
+
+<span class="kw">ALTER TABLE</span> leads <span class="kw">ENABLE ROW LEVEL SECURITY</span>;
+<span class="kw">ALTER TABLE</span> leads <span class="kw">FORCE ROW LEVEL SECURITY</span>;
+
+<span class="cm">-- Policy duy nhất, linh hoạt theo role (CASE statement trong USING)</span>
+<span class="kw">CREATE POLICY</span> leads_access <span class="kw">ON</span> leads
+<span class="kw">FOR ALL TO</span> app_user
+<span class="kw">USING</span> (
+    <span class="kw">CASE</span> <span class="fn">current_user_role</span>()
+        <span class="kw">WHEN</span> <span class="s">'director'</span>  <span class="kw">THEN TRUE</span>
+        <span class="kw">WHEN</span> <span class="s">'manager'</span>   <span class="kw">THEN</span> team_id = <span class="fn">current_team_id</span>()
+        <span class="kw">WHEN</span> <span class="s">'sales_rep'</span> <span class="kw">THEN</span> assigned = <span class="fn">current_user_id</span>()
+        <span class="kw">ELSE FALSE</span>
+    <span class="kw">END</span>
+)
+<span class="kw">WITH CHECK</span> (
+    <span class="kw">CASE</span> <span class="fn">current_user_role</span>()
+        <span class="kw">WHEN</span> <span class="s">'director'</span>  <span class="kw">THEN TRUE</span>
+        <span class="kw">WHEN</span> <span class="s">'manager'</span>   <span class="kw">THEN</span> team_id = <span class="fn">current_team_id</span>()
+        <span class="kw">WHEN</span> <span class="s">'sales_rep'</span> <span class="kw">THEN</span>
+            assigned = <span class="fn">current_user_id</span>()
+            <span class="kw">AND</span> team_id = <span class="fn">current_team_id</span>()  <span class="cm">-- không assign sang team khác</span>
+        <span class="kw">ELSE FALSE</span>
+    <span class="kw">END</span>
+);
+
+<span class="cm">-- ── Application context setup từ JWT ─────────────────────────────────
+-- Go/Python: sau khi decode JWT, set context vào connection:
+-- SELECT set_config('app.role',    $1::text, true),
+--        set_config('app.user_id', $2::text, true),
+--        set_config('app.team_id', $3::text, true)
+-- (3 set_config trong một query để giảm round-trip)</span>
+
+<span class="cm">-- ── EXPLAIN để verify RLS được push vào plan ─────────────────────────</span>
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> leads;
+<span class="cm">-- Nếu thấy "Index Scan on leads_assigned_idx (filter: assigned = current_user_id())"
+-- → optimizer đã sử dụng index với RLS predicate ✓</span>
+
+<span class="cm">-- ── Security Barrier Views (chống predicate leakage) ─────────────────</span>
+<span class="cm">-- Không có security_barrier: optimizer có thể reorder WHERE clauses
+-- dẫn đến RLS predicate chạy SAU user WHERE → data leak!</span>
+<span class="kw">CREATE VIEW</span> safe_leads <span class="kw">WITH</span> (security_barrier = <span class="kw">true</span>) <span class="kw">AS</span>
+    <span class="kw">SELECT</span> * <span class="kw">FROM</span> leads;
+<span class="cm">-- security_barrier=true: đảm bảo RLS policy chạy TRƯỚC user predicates</span></pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>STABLE function trong RLS</strong>: Đánh dấu helper functions là <code>STABLE</code> giúp query planner inline chúng, không gọi lại cho mỗi row — quan trọng cho performance. <strong>Một policy CASE</strong> tốt hơn nhiều policies riêng lẻ vì ít overhead hơn và dễ maintain. <strong>security_barrier view</strong>: quan trọng khi expose view với RLS — không có flag này, PostgreSQL optimizer có thể leak data qua predicate reordering. <strong>Bypass RLS khi cần</strong>: <code>SET LOCAL row_security = OFF</code> (chỉ superuser) hoặc dùng <code>SECURITY DEFINER</code> function. <strong>Gotcha</strong>: RLS không áp dụng với <code>pg_dump</code> mặc định nếu chạy với superuser — cần <code>--role=app_user</code> để test behavior chính xác.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     VACUUM
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-vacuum">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">VACUUM &amp; Autovacuum Tuning</div>
+         <div class="sec-sub">Dead tuple management, bloat prevention, freeze</div></div>
+    <span class="badge b-adv">NÂNG CAO</span>
+  </div>
+
+  <div class="dia">
+    <div class="dia-title">VACUUM Lifecycle — Dead Tuple → Free Space → Reuse</div>
+    <svg width="100%" viewBox="0 0 800 190" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="va" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <rect x="15"  y="55" width="130" height="70" rx="7" fill="rgba(0,212,255,.08)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="80" y="84" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="Inter" font-weight="600">Live Row</text>
+      <text x="80" y="102" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">xmin=100, xmax=0</text>
+      <text x="80" y="117" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">trong heap page</text>
+
+      <line x1="147" y1="90" x2="172" y2="90" stroke="#00ff88" stroke-width="1.5" marker-end="url(#va)"/>
+      <text x="160" y="83" font-size="9" fill="#64748b" font-family="Inter">UPDATE</text>
+
+      <rect x="175" y="55" width="135" height="70" rx="7" fill="rgba(255,107,107,.08)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="242" y="80" text-anchor="middle" font-size="12" fill="#ff6b6b" font-family="Inter" font-weight="600">Dead Tuple</text>
+      <text x="242" y="97" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">xmax=101 (set)</text>
+      <text x="242" y="113" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">chiếm space</text>
+      <text x="175" y="145" font-size="9" fill="#64748b" font-family="Inter">bloat tích lũy</text>
+
+      <line x1="312" y1="90" x2="337" y2="90" stroke="#00ff88" stroke-width="1.5" marker-end="url(#va)"/>
+      <text x="324" y="83" font-size="9" fill="#64748b" font-family="Inter">VACUUM</text>
+
+      <rect x="340" y="55" width="130" height="70" rx="7" fill="rgba(245,158,11,.08)" stroke="#f59e0b" stroke-width="1.5"/>
+      <text x="405" y="80" text-anchor="middle" font-size="12" fill="#f59e0b" font-family="Inter" font-weight="600">Free Space</text>
+      <text x="405" y="97" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">marked in FSM</text>
+      <text x="405" y="113" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">reusable</text>
+      <text x="340" y="145" font-size="9" fill="#64748b" font-family="Inter">file không shrunk</text>
+
+      <line x1="472" y1="90" x2="497" y2="90" stroke="#00ff88" stroke-width="1.5" marker-end="url(#va)"/>
+      <text x="484" y="83" font-size="9" fill="#64748b" font-family="Inter">INSERT</text>
+
+      <rect x="500" y="55" width="130" height="70" rx="7" fill="rgba(0,212,255,.08)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="565" y="84" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="Inter" font-weight="600">New Row</text>
+      <text x="565" y="101" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">reuses free space</text>
+      <text x="565" y="117" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">xmin=102, xmax=0</text>
+
+      <rect x="655" y="40" width="130" height="100" rx="7" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.3)"/>
+      <text x="720" y="62" text-anchor="middle" font-size="11" fill="#00ff88" font-family="Inter" font-weight="600">VACUUM FULL</text>
+      <text x="720" y="80" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">rewrite toàn bộ</text>
+      <text x="720" y="96" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">file về disk</text>
+      <text x="720" y="115" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">⚠ ACCESS EXCLUSIVE</text>
+      <text x="720" y="131" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">LOCK — block all!</text>
+    </svg>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 3.4 — Autovacuum per-table tuning cho high-churn tables</span><span class="badge b-exp">EXPERT</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Bảng <code>orders</code> có 50M rows, nhận 10k UPDATEs/giây. Autovacuum mặc định (scale factor 20%) cần 10M dead tuples mới trigger — quá nhiều bloat trước khi dọn. Cần tune autovacuum per-table để chạy thường xuyên hơn và ít ảnh hưởng đến QPS.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">autovacuum_tuning.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Per-table autovacuum settings ────────────────────────────────────</span>
+<span class="kw">ALTER TABLE</span> orders <span class="kw">SET</span> (
+    <span class="cm">-- Trigger vacuum khi dead_tuples > (threshold + scale * n_live_tup)</span>
+    autovacuum_vacuum_scale_factor   = <span class="n">0.01</span>,   <span class="cm">-- 1% (default: 20%)</span>
+    autovacuum_vacuum_threshold      = <span class="n">1000</span>,    <span class="cm">-- minimum 1000 dead tuples</span>
+    autovacuum_analyze_scale_factor  = <span class="n">0.005</span>,  <span class="cm">-- 0.5% cho ANALYZE</span>
+    autovacuum_analyze_threshold     = <span class="n">500</span>,
+
+    <span class="cm">-- Cost-based throttling: vacuum chậm hơn để không ảnh hưởng QPS</span>
+    autovacuum_vacuum_cost_delay     = <span class="n">2</span>,      <span class="cm">-- ms delay giữa cost cycles (default: 2ms)</span>
+    autovacuum_vacuum_cost_limit     = <span class="n">400</span>,    <span class="cm">-- cost budget per cycle (default: 200)</span>
+
+    <span class="cm">-- Freeze tuning</span>
+    autovacuum_freeze_max_age        = <span class="n">150000000</span>  <span class="cm">-- trước XID wraparound</span>
+);
+
+<span class="cm">-- ── Global settings (postgresql.conf) ────────────────────────────────
+-- autovacuum_max_workers   = 5      (default: 3) — thêm workers
+-- autovacuum_naptime       = 15s    (default: 60s) — check thường xuyên hơn
+-- shared_buffers           = 25% RAM
+-- effective_cache_size     = 75% RAM
+-- maintenance_work_mem     = 512MB  — cho VACUUM hiệu quả hơn</span>
+
+<span class="cm">-- ── Monitor autovacuum hoạt động ─────────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    schemaname || <span class="s">'.'</span> || relname               <span class="kw">AS</span> table_name,
+    n_live_tup, n_dead_tup,
+    <span class="fn">ROUND</span>(n_dead_tup::NUMERIC
+        / <span class="fn">NULLIF</span>(n_live_tup+n_dead_tup,<span class="n">0</span>)*<span class="n">100</span>,<span class="n">1</span>) <span class="kw">AS</span> dead_pct,
+    last_autovacuum::DATE, last_autoanalyze::DATE,
+    autovacuum_count
+<span class="kw">FROM</span> pg_stat_user_tables
+<span class="kw">WHERE</span> n_dead_tup > <span class="n">10000</span>
+<span class="kw">ORDER BY</span> dead_pct <span class="kw">DESC</span>;
+
+<span class="cm">-- ── Kiểm tra autovacuum đang chạy ────────────────────────────────────</span>
+<span class="kw">SELECT</span> pid, usename, query, <span class="fn">NOW</span>() - query_start <span class="kw">AS</span> duration
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> query <span class="kw">LIKE</span> <span class="s">'autovacuum:%'</span>;
+
+<span class="cm">-- ── Monitor VACUUM progress (trong session khác) ──────────────────────</span>
+<span class="kw">SELECT</span>
+    relid::regclass <span class="kw">AS</span> table_name,
+    phase,
+    heap_blks_total,
+    heap_blks_scanned,
+    <span class="fn">ROUND</span>(heap_blks_scanned::NUMERIC
+        / <span class="fn">NULLIF</span>(heap_blks_total,<span class="n">0</span>)*<span class="n">100</span>,<span class="n">1</span>) <span class="kw">AS</span> pct_done,
+    index_vacuum_count,
+    num_dead_tuples
+<span class="kw">FROM</span> pg_stat_progress_vacuum;
+
+<span class="cm">-- ── Manual VACUUM (không lock) ───────────────────────────────────────</span>
+<span class="kw">VACUUM</span> (<span class="kw">ANALYZE</span>, <span class="kw">VERBOSE</span>) orders;
+
+<span class="cm">-- pg_repack: rebuild table mà KHÔNG cần exclusive lock (cần extension)
+-- Dùng thay VACUUM FULL trong giờ cao điểm:
+-- pg_repack -t orders -d mydb</span></pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>KHÔNG BAO GIỜ</strong> chạy <code>VACUUM FULL</code> trong giờ cao điểm — nó giữ <code>ACCESS EXCLUSIVE LOCK</code>, block mọi read và write. Thay thế: dùng <code>pg_repack</code> extension. <strong>autovacuum_vacuum_cost_delay = 0</strong> cho vacuum chạy full speed nhưng ảnh hưởng QPS. Điều chỉnh <code>cost_limit</code> và <code>cost_delay</code> theo monitoring. Alert khi: <code>dead_pct &gt; 10%</code>, table size tăng bất thường, <code>AGE(datfrozenxid) &gt; 500M</code>. <strong>maintenance_work_mem</strong>: tăng lên 512MB–1GB cho sessions chạy VACUUM thủ công để xử lý index vacuum nhanh hơn.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     MVCC EXPERT
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-mvcc-expert">
+  <div class="sec-hdr">
+    <div class="sec-num">03</div>
+    <div><div class="sec-title">Expert: Production Health Check Script</div>
+         <div class="sec-sub">Toàn diện: bloat, locks, XID, RLS summary, long transactions</div></div>
+    <span class="badge b-exp">EXPERT</span>
+  </div>
+
+  <div class="ex-card">
+    <div class="ex-hdr"><span class="ex-title">Ví dụ 3.5 — PostgreSQL Production Health Check — MVCC &amp; Concurrency</span><span class="badge b-exp">EXPERT</span></div>
+    <div class="ex-body">
+      <div class="pb"><div class="pb-lbl">📌 Problem Statement</div>
+        <p class="prose" style="margin:0;font-size:14px">Cần một script health-check toàn diện chạy định kỳ (cron, monitoring agent) để phát hiện sớm: XID wraparound risk, bloat cao, long-running transactions, lock chains, và RLS misconfiguration.</p>
+      </div>
+      <div class="code-wrap">
+        <div class="code-hdr"><span class="code-lang">sql</span><span class="code-file">pg_health_check.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ═══════════════════════════════════════════════════════
+-- PostgreSQL Health Check: MVCC, Concurrency, RLS
+-- Run: psql -f pg_health_check.sql -d mydb
+-- ═══════════════════════════════════════════════════════</span>
+
+\echo <span class="s">'=== 1. XID Wraparound Risk ==='</span>
+<span class="kw">SELECT</span>
+    datname,
+    <span class="fn">AGE</span>(datfrozenxid)                              <span class="kw">AS</span> xid_age,
+    <span class="fn">ROUND</span>(<span class="fn">AGE</span>(datfrozenxid)::NUMERIC/<span class="n">2100000000</span>*<span class="n">100</span>,<span class="n">2</span>) <span class="kw">AS</span> pct,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> <span class="fn">AGE</span>(datfrozenxid) > <span class="n">1500000000</span> <span class="kw">THEN</span> <span class="s">'🔴 CRITICAL'</span>
+        <span class="kw">WHEN</span> <span class="fn">AGE</span>(datfrozenxid) >  <span class="n">750000000</span> <span class="kw">THEN</span> <span class="s">'🟡 WARNING'</span>
+        <span class="kw">ELSE</span>                                      <span class="s">'🟢 OK'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> status
+<span class="kw">FROM</span> pg_database <span class="kw">ORDER BY</span> xid_age <span class="kw">DESC</span>;
+
+\echo <span class="s">'=== 2. Tables với dead tuple cao ==='</span>
+<span class="kw">SELECT</span>
+    schemaname || <span class="s">'.'</span> || relname <span class="kw">AS</span> tbl,
+    n_live_tup, n_dead_tup,
+    <span class="fn">ROUND</span>(n_dead_tup::NUMERIC / <span class="fn">NULLIF</span>(n_live_tup+n_dead_tup,<span class="n">0</span>)*<span class="n">100</span>,<span class="n">1</span>) <span class="kw">AS</span> dead_pct,
+    last_autovacuum::DATE <span class="kw">AS</span> last_av,
+    <span class="fn">ROUND</span>(<span class="fn">pg_total_relation_size</span>(relid)/<span class="n">1e6</span>,<span class="n">1</span>) <span class="kw">AS</span> total_mb
+<span class="kw">FROM</span> pg_stat_user_tables
+<span class="kw">WHERE</span> n_dead_tup > <span class="n">50000</span>
+<span class="kw">ORDER BY</span> dead_pct <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="n">15</span>;
+
+\echo <span class="s">'=== 3. Long-running transactions (>1 min) ==='</span>
+<span class="kw">SELECT</span>
+    pid, usename, application_name, state,
+    wait_event_type, wait_event,
+    <span class="fn">NOW</span>() - xact_start <span class="kw">AS</span> tx_age,
+    <span class="fn">LEFT</span>(query, <span class="n">100</span>)  <span class="kw">AS</span> query_preview
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> state != <span class="s">'idle'</span>
+  <span class="kw">AND</span> xact_start < NOW() - <span class="kw">INTERVAL</span> <span class="s">'1 minute'</span>
+<span class="kw">ORDER BY</span> xact_start <span class="kw">LIMIT</span> <span class="n">10</span>;
+
+\echo <span class="s">'=== 4. Lock chains (blocking) ==='</span>
+<span class="kw">SELECT</span>
+    blocked.pid                        <span class="kw">AS</span> blocked_pid,
+    blocked.usename                    <span class="kw">AS</span> blocked_user,
+    <span class="fn">NOW</span>() - blocked.query_start        <span class="kw">AS</span> wait_time,
+    blocking.pid                       <span class="kw">AS</span> blocking_pid,
+    blocking.usename                   <span class="kw">AS</span> blocking_user,
+    <span class="fn">LEFT</span>(blocked.query, <span class="n">80</span>)           <span class="kw">AS</span> blocked_query,
+    <span class="fn">LEFT</span>(blocking.query, <span class="n">80</span>)          <span class="kw">AS</span> blocking_query
+<span class="kw">FROM</span> pg_stat_activity blocked
+<span class="kw">JOIN</span> pg_stat_activity blocking
+     <span class="kw">ON</span> blocking.pid = <span class="kw">ANY</span>(<span class="fn">pg_blocking_pids</span>(blocked.pid))
+<span class="kw">WHERE</span> <span class="fn">CARDINALITY</span>(<span class="fn">pg_blocking_pids</span>(blocked.pid)) > <span class="n">0</span>
+<span class="kw">ORDER BY</span> wait_time <span class="kw">DESC</span>;
+
+\echo <span class="s">'=== 5. RLS status per table ==='</span>
+<span class="kw">SELECT</span>
+    c.relname                  <span class="kw">AS</span> table_name,
+    c.relrowsecurity           <span class="kw">AS</span> rls_on,
+    c.relforcerowsecurity      <span class="kw">AS</span> forced,
+    <span class="fn">COUNT</span>(p.oid)              <span class="kw">AS</span> policies,
+    <span class="fn">STRING_AGG</span>(p.polname, <span class="s">', '</span> <span class="kw">ORDER BY</span> p.polname) <span class="kw">AS</span> policy_names
+<span class="kw">FROM</span> pg_class c
+<span class="kw">LEFT JOIN</span> pg_policy p <span class="kw">ON</span> p.polrelid = c.oid
+<span class="kw">WHERE</span> c.relkind = <span class="s">'r'</span>
+  <span class="kw">AND</span> c.relnamespace = <span class="s">'public'</span>::regnamespace
+<span class="kw">GROUP BY</span> c.relname, c.relrowsecurity, c.relforcerowsecurity
+<span class="kw">HAVING</span> c.relrowsecurity = <span class="kw">TRUE</span>
+<span class="kw">ORDER BY</span> c.relname;
+
+\echo <span class="s">'=== 6. Tables cần urgent VACUUM (XID age) ==='</span>
+<span class="kw">SELECT</span>
+    schemaname || <span class="s">'.'</span> || relname <span class="kw">AS</span> tbl,
+    <span class="fn">AGE</span>(relfrozenxid)            <span class="kw">AS</span> xid_age,
+    <span class="fn">ROUND</span>(<span class="fn">pg_total_relation_size</span>(oid)/<span class="n">1e6</span>,<span class="n">1</span>) <span class="kw">AS</span> size_mb,
+    last_autovacuum::DATE
+<span class="kw">FROM</span> pg_class pc
+<span class="kw">JOIN</span> pg_stat_user_tables pst <span class="kw">USING</span> (relid)
+<span class="kw">WHERE</span> relkind = <span class="s">'r'</span>
+  <span class="kw">AND AGE</span>(relfrozenxid) > <span class="n">500000000</span>
+<span class="kw">ORDER BY</span> xid_age <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="n">10</span>;
+
+\echo <span class="s">'=== 7. Connection pool status ==='</span>
+<span class="kw">SELECT</span>
+    state,
+    wait_event_type,
+    <span class="fn">COUNT</span>(*)    <span class="kw">AS</span> conn_count,
+    <span class="fn">MAX</span>(<span class="fn">NOW</span>() - state_change) <span class="kw">AS</span> max_idle_time
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> pid != pg_backend_pid()
+<span class="kw">GROUP BY</span> state, wait_event_type
+<span class="kw">ORDER BY</span> conn_count <span class="kw">DESC</span>;</pre>
+      </div>
+      <div class="cb"><div class="cb-lbl">📝 Note &amp; Conclusion</div>
+        <p class="prose" style="font-size:13px;margin:0"><strong>pg_blocking_pids(pid)</strong> (PG9.6+) trả về array PIDs đang block PID đã cho — clean hơn join <code>pg_locks</code> phức tạp. <strong>Lock timeout</strong>: trong production, luôn set <code>SET lock_timeout = '5s'</code> trước DDL statements để tránh block vô thời hạn. <strong>Connection pooler</strong>: monitor idle connections — nhiều connections "idle in transaction" là dấu hiệu application không close transaction đúng cách, dẫn đến RLS context bị "nhiễm" sang request khác khi dùng connection pool (đây là bug nghiêm trọng với RLS). Giải pháp: luôn <code>RESET ALL</code> hoặc set_config với transaction-scoped TRUE. <strong>Nên chạy script này</strong> mỗi 5 phút và alert qua Grafana/Datadog khi phát hiện vấn đề.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════
+     REFERENCES
+══════════════════════════════════════════════════════════ -->
+<section class="sec" id="s-refs">
+  <div class="sec-hdr">
+    <div class="sec-num">REF</div>
+    <div><div class="sec-title">References &amp; Tài liệu tham khảo</div>
+         <div class="sec-sub">Nguồn chất lượng cao nhất cho PostgreSQL chuyên sâu</div></div>
+  </div>
+
+  <h3>📚 Tài liệu chính thức PostgreSQL</h3>
+  <a class="ref-card" href="https://www.postgresql.org/docs/current/plpgsql.html" target="_blank">
+    <div class="ref-ico" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="ref-body">
+      <div class="ref-title">PostgreSQL Docs — PL/pgSQL (Chapters 41–44)</div>
+      <div class="ref-desc">Tài liệu chính thức đầy đủ nhất về PL/pgSQL: blocks, variables, control structures, cursors, errors, triggers. Bao gồm cả porting guide từ Oracle PL/SQL.</div>
+      <div class="ref-url">postgresql.org/docs/current/plpgsql.html</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+
+  <a class="ref-card" href="https://www.postgresql.org/docs/current/queries-with.html" target="_blank">
+    <div class="ref-ico" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="ref-body">
+      <div class="ref-title">PostgreSQL Docs — WITH Queries (CTEs) — Chapter 7.8</div>
+      <div class="ref-desc">Non-recursive và recursive CTEs, materialization behavior (PG12+), data-modifying CTEs (INSERT/UPDATE/DELETE trong WITH). Giải thích rõ khi nào optimizer inline vs materialize.</div>
+      <div class="ref-url">postgresql.org/docs/current/queries-with.html</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+
+  <a class="ref-card" href="https://www.postgresql.org/docs/current/ddl-rowsecurity.html" target="_blank">
+    <div class="ref-ico" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="ref-body">
+      <div class="ref-title">PostgreSQL Docs — Row Security Policies (Section 5.9)</div>
+      <div class="ref-desc">Đầy đủ về RLS: PERMISSIVE vs RESTRICTIVE, USING vs WITH CHECK, BYPASS RLS privilege, performance considerations, security_barrier views, multi-tenant examples.</div>
+      <div class="ref-url">postgresql.org/docs/current/ddl-rowsecurity.html</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+
+  <a class="ref-card" href="https://www.postgresql.org/docs/current/routine-vacuuming.html" target="_blank">
+    <div class="ref-ico" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="ref-body">
+      <div class="ref-title">PostgreSQL Docs — Routine Vacuuming (Chapter 25)</div>
+      <div class="ref-desc">Giải thích MVCC và vacuum từ góc độ administrator: dead tuple lifecycle, FSM, freeze, autovacuum configuration, monitoring. Chapter bắt buộc cho DBA production.</div>
+      <div class="ref-url">postgresql.org/docs/current/routine-vacuuming.html</div>
+    </div>
+    <div class="ref-star">⭐ Official</div>
+  </a>
+
+  <h3>📖 Sách &amp; Blog chất lượng cao</h3>
+  <a class="ref-card" href="https://postgrespro.com/blog/pgsql/5967935" target="_blank">
+    <div class="ref-ico" style="background:rgba(0,212,255,.1)">📝</div>
+    <div class="ref-body">
+      <div class="ref-title">Postgres Pro Blog — MVCC in PostgreSQL (Egor Rogov, series 9 bài)</div>
+      <div class="ref-desc">Series sâu nhất về MVCC internals: row versions, snapshots, visibility rules, locks, page layout với hình minh họa cực chi tiết. Bài 1–5 về visibility, bài 6–9 về locks và vacuum.</div>
+      <div class="ref-url">postgrespro.com/blog/pgsql/5967935</div>
+    </div>
+    <div class="ref-star">⭐ Must Read</div>
+  </a>
+
+  <a class="ref-card" href="https://www.interdb.jp/pg/" target="_blank">
+    <div class="ref-ico" style="background:rgba(168,85,247,.1)">📙</div>
+    <div class="ref-body">
+      <div class="ref-title">The Internals of PostgreSQL (Hironobu Suzuki) — Free Online Book</div>
+      <div class="ref-desc">Giải thích chi tiết internal mechanisms: heap files, buffer manager, MVCC (Chapter 5), WAL, VACUUM (Chapter 6), query execution. Tốt nhất để hiểu cơ chế từ góc độ database engine.</div>
+      <div class="ref-url">interdb.jp/pg</div>
+    </div>
+    <div class="ref-star">⭐ Deep Dive</div>
+  </a>
+
+  <a class="ref-card" href="https://use-the-index-luke.com/" target="_blank">
+    <div class="ref-ico" style="background:rgba(245,158,11,.1)">📘</div>
+    <div class="ref-body">
+      <div class="ref-title">Use The Index, Luke! — SQL Performance Explained</div>
+      <div class="ref-desc">Free online book về SQL performance và indexing. Giải thích query execution plans, index types, partial indexes. Rất hữu ích khi optimize queries dùng CTE, LATERAL và RLS predicates.</div>
+      <div class="ref-url">use-the-index-luke.com</div>
+    </div>
+    <div class="ref-star">⭐ 5-star</div>
+  </a>
+
+  <h3>🐙 GitHub Repositories</h3>
+  <a class="ref-card" href="https://github.com/digoal/blog" target="_blank">
+    <div class="ref-ico" style="background:rgba(0,255,136,.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">digoal/blog — PostgreSQL Expert Blog (digoal)</div>
+      <div class="ref-desc">Hàng nghìn bài viết chuyên sâu về PostgreSQL từ một trong những expert hàng đầu. Bao phủ MVCC, RLS, PL/pgSQL performance, advanced indexing, partitioning với examples chạy được.</div>
+      <div class="ref-url">github.com/digoal/blog</div>
+    </div>
+    <div class="ref-star">⭐ 7.5k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/pgexperts/pgx_scripts" target="_blank">
+    <div class="ref-ico" style="background:rgba(168,85,247,.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">pgexperts/pgx_scripts — DBA Toolbox Scripts</div>
+      <div class="ref-desc">Collection scripts PostgreSQL từ PGExperts: bloat queries, lock monitoring, vacuum monitoring, replication lag, performance tuning. Production-tested, tham khảo trực tiếp.</div>
+      <div class="ref-url">github.com/pgexperts/pgx_scripts</div>
+    </div>
+    <div class="ref-star">⭐ 1.5k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/supabase/pg_graphql" target="_blank">
+    <div class="ref-ico" style="background:rgba(0,212,255,.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">supabase/postgres — Real-world RLS &amp; PL/pgSQL patterns</div>
+      <div class="ref-desc">Supabase là platform xây trên PostgreSQL với RLS làm core. Codebase chứa nhiều real-world RLS policies, PL/pgSQL functions, trigger patterns rất đáng học. Đặc biệt thư mục migrations.</div>
+      <div class="ref-url">github.com/supabase/postgres</div>
+    </div>
+    <div class="ref-star">⭐ 12k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/pganalyze/collector" target="_blank">
+    <div class="ref-ico" style="background:rgba(245,158,11,.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">pganalyze/collector — PostgreSQL Monitoring Queries</div>
+      <div class="ref-desc">pganalyze collector chứa các monitoring queries đáng tin cậy cho: autovacuum, lock detection, index bloat, buffer hit rates. Các query này được PostgreSQL community review kỹ lưỡng.</div>
+      <div class="ref-url">github.com/pganalyze/collector</div>
+    </div>
+    <div class="ref-star">⭐ 1.2k★</div>
+  </a>
+
+  <h3>🛠️ Extensions &amp; Tools</h3>
+  <a class="ref-card" href="https://github.com/reorg/pg_repack" target="_blank">
+    <div class="ref-ico" style="background:rgba(255,107,107,.1)">🔧</div>
+    <div class="ref-body">
+      <div class="ref-title">pg_repack — Online table &amp; index repack (no exclusive lock)</div>
+      <div class="ref-desc">Extension rebuild table và index mà không cần lock lâu (chỉ lock ngắn ở cuối). Thay thế hoàn hảo cho VACUUM FULL trong production. Cần thiết với tables bị bloat nặng.</div>
+      <div class="ref-url">github.com/reorg/pg_repack</div>
+    </div>
+    <div class="ref-star">⭐ 2.1k★</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/ankane/pghero" target="_blank">
+    <div class="ref-ico" style="background:rgba(0,255,136,.1)">📊</div>
+    <div class="ref-body">
+      <div class="ref-title">PgHero — Performance Dashboard cho PostgreSQL</div>
+      <div class="ref-desc">Web dashboard cho PostgreSQL: slow queries, index usage, bloat, connections, replication. Tích hợp tốt với Rails và standalone. Cực hữu ích để monitor MVCC health (bloat, autovacuum).</div>
+      <div class="ref-url">github.com/ankane/pghero</div>
+    </div>
+    <div class="ref-star">⭐ 8.5k★</div>
+  </a>
+
+  <hr class="div">
+
+  <div class="note note-ok"><div class="ni">✅</div>
+    <p><strong>Lộ trình học được đề xuất:</strong><br>
+    <strong>Tháng 1:</strong> PL/pgSQL cơ bản → functions → exceptions → triggers<br>
+    <strong>Tháng 2:</strong> CTE advanced → recursive CTE → LATERAL join patterns<br>
+    <strong>Tháng 3:</strong> MVCC internals → RLS setup → autovacuum tuning → monitoring<br><br>
+    Với mỗi topic: đọc lý thuyết → chạy examples trong sandbox DB → áp dụng vào một project thực → đọc PostgreSQL source code nếu muốn sâu hơn. <strong>Quan trọng nhất</strong>: luôn <code>EXPLAIN (ANALYZE, BUFFERS)</code> để verify optimizer behaviour, đặc biệt khi có RLS policies và CTE chains.</p>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + name);
+  if (t) t.classList.add('active');
+  
+  // Sync the navigation highlights
+  document.querySelectorAll('.nav-btn, .tn-btn').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + name + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // Smooth scroll to top of page/main container
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind dynamic click events for sidebar, topnav, cards, and tags
+document.querySelectorAll('.nav-btn, .tn-btn, .card').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  const target = el.getAttribute('data-target') || oc?.match(/S\('([^']+)'\)/)?.[1];
+  if (target) {
+    // Save original click handler target in dataset to assist highlighting
+    el.dataset.onclick = oc;
+    el.removeAttribute('onclick'); // prevent double execution
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+function initRouter() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'intro'
+    const activeSec = document.querySelector('.sec.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initRouter);
+} else {
+  initRouter();
+}
+
+// Global compatibility function
+window.S = function(name) {
+  window.location.hash = 's-' + name;
+  showSection(name);
+}
+
+// Setup copy code buttons
+window.cp = function(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>

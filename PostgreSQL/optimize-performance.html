@@ -1,0 +1,1982 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PostgreSQL Expert Guide — Index · Deadlock · Pagination · Query Analysis · Vacuum WAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;--bg-code:#0d1117;
+  --c-blue:#58a6ff;--c-green:#3fb950;--c-purple:#bc8cff;
+  --c-amber:#e3b341;--c-coral:#ff7b72;--c-teal:#39d353;
+  --c-cyan:#79c0ff;--c-orange:#ffa657;--c-pink:#f778ba;
+  --text:#c9d1d9;--text2:#8b949e;--text3:#484f58;
+  --border:#30363d;--border2:rgba(48,54,61,0.6);
+  --font-mono:'JetBrains Mono',monospace;--font-sans:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-sans);display:flex;min-height:100vh;}
+/* SIDEBAR */
+#sidebar{width:275px;min-width:275px;background:var(--bg2);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;}
+#sidebar::-webkit-scrollbar{width:4px;}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.sb-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sb-icon{width:34px;height:34px;background:linear-gradient(135deg,#1e4d7b,#0969da);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.sb-title{font-size:14px;font-weight:600;color:var(--text);}
+.sb-sub{font-size:11px;color:var(--c-blue);font-family:var(--font-mono);}
+.nav-group{padding:12px 10px 4px;}
+.nav-group-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;padding:6px 8px;border-radius:6px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;gap:8px;}
+.nav-item:hover{background:rgba(177,186,196,0.06);color:var(--text);}
+.nav-item.active{background:rgba(88,166,255,0.1);color:var(--c-blue);border-left:2px solid var(--c-blue);padding-left:6px;}
+.nav-num{font-size:10px;font-family:var(--font-mono);opacity:.5;min-width:18px;}
+/* TOPNAV */
+#topnav{position:fixed;top:0;left:275px;right:0;height:50px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:4px;z-index:50;overflow-x:auto;}
+#topnav::-webkit-scrollbar{display:none;}
+.tnav{padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none;}
+.tnav:hover{color:var(--text);background:rgba(177,186,196,0.06);}
+.tnav.active{color:var(--c-blue);background:rgba(88,166,255,0.1);}
+/* MAIN */
+#main{margin-left:275px;margin-top:50px;flex:1;}
+.content{padding:40px 48px;max-width:960px;}
+/* SECTIONS */
+.page-section{display:none;}
+.page-section.active{display:block;}
+/* HEADER */
+.sec-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--border);}
+.sec-badge{padding:3px 10px 3px 8px;border-radius:4px;font-size:11px;font-weight:600;font-family:var(--font-mono);display:flex;align-items:center;gap:6px;white-space:nowrap;}
+.b-index{background:rgba(88,166,255,0.12);color:var(--c-blue);border:1px solid rgba(88,166,255,0.25);}
+.b-lock{background:rgba(255,123,114,0.12);color:var(--c-coral);border:1px solid rgba(255,123,114,0.25);}
+.b-page{background:rgba(63,185,80,0.1);color:var(--c-green);border:1px solid rgba(63,185,80,0.25);}
+.b-query{background:rgba(188,140,255,0.12);color:var(--c-purple);border:1px solid rgba(188,140,255,0.25);}
+.b-vacuum{background:rgba(227,179,65,0.12);color:var(--c-amber);border:1px solid rgba(227,179,65,0.25);}
+.b-ref{background:rgba(57,211,83,0.1);color:var(--c-teal);border:1px solid rgba(57,211,83,0.25);}
+.sec-title{font-size:24px;font-weight:700;color:var(--text);line-height:1.3;}
+.sec-sub{font-size:13px;color:var(--text2);margin-top:4px;}
+/* CONCEPT */
+.concept-box{background:linear-gradient(135deg,rgba(88,166,255,0.05),rgba(188,140,255,0.05));border:1px solid rgba(88,166,255,0.2);border-radius:10px;padding:20px;margin-bottom:24px;}
+.concept-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--c-blue);font-family:var(--font-mono);margin-bottom:6px;}
+.concept-title{font-size:17px;font-weight:700;color:var(--text);margin-bottom:8px;}
+/* PROSE */
+.prose{font-size:14px;line-height:1.8;color:var(--text2);margin-bottom:16px;}
+.prose strong{color:var(--text);font-weight:600;}
+.prose code{background:rgba(88,166,255,0.1);color:var(--c-cyan);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:12px;}
+h3{font-size:16px;font-weight:600;color:var(--text);margin:22px 0 10px;display:flex;align-items:center;gap:8px;}
+h4{font-size:13px;font-weight:600;color:var(--text2);margin:14px 0 6px;}
+/* PROBLEM / SOLUTION BLOCKS */
+.problem-block{background:rgba(255,123,114,0.05);border:1px solid rgba(255,123,114,0.2);border-left:3px solid var(--c-coral);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:14px;}
+.problem-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--c-coral);font-family:var(--font-mono);margin-bottom:6px;}
+.solution-block{background:rgba(63,185,80,0.04);border:1px solid rgba(63,185,80,0.2);border-left:3px solid var(--c-green);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:14px;}
+.solution-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--c-green);font-family:var(--font-mono);margin-bottom:6px;}
+.note-block{background:rgba(227,179,65,0.05);border:1px solid rgba(227,179,65,0.2);border-left:3px solid var(--c-amber);border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:14px;}
+.note-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--c-amber);font-family:var(--font-mono);margin-bottom:6px;}
+/* CODE */
+.cb{background:#0d1117;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:1px solid var(--border);background:rgba(22,27,34,0.8);}
+.cl{font-size:11px;font-weight:600;color:var(--c-blue);font-family:var(--font-mono);letter-spacing:.06em;}
+.cf{font-size:11px;color:var(--text3);font-family:var(--font-mono);}
+.cright{display:flex;align-items:center;gap:8px;}
+.clevel{font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;}
+.lv-adv{background:rgba(227,179,65,0.12);color:var(--c-amber);}
+.lv-exp{background:rgba(188,140,255,0.12);color:var(--c-purple);}
+.lv-basic{background:rgba(88,166,255,0.1);color:var(--c-blue);}
+.copy-btn{font-size:11px;cursor:pointer;background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;color:var(--text2);transition:all .15s;font-family:var(--font-sans);}
+.copy-btn:hover{border-color:var(--c-blue);color:var(--c-blue);}
+pre{margin:0;padding:16px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.65;tab-size:4;}
+pre::-webkit-scrollbar{height:3px;}
+pre::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+/* SQL syntax */
+.kw{color:#ff7b72;}.fn{color:#79c0ff;}.str{color:#a5d6ff;}
+.cm{color:#8b949e;font-style:italic;}.num{color:#ffa657;}
+.tp{color:#7ee787;}.op{color:#ff7b72;}.tbl{color:#e6edf3;}
+.schema{color:#79c0ff;}.param{color:#f2cc60;}
+/* DIAGRAM */
+.diagram{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:20px;margin-bottom:22px;overflow:hidden;}
+.diagram-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:16px;font-family:var(--font-mono);text-align:center;}
+/* TABLE */
+.tbl-wrap{overflow-x:auto;margin-bottom:20px;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{padding:8px 12px;text-align:left;background:rgba(177,186,196,0.04);border-bottom:1px solid var(--border);color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;}
+.data-table td{padding:8px 12px;border-bottom:1px solid var(--border2);color:var(--text2);}
+.data-table tr:hover td{background:rgba(177,186,196,0.04);}
+.data-table td code{background:rgba(88,166,255,0.08);color:var(--c-cyan);padding:1px 5px;border-radius:3px;font-family:var(--font-mono);font-size:11px;}
+.tc-g{color:var(--c-green)!important;font-weight:600;font-family:var(--font-mono);}
+.tc-a{color:var(--c-amber)!important;font-weight:600;font-family:var(--font-mono);}
+.tc-r{color:var(--c-coral)!important;font-weight:600;font-family:var(--font-mono);}
+/* NOTE */
+.note{display:flex;gap:10px;padding:12px 14px;border-radius:7px;margin-bottom:16px;font-size:13px;line-height:1.6;}
+.n-info{background:rgba(88,166,255,0.06);border:1px solid rgba(88,166,255,0.18);color:var(--c-cyan);}
+.n-warn{background:rgba(227,179,65,0.06);border:1px solid rgba(227,179,65,0.18);color:var(--c-amber);}
+.n-ok{background:rgba(63,185,80,0.05);border:1px solid rgba(63,185,80,0.18);color:var(--c-green);}
+.n-danger{background:rgba(255,123,114,0.06);border:1px solid rgba(255,123,114,0.18);color:var(--c-coral);}
+.ni{font-size:14px;flex-shrink:0;}
+.note p{margin:0;}
+/* CARDS */
+.cg2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;}
+.cg3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;}
+.card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:16px;}
+.card-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:6px;}
+/* EXAMPLE HEADER */
+.ex-header{background:var(--bg2);border:1px solid var(--border);border-radius:8px 8px 0 0;padding:12px 16px;border-bottom:none;display:flex;align-items:center;gap:10px;}
+.ex-num{width:26px;height:26px;border-radius:6px;background:rgba(88,166,255,0.15);border:1px solid rgba(88,166,255,0.3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--c-blue);font-family:var(--font-mono);}
+.ex-title{font-size:14px;font-weight:600;color:var(--text);}
+.ex-body{border:1px solid var(--border);border-radius:0 0 8px 8px;padding:16px;margin-bottom:22px;background:rgba(22,27,34,0.4);}
+/* METRIC PILL */
+.metric-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.metric{padding:6px 12px;border-radius:6px;font-family:var(--font-mono);font-size:11px;font-weight:600;}
+.m-good{background:rgba(63,185,80,0.1);color:var(--c-green);border:1px solid rgba(63,185,80,0.2);}
+.m-warn{background:rgba(227,179,65,0.1);color:var(--c-amber);border:1px solid rgba(227,179,65,0.2);}
+.m-bad{background:rgba(255,123,114,0.1);color:var(--c-coral);border:1px solid rgba(255,123,114,0.2);}
+.m-info{background:rgba(88,166,255,0.1);color:var(--c-blue);border:1px solid rgba(88,166,255,0.2);}
+.m-lbl{font-size:9px;font-weight:400;opacity:.7;display:block;}
+/* REF */
+.ref-card{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;text-decoration:none;transition:all .15s;}
+.ref-card:hover{border-color:var(--c-blue);transform:translateX(2px);}
+.ref-icon{font-size:18px;flex-shrink:0;margin-top:2px;}
+.ref-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.ref-desc{font-size:12px;color:var(--text2);line-height:1.5;}
+.ref-url{font-size:11px;color:var(--c-blue);font-family:var(--font-mono);margin-top:3px;}
+.ref-stars{font-size:11px;color:var(--c-amber);margin-left:auto;white-space:nowrap;padding-left:10px;}
+.divider{border:none;border-top:1px solid var(--border);margin:28px 0;}
+/* STEP LIST */
+.steps{list-style:none;counter-reset:step;margin-bottom:18px;}
+.steps li{counter-increment:step;display:flex;gap:14px;padding:10px 0;border-bottom:1px solid var(--border2);}
+.steps li:last-child{border-bottom:none;}
+.steps li::before{content:counter(step);min-width:26px;height:26px;background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.2);border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--c-blue);font-family:var(--font-mono);flex-shrink:0;}
+.step-body{font-size:13px;color:var(--text2);line-height:1.7;padding-top:1px;}
+.step-body strong{color:var(--text);}
+.tag{display:inline-block;padding:2px 8px;border-radius:3px;font-size:11px;font-weight:600;font-family:var(--font-mono);margin:2px;}
+.t-b{background:rgba(88,166,255,0.1);color:var(--c-blue);border:1px solid rgba(88,166,255,0.2);}
+.t-g{background:rgba(63,185,80,0.1);color:var(--c-green);border:1px solid rgba(63,185,80,0.2);}
+.t-a{background:rgba(227,179,65,0.1);color:var(--c-amber);border:1px solid rgba(227,179,65,0.2);}
+.t-r{background:rgba(255,123,114,0.1);color:var(--c-coral);border:1px solid rgba(255,123,114,0.2);}
+.t-p{background:rgba(188,140,255,0.1);color:var(--c-purple);border:1px solid rgba(188,140,255,0.2);}
+.concept-img-wrapper {
+  margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(0,212,255,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  background: var(--bg3); padding: 12px; transition: all 0.3s ease;
+}
+.concept-img-wrapper:hover {
+  transform: scale(1.01); border-color: rgba(0,212,255,0.5); box-shadow: 0 8px 30px rgba(0,212,255,0.2);
+}
+.concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.concept-img-caption { text-align: center; font-size: 13px; color: var(--text2); margin-top: 10px; font-style: italic; line-height: 1.5; }
+.card { transition: all 0.3s ease; }
+.card:hover { border-color: var(--c-blue); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(88,166,255,0.15); }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-icon">🐘</div>
+    <div>
+      <div class="sb-title">PostgreSQL Expert</div>
+      <div class="sb-sub">guideline · internals</div>
+    </div>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Tổng quan</div>
+    <button class="nav-item active" onclick="show('intro')"><span class="nav-num">00</span>Giới thiệu</button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Chủ đề chính</div>
+    <button class="nav-item" onclick="show('index')"><span class="nav-num">01</span>Index Deep Dive</button>
+    <button class="nav-item" onclick="show('lock')"><span class="nav-num">02</span>Deadlock &amp; Locking</button>
+    <button class="nav-item" onclick="show('pagination')"><span class="nav-num">03</span>Pagination Techniques</button>
+    <button class="nav-item" onclick="show('query')"><span class="nav-num">04</span>Query Analysis</button>
+    <button class="nav-item" onclick="show('vacuum')"><span class="nav-num">05</span>Vacuum · WAL · Checkpoint</button>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Phụ lục</div>
+    <button class="nav-item" onclick="show('refs')"><span class="nav-num">★</span>References</button>
+  </div>
+</nav>
+
+<!-- TOPNAV -->
+<nav id="topnav">
+  <button class="tnav active" onclick="show('intro')">Giới thiệu</button>
+  <button class="tnav" onclick="show('index')">01 Index</button>
+  <button class="tnav" onclick="show('lock')">02 Deadlock</button>
+  <button class="tnav" onclick="show('pagination')">03 Pagination</button>
+  <button class="tnav" onclick="show('query')">04 Query Analysis</button>
+  <button class="tnav" onclick="show('vacuum')">05 Vacuum WAL</button>
+  <button class="tnav" onclick="show('refs')">References</button>
+</nav>
+
+<main id="main"><div class="content">
+
+<!-- ═══════════════ INTRO ═══════════════ -->
+<section class="page-section active" id="s-intro">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">PostgreSQL Expert Guide</div>
+      <div class="sec-sub">Tổng quan 5 chủ đề chuyên sâu · Internals · Performance · Production</div>
+    </div>
+    <span class="sec-badge b-ref">🐘 EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_perf_hero.png" alt="PostgreSQL Performance Optimization Hero Map">
+    <div class="concept-img-caption">Sơ đồ tổng quan PostgreSQL Performance Optimization Map: Các khía cạnh cốt lõi ảnh hưởng trực tiếp đến hiệu năng hệ thống.</div>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-label">💡 Về tài liệu này</div>
+    <div class="concept-title">Dành cho ai? Học gì?</div>
+    <p class="prose">Tài liệu này dành cho <strong>PostgreSQL developer và DBA</strong> cần hiểu sâu về internals để tối ưu performance trong môi trường production. Mỗi chủ đề được trình bày theo cấu trúc: <strong>Problem Statement → Solution → Visual Diagram → Note & Conclusion</strong>.</p>
+    <p class="prose">Tất cả ví dụ đều dựa trên tình huống thực tế với PostgreSQL 14+. Code SQL đều có thể chạy trực tiếp.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">5 Chủ đề — Mối liên hệ trong kiến trúc PostgreSQL</div>
+    <svg width="100%" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- PostgreSQL Engine center -->
+      <ellipse cx="410" cy="170" rx="80" ry="50" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1.5"/>
+      <text x="410" y="163" text-anchor="middle" font-size="12" font-weight="700" fill="#58a6ff">PostgreSQL</text>
+      <text x="410" y="178" text-anchor="middle" font-size="11" fill="#8b949e">Query Engine</text>
+      <text x="410" y="193" text-anchor="middle" font-size="10" fill="#484f58">Storage + Memory</text>
+
+      <!-- 01 Index -->
+      <rect x="20" y="40" width="175" height="80" rx="8" fill="rgba(88,166,255,0.06)" stroke="rgba(88,166,255,0.3)" stroke-width="1.3"/>
+      <text x="107" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#58a6ff">01 🗂 Index</text>
+      <text x="107" y="79" text-anchor="middle" font-size="11" fill="#8b949e">B-Tree · GIN · GiST</text>
+      <text x="107" y="95" text-anchor="middle" font-size="11" fill="#8b949e">Partial · Covering</text>
+      <text x="107" y="111" text-anchor="middle" font-size="10" fill="#484f58">Fast data retrieval</text>
+      <line x1="195" y1="80" x2="332" y2="155" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- 02 Lock -->
+      <rect x="20" y="200" width="175" height="80" rx="8" fill="rgba(255,123,114,0.06)" stroke="rgba(255,123,114,0.25)" stroke-width="1.3"/>
+      <text x="107" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="#ff7b72">02 🔒 Deadlock</text>
+      <text x="107" y="239" text-anchor="middle" font-size="11" fill="#8b949e">Lock modes · MVCC</text>
+      <text x="107" y="255" text-anchor="middle" font-size="11" fill="#8b949e">Wait graph detection</text>
+      <text x="107" y="271" text-anchor="middle" font-size="10" fill="#484f58">Concurrency control</text>
+      <line x1="195" y1="240" x2="332" y2="185" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- 03 Pagination -->
+      <rect x="620" y="40" width="185" height="80" rx="8" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.25)" stroke-width="1.3"/>
+      <text x="712" y="62" text-anchor="middle" font-size="13" font-weight="700" fill="#3fb950">03 📄 Pagination</text>
+      <text x="712" y="79" text-anchor="middle" font-size="11" fill="#8b949e">OFFSET · Keyset</text>
+      <text x="712" y="95" text-anchor="middle" font-size="11" fill="#8b949e">Cursor · Window</text>
+      <text x="712" y="111" text-anchor="middle" font-size="10" fill="#484f58">Data access patterns</text>
+      <line x1="620" y1="80" x2="490" y2="155" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- 04 Query -->
+      <rect x="620" y="200" width="185" height="80" rx="8" fill="rgba(188,140,255,0.06)" stroke="rgba(188,140,255,0.25)" stroke-width="1.3"/>
+      <text x="712" y="222" text-anchor="middle" font-size="13" font-weight="700" fill="#bc8cff">04 🔍 Query Analysis</text>
+      <text x="712" y="239" text-anchor="middle" font-size="11" fill="#8b949e">EXPLAIN ANALYZE</text>
+      <text x="712" y="255" text-anchor="middle" font-size="11" fill="#8b949e">pg_stat_statements</text>
+      <text x="712" y="271" text-anchor="middle" font-size="10" fill="#484f58">Performance tuning</text>
+      <line x1="620" y1="240" x2="490" y2="185" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- 05 Vacuum -->
+      <rect x="285" y="292" width="250" height="42" rx="8" fill="rgba(227,179,65,0.06)" stroke="rgba(227,179,65,0.25)" stroke-width="1.3"/>
+      <text x="410" y="309" text-anchor="middle" font-size="13" font-weight="700" fill="#e3b341">05 ♻️ Vacuum · WAL · Checkpoint</text>
+      <text x="410" y="326" text-anchor="middle" font-size="11" fill="#8b949e">Storage management · MVCC cleanup · Durability</text>
+      <line x1="410" y1="292" x2="410" y2="220" stroke="#30363d" stroke-width="1" stroke-dasharray="4,3"/>
+    </svg>
+  </div>
+
+  <div class="cg3">
+    <div class="card">
+      <div class="card-title">🗂️ Index Deep Dive</div>
+      <p class="prose" style="margin:0;font-size:13px">B-Tree internals, GIN/GiST cho full-text, partial index, covering index, composite index ordering. EXPLAIN scan types.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔒 Deadlock &amp; Locking</div>
+      <p class="prose" style="margin:0;font-size:13px">Lock hierarchy, MVCC, wait graph, pg_locks monitoring, advisory locks, lock timeout strategies.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">📄 Pagination</div>
+      <p class="prose" style="margin:0;font-size:13px">OFFSET/LIMIT problems, Keyset pagination, cursor-based, window function. Performance comparison trực tiếp.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔍 Query Analysis</div>
+      <p class="prose" style="margin:0;font-size:13px">EXPLAIN workflow, BUFFERS, FORMAT JSON, planner statistics, pg_stat_statements, slow query hunting.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">♻️ Vacuum WAL Checkpoint</div>
+      <p class="prose" style="margin:0;font-size:13px">Bloat monitoring, AUTOVACUUM tuning, WAL segments, checkpoint tuning, recovery point objective.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Format tài liệu</div>
+      <p class="prose" style="margin:0;font-size:13px">Mỗi ví dụ: Problem → Solution → Diagram → Note. Code SQL chạy được trên PostgreSQL 14+.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 01 INDEX ═══════════════ -->
+<section class="page-section" id="s-index">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">01 — Index Deep Dive</div>
+      <div class="sec-sub">Hiểu sâu cơ chế hoạt động · B-Tree · GIN · Partial · Covering · Composite</div>
+    </div>
+    <span class="sec-badge b-index">🗂️ INDEX</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-label">💡 Khái niệm cốt lõi</div>
+    <div class="concept-title">Index là gì và hoạt động như thế nào?</div>
+    <p class="prose"><strong>Index</strong> là cấu trúc dữ liệu phụ trợ giúp PostgreSQL tìm kiếm hàng trong bảng mà không cần quét toàn bộ (Sequential Scan). PostgreSQL hỗ trợ nhiều loại index: <strong>B-Tree</strong> (mặc định), <strong>Hash</strong>, <strong>GIN</strong>, <strong>GiST</strong>, <strong>SP-GiST</strong>, <strong>BRIN</strong>. Mỗi loại phù hợp với use case khác nhau.</p>
+    <p class="prose"><strong>Chi phí đánh đổi:</strong> Index tăng tốc READ nhưng làm chậm WRITE (phải cập nhật cả index khi INSERT/UPDATE/DELETE). Index chiếm thêm disk space. Cần phân tích query pattern trước khi tạo index.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_perf_index_types.png" alt="PostgreSQL Index Types Comparison">
+    <div class="concept-img-caption">Bảng so sánh cấu trúc các loại Index trong PostgreSQL: B-Tree, GIN, BRIN và Partial/Covering Index.</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">B-Tree Index Structure &amp; Scan Types</div>
+    <svg width="100%" viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="ia" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-linecap="round"/></marker>
+      <marker id="ia2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- B-Tree levels -->
+      <text x="20" y="22" font-size="11" font-weight="700" fill="#8b949e">B-Tree Structure (index on salary column):</text>
+      <!-- Root -->
+      <rect x="330" y="36" width="160" height="36" rx="5" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.4)" stroke-width="1.5"/>
+      <text x="410" y="58" text-anchor="middle" font-size="12" font-weight="700" fill="#58a6ff">Root: 50000</text>
+      <!-- Internal nodes -->
+      <rect x="160" y="106" width="130" height="32" rx="5" fill="rgba(88,166,255,0.06)" stroke="rgba(88,166,255,0.25)" stroke-width="1.2"/>
+      <text x="225" y="127" text-anchor="middle" font-size="11" fill="#58a6ff">Internal: 25000</text>
+      <rect x="530" y="106" width="130" height="32" rx="5" fill="rgba(88,166,255,0.06)" stroke="rgba(88,166,255,0.25)" stroke-width="1.2"/>
+      <text x="595" y="127" text-anchor="middle" font-size="11" fill="#58a6ff">Internal: 75000</text>
+      <!-- Leaf nodes -->
+      <rect x="30" y="176" width="110" height="32" rx="4" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+      <text x="85" y="197" text-anchor="middle" font-size="11" fill="#3fb950">Leaf: 10000→TID</text>
+      <rect x="155" y="176" width="110" height="32" rx="4" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+      <text x="210" y="197" text-anchor="middle" font-size="11" fill="#3fb950">Leaf: 25000→TID</text>
+      <rect x="350" y="176" width="110" height="32" rx="4" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+      <text x="405" y="197" text-anchor="middle" font-size="11" fill="#3fb950">Leaf: 50000→TID</text>
+      <rect x="480" y="176" width="110" height="32" rx="4" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+      <text x="535" y="197" text-anchor="middle" font-size="11" fill="#3fb950">Leaf: 65000→TID</text>
+      <rect x="620" y="176" width="110" height="32" rx="4" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+      <text x="675" y="197" text-anchor="middle" font-size="11" fill="#3fb950">Leaf: 90000→TID</text>
+      <!-- Leaf chain -->
+      <line x1="140" y1="192" x2="155" y2="192" stroke="#3fb950" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="265" y1="192" x2="350" y2="192" stroke="#3fb950" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="460" y1="192" x2="480" y2="192" stroke="#3fb950" stroke-width="1" stroke-dasharray="2,2"/>
+      <line x1="590" y1="192" x2="620" y2="192" stroke="#3fb950" stroke-width="1" stroke-dasharray="2,2"/>
+      <!-- Tree edges -->
+      <line x1="370" y1="72" x2="250" y2="106" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+      <line x1="450" y1="72" x2="575" y2="106" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+      <line x1="195" y1="138" x2="100" y2="176" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+      <line x1="255" y1="138" x2="220" y2="176" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+      <line x1="565" y1="138" x2="415" y2="176" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+      <line x1="595" y1="138" x2="535" y2="176" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+      <line x1="625" y1="138" x2="675" y2="176" stroke="#58a6ff" stroke-width="1" marker-end="url(#ia)"/>
+
+      <!-- Heap pages (table) -->
+      <text x="20" y="248" font-size="11" font-weight="700" fill="#8b949e">Heap (Table Data):</text>
+      <rect x="20" y="258" width="760" height="28" rx="4" fill="rgba(22,27,34,0.8)" stroke="#30363d" stroke-width="1"/>
+      <text x="100" y="277" text-anchor="middle" font-size="10" fill="#484f58">Page 1</text>
+      <text x="250" y="277" text-anchor="middle" font-size="10" fill="#484f58">Page 2</text>
+      <text x="400" y="277" text-anchor="middle" font-size="10" fill="#484f58">Page 3</text>
+      <text x="550" y="277" text-anchor="middle" font-size="10" fill="#484f58">Page 4</text>
+      <text x="700" y="277" text-anchor="middle" font-size="10" fill="#484f58">Page 5</text>
+      <line x1="160" y1="258" x2="160" y2="286" stroke="#30363d" stroke-width="1"/>
+      <line x1="320" y1="258" x2="320" y2="286" stroke="#30363d" stroke-width="1"/>
+      <line x1="480" y1="258" x2="480" y2="286" stroke="#30363d" stroke-width="1"/>
+      <line x1="640" y1="258" x2="640" y2="286" stroke="#30363d" stroke-width="1"/>
+      <!-- TID arrows -->
+      <line x1="85" y1="208" x2="85" y2="258" stroke="#e3b341" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ia)"/>
+      <line x1="535" y1="208" x2="530" y2="258" stroke="#e3b341" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#ia)"/>
+      <text x="380" y="310" text-anchor="middle" font-size="10" fill="#484f58">TID = Tuple ID (page#, item#) — pointer từ index leaf đến heap row</text>
+    </svg>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="data-table">
+      <thead><tr><th>Loại Index</th><th>Phù hợp với</th><th>Operators</th><th>Không phù hợp</th></tr></thead>
+      <tbody>
+        <tr><td><code>B-Tree</code></td><td>Equality, range, sort</td><td>=, &lt;, &gt;, &lt;=, &gt;=, BETWEEN, LIKE 'abc%'</td><td>LIKE '%abc%', full-text</td></tr>
+        <tr><td><code>Hash</code></td><td>Chỉ equality</td><td>=</td><td>Range, sort</td></tr>
+        <tr><td><code>GIN</code></td><td>Array, JSONB, Full-text, tsvector</td><td>@&gt;, &lt;@, @@, &amp;&amp;</td><td>Range, sort</td></tr>
+        <tr><td><code>GiST</code></td><td>Geometry, ranges, full-text</td><td>&amp;&amp;, @&gt;, &lt;-&gt;</td><td>Simple equality</td></tr>
+        <tr><td><code>BRIN</code></td><td>Ordered large tables (time-series)</td><td>=, &lt;, &gt;</td><td>Random data, small tables</td></tr>
+        <tr><td><code>Partial</code></td><td>Tập con có điều kiện</td><td>Phụ thuộc base type</td><td>Queries không match điều kiện</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- EXAMPLE 1 -->
+  <div class="ex-header">
+    <div class="ex-num">01</div>
+    <div class="ex-title">Composite Index — Thứ tự cột ảnh hưởng hiệu năng</div>
+    <span class="sec-badge b-index" style="margin-left:auto;">ADVANCED</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Bạn có bảng <code>orders</code> (~10 triệu rows) với các query: (1) lọc theo <code>status</code> AND <code>created_at</code>, (2) lọc chỉ theo <code>status</code>. Đồng nghiệp tạo index <code>(created_at, status)</code> nhưng query vẫn chậm với pattern (2). Tại sao? Thứ tự cột trong composite index quan trọng thế nào?</p>
+    </div>
+    <div class="solution-block">
+      <div class="solution-label">✅ Solution</div>
+      <p class="prose" style="margin:0;margin-bottom:10px">Quy tắc <strong>"leftmost prefix"</strong>: PostgreSQL có thể dùng composite index <code>(A, B)</code> cho query filter trên A, hoặc A+B, nhưng <em>không thể</em> dùng cho query chỉ filter trên B. Cột có <strong>selectivity cao</strong> (ít giá trị trùng) nên đặt trước.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">composite_index.sql</span><div class="cright"><span class="clevel lv-adv">ADVANCED</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- Setup: Bảng orders 10M rows</span>
+<span class="kw">CREATE TABLE</span> <span class="tbl">orders</span> (
+    id         <span class="tp">BIGINT</span> <span class="kw">PRIMARY KEY</span>,
+    user_id    <span class="tp">BIGINT</span> <span class="kw">NOT NULL</span>,
+    status     <span class="tp">VARCHAR</span>(<span class="num">20</span>) <span class="kw">NOT NULL</span>,   <span class="cm">-- low cardinality: pending/processing/completed/cancelled</span>
+    amount     <span class="tp">NUMERIC</span>(<span class="num">12</span>,<span class="num">2</span>),
+    created_at <span class="tp">TIMESTAMPTZ</span> <span class="kw">NOT NULL</span>,
+    region_id  <span class="tp">INTEGER</span>
+);
+
+<span class="cm">-- ❌ SAI: cột created_at đứng đầu — range query on first col traps B-Tree</span>
+<span class="kw">CREATE INDEX</span> idx_wrong <span class="kw">ON</span> <span class="tbl">orders</span> (created_at, status);
+<span class="cm">-- Query chỉ filter status → full index scan vì không dùng được leftmost prefix</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">orders</span> <span class="kw">WHERE</span> status = <span class="str">'pending'</span>;
+<span class="cm">-- → Seq Scan on orders (cost=0.00..285432.00 rows=50000 width=...)
+--   "Filter: (status = 'pending')" ← index không được dùng!</span>
+
+<span class="cm">-- ✅ ĐÚNG: status đứng đầu (equality), sau đó created_at (range)</span>
+<span class="kw">DROP INDEX</span> idx_wrong;
+<span class="kw">CREATE INDEX</span> idx_orders_status_created
+    <span class="kw">ON</span> <span class="tbl">orders</span> (status, created_at <span class="kw">DESC</span>)
+    <span class="kw">INCLUDE</span> (user_id, amount);  <span class="cm">-- covering index: không cần quay lại heap</span>
+
+<span class="cm">-- Verify: cả 3 query patterns đều dùng index</span>
+<span class="kw">EXPLAIN</span> (<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">orders</span>
+<span class="kw">WHERE</span> status = <span class="str">'pending'</span>
+  <span class="kw">AND</span> created_at >= <span class="fn">NOW</span>() - <span class="kw">INTERVAL</span> <span class="str">'7 days'</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">100</span>;
+<span class="cm">-- → Index Scan using idx_orders_status_created on orders
+--   Index Cond: ((status = 'pending') AND (created_at >= ...))
+--   Buffers: shared hit=8  ← chỉ đọc 8 pages thay vì 285432!</span>
+
+<span class="cm">-- Pattern 2: chỉ filter status → vẫn dùng index (leftmost prefix)</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> <span class="tbl">orders</span> <span class="kw">WHERE</span> status = <span class="str">'completed'</span>;
+<span class="cm">-- → Index Only Scan using idx_orders_status_created
+--   Heap Fetches: 0  ← zero heap access nhờ INCLUDE columns</span>
+
+<span class="cm">-- Kiểm tra index usage statistics</span>
+<span class="kw">SELECT</span>
+    indexrelname,
+    idx_scan,       <span class="cm">-- số lần index được dùng</span>
+    idx_tup_read,   <span class="cm">-- số tuples đọc qua index</span>
+    idx_tup_fetch   <span class="cm">-- số tuples fetch từ heap</span>
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">WHERE</span> relname = <span class="str">'orders'</span>
+<span class="kw">ORDER BY</span> idx_scan <span class="kw">DESC</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Quy tắc thứ tự cột:</strong> (1) Equality columns trước, (2) Range/sort column sau. (3) Cột cardinality cao (unique-ish) lên đầu nếu selectivity tốt hơn. <code>INCLUDE</code> tạo covering index — query chỉ đọc index, không cần heap fetch → <strong>Index Only Scan</strong> nhanh nhất có thể.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 2 -->
+  <div class="ex-header">
+    <div class="ex-num">02</div>
+    <div class="ex-title">Partial Index — Đánh index thông minh theo điều kiện</div>
+    <span class="sec-badge b-index" style="margin-left:auto;">ADVANCED</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Bảng <code>orders</code> có 10M rows nhưng 95% là <code>status = 'completed'</code>. Application chủ yếu query <code>status IN ('pending', 'processing')</code> — chỉ ~500K rows. Index toàn bộ bảng lãng phí disk và làm chậm VACUUM. Làm thế nào?</p>
+    </div>
+    <div class="solution-block">
+      <div class="solution-label">✅ Solution — Partial Index</div>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">partial_index.sql</span><div class="cright"><span class="clevel lv-adv">ADVANCED</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- ✅ Partial index: chỉ index active orders (5% của bảng)</span>
+<span class="kw">CREATE INDEX</span> idx_active_orders
+    <span class="kw">ON</span> <span class="tbl">orders</span> (created_at, user_id)
+    <span class="kw">WHERE</span> status <span class="kw">IN</span> (<span class="str">'pending'</span>, <span class="str">'processing'</span>);
+<span class="cm">-- Index size: ~40MB thay vì 800MB (full index)
+-- Maintenance overhead: chỉ update khi pending/processing orders thay đổi</span>
+
+<span class="cm">-- Query phải match WHERE clause của partial index</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+<span class="kw">SELECT</span> id, user_id, amount
+<span class="kw">FROM</span> <span class="tbl">orders</span>
+<span class="kw">WHERE</span> status = <span class="str">'pending'</span>           <span class="cm">-- ✅ matches partial index condition</span>
+  <span class="kw">AND</span> created_at > <span class="fn">NOW</span>() - <span class="kw">INTERVAL</span> <span class="str">'1 day'</span>
+<span class="kw">ORDER BY</span> created_at;
+<span class="cm">-- → Index Scan using idx_active_orders
+--   Index size used: 40MB vs 800MB saved</span>
+
+<span class="cm">-- ❌ Query này KHÔNG dùng được partial index (missing WHERE clause)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">orders</span> <span class="kw">WHERE</span> status = <span class="str">'completed'</span>;
+<span class="cm">-- → Seq Scan (completed không nằm trong partial index)</span>
+
+<span class="cm">-- Pattern thực tế: partial index cho soft-delete</span>
+<span class="kw">CREATE INDEX</span> idx_users_active
+    <span class="kw">ON</span> <span class="tbl">users</span> (email)
+    <span class="kw">WHERE</span> deleted_at <span class="kw">IS NULL</span>;
+<span class="cm">-- → Login query luôn dùng index này; deleted users không chiếm index space</span>
+
+<span class="cm">-- Pattern: partial unique index (email unique chỉ cho active users)</span>
+<span class="kw">CREATE UNIQUE INDEX</span> idx_users_unique_active_email
+    <span class="kw">ON</span> <span class="tbl">users</span> (email)
+    <span class="kw">WHERE</span> deleted_at <span class="kw">IS NULL</span>;
+<span class="cm">-- Cho phép duplicate email cho deleted users, unique chỉ trong active</span>
+
+<span class="cm">-- So sánh kích thước:</span>
+<span class="kw">SELECT</span>
+    indexrelname,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(indexrelid)) <span class="kw">AS</span> index_size
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">WHERE</span> relname = <span class="str">'orders'</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Khi dùng Partial Index:</strong> (1) Dữ liệu có phân phối không đều, (2) Query thường xuyên chỉ cần tập con nhỏ, (3) Soft-delete pattern. <strong>Lưu ý:</strong> Query WHERE clause phải bao gồm condition của partial index để PostgreSQL sử dụng được. Partial index có thể nhỏ hơn 95% so với full index trong trường hợp này.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 3 -->
+  <div class="ex-header">
+    <div class="ex-num">03</div>
+    <div class="ex-title">GIN Index cho JSONB và Full-Text Search</div>
+    <span class="sec-badge b-index" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Bảng <code>products</code> có cột <code>metadata JSONB</code> chứa attributes động (tags, specs, categories...) và cột <code>description TEXT</code> cần full-text search. Cả hai đều cần indexing hiệu quả mà B-Tree không hỗ trợ được.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">gin_jsonb_fts.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="kw">CREATE TABLE</span> <span class="tbl">products</span> (
+    id          <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    name        <span class="tp">TEXT NOT NULL</span>,
+    description <span class="tp">TEXT</span>,
+    metadata    <span class="tp">JSONB</span>,
+    price       <span class="tp">NUMERIC</span>(<span class="num">10</span>,<span class="num">2</span>),
+    ts_vector   <span class="tp">TSVECTOR</span>  <span class="cm">-- generated column cho FTS</span>
+);
+
+<span class="cm">-- GIN index cho JSONB: hỗ trợ @>, <@, ?, ?|, ?&</span>
+<span class="kw">CREATE INDEX</span> idx_products_metadata_gin
+    <span class="kw">ON</span> <span class="tbl">products</span> <span class="kw">USING</span> gin (metadata);
+
+<span class="cm">-- GIN index với jsonb_path_ops: nhỏ hơn default nhưng chỉ hỗ trợ @></span>
+<span class="kw">CREATE INDEX</span> idx_products_metadata_path
+    <span class="kw">ON</span> <span class="tbl">products</span> <span class="kw">USING</span> gin (metadata jsonb_path_ops);
+
+<span class="cm">-- Full-Text Search: tạo tsvector column (generated)</span>
+<span class="kw">ALTER TABLE</span> <span class="tbl">products</span>
+    <span class="kw">ADD COLUMN</span> ts_search <span class="tp">TSVECTOR</span>
+    <span class="kw">GENERATED ALWAYS AS</span> (
+        <span class="fn">to_tsvector</span>(<span class="str">'english'</span>,
+            <span class="fn">COALESCE</span>(name, <span class="str">''</span>) || <span class="str">' '</span> ||
+            <span class="fn">COALESCE</span>(description, <span class="str">''</span>) || <span class="str">' '</span> ||
+            <span class="fn">COALESCE</span>(metadata->><span class="str">'tags'</span>, <span class="str">''</span>)
+        )
+    ) <span class="kw">STORED</span>;
+
+<span class="kw">CREATE INDEX</span> idx_products_fts <span class="kw">ON</span> <span class="tbl">products</span> <span class="kw">USING</span> gin (ts_search);
+
+<span class="cm">-- Query 1: JSONB containment — tìm products có tag 'laptop'</span>
+<span class="kw">EXPLAIN ANALYZE</span>
+<span class="kw">SELECT</span> id, name, price
+<span class="kw">FROM</span> <span class="tbl">products</span>
+<span class="kw">WHERE</span> metadata @> <span class="str">'{"category": "electronics", "tags": ["laptop"]}'</span>;
+<span class="cm">-- → Bitmap Index Scan on idx_products_metadata_gin
+--   Recheck Cond: (metadata @> '{"category": "electronics"...}')
+--   Rows Removed by Recheck: 2</span>
+
+<span class="cm">-- Query 2: JSONB key existence</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="tbl">products</span> <span class="kw">WHERE</span> metadata ? <span class="str">'discount_price'</span>;
+
+<span class="cm">-- Query 3: Full-text search với ranking</span>
+<span class="kw">SELECT</span>
+    id, name,
+    <span class="fn">ts_rank</span>(ts_search, query) <span class="kw">AS</span> rank
+<span class="kw">FROM</span> <span class="tbl">products</span>,
+     <span class="fn">to_tsquery</span>(<span class="str">'english'</span>, <span class="str">'laptop &amp; gaming &amp; !refurbished'</span>) query
+<span class="kw">WHERE</span> ts_search @@ query
+<span class="kw">ORDER BY</span> rank <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">20</span>;
+<span class="cm">-- → Bitmap Index Scan on idx_products_fts
+--   uses GIN index, results ranked by relevance</span>
+
+<span class="cm">-- Query 4: Kết hợp JSONB + FTS + range trong 1 query</span>
+<span class="kw">SELECT</span> p.id, p.name, p.price,
+       <span class="fn">ts_rank</span>(p.ts_search, q.query) <span class="kw">AS</span> relevance
+<span class="kw">FROM</span>   <span class="tbl">products</span> p,
+       <span class="fn">to_tsquery</span>(<span class="str">'english'</span>, <span class="str">'wireless &amp; keyboard'</span>) q
+<span class="kw">WHERE</span>  p.ts_search @@ q.query
+  <span class="kw">AND</span>  p.metadata @> <span class="str">'{"in_stock": true}'</span>
+  <span class="kw">AND</span>  p.price <span class="kw">BETWEEN</span> <span class="num">50</span> <span class="kw">AND</span> <span class="num">500</span>
+<span class="kw">ORDER BY</span> relevance <span class="kw">DESC</span>, p.price
+<span class="kw">LIMIT</span> <span class="num">50</span>;
+<span class="cm">-- PostgreSQL sẽ dùng Bitmap AND của nhiều indexes → hiệu quả</span>
+
+<span class="cm">-- Gin index tuning: tăng gin_pending_list_limit cho write-heavy workload</span>
+<span class="kw">ALTER INDEX</span> idx_products_metadata_gin
+    <span class="kw">SET</span> (fastupdate = <span class="kw">on</span>, gin_pending_list_limit = <span class="num">4096</span>);</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>GIN vs B-Tree:</strong> GIN index lớn hơn B-Tree (~3-5x) nhưng cần thiết cho JSONB/Array/FTS. Dùng <code>jsonb_path_ops</code> operator class giảm kích thước GIN ~50% nếu chỉ cần <code>@&gt;</code>. Generated column <code>TSVECTOR</code> tự động cập nhật và cho Index Only Scan. <strong>Fastupdate=on</strong> cải thiện write performance bằng cách batch GIN updates.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 4: BRIN -->
+  <div class="ex-header">
+    <div class="ex-num">04</div>
+    <div class="ex-title">BRIN Index — Time-series với hàng tỷ rows</div>
+    <span class="sec-badge b-index" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Bảng <code>sensor_readings</code> append-only, có 5 tỷ rows, tăng 10M rows/ngày. Cần index trên <code>recorded_at</code> để query range theo time. B-Tree index sẽ chiếm ~100GB disk. BRIN là giải pháp?</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">brin_timeseries.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="kw">CREATE TABLE</span> <span class="tbl">sensor_readings</span> (
+    id          <span class="tp">BIGINT GENERATED ALWAYS AS IDENTITY</span>,
+    sensor_id   <span class="tp">INTEGER NOT NULL</span>,
+    recorded_at <span class="tp">TIMESTAMPTZ NOT NULL</span>,
+    value       <span class="tp">DOUBLE PRECISION</span>,
+    unit        <span class="tp">VARCHAR</span>(<span class="num">10</span>)
+) <span class="kw">PARTITION BY RANGE</span> (recorded_at);  <span class="cm">-- table partitioning theo tháng</span>
+
+<span class="cm">-- Tạo partitions theo tháng</span>
+<span class="kw">CREATE TABLE</span> sensor_readings_2024_01
+    <span class="kw">PARTITION OF</span> <span class="tbl">sensor_readings</span>
+    <span class="kw">FOR VALUES FROM</span> (<span class="str">'2024-01-01'</span>) <span class="kw">TO</span> (<span class="str">'2024-02-01'</span>);
+
+<span class="cm">-- BRIN index: chỉ 1-2MB thay vì 100GB B-Tree!</span>
+<span class="cm">-- pages_per_range=32 = mỗi BRIN entry đại diện 32 heap pages (~256KB data)</span>
+<span class="kw">CREATE INDEX</span> idx_sensor_readings_brin
+    <span class="kw">ON</span> <span class="tbl">sensor_readings</span> <span class="kw">USING</span> brin (recorded_at)
+    <span class="kw">WITH</span> (pages_per_range = <span class="num">32</span>);
+
+<span class="cm">-- BRIN hoạt động: lưu min/max value của recorded_at trong mỗi page range
+-- Query sẽ skip toàn bộ page ranges không overlap với time window</span>
+<span class="kw">EXPLAIN</span> (<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> <span class="fn">AVG</span>(value), <span class="fn">MAX</span>(value)
+<span class="kw">FROM</span>   <span class="tbl">sensor_readings</span>
+<span class="kw">WHERE</span>  recorded_at <span class="kw">BETWEEN</span>
+       <span class="str">'2024-01-15 00:00:00'</span> <span class="kw">AND</span> <span class="str">'2024-01-15 23:59:59'</span>
+  <span class="kw">AND</span>  sensor_id = <span class="num">42</span>;
+<span class="cm">-- → Bitmap Index Scan on idx_sensor_readings_brin
+--   Recheck Cond: recorded_at BETWEEN ...
+--   Rows Removed by Index Recheck: 1234  (BRIN approximates → recheck needed)
+--   Buffers: shared hit=892 (vs 50M blocks full scan)</span>
+
+<span class="cm">-- BRIN phù hợp khi: data có correlation cao với thứ tự ghi (natural ordering)
+-- Kiểm tra correlation:</span>
+<span class="kw">SELECT</span>
+    attname,
+    correlation  <span class="cm">-- 1.0 = perfect order, 0 = random</span>
+<span class="kw">FROM</span> pg_stats
+<span class="kw">WHERE</span> tablename = <span class="str">'sensor_readings'</span>
+  <span class="kw">AND</span> attname = <span class="str">'recorded_at'</span>;
+<span class="cm">-- Nếu correlation > 0.9 → BRIN rất hiệu quả</span>
+<span class="cm">-- Nếu correlation < 0.5 → dùng B-Tree hoặc partition trước</span>
+
+<span class="cm">-- Kích thước so sánh thực tế:</span>
+<span class="kw">SELECT</span>
+    indexrelname,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(indexrelid)) <span class="kw">AS</span> size,
+    idx_scan,
+    idx_blks_read
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">WHERE</span> relname = <span class="str">'sensor_readings'</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>BRIN là lựa chọn tốt khi:</strong> Bảng rất lớn (hàng tỷ rows), data được insert theo thứ tự tự nhiên (correlation cao), chỉ cần range query trên cột đó. BRIN index có thể nhỏ hơn B-Tree <strong>10,000 lần</strong>. Kết hợp BRIN với Table Partitioning cho time-series workload là best practice trong production.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 02 DEADLOCK ═══════════════ -->
+<section class="page-section" id="s-lock">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">02 — Deadlock &amp; Locking</div>
+      <div class="sec-sub">Lock hierarchy · MVCC · Deadlock detection · pg_locks monitoring</div>
+    </div>
+    <span class="sec-badge b-lock">🔒 LOCKING</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-label">💡 Khái niệm cốt lõi</div>
+    <div class="concept-title">PostgreSQL Locking &amp; MVCC</div>
+    <p class="prose"><strong>MVCC (Multi-Version Concurrency Control):</strong> PostgreSQL không lock rows khi đọc — mỗi transaction thấy một snapshot nhất quán. Writers tạo new row version (tuple), readers đọc phiên bản cũ. Điều này giúp readers không block writers và ngược lại.</p>
+    <p class="prose"><strong>Deadlock</strong> xảy ra khi Transaction A giữ lock X và chờ lock Y, trong khi Transaction B giữ lock Y và chờ lock X. PostgreSQL phát hiện deadlock sau <code>deadlock_timeout</code> (default 1s) và abort transaction bị phát hiện sau cùng.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_perf_deadlock_wait.png" alt="PostgreSQL Deadlocks and Lock Conflict Matrix">
+    <div class="concept-img-caption">Sơ đồ cơ chế phát hiện Deadlock Cycle và Ma trận xung đột các chế độ Lock trong PostgreSQL.</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Deadlock Detection — Wait Graph &amp; Lock Hierarchy</div>
+    <svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs>
+        <marker id="la" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#ff7b72" stroke-width="1.5" stroke-linecap="round"/></marker>
+        <marker id="la2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round"/></marker>
+      </defs>
+
+      <!-- Wait Graph (left) -->
+      <text x="20" y="22" font-size="11" font-weight="700" fill="#8b949e">Wait Graph — Deadlock Detection</text>
+
+      <!-- TX A -->
+      <rect x="30" y="40" width="120" height="60" rx="7" fill="rgba(88,166,255,0.1)" stroke="rgba(88,166,255,0.4)" stroke-width="1.5"/>
+      <text x="90" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#58a6ff">TxA (pid=1001)</text>
+      <text x="90" y="82" text-anchor="middle" font-size="10" fill="#8b949e">HOLDS row 1</text>
+
+      <!-- TX B -->
+      <rect x="240" y="40" width="120" height="60" rx="7" fill="rgba(255,123,114,0.1)" stroke="rgba(255,123,114,0.4)" stroke-width="1.5"/>
+      <text x="300" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#ff7b72">TxB (pid=1002)</text>
+      <text x="300" y="82" text-anchor="middle" font-size="10" fill="#8b949e">HOLDS row 2</text>
+
+      <!-- Wait arrows (deadlock cycle) -->
+      <path d="M90 100 Q90 140 300 140 Q300 140 300 100" fill="none" stroke="#ff7b72" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#la)"/>
+      <text x="195" y="155" text-anchor="middle" font-size="11" fill="#ff7b72">TxA WAITS FOR row 2</text>
+
+      <path d="M300 40 Q300 20 90 20 Q90 20 90 40" fill="none" stroke="#e3b341" stroke-width="2" stroke-dasharray="6,3" marker-end="url(#la)"/>
+      <text x="195" y="16" text-anchor="middle" font-size="11" fill="#e3b341">TxB WAITS FOR row 1</text>
+
+      <!-- Cycle detected label -->
+      <rect x="100" y="170" width="220" height="32" rx="5" fill="rgba(255,123,114,0.08)" stroke="rgba(255,123,114,0.3)" stroke-width="1"/>
+      <text x="210" y="190" text-anchor="middle" font-size="12" fill="#ff7b72">🔴 DEADLOCK DETECTED! → abort TxB</text>
+
+      <!-- Lock Hierarchy (right) -->
+      <text x="470" y="22" font-size="11" font-weight="700" fill="#8b949e">Lock Modes — Conflict Matrix (partial)</text>
+      <!-- Headers -->
+      <text x="530" y="42" text-anchor="middle" font-size="10" fill="#8b949e">ACCESS SHARE</text>
+      <text x="620" y="42" text-anchor="middle" font-size="10" fill="#8b949e">ROW EXCL</text>
+      <text x="710" y="42" text-anchor="middle" font-size="10" fill="#8b949e">EXCL</text>
+      <!-- Row labels -->
+      <text x="468" y="68" font-size="10" fill="#58a6ff">ACCESS SHARE</text>
+      <text x="468" y="96" font-size="10" fill="#3fb950">ROW SHARE</text>
+      <text x="468" y="124" font-size="10" fill="#e3b341">ROW EXCLUSIVE</text>
+      <text x="468" y="152" font-size="10" fill="#ff7b72">EXCLUSIVE</text>
+      <!-- Grid cells -->
+      <rect x="510" y="56" width="60" height="22" rx="3" fill="rgba(63,185,80,0.15)"/><text x="540" y="71" text-anchor="middle" font-size="12" fill="#3fb950">✓</text>
+      <rect x="600" y="56" width="60" height="22" rx="3" fill="rgba(63,185,80,0.15)"/><text x="630" y="71" text-anchor="middle" font-size="12" fill="#3fb950">✓</text>
+      <rect x="690" y="56" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="720" y="71" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+
+      <rect x="510" y="84" width="60" height="22" rx="3" fill="rgba(63,185,80,0.15)"/><text x="540" y="99" text-anchor="middle" font-size="12" fill="#3fb950">✓</text>
+      <rect x="600" y="84" width="60" height="22" rx="3" fill="rgba(63,185,80,0.15)"/><text x="630" y="99" text-anchor="middle" font-size="12" fill="#3fb950">✓</text>
+      <rect x="690" y="84" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="720" y="99" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+
+      <rect x="510" y="112" width="60" height="22" rx="3" fill="rgba(63,185,80,0.15)"/><text x="540" y="127" text-anchor="middle" font-size="12" fill="#3fb950">✓</text>
+      <rect x="600" y="112" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="630" y="127" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+      <rect x="690" y="112" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="720" y="127" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+
+      <rect x="510" y="140" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="540" y="155" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+      <rect x="600" y="140" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="630" y="155" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+      <rect x="690" y="140" width="60" height="22" rx="3" fill="rgba(255,123,114,0.15)"/><text x="720" y="155" text-anchor="middle" font-size="12" fill="#ff7b72">✗</text>
+
+      <!-- SQL commands that acquire each lock -->
+      <rect x="470" y="185" width="325" height="106" rx="6" fill="rgba(22,27,34,0.6)" stroke="#30363d" stroke-width="1"/>
+      <text x="480" y="202" font-size="10" fill="#8b949e">ACCESS SHARE     → SELECT</text>
+      <text x="480" y="218" font-size="10" fill="#8b949e">ROW SHARE        → SELECT ... FOR SHARE</text>
+      <text x="480" y="234" font-size="10" fill="#8b949e">ROW EXCLUSIVE    → INSERT, UPDATE, DELETE</text>
+      <text x="480" y="250" font-size="10" fill="#8b949e">SHARE ROW EXCL   → CREATE TRIGGER</text>
+      <text x="480" y="266" font-size="10" fill="#8b949e">EXCLUSIVE        → REFRESH MAT VIEW CONCUR</text>
+      <text x="480" y="282" font-size="10" fill="#8b949e">ACCESS EXCLUSIVE → ALTER TABLE, DROP, LOCK</text>
+    </svg>
+  </div>
+
+  <!-- EXAMPLE 1 -->
+  <div class="ex-header">
+    <div class="ex-num">01</div>
+    <div class="ex-title">Chẩn đoán và giám sát Deadlock trong production</div>
+    <span class="sec-badge b-lock" style="margin-left:auto;">ADVANCED</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Application báo lỗi <code>ERROR: deadlock detected</code> nhưng không biết transaction nào gây ra. Cần toolset để phát hiện, chẩn đoán và monitor deadlock trong production mà không downtime.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">deadlock_monitoring.sql</span><div class="cright"><span class="clevel lv-adv">ADVANCED</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- 1. Bật logging deadlock chi tiết trong postgresql.conf:</span>
+<span class="cm">--    log_lock_waits = on</span>
+<span class="cm">--    deadlock_timeout = 1s</span>
+<span class="cm">--    log_min_duration_statement = 1000  (log queries > 1s)</span>
+
+<span class="cm">-- 2. Real-time: Query tất cả locks hiện tại</span>
+<span class="kw">SELECT</span>
+    pg_stat_activity.pid,
+    pg_stat_activity.query,
+    pg_stat_activity.state,
+    pg_stat_activity.wait_event_type,
+    pg_stat_activity.wait_event,
+    pg_locks.mode,
+    pg_locks.granted,
+    <span class="fn">age</span>(pg_stat_activity.query_start) <span class="kw">AS</span> query_duration
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">JOIN</span> pg_locks <span class="kw">ON</span> pg_stat_activity.pid = pg_locks.pid
+<span class="kw">WHERE</span> pg_stat_activity.state != <span class="str">'idle'</span>
+  <span class="kw">AND</span> pg_locks.granted = <span class="kw">false</span>  <span class="cm">-- chỉ transactions đang bị block</span>
+<span class="kw">ORDER BY</span> query_duration <span class="kw">DESC</span>;
+
+<span class="cm">-- 3. Full lock wait graph: ai đang block ai</span>
+<span class="kw">WITH</span> lock_info <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        blocked.pid           <span class="kw">AS</span> blocked_pid,
+        blocked_a.query       <span class="kw">AS</span> blocked_query,
+        blocking.pid          <span class="kw">AS</span> blocking_pid,
+        blocking_a.query      <span class="kw">AS</span> blocking_query,
+        blocked.relation::regclass  <span class="kw">AS</span> locked_table,
+        blocked.mode          <span class="kw">AS</span> blocked_wants_mode,
+        blocking.mode         <span class="kw">AS</span> blocking_holds_mode
+    <span class="kw">FROM</span>   pg_catalog.pg_locks blocked
+    <span class="kw">JOIN</span>   pg_catalog.pg_stat_activity blocked_a
+           <span class="kw">ON</span> blocked_a.pid = blocked.pid
+    <span class="kw">JOIN</span>   pg_catalog.pg_locks blocking
+           <span class="kw">ON</span>  blocking.locktype = blocked.locktype
+           <span class="kw">AND</span> blocking.database IS NOT DISTINCT FROM blocked.database
+           <span class="kw">AND</span> blocking.relation IS NOT DISTINCT FROM blocked.relation
+           <span class="kw">AND</span> blocking.page IS NOT DISTINCT FROM blocked.page
+           <span class="kw">AND</span> blocking.tuple IS NOT DISTINCT FROM blocked.tuple
+           <span class="kw">AND</span> blocking.transactionid IS NOT DISTINCT FROM blocked.transactionid
+           <span class="kw">AND</span> blocking.pid != blocked.pid
+    <span class="kw">JOIN</span>   pg_catalog.pg_stat_activity blocking_a
+           <span class="kw">ON</span> blocking_a.pid = blocking.pid
+    <span class="kw">WHERE</span>  <span class="kw">NOT</span> blocked.granted
+)
+<span class="kw">SELECT</span>
+    blocked_pid,
+    <span class="fn">LEFT</span>(blocked_query, <span class="num">60</span>) <span class="kw">AS</span> blocked_query,
+    blocking_pid,
+    <span class="fn">LEFT</span>(blocking_query, <span class="num">60</span>) <span class="kw">AS</span> blocking_query,
+    locked_table,
+    blocked_wants_mode,
+    blocking_holds_mode
+<span class="kw">FROM</span> lock_info;
+
+<span class="cm">-- 4. Tìm long-running transactions (thường gây lock contention)</span>
+<span class="kw">SELECT</span>
+    pid,
+    <span class="fn">now</span>() - xact_start <span class="kw">AS</span> tx_duration,
+    state,
+    <span class="fn">LEFT</span>(query, <span class="num">80</span>) <span class="kw">AS</span> query_preview,
+    wait_event_type,
+    wait_event
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> xact_start <span class="kw">IS NOT NULL</span>
+  <span class="kw">AND</span> state <span class="kw">IN</span> (<span class="str">'active'</span>, <span class="str">'idle in transaction'</span>)
+<span class="kw">ORDER BY</span> tx_duration <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">20</span>;
+
+<span class="cm">-- 5. Terminate blocking transaction (CAUTION: chỉ khi chắc chắn)</span>
+<span class="kw">SELECT</span> <span class="fn">pg_terminate_backend</span>(<span class="param">:blocking_pid</span>);
+<span class="cm">-- Hoặc signal gracefully:
+-- SELECT pg_cancel_backend(:blocking_pid);</span></pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Production checklist:</strong> (1) Set <code>log_lock_waits = on</code> để log mọi lock wait &gt; deadlock_timeout; (2) Monitor <code>pg_stat_activity</code> với <code>idle in transaction</code> — đây là nguồn lock chính; (3) Tránh long transactions; (4) Luôn acquire locks theo cùng một thứ tự trong application code để tránh deadlock cycle.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 2 -->
+  <div class="ex-header">
+    <div class="ex-num">02</div>
+    <div class="ex-title">Ngăn chặn Deadlock — Row Locking Patterns</div>
+    <span class="sec-badge b-lock" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">E-commerce system: khi user checkout, cần: (1) trừ inventory, (2) tạo order, (3) trừ user balance. Nhiều concurrent transactions gây deadlock vì lock theo thứ tự khác nhau.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">deadlock_prevention.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- ❌ Deadlock-prone: lock thứ tự không nhất quán</span>
+<span class="cm">-- TxA: locks user 1 → item 5 | TxB: locks item 5 → user 1</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">UPDATE</span> <span class="tbl">users</span>    <span class="kw">SET</span> balance = balance - <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;  <span class="cm">-- TxA lock user 1</span>
+<span class="kw">UPDATE</span> <span class="tbl">inventory</span> <span class="kw">SET</span> stock   = stock   - <span class="num">1</span>   <span class="kw">WHERE</span> item_id = <span class="num">5</span>;  <span class="cm">-- TxA waits for item 5</span>
+<span class="kw">COMMIT</span>;
+
+<span class="cm">-- ✅ Solution 1: Lock theo thứ tự cố định (luôn lock user trước, item sau)
+-- Đảm bảo consistency thứ tự trong application code</span>
+<span class="kw">BEGIN</span>;
+<span class="cm">-- Step 1: Acquire all locks cùng lúc với SELECT FOR UPDATE (advisory lock pattern)</span>
+<span class="kw">SELECT</span> id, balance <span class="kw">FROM</span> <span class="tbl">users</span>     <span class="kw">WHERE</span> id = <span class="num">1</span>         <span class="kw">FOR UPDATE</span>;
+<span class="kw">SELECT</span> id, stock   <span class="kw">FROM</span> <span class="tbl">inventory</span> <span class="kw">WHERE</span> item_id = <span class="num">5</span>    <span class="kw">FOR UPDATE</span>;
+<span class="cm">-- Step 2: Thực hiện updates</span>
+<span class="kw">UPDATE</span> <span class="tbl">users</span>     <span class="kw">SET</span> balance = balance - <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+<span class="kw">UPDATE</span> <span class="tbl">inventory</span> <span class="kw">SET</span> stock   = stock - <span class="num">1</span>     <span class="kw">WHERE</span> item_id = <span class="num">5</span>;
+<span class="kw">INSERT INTO</span> <span class="tbl">orders</span> (user_id, item_id, amount) <span class="kw">VALUES</span> (<span class="num">1</span>, <span class="num">5</span>, <span class="num">100</span>);
+<span class="kw">COMMIT</span>;
+
+<span class="cm">-- ✅ Solution 2: SKIP LOCKED — xử lý queue không block</span>
+<span class="kw">BEGIN</span>;
+<span class="kw">WITH</span> next_job <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> id, payload
+    <span class="kw">FROM</span>   <span class="tbl">job_queue</span>
+    <span class="kw">WHERE</span>  status = <span class="str">'pending'</span>
+    <span class="kw">ORDER BY</span> priority <span class="kw">DESC</span>, created_at
+    <span class="kw">LIMIT</span>  <span class="num">1</span>
+    <span class="kw">FOR UPDATE SKIP LOCKED</span>  <span class="cm">-- skip rows locked by other workers</span>
+)
+<span class="kw">UPDATE</span> <span class="tbl">job_queue</span>
+   <span class="kw">SET</span> status = <span class="str">'processing'</span>, worker_pid = <span class="fn">pg_backend_pid</span>()
+  <span class="kw">FROM</span> next_job
+ <span class="kw">WHERE</span> job_queue.id = next_job.id
+<span class="kw">RETURNING</span> job_queue.*;
+<span class="cm">-- SKIP LOCKED: multiple workers không deadlock nhau</span>
+
+<span class="cm">-- ✅ Solution 3: Advisory Locks — application-level locks</span>
+<span class="kw">BEGIN</span>;
+<span class="cm">-- Lock theo resource ID — không cần table lock</span>
+<span class="kw">SELECT</span> <span class="fn">pg_advisory_xact_lock</span>(<span class="fn">hashtext</span>(<span class="str">'user:'</span> || <span class="num">1</span>::text));
+<span class="kw">SELECT</span> <span class="fn">pg_advisory_xact_lock</span>(<span class="fn">hashtext</span>(<span class="str">'item:'</span> || <span class="num">5</span>::text));
+<span class="cm">-- advisory locks tự động release khi transaction kết thúc</span>
+<span class="kw">UPDATE</span> <span class="tbl">users</span>     <span class="kw">SET</span> balance = balance - <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="num">1</span>;
+<span class="kw">UPDATE</span> <span class="tbl">inventory</span> <span class="kw">SET</span> stock   = stock - <span class="num">1</span>     <span class="kw">WHERE</span> item_id = <span class="num">5</span>;
+<span class="kw">COMMIT</span>;
+
+<span class="cm">-- ✅ Solution 4: lock_timeout — tránh chờ vô hạn</span>
+<span class="kw">SET</span> LOCAL lock_timeout = <span class="str">'3s'</span>;
+<span class="kw">SET</span> LOCAL statement_timeout = <span class="str">'10s'</span>;
+<span class="kw">UPDATE</span> <span class="tbl">accounts</span> <span class="kw">SET</span> balance = balance - <span class="num">100</span> <span class="kw">WHERE</span> id = <span class="param">$1</span>;
+<span class="cm">-- Nếu lock không acquire được sau 3s → ERROR: canceling statement due to lock timeout
+-- Application retry với backoff thay vì chờ mãi</span></pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>4 chiến lược tránh deadlock:</strong> (1) <strong>Consistent lock ordering</strong> — luôn acquire locks theo cùng thứ tự; (2) <strong>SKIP LOCKED</strong> — cho queue/worker patterns; (3) <strong>Advisory Locks</strong> — lightweight application-level locking; (4) <strong>lock_timeout</strong> — thay vì chờ vô hạn, fail fast và retry. Tuyệt đối tránh <code>idle in transaction</code> lâu — nên set <code>idle_in_transaction_session_timeout</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 03 PAGINATION ═══════════════ -->
+<section class="page-section" id="s-pagination">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">03 — Pagination Techniques</div>
+      <div class="sec-sub">OFFSET/LIMIT pitfalls · Keyset Pagination · Cursor-based · Window Function</div>
+    </div>
+    <span class="sec-badge b-page">📄 PAGINATION</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-label">💡 Khái niệm cốt lõi</div>
+    <div class="concept-title">Tại sao OFFSET/LIMIT là anti-pattern?</div>
+    <p class="prose"><strong>OFFSET N LIMIT M:</strong> PostgreSQL phải fetch và discard N rows trước khi trả về M rows. Với N = 1,000,000, query phải scan 1M+ rows chỉ để bỏ đi. Performance tỉ lệ O(N) — càng về page cuối càng chậm.</p>
+    <p class="prose"><strong>Giải pháp:</strong> <strong>Keyset Pagination</strong> (cursor-based) dùng WHERE clause thay OFFSET, O(1) bất kể page nào. Phù hợp với infinite scroll và API pagination. <strong>Window Function</strong> phù hợp cho analytics pagination với grouping.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_perf_pagination_cost.png" alt="PostgreSQL Pagination Performance Comparison">
+    <div class="concept-img-caption">So sánh hiệu năng và cơ chế hoạt động của OFFSET/LIMIT Pagination vs Keyset Pagination trong PostgreSQL.</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">Pagination Performance Comparison — OFFSET vs Keyset</div>
+    <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <!-- Axes -->
+      <line x1="60" y1="190" x2="760" y2="190" stroke="#30363d" stroke-width="1.5"/>
+      <line x1="60" y1="30"  x2="60"  y2="190" stroke="#30363d" stroke-width="1.5"/>
+      <text x="410" y="215" text-anchor="middle" font-size="11" fill="#8b949e">Page number (higher = deeper offset)</text>
+      <text x="20" y="110" font-size="11" fill="#8b949e" transform="rotate(-90,20,110)">Query time (ms)</text>
+
+      <!-- Y axis labels -->
+      <text x="54" y="194" text-anchor="end" font-size="10" fill="#484f58">0</text>
+      <text x="54" y="150" text-anchor="end" font-size="10" fill="#484f58">100</text>
+      <text x="54" y="107" text-anchor="end" font-size="10" fill="#484f58">500</text>
+      <text x="54" y="64"  text-anchor="end" font-size="10" fill="#484f58">2000</text>
+      <!-- X axis labels -->
+      <text x="120" y="204" text-anchor="middle" font-size="10" fill="#484f58">1</text>
+      <text x="280" y="204" text-anchor="middle" font-size="10" fill="#484f58">100</text>
+      <text x="440" y="204" text-anchor="middle" font-size="10" fill="#484f58">500</text>
+      <text x="600" y="204" text-anchor="middle" font-size="10" fill="#484f58">1000</text>
+      <text x="720" y="204" text-anchor="middle" font-size="10" fill="#484f58">2000</text>
+
+      <!-- OFFSET/LIMIT curve (exponential-ish) -->
+      <polyline points="120,182 200,175 280,162 360,148 440,128 520,102 600,72 680,50 720,40"
+                fill="none" stroke="#ff7b72" stroke-width="2.5"/>
+      <text x="730" y="38" font-size="11" fill="#ff7b72">OFFSET/LIMIT</text>
+      <text x="730" y="52" font-size="10" fill="#ff7b72">O(offset)</text>
+
+      <!-- Keyset line (flat) -->
+      <polyline points="120,183 200,182 280,182 360,181 440,181 520,181 600,180 680,180 720,180"
+                fill="none" stroke="#3fb950" stroke-width="2.5"/>
+      <text x="730" y="178" font-size="11" fill="#3fb950">Keyset</text>
+      <text x="730" y="192" font-size="10" fill="#3fb950">O(1)</text>
+
+      <!-- Annotations -->
+      <rect x="360" y="60" width="200" height="50" rx="5" fill="rgba(22,27,34,0.8)" stroke="#30363d" stroke-width="1"/>
+      <text x="370" y="79" font-size="11" fill="#ff7b72">OFFSET=1M: 3000ms+</text>
+      <text x="370" y="95" font-size="11" fill="#3fb950">Keyset p.1000: ~5ms</text>
+      <text x="370" y="108" font-size="10" fill="#484f58">same result, 600x faster</text>
+    </svg>
+  </div>
+
+  <!-- EXAMPLE 1 -->
+  <div class="ex-header">
+    <div class="ex-num">01</div>
+    <div class="ex-title">Keyset Pagination — Scalable API Pagination</div>
+    <span class="sec-badge b-page" style="margin-left:auto;">ADVANCED</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">REST API <code>GET /orders?page=500&size=20</code> chạy query với OFFSET=10000 và response time > 3 giây. User complain slow loading khi scroll đến cuối danh sách. Cần migrate sang keyset pagination không breaking existing clients.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">keyset_pagination.sql</span><div class="cright"><span class="clevel lv-adv">ADVANCED</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- ❌ ANTI-PATTERN: OFFSET/LIMIT</span>
+<span class="kw">SELECT</span> id, created_at, status, amount
+<span class="kw">FROM</span>   <span class="tbl">orders</span>
+<span class="kw">WHERE</span>  user_id = <span class="num">42</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>
+<span class="kw">LIMIT</span>  <span class="num">20</span> <span class="kw">OFFSET</span> <span class="num">10000</span>;  <span class="cm">-- scans 10020 rows, returns 20</span>
+<span class="cm">-- cost=0.43..3456.78 rows=20  (chậm tỷ lệ với OFFSET)</span>
+
+<span class="cm">-- ✅ Keyset Pagination: dùng cursor (last_id, last_created_at)</span>
+<span class="cm">-- Page 1: không có cursor</span>
+<span class="kw">SELECT</span> id, created_at, status, amount
+<span class="kw">FROM</span>   <span class="tbl">orders</span>
+<span class="kw">WHERE</span>  user_id = <span class="num">42</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>, id <span class="kw">DESC</span>  <span class="cm">-- id làm tiebreaker (unique)</span>
+<span class="kw">LIMIT</span>  <span class="num">20</span>;
+<span class="cm">-- → trả về last row: (created_at='2024-01-15 10:30:00', id=54321)</span>
+
+<span class="cm">-- Page 2: dùng last values làm cursor</span>
+<span class="kw">SELECT</span> id, created_at, status, amount
+<span class="kw">FROM</span>   <span class="tbl">orders</span>
+<span class="kw">WHERE</span>  user_id = <span class="num">42</span>
+  <span class="kw">AND</span> (created_at, id) < (<span class="str">'2024-01-15 10:30:00'</span>, <span class="num">54321</span>)  <span class="cm">-- row-value comparison</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>, id <span class="kw">DESC</span>
+<span class="kw">LIMIT</span>  <span class="num">20</span>;
+<span class="cm">-- cost=0.43..8.45 rows=20  → O(log n) bất kể page number!</span>
+<span class="cm">-- Index used: (user_id, created_at DESC, id DESC)</span>
+
+<span class="cm">-- Index cần thiết cho keyset:</span>
+<span class="kw">CREATE INDEX</span> idx_orders_keyset
+    <span class="kw">ON</span> <span class="tbl">orders</span> (user_id, created_at <span class="kw">DESC</span>, id <span class="kw">DESC</span>)
+    <span class="kw">INCLUDE</span> (status, amount);
+
+<span class="cm">-- Stable cursor: encode thành opaque string để client dùng</span>
+<span class="cm">-- Cursor = base64(json{created_at, id})</span>
+<span class="cm">-- Response: { "data": [...], "next_cursor": "eyJjcmVhdGVkX2F0IjoiMjAyNC0wMS0xNSIsImlkIjo1NDMyMX0=" }</span>
+
+<span class="cm">-- Bi-directional keyset (previous page):</span>
+<span class="kw">SELECT</span> id, created_at, status, amount
+<span class="kw">FROM</span>   <span class="tbl">orders</span>
+<span class="kw">WHERE</span>  user_id = <span class="num">42</span>
+  <span class="kw">AND</span> (created_at, id) > (<span class="str">'2024-01-10 08:00:00'</span>, <span class="num">50000</span>)  <span class="cm">-- reverse direction</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">ASC</span>, id <span class="kw">ASC</span>
+<span class="kw">LIMIT</span>  <span class="num">20</span>;
+
+<span class="cm">-- Count total (optional, expensive — cache this separately):</span>
+<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> <span class="tbl">orders</span> <span class="kw">WHERE</span> user_id = <span class="num">42</span>;
+<span class="cm">-- Or use approximate: SELECT reltuples FROM pg_class WHERE relname = 'orders';</span></pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Keyset Pagination:</strong> Ưu điểm: O(1) constant time bất kể page. Nhược điểm: không thể jump to random page, phải dùng cursor. <strong>Best practice:</strong> (1) Sort key phải là unique hoặc dùng composite (col + id); (2) Encode cursor thành opaque token; (3) Client-side không thể đoán cursor → security tốt hơn OFFSET. Phù hợp với infinite scroll, API pagination.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 2 -->
+  <div class="ex-header">
+    <div class="ex-num">02</div>
+    <div class="ex-title">Window Function Pagination — Analytics &amp; Reporting</div>
+    <span class="sec-badge b-page" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Dashboard analytics cần hiển thị top-N products theo category, kèm rank và total count trong một query. OFFSET/LIMIT không work vì cần GROUP BY trước khi paginate. Window Function là giải pháp.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">window_pagination.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- ✅ Window Function: rank + paginate trong 1 query</span>
+<span class="kw">WITH</span> ranked_products <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        p.id,
+        p.name,
+        p.category_id,
+        c.name                                           <span class="kw">AS</span> category_name,
+        <span class="fn">SUM</span>(oi.quantity * oi.unit_price)                 <span class="kw">AS</span> total_revenue,
+        <span class="fn">ROW_NUMBER</span>() <span class="kw">OVER</span> (
+            <span class="kw">PARTITION BY</span> p.category_id
+            <span class="kw">ORDER BY</span> <span class="fn">SUM</span>(oi.quantity * oi.unit_price) <span class="kw">DESC</span>
+        )                                                <span class="kw">AS</span> rank_in_category,
+        <span class="fn">RANK</span>() <span class="kw">OVER</span> (
+            <span class="kw">ORDER BY</span> <span class="fn">SUM</span>(oi.quantity * oi.unit_price) <span class="kw">DESC</span>
+        )                                                <span class="kw">AS</span> overall_rank,
+        <span class="fn">COUNT</span>(*) <span class="kw">OVER</span> (<span class="kw">PARTITION BY</span> p.category_id)    <span class="kw">AS</span> total_in_category,
+        <span class="fn">COUNT</span>(*) <span class="kw">OVER</span> ()                               <span class="kw">AS</span> grand_total
+    <span class="kw">FROM</span>   <span class="tbl">products</span>    p
+    <span class="kw">JOIN</span>   <span class="tbl">categories</span>  c  <span class="kw">ON</span> c.id = p.category_id
+    <span class="kw">JOIN</span>   <span class="tbl">order_items</span> oi <span class="kw">ON</span> oi.product_id = p.id
+    <span class="kw">JOIN</span>   <span class="tbl">orders</span>      o  <span class="kw">ON</span> o.id = oi.order_id
+    <span class="kw">WHERE</span>  o.created_at >= <span class="fn">DATE_TRUNC</span>(<span class="str">'month'</span>, <span class="fn">NOW</span>()) - <span class="kw">INTERVAL</span> <span class="str">'3 months'</span>
+    <span class="kw">GROUP BY</span> p.id, p.name, p.category_id, c.name
+),
+page_info <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> *,
+           <span class="fn">CEIL</span>(grand_total::numeric / <span class="num">20</span>) <span class="kw">AS</span> total_pages
+    <span class="kw">FROM</span> ranked_products
+)
+<span class="kw">SELECT</span>
+    id, name, category_name,
+    total_revenue,
+    rank_in_category, overall_rank,
+    total_in_category, grand_total, total_pages,
+    <span class="cm">-- Running total within category</span>
+    <span class="fn">SUM</span>(total_revenue) <span class="kw">OVER</span> (
+        <span class="kw">PARTITION BY</span> category_id
+        <span class="kw">ORDER BY</span> rank_in_category
+        <span class="kw">ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</span>
+    ) <span class="kw">AS</span> cumulative_revenue
+<span class="kw">FROM</span> page_info
+<span class="kw">WHERE</span> rank_in_category <= <span class="num">5</span>  <span class="cm">-- top 5 per category</span>
+  <span class="kw">AND</span> overall_rank > <span class="num">0</span>       <span class="cm">-- overall page filter</span>
+<span class="kw">ORDER BY</span> category_name, rank_in_category;
+
+<span class="cm">-- Efficient pagination với CTE + NTILE:</span>
+<span class="kw">WITH</span> paged <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        *,
+        <span class="fn">NTILE</span>(<span class="param">:total_pages</span>) <span class="kw">OVER</span> (<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>) <span class="kw">AS</span> page_num,
+        <span class="fn">COUNT</span>(*) <span class="kw">OVER</span> () <span class="kw">AS</span> total_rows
+    <span class="kw">FROM</span> <span class="tbl">orders</span>
+    <span class="kw">WHERE</span> user_id = <span class="param">:user_id</span>
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> paged
+<span class="kw">WHERE</span> page_num = <span class="param">:current_page</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Window Functions:</strong> Tính toán rank, running total, lag/lead trong 1 pass. Không cần subquery riêng cho count. <code>ROW_NUMBER()</code> = unique rank (no ties), <code>RANK()</code> = ties get same rank (gaps), <code>DENSE_RANK()</code> = ties no gaps. Kết hợp với Materialized View để cache analytics kết quả cho dashboard heavy queries.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 04 QUERY ANALYSIS ═══════════════ -->
+<section class="page-section" id="s-query">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">04 — Query Analysis Workflow</div>
+      <div class="sec-sub">EXPLAIN ANALYZE · BUFFERS · pg_stat_statements · Slow Query Hunting</div>
+    </div>
+    <span class="sec-badge b-query">🔍 ANALYSIS</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-label">💡 Workflow phân tích query</div>
+    <div class="concept-title">5 bước chẩn đoán query chậm</div>
+    <ol class="steps" style="margin-top:10px">
+      <li><div class="step-body"><strong>Phát hiện:</strong> Dùng <code>pg_stat_statements</code> để tìm top queries theo total_time hoặc calls. Log slow queries với <code>log_min_duration_statement</code>.</div></li>
+      <li><div class="step-body"><strong>Tái hiện:</strong> Chạy query với <code>EXPLAIN (ANALYZE, BUFFERS, FORMAT JSON)</code> trong môi trường staging với data thực tế.</div></li>
+      <li><div class="step-body"><strong>Đọc plan:</strong> Tìm node có cost cao nhất, Seq Scan trên bảng lớn, Nested Loop với large datasets, Hash Batch > 1.</div></li>
+      <li><div class="step-body"><strong>Tìm nguyên nhân:</strong> Missing index, stale statistics, wrong join strategy, large work_mem needed, table bloat.</div></li>
+      <li><div class="step-body"><strong>Fix &amp; verify:</strong> CREATE INDEX, ANALYZE, rewrite query, tune config. Re-run EXPLAIN để confirm improvement.</div></li>
+    </ol>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_perf_query_analysis.png" alt="PostgreSQL 5-Step Query Analysis Workflow">
+    <div class="concept-img-caption">Quy trình 5 bước chuẩn hóa để chẩn đoán và tối ưu hóa bất kỳ Slow Query nào trong PostgreSQL.</div>
+  </div>
+
+  <!-- EXAMPLE 1 -->
+  <div class="ex-header">
+    <div class="ex-num">01</div>
+    <div class="ex-title">Đọc EXPLAIN ANALYZE Output — Full Workflow</div>
+    <span class="sec-badge b-query" style="margin-left:auto;">ADVANCED</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Query join 3 bảng chạy mất 8 giây trong production nhưng chỉ 200ms trong development. Cần hiểu execution plan và biết cách đọc EXPLAIN output để tìm bottleneck.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">explain_workflow.sql</span><div class="cright"><span class="clevel lv-adv">ADVANCED</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- 1. Lấy execution plan đầy đủ với BUFFERS</span>
+<span class="kw">EXPLAIN</span> (
+    <span class="kw">ANALYZE</span>,           <span class="cm">-- thực sự chạy query, đo actual time</span>
+    <span class="kw">BUFFERS</span>,            <span class="cm">-- hiển thị cache hit/miss</span>
+    FORMAT <span class="kw">JSON</span>,        <span class="cm">-- machine-readable, paste vào explain.dalibo.com</span>
+    VERBOSE,            <span class="cm">-- hiển thị column output của mỗi node</span>
+    SETTINGS            <span class="cm">-- show non-default planner settings</span>
+)
+<span class="kw">SELECT</span>
+    o.id,
+    o.created_at,
+    u.email,
+    u.name             <span class="kw">AS</span> customer_name,
+    p.name             <span class="kw">AS</span> product_name,
+    oi.quantity,
+    oi.unit_price
+<span class="kw">FROM</span>  <span class="tbl">orders</span>      o
+<span class="kw">JOIN</span>  <span class="tbl">users</span>       u  <span class="kw">ON</span> u.id = o.user_id
+<span class="kw">JOIN</span>  <span class="tbl">order_items</span> oi <span class="kw">ON</span> oi.order_id = o.id
+<span class="kw">JOIN</span>  <span class="tbl">products</span>    p  <span class="kw">ON</span> p.id = oi.product_id
+<span class="kw">WHERE</span> o.status = <span class="str">'completed'</span>
+  <span class="kw">AND</span> o.created_at >= <span class="fn">NOW</span>() - <span class="kw">INTERVAL</span> <span class="str">'30 days'</span>
+  <span class="kw">AND</span> u.country_code = <span class="str">'VN'</span>
+<span class="kw">ORDER BY</span> o.created_at <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">100</span>;
+
+<span class="cm">/* Example output (text format) to read:
+Limit  (cost=12453.21..12453.46 rows=100 width=156) (actual time=8342.123..8342.145 rows=100 loops=1)
+  Buffers: shared hit=1234 read=45678  ← 45678 pages đọc từ disk! (cache miss)
+  ->  Sort  (cost=12453.21..12453.71 rows=200 width=156) (actual time=8342.120..8342.130 rows=100 loops=1)
+        Sort Key: o.created_at DESC
+        Sort Method: top-N heapsort  Memory: 35kB
+        ->  Hash Join  (cost=2341.00..12448.21 rows=200 width=156) (actual time=234.567..8341.890 rows=2847 loops=1)
+              Hash Cond: (oi.product_id = p.id)
+              Buffers: shared hit=890 read=43210
+              ->  Hash Join  (cost=1234.00..10234.56 rows=5000 width=120) (actual time=123.456..7890.123 rows=14235 loops=1)
+                    Hash Cond: (o.id = oi.order_id)
+                    ->  Seq Scan on orders o  (cost=0.00..8765.43 rows=10000 width=48)
+                          Filter: ((status = 'completed') AND (created_at >= ...))
+                          Rows Removed by Filter: 890234  ← 890K rows bị filter, cần index!
+              ->  Seq Scan on users u  (cost=0.00..234.56 rows=1234 width=40)
+                    Filter: (country_code = 'VN')
+*/</span>
+
+<span class="cm">-- 2. Đọc plan: tìm bottleneck</span>
+<span class="cm">-- ❌ Vấn đề 1: Seq Scan on orders, 890234 rows removed → cần index (status, created_at)</span>
+<span class="cm">-- ❌ Vấn đề 2: 45678 blocks read từ disk → shared_buffers quá nhỏ hoặc cold cache</span>
+<span class="cm">-- ❌ Vấn đề 3: Rows estimate (200) vs actual (2847) → stale statistics</span>
+
+<span class="cm">-- 3. Fix</span>
+<span class="cm">-- Fix 1: Index</span>
+<span class="kw">CREATE INDEX CONCURRENTLY</span> idx_orders_analysis
+    <span class="kw">ON</span> <span class="tbl">orders</span> (status, created_at <span class="kw">DESC</span>)
+    <span class="kw">INCLUDE</span> (user_id, id);
+
+<span class="cm">-- Fix 2: Update statistics</span>
+<span class="kw">ANALYZE</span> <span class="tbl">orders</span>;
+<span class="kw">ANALYZE</span> <span class="tbl">users</span>;
+
+<span class="cm">-- Fix 3: Increase statistics target cho high-cardinality columns</span>
+<span class="kw">ALTER TABLE</span> <span class="tbl">orders</span> <span class="kw">ALTER COLUMN</span> user_id <span class="kw">SET STATISTICS</span> <span class="num">500</span>;
+<span class="kw">ANALYZE</span> <span class="tbl">orders</span>;
+
+<span class="cm">-- 4. Re-run: verify improvement</span>
+<span class="kw">EXPLAIN</span> (<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>) <span class="cm">-- same query</span>
+<span class="cm">-- Expected: Index Scan, Buffers: shared hit=892 read=45 (vastly better)</span></pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Key signals trong EXPLAIN:</strong> (1) <strong>Rows Removed by Filter</strong> cao → cần index; (2) <strong>read</strong> buffers cao → cache miss, table bloat; (3) <strong>Rows estimate vs actual diverge</strong> &gt;10x → stale statistics, run ANALYZE; (4) <strong>Hash Batches &gt; 1</strong> → work_mem quá nhỏ; (5) <strong>Nested Loop với rows lớn</strong> → sai join strategy, force Hash Join bằng <code>enable_nestloop = off</code>. Dùng <a href="https://explain.dalibo.com">explain.dalibo.com</a> để visualize JSON output.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 2 -->
+  <div class="ex-header">
+    <div class="ex-num">02</div>
+    <div class="ex-title">pg_stat_statements — Tìm top slow queries toàn hệ thống</div>
+    <span class="sec-badge b-query" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Production database có load cao nhưng không biết query nào đang chiếm nhiều tài nguyên nhất. Cần systematic approach để tìm và ưu tiên optimize đúng queries.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">pg_stat_statements.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- Bật extension (cần restart nếu chưa có trong shared_preload_libraries)</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> pg_stat_statements;
+<span class="cm">-- postgresql.conf: shared_preload_libraries = 'pg_stat_statements'
+-- pg_stat_statements.track = all
+-- pg_stat_statements.max = 10000</span>
+
+<span class="cm">-- 1. Top queries by total time (most impactful to optimize)</span>
+<span class="kw">SELECT</span>
+    <span class="fn">LEFT</span>(query, <span class="num">80</span>)                           <span class="kw">AS</span> query_preview,
+    calls,
+    <span class="fn">ROUND</span>(total_exec_time::numeric, <span class="num">2</span>)        <span class="kw">AS</span> total_ms,
+    <span class="fn">ROUND</span>((mean_exec_time)::numeric, <span class="num">2</span>)       <span class="kw">AS</span> mean_ms,
+    <span class="fn">ROUND</span>((max_exec_time)::numeric, <span class="num">2</span>)        <span class="kw">AS</span> max_ms,
+    <span class="fn">ROUND</span>((stddev_exec_time)::numeric, <span class="num">2</span>)     <span class="kw">AS</span> stddev_ms,
+    rows,
+    shared_blks_hit,
+    shared_blks_read,
+    <span class="fn">ROUND</span>(shared_blks_hit::numeric /
+          <span class="fn">NULLIF</span>(shared_blks_hit + shared_blks_read, <span class="num">0</span>) * <span class="num">100</span>, <span class="num">1</span>)
+                                               <span class="kw">AS</span> cache_hit_ratio,
+    <span class="fn">ROUND</span>(total_exec_time::numeric /
+          <span class="fn">SUM</span>(total_exec_time) <span class="kw">OVER</span>() * <span class="num">100</span>, <span class="num">2</span>)
+                                               <span class="kw">AS</span> pct_of_total_time
+<span class="kw">FROM</span> pg_stat_statements
+<span class="kw">WHERE</span> calls > <span class="num">100</span>  <span class="cm">-- chỉ frequent queries</span>
+<span class="kw">ORDER BY</span> total_exec_time <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">20</span>;
+
+<span class="cm">-- 2. Queries với high stddev (inconsistent) = N+1 hoặc parameter sniffing</span>
+<span class="kw">SELECT</span>
+    <span class="fn">LEFT</span>(query, <span class="num">80</span>) <span class="kw">AS</span> query,
+    calls,
+    <span class="fn">ROUND</span>(mean_exec_time::numeric, <span class="num">2</span>)    <span class="kw">AS</span> mean_ms,
+    <span class="fn">ROUND</span>(stddev_exec_time::numeric, <span class="num">2</span>)  <span class="kw">AS</span> stddev_ms,
+    <span class="fn">ROUND</span>(max_exec_time::numeric, <span class="num">2</span>)     <span class="kw">AS</span> max_ms
+<span class="kw">FROM</span> pg_stat_statements
+<span class="kw">WHERE</span> calls > <span class="num">50</span>
+  <span class="kw">AND</span> stddev_exec_time > mean_exec_time * <span class="num">2</span>  <span class="cm">-- high variance</span>
+<span class="kw">ORDER BY</span> stddev_exec_time <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">10</span>;
+
+<span class="cm">-- 3. Queries với low cache hit ratio (I/O bound)</span>
+<span class="kw">SELECT</span>
+    <span class="fn">LEFT</span>(query, <span class="num">80</span>) <span class="kw">AS</span> query,
+    calls,
+    shared_blks_hit,
+    shared_blks_read,
+    <span class="fn">ROUND</span>((shared_blks_hit::float /
+           <span class="fn">NULLIF</span>(shared_blks_hit + shared_blks_read, <span class="num">0</span>)) * <span class="num">100</span>, <span class="num">1</span>) <span class="kw">AS</span> hit_pct
+<span class="kw">FROM</span> pg_stat_statements
+<span class="kw">WHERE</span> shared_blks_read > <span class="num">1000</span>
+<span class="kw">ORDER BY</span> shared_blks_read <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">10</span>;
+
+<span class="cm">-- 4. N+1 query detection: high calls, low rows per call</span>
+<span class="kw">SELECT</span>
+    <span class="fn">LEFT</span>(query, <span class="num">80</span>) <span class="kw">AS</span> query,
+    calls,
+    rows,
+    <span class="fn">ROUND</span>(rows::numeric / calls, <span class="num">2</span>) <span class="kw">AS</span> rows_per_call,
+    <span class="fn">ROUND</span>(mean_exec_time::numeric, <span class="num">2</span>) <span class="kw">AS</span> mean_ms
+<span class="kw">FROM</span> pg_stat_statements
+<span class="kw">WHERE</span> calls > <span class="num">10000</span>
+  <span class="kw">AND</span> rows::float / calls < <span class="num">5</span>  <span class="cm">-- returns very few rows per call → N+1 suspect</span>
+<span class="kw">ORDER BY</span> calls <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">20</span>;
+
+<span class="cm">-- 5. Reset statistics (sau khi deploy fix)</span>
+<span class="kw">SELECT</span> pg_stat_statements_reset();
+
+<span class="cm">-- 6. table access stats: tìm bảng bị seq scan nhiều</span>
+<span class="kw">SELECT</span>
+    relname                                           <span class="kw">AS</span> table_name,
+    seq_scan,
+    seq_tup_read,
+    idx_scan,
+    <span class="fn">ROUND</span>(idx_scan::numeric /
+          <span class="fn">NULLIF</span>(seq_scan + idx_scan, <span class="num">0</span>) * <span class="num">100</span>, <span class="num">1</span>)  <span class="kw">AS</span> index_usage_pct,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_total_relation_size</span>(relid)) <span class="kw">AS</span> total_size,
+    n_live_tup
+<span class="kw">FROM</span> pg_stat_user_tables
+<span class="kw">WHERE</span> seq_scan > <span class="num">100</span>
+<span class="kw">ORDER BY</span> seq_tup_read <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">20</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>pg_stat_statements là công cụ không thể thiếu:</strong> Ưu tiên optimize queries theo thứ tự: (1) <strong>Total time</strong> cao → impact lớn nhất; (2) <strong>High stddev</strong> → inconsistent, có thể N+1; (3) <strong>Low cache hit</strong> → I/O bound, cần index hoặc tăng shared_buffers; (4) <strong>High calls + low rows</strong> → N+1 query anti-pattern. Reset sau mỗi deployment để có baseline sạch.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 05 VACUUM WAL ═══════════════ -->
+<section class="page-section" id="s-vacuum">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">05 — Vacuum · WAL · Checkpoint</div>
+      <div class="sec-sub">MVCC cleanup · Table bloat · WAL durability · Checkpoint tuning</div>
+    </div>
+    <span class="sec-badge b-vacuum">♻️ STORAGE</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="concept-label">💡 Khái niệm cốt lõi</div>
+    <div class="concept-title">VACUUM, WAL, và Checkpoint hoạt động như thế nào?</div>
+    <p class="prose"><strong>VACUUM:</strong> MVCC để lại dead tuples (versions cũ sau UPDATE/DELETE). VACUUM đánh dấu dead tuples để reuse space. <code>VACUUM FULL</code> compact table (cần lock). <code>AUTOVACUUM</code> chạy tự động khi dead tuple đủ nhiều.</p>
+    <p class="prose"><strong>WAL (Write-Ahead Log):</strong> Mọi thay đổi được ghi vào WAL trước khi commit. Đảm bảo durability và recovery sau crash. WAL được đọc khi replica đồng bộ và khi crash recovery.</p>
+    <p class="prose"><strong>Checkpoint:</strong> Định kỳ flush dirty pages từ shared_buffers xuống disk. Sau checkpoint, WAL trước đó có thể archive hoặc recycle. Checkpoint quá thường = I/O spikes. Quá hiếm = recovery time dài.</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_perf_vacuum_wal.png" alt="PostgreSQL Storage Internals: WAL, Shared Buffers, Checkpoint, and Autovacuum">
+    <div class="concept-img-caption">Sơ đồ tổng quát kiến trúc bộ nhớ lưu trữ vật lý của PostgreSQL, tiến trình Checkpoint và Autovacuum dọn dẹp Dead Tuples.</div>
+  </div>
+
+  <div class="diagram">
+    <div class="diagram-title">WAL → Checkpoint → VACUUM Flow</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg" font-family="JetBrains Mono">
+      <defs><marker id="va" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round"/></marker>
+      <marker id="va2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto"><path d="M2 2L8 5L2 8" fill="none" stroke="#e3b341" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+
+      <!-- Client writes -->
+      <rect x="20" y="40" width="100" height="40" rx="6" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1.3"/>
+      <text x="70" y="65" text-anchor="middle" font-size="11" fill="#58a6ff">Client TX</text>
+
+      <!-- WAL buffer -->
+      <rect x="160" y="20" width="130" height="80" rx="6" fill="rgba(227,179,65,0.08)" stroke="rgba(227,179,65,0.3)" stroke-width="1.3"/>
+      <text x="225" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#e3b341">WAL Buffer</text>
+      <text x="225" y="58" text-anchor="middle" font-size="10" fill="#8b949e">wal_buffers</text>
+      <text x="225" y="74" text-anchor="middle" font-size="10" fill="#8b949e">(in-memory)</text>
+      <text x="225" y="90" text-anchor="middle" font-size="10" fill="#484f58">→ fsync on COMMIT</text>
+
+      <!-- Shared buffers -->
+      <rect x="160" y="120" width="130" height="80" rx="6" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1.3"/>
+      <text x="225" y="142" text-anchor="middle" font-size="11" font-weight="700" fill="#58a6ff">Shared Buffers</text>
+      <text x="225" y="158" text-anchor="middle" font-size="10" fill="#8b949e">Dirty pages</text>
+      <text x="225" y="174" text-anchor="middle" font-size="10" fill="#8b949e">cached changes</text>
+      <text x="225" y="190" text-anchor="middle" font-size="10" fill="#484f58">→ written at checkpoint</text>
+
+      <!-- WAL files (disk) -->
+      <rect x="360" y="20" width="130" height="80" rx="6" fill="rgba(227,179,65,0.1)" stroke="rgba(227,179,65,0.4)" stroke-width="1.5"/>
+      <text x="425" y="42" text-anchor="middle" font-size="11" font-weight="700" fill="#e3b341">WAL Files</text>
+      <text x="425" y="58" text-anchor="middle" font-size="10" fill="#8b949e">pg_wal/</text>
+      <text x="425" y="72" text-anchor="middle" font-size="10" fill="#8b949e">16MB segments</text>
+      <text x="425" y="86" text-anchor="middle" font-size="10" fill="#484f58">durability guarantee</text>
+
+      <!-- Data files (disk) -->
+      <rect x="360" y="120" width="130" height="80" rx="6" fill="rgba(88,166,255,0.08)" stroke="rgba(88,166,255,0.3)" stroke-width="1.3"/>
+      <text x="425" y="142" text-anchor="middle" font-size="11" font-weight="700" fill="#58a6ff">Data Files</text>
+      <text x="425" y="158" text-anchor="middle" font-size="10" fill="#8b949e">base/ tables</text>
+      <text x="425" y="172" text-anchor="middle" font-size="10" fill="#8b949e">indexes</text>
+      <text x="425" y="188" text-anchor="middle" font-size="10" fill="#484f58">written at checkpoint</text>
+
+      <!-- VACUUM -->
+      <rect x="560" y="100" width="140" height="100" rx="6" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1.3"/>
+      <text x="630" y="125" text-anchor="middle" font-size="11" font-weight="700" fill="#3fb950">VACUUM</text>
+      <text x="630" y="143" text-anchor="middle" font-size="10" fill="#8b949e">marks dead tuples</text>
+      <text x="630" y="159" text-anchor="middle" font-size="10" fill="#8b949e">frees FSM space</text>
+      <text x="630" y="175" text-anchor="middle" font-size="10" fill="#8b949e">updates pg_class</text>
+      <text x="630" y="191" text-anchor="middle" font-size="10" fill="#484f58">↑ autovacuum daemon</text>
+
+      <!-- Arrows -->
+      <line x1="120" y1="60" x2="160" y2="60" stroke="#8b949e" stroke-width="1.3" marker-end="url(#va)"/>
+      <line x1="120" y1="60" x2="140" y2="60" stroke="#8b949e" stroke-width="1"/>
+      <line x1="140" y1="60" x2="140" y2="160" stroke="#8b949e" stroke-width="1"/>
+      <line x1="140" y1="160" x2="160" y2="160" stroke="#8b949e" stroke-width="1.3" marker-end="url(#va)"/>
+      <line x1="290" y1="60" x2="360" y2="60" stroke="#e3b341" stroke-width="1.5" marker-end="url(#va2)"/>
+      <text x="325" y="54" text-anchor="middle" font-size="9" fill="#e3b341">fsync</text>
+      <line x1="490" y1="60" x2="560" y2="60" stroke="#484f58" stroke-width="1" stroke-dasharray="3,2"/>
+      <text x="525" y="54" text-anchor="middle" font-size="9" fill="#484f58">archive</text>
+      <line x1="290" y1="160" x2="360" y2="160" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#va)"/>
+      <text x="325" y="154" text-anchor="middle" font-size="9" fill="#58a6ff">checkpoint</text>
+      <line x1="490" y1="160" x2="560" y2="140" stroke="#3fb950" stroke-width="1.3" marker-end="url(#va)"/>
+
+      <!-- Replica -->
+      <rect x="720" y="30" width="90" height="60" rx="5" fill="rgba(22,27,34,0.8)" stroke="#30363d" stroke-width="1"/>
+      <text x="765" y="56" text-anchor="middle" font-size="11" fill="#8b949e">Replica</text>
+      <text x="765" y="72" text-anchor="middle" font-size="10" fill="#484f58">streams WAL</text>
+      <line x1="490" y1="55" x2="595" y2="40" stroke="#484f58" stroke-width="1" stroke-dasharray="3,2"/>
+      <line x1="595" y1="40" x2="720" y2="55" stroke="#484f58" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#va)"/>
+
+      <!-- MVCC dead tuples -->
+      <rect x="20" y="220" width="780" height="50" rx="6" fill="rgba(22,27,34,0.6)" stroke="#30363d" stroke-width="1"/>
+      <text x="30" y="240" font-size="11" font-weight="700" fill="#8b949e">MVCC Dead Tuple lifecycle:</text>
+      <text x="30" y="258" font-size="11" fill="#484f58">UPDATE creates new tuple → old tuple becomes dead → visible by old TXs → no longer needed → VACUUM marks for reuse → next INSERT fills that space</text>
+    </svg>
+  </div>
+
+  <!-- EXAMPLE 1 -->
+  <div class="ex-header">
+    <div class="ex-num">01</div>
+    <div class="ex-title">Table Bloat monitoring và AUTOVACUUM tuning</div>
+    <span class="sec-badge b-vacuum" style="margin-left:auto;">ADVANCED</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Bảng <code>events</code> có UPDATE/DELETE nhiều, kích thước tăng từ 10GB lên 50GB sau 3 tháng dù số rows không đổi. Queries ngày càng chậm. Đây là <em>table bloat</em> — dead tuples chiếm space nhưng AUTOVACUUM không kịp xử lý.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">vacuum_monitoring.sql</span><div class="cright"><span class="clevel lv-adv">ADVANCED</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- 1. Detect bloat: dead tuples ratio</span>
+<span class="kw">SELECT</span>
+    schemaname,
+    relname                                     <span class="kw">AS</span> table_name,
+    n_live_tup,
+    n_dead_tup,
+    <span class="fn">ROUND</span>(n_dead_tup::numeric /
+          <span class="fn">NULLIF</span>(n_live_tup + n_dead_tup, <span class="num">0</span>) * <span class="num">100</span>, <span class="num">1</span>)
+                                                <span class="kw">AS</span> dead_pct,
+    last_vacuum,
+    last_autovacuum,
+    last_analyze,
+    autovacuum_count,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_total_relation_size</span>(relid)) <span class="kw">AS</span> total_size,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(relid))       <span class="kw">AS</span> table_size
+<span class="kw">FROM</span> pg_stat_user_tables
+<span class="kw">WHERE</span> n_dead_tup > <span class="num">10000</span>
+   <span class="kw">OR</span> n_dead_tup::float / <span class="fn">NULLIF</span>(n_live_tup + n_dead_tup, <span class="num">0</span>) > <span class="num">0.1</span>
+<span class="kw">ORDER BY</span> n_dead_tup <span class="kw">DESC</span>;
+
+<span class="cm">-- 2. Accurate bloat estimate (heavy query, dùng cho investigation)</span>
+<span class="kw">WITH</span> bloat <span class="kw">AS</span> (
+    <span class="kw">SELECT</span>
+        tablename,
+        <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(schemaname||<span class="str">'.'</span>||tablename)::bigint) <span class="kw">AS</span> table_size,
+        <span class="fn">ROUND</span>(<span class="fn">pg_relation_size</span>(schemaname||<span class="str">'.'</span>||tablename)::numeric /
+              <span class="fn">GREATEST</span>(n_live_tup, <span class="num">1</span>) / <span class="num">8192</span> * <span class="num">100</span>, <span class="num">1</span>)   <span class="kw">AS</span> avg_row_size_bytes,
+        n_live_tup, n_dead_tup
+    <span class="kw">FROM</span> pg_stat_user_tables s
+    <span class="kw">WHERE</span> n_live_tup > <span class="num">1000</span>
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> bloat <span class="kw">ORDER BY</span> n_dead_tup <span class="kw">DESC</span> <span class="kw">LIMIT</span> <span class="num">20</span>;
+
+<span class="cm">-- 3. Manual VACUUM ANALYZE (khi autovacuum không kịp)</span>
+<span class="kw">VACUUM</span> (<span class="kw">ANALYZE</span>, VERBOSE) <span class="tbl">events</span>;
+<span class="cm">-- VERBOSE output: INFO: table "events": found 892345 removable versions...
+-- "removed 892345 row versions in 45678 pages"</span>
+
+<span class="cm">-- 4. VACUUM FULL: compact table (EXCLUSIVE LOCK — production với caution!)</span>
+<span class="cm">-- Dùng khi dead_pct > 50% và table không thể down</span>
+<span class="cm">-- Alternative: pg_repack extension (online, no lock)</span>
+<span class="kw">VACUUM FULL ANALYZE</span> <span class="tbl">events</span>;
+
+<span class="cm">-- 5. Tune autovacuum per-table (cho write-heavy tables)</span>
+<span class="kw">ALTER TABLE</span> <span class="tbl">events</span> <span class="kw">SET</span> (
+    autovacuum_vacuum_scale_factor    = <span class="num">0.01</span>,  <span class="cm">-- vacuum khi 1% dead (default 20%)</span>
+    autovacuum_vacuum_threshold       = <span class="num">100</span>,   <span class="cm">-- minimum dead tuples trước khi vacuum</span>
+    autovacuum_analyze_scale_factor   = <span class="num">0.005</span>, <span class="cm">-- analyze khi 0.5% changed</span>
+    autovacuum_vacuum_cost_delay      = <span class="num">2</span>,     <span class="cm">-- giảm I/O throttle (ms), default 20</span>
+    autovacuum_vacuum_cost_limit      = <span class="num">400</span>    <span class="cm">-- tăng work budget (default 200)</span>
+);
+
+<span class="cm">-- 6. Monitor autovacuum đang chạy</span>
+<span class="kw">SELECT</span>
+    pid,
+    <span class="fn">now</span>() - xact_start <span class="kw">AS</span> duration,
+    query,
+    state,
+    wait_event_type,
+    wait_event
+<span class="kw">FROM</span> pg_stat_activity
+<span class="kw">WHERE</span> query <span class="kw">LIKE</span> <span class="str">'autovacuum:%'</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Bloat prevention checklist:</strong> (1) Monitor dead_pct &gt; 20% → manual VACUUM; (2) Scale autovacuum thresholds cho write-heavy tables; (3) Tránh long transactions (chúng block VACUUM); (4) Dùng <code>pg_repack</code> thay <code>VACUUM FULL</code> cho production (không lock); (5) Partition tables lớn — VACUUM chỉ cần xử lý từng partition nhỏ. <strong>Dấu hiệu bloat:</strong> Table size tăng mà row count không tăng, Seq Scan ngày càng chậm.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 2 -->
+  <div class="ex-header">
+    <div class="ex-num">02</div>
+    <div class="ex-title">WAL và Checkpoint Tuning cho High-Throughput</div>
+    <span class="sec-badge b-vacuum" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">Database xử lý 5000 TPS (transactions/sec) nhưng mỗi 5 phút có I/O spike làm latency tăng đột biến từ 2ms lên 800ms trong vài giây. Điều tra cho thấy đây là checkpoint flush storm. Cần tune WAL và checkpoint để smooth out I/O.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">wal_checkpoint_tuning.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- 1. Monitor checkpoint frequency</span>
+<span class="kw">SELECT</span>
+    checkpoints_timed,          <span class="cm">-- scheduled checkpoints</span>
+    checkpoints_req,            <span class="cm">-- forced (WAL full) — nên = 0 hoặc rất ít</span>
+    checkpoint_write_time / <span class="num">1000</span>   <span class="kw">AS</span> write_secs,
+    checkpoint_sync_time / <span class="num">1000</span>    <span class="kw">AS</span> sync_secs,
+    buffers_checkpoint,         <span class="cm">-- pages written during checkpoint</span>
+    buffers_clean,              <span class="cm">-- pages written by bgwriter</span>
+    buffers_backend,            <span class="cm">-- pages written directly by backends (bad!)</span>
+    buffers_alloc,
+    <span class="fn">now</span>() - stats_reset         <span class="kw">AS</span> since_reset
+<span class="kw">FROM</span> pg_stat_bgwriter;
+<span class="cm">-- checkpoints_req > 0 → WAL space too small, increase max_wal_size
+-- buffers_backend > 5% total → shared_buffers too small hoặc checkpoint too rare</span>
+
+<span class="cm">-- 2. WAL generation rate</span>
+<span class="kw">SELECT</span>
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_wal_lsn_diff</span>(pg_current_wal_lsn(), <span class="str">'0/0'</span>)) <span class="kw">AS</span> total_wal_generated,
+    <span class="cm">-- Run again after 1 minute to calculate rate:</span>
+    <span class="fn">pg_current_wal_lsn</span>() <span class="kw">AS</span> current_lsn;
+<span class="cm">-- WAL rate = (lsn_after - lsn_before) / seconds
+-- Typical: 10-100 MB/sec for OLTP workloads</span>
+
+<span class="cm">-- 3. Recommended postgresql.conf settings for high-throughput OLTP</span>
+<span class="cm">/*
+# ─── WAL Settings ────────────────────────────────────────────
+wal_level = replica                # enable WAL for replication
+wal_compression = on               # compress WAL (reduce I/O ~30-50%)
+wal_buffers = 64MB                 # default -1 (auto = 1/32 shared_buffers)
+min_wal_size = 1GB                 # minimum WAL disk space
+max_wal_size = 8GB                 # max before forced checkpoint (was 1GB)
+synchronous_commit = on            # durability guarantee (set off for bulk load)
+
+# ─── Checkpoint Settings ─────────────────────────────────────
+checkpoint_timeout = 15min         # max interval (was 5min → 5min I/O spikes)
+checkpoint_completion_target = 0.9 # spread writes over 90% of interval
+# → checkpoint writes over 15×0.9=13.5min instead of burst
+
+# ─── Background Writer (smooth out dirty page writes) ────────
+bgwriter_delay = 200ms
+bgwriter_lru_maxpages = 100
+bgwriter_lru_multiplier = 2.0
+
+# ─── Shared Buffers (most important) ─────────────────────────
+shared_buffers = 8GB               # 25% of RAM
+effective_cache_size = 24GB        # 75% of RAM (hint for planner)
+work_mem = 64MB                    # per sort/hash operation (careful: per query)
+*/</span>
+
+<span class="cm">-- 4. Verify WAL archiving status (for Point-in-Time Recovery)</span>
+<span class="kw">SELECT</span>
+    archived_count,
+    last_archived_wal,
+    last_archived_time,
+    failed_count,
+    last_failed_wal,
+    last_failed_time
+<span class="kw">FROM</span> pg_stat_archiver;
+<span class="cm">-- failed_count > 0 → archiving broken → investigate immediately!</span>
+
+<span class="cm">-- 5. Replica lag monitoring</span>
+<span class="kw">SELECT</span>
+    client_addr,
+    state,
+    sent_lsn,
+    write_lsn,
+    flush_lsn,
+    replay_lsn,
+    <span class="fn">pg_wal_lsn_diff</span>(sent_lsn, replay_lsn) <span class="kw">AS</span> total_lag_bytes,
+    write_lag,
+    flush_lag,
+    replay_lag
+<span class="kw">FROM</span> pg_stat_replication
+<span class="kw">ORDER BY</span> replay_lag <span class="kw">DESC</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Checkpoint spike fix:</strong> Tăng <code>checkpoint_timeout</code> từ 5min lên 15min và <code>checkpoint_completion_target</code> = 0.9 để spread I/O đều. Tăng <code>max_wal_size</code> để tránh forced checkpoint. Bật <code>wal_compression</code> giảm WAL I/O ~30-50%. Monitor <code>checkpoints_req</code> — nếu &gt; 0 là dấu hiệu WAL quá nhỏ. <strong>Không dùng</strong> <code>synchronous_commit = off</code> trừ khi chấp nhận mất tối đa <code>wal_writer_delay</code> (200ms) dữ liệu sau crash.</p>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 3: Transaction ID Wraparound -->
+  <div class="ex-header">
+    <div class="ex-num">03</div>
+    <div class="ex-title">Transaction ID Wraparound — Emergency Prevention</div>
+    <span class="sec-badge b-vacuum" style="margin-left:auto;">EXPERT</span>
+  </div>
+  <div class="ex-body">
+    <div class="problem-block">
+      <div class="problem-label">🔴 Problem Statement</div>
+      <p class="prose" style="margin:0">PostgreSQL warning: <em>"database with OID X must be vacuumed within 11 million transactions"</em>. Nếu không xử lý, database sẽ shutdown để tránh data corruption (Transaction ID Wraparound). Đây là emergency cần xử lý ngay.</p>
+    </div>
+    <div class="cb">
+      <div class="ch"><span class="cl">SQL</span><span class="cf">txid_wraparound.sql</span><div class="cright"><span class="clevel lv-exp">EXPERT</span><button class="copy-btn">Copy</button></div></div>
+      <pre><span class="cm">-- 1. Check how close we are to wraparound (CRITICAL MONITORING)</span>
+<span class="kw">SELECT</span>
+    datname,
+    age(datfrozenxid)                    <span class="kw">AS</span> xid_age,
+    <span class="num">2000000000</span> - age(datfrozenxid)       <span class="kw">AS</span> xids_remaining,
+    <span class="fn">ROUND</span>(age(datfrozenxid)::numeric /
+          <span class="num">2000000000</span> * <span class="num">100</span>, <span class="num">2</span>)          <span class="kw">AS</span> wraparound_pct
+<span class="kw">FROM</span> pg_database
+<span class="kw">ORDER BY</span> age(datfrozenxid) <span class="kw">DESC</span>;
+<span class="cm">-- ⚠️ WARNING khi > 1.5 billion (75%)
+-- 🚨 CRITICAL khi > 1.9 billion (95%) → emergency VACUUM!</span>
+
+<span class="cm">-- 2. Which tables are oldest (need VACUUM FREEZE first)?</span>
+<span class="kw">SELECT</span>
+    schemaname,
+    relname,
+    age(relfrozenxid)                   <span class="kw">AS</span> table_age,
+    <span class="num">2000000000</span> - age(relfrozenxid)      <span class="kw">AS</span> xids_remaining,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(oid)) <span class="kw">AS</span> size
+<span class="kw">FROM</span> pg_class
+<span class="kw">WHERE</span> relkind = <span class="str">'r'</span>
+  <span class="kw">AND</span> relfrozenxid != <span class="num">0</span>
+<span class="kw">ORDER BY</span> age(relfrozenxid) <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="num">20</span>;
+
+<span class="cm">-- 3. Emergency: VACUUM FREEZE oldest tables</span>
+<span class="kw">VACUUM</span> (FREEZE, <span class="kw">ANALYZE</span>, VERBOSE) <span class="tbl">schema.oldest_table</span>;
+<span class="cm">-- FREEZE: marks tuples as frozen (no longer subject to wraparound)
+-- Chạy lần lượt từng table lâu nhất cho đến khi age giảm xuống safe zone</span>
+
+<span class="cm">-- 4. Autovacuum anti-wraparound setting (luôn bật)</span>
+<span class="cm">/*
+autovacuum_freeze_max_age = 200000000  # trigger aggressive vacuum at 200M (default)
+vacuum_freeze_min_age     = 50000000   # freeze tuples older than 50M
+vacuum_freeze_table_age   = 150000000  # force full table scan at 150M
+*/</span>
+
+<span class="cm">-- 5. Monitor tables approaching wraparound (automation alert)</span>
+<span class="kw">SELECT</span>
+    relname,
+    age(relfrozenxid) <span class="kw">AS</span> table_age,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> age(relfrozenxid) > <span class="num">1900000000</span> <span class="kw">THEN</span> <span class="str">'🚨 CRITICAL'</span>
+        <span class="kw">WHEN</span> age(relfrozenxid) > <span class="num">1500000000</span> <span class="kw">THEN</span> <span class="str">'⚠️ WARNING'</span>
+        <span class="kw">WHEN</span> age(relfrozenxid) > <span class="num">500000000</span>  <span class="kw">THEN</span> <span class="str">'📊 MONITOR'</span>
+        <span class="kw">ELSE</span> <span class="str">'✅ OK'</span>
+    <span class="kw">END</span> <span class="kw">AS</span> status
+<span class="kw">FROM</span> pg_class
+<span class="kw">WHERE</span> relkind = <span class="str">'r'</span> <span class="kw">AND</span> relfrozenxid != <span class="num">0</span>
+<span class="kw">ORDER BY</span> age(relfrozenxid) <span class="kw">DESC</span>;</pre>
+    </div>
+    <div class="note-block">
+      <div class="note-label">📌 Note &amp; Conclusion</div>
+      <p class="prose" style="margin:0"><strong>Transaction ID Wraparound là sự cố nghiêm trọng nhất PostgreSQL:</strong> Nếu đạt 2 tỷ transactions, PostgreSQL <em>shutdown chủ động</em> để tránh data corruption. Prevention: (1) Monitor <code>age(datfrozenxid)</code> trong alert system; (2) Đảm bảo autovacuum không bị block bởi long transactions; (3) Set <code>autovacuum_freeze_max_age = 200000000</code>; (4) Chạy <code>VACUUM FREEZE</code> định kỳ trên database idle giờ. Alert threshold: &gt;75% = warning, &gt;90% = critical, &gt;95% = emergency maintenance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ REFERENCES ═══════════════ -->
+<section class="page-section" id="s-refs">
+  <div class="sec-header">
+    <div>
+      <div class="sec-title">References &amp; Tài liệu tham khảo</div>
+      <div class="sec-sub">Nguồn uy tín nhất cho PostgreSQL internals &amp; performance</div>
+    </div>
+    <span class="sec-badge b-ref">📚 REFS</span>
+  </div>
+
+  <h3>📖 Official Documentation</h3>
+
+  <a class="ref-card" href="https://www.postgresql.org/docs/current/indexes.html" target="_blank">
+    <div class="ref-icon">🗂️</div>
+    <div>
+      <div class="ref-title">PostgreSQL Official Docs — Indexes</div>
+      <div class="ref-desc">Tài liệu chính thức về tất cả index types, operators, và internals. Chapter 11 (Indexes) và Chapter 14 (Performance Tips).</div>
+      <div class="ref-url">postgresql.org/docs/current/indexes.html</div>
+    </div>
+    <div class="ref-stars">★ Official</div>
+  </a>
+
+  <a class="ref-card" href="https://www.postgresql.org/docs/current/mvcc.html" target="_blank">
+    <div class="ref-icon">🔒</div>
+    <div>
+      <div class="ref-title">PostgreSQL Official Docs — MVCC &amp; Locking</div>
+      <div class="ref-desc">Chapter 13 — Concurrency Control. MVCC, transaction isolation, deadlock, lock modes, advisory locks. Nền tảng để hiểu locking behavior.</div>
+      <div class="ref-url">postgresql.org/docs/current/mvcc.html</div>
+    </div>
+    <div class="ref-stars">★ Official</div>
+  </a>
+
+  <h3>🐱 GitHub — Top Repositories</h3>
+
+  <a class="ref-card" href="https://github.com/jOOQ/sakila" target="_blank">
+    <div class="ref-icon">🎬</div>
+    <div>
+      <div class="ref-title">Sakila Database — Sample PostgreSQL</div>
+      <div class="ref-desc">Database mẫu chuẩn để thực hành các kỹ thuật query optimization, pagination, indexing. Port của MySQL Sakila sang PostgreSQL.</div>
+      <div class="ref-url">github.com/jOOQ/sakila</div>
+    </div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/pganalyze/pg_query" target="_blank">
+    <div class="ref-icon">🔍</div>
+    <div>
+      <div class="ref-title">pg_query — PostgreSQL Query Parser</div>
+      <div class="ref-desc">Library để parse và analyze PostgreSQL query plans programmatically. Dùng trong tools như pganalyze và pghero.</div>
+      <div class="ref-url">github.com/pganalyze/pg_query</div>
+    </div>
+    <div class="ref-stars">⭐ 1.2k+</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/ankane/pghero" target="_blank">
+    <div class="ref-icon">🦸</div>
+    <div>
+      <div class="ref-title">pghero — PostgreSQL Performance Dashboard</div>
+      <div class="ref-desc">Web dashboard cho pg_stat_statements, slow query analysis, missing indexes suggestion, bloat monitoring. Production-ready tool.</div>
+      <div class="ref-url">github.com/ankane/pghero</div>
+    </div>
+    <div class="ref-stars">⭐ 8k+</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/reorg/pg_repack" target="_blank">
+    <div class="ref-icon">♻️</div>
+    <div>
+      <div class="ref-title">pg_repack — Online VACUUM FULL Alternative</div>
+      <div class="ref-desc">Compact tables và indexes online mà không cần exclusive lock. Thay thế an toàn cho VACUUM FULL trong production. Được dùng rộng rãi.</div>
+      <div class="ref-url">github.com/reorg/pg_repack</div>
+    </div>
+    <div class="ref-stars">⭐ 2.5k+</div>
+  </a>
+
+  <h3>📝 Bài viết chất lượng cao</h3>
+
+  <a class="ref-card" href="https://use-the-index-luke.com/" target="_blank">
+    <div class="ref-icon">📚</div>
+    <div>
+      <div class="ref-title">Use The Index, Luke!</div>
+      <div class="ref-desc">Cuốn sách online toàn diện nhất về database indexing cho developers. Giải thích B-Tree internals, composite index, function-based indexes với visual diagrams cực tốt.</div>
+      <div class="ref-url">use-the-index-luke.com</div>
+    </div>
+    <div class="ref-stars">★ Highly Rated</div>
+  </a>
+
+  <a class="ref-card" href="https://www.cybertec-postgresql.com/en/blog/" target="_blank">
+    <div class="ref-icon">🔬</div>
+    <div>
+      <div class="ref-title">CYBERTEC PostgreSQL Blog</div>
+      <div class="ref-desc">Blog kỹ thuật chuyên sâu về PostgreSQL internals, performance tuning, VACUUM behavior, WAL. Nhiều bài viết expert từ core PostgreSQL contributors.</div>
+      <div class="ref-url">cybertec-postgresql.com/en/blog</div>
+    </div>
+    <div class="ref-stars">★ Expert Level</div>
+  </a>
+
+  <a class="ref-card" href="https://explain.dalibo.com/" target="_blank">
+    <div class="ref-icon">🎯</div>
+    <div>
+      <div class="ref-title">Dalibo EXPLAIN Visualizer</div>
+      <div class="ref-desc">Paste JSON output của EXPLAIN (FORMAT JSON) để visualize execution plan với flame graph, node timings, buffer usage. Tool không thể thiếu khi debug slow queries.</div>
+      <div class="ref-url">explain.dalibo.com</div>
+    </div>
+    <div class="ref-stars">★ Essential Tool</div>
+  </a>
+
+  <a class="ref-card" href="https://pganalyze.com/docs" target="_blank">
+    <div class="ref-icon">📊</div>
+    <div>
+      <div class="ref-title">pganalyze Documentation</div>
+      <div class="ref-desc">Comprehensive guides về pg_stat_statements, automated EXPLAIN collection, index advisor, VACUUM monitoring. Free tier available cho learning.</div>
+      <div class="ref-url">pganalyze.com/docs</div>
+    </div>
+    <div class="ref-stars">★ Recommended</div>
+  </a>
+
+  <divider class="divider"></divider>
+
+  <h3>⚡ Quick Reference</h3>
+  <div class="tbl-wrap">
+    <table class="data-table">
+      <thead><tr><th>Chủ đề</th><th>Tool/View</th><th>Mục đích</th><th>Tần suất kiểm tra</th></tr></thead>
+      <tbody>
+        <tr><td><span class="tag t-b">Index</span></td><td><code>pg_stat_user_indexes</code></td><td>Index usage, scan counts</td><td>Weekly</td></tr>
+        <tr><td><span class="tag t-b">Index</span></td><td><code>pg_index, pg_class</code></td><td>Duplicate/unused indexes</td><td>Monthly</td></tr>
+        <tr><td><span class="tag t-r">Lock</span></td><td><code>pg_locks, pg_stat_activity</code></td><td>Real-time lock monitoring</td><td>Continuous alert</td></tr>
+        <tr><td><span class="tag t-r">Lock</span></td><td><code>log_lock_waits = on</code></td><td>Log all lock waits</td><td>Always on</td></tr>
+        <tr><td><span class="tag t-g">Pagination</span></td><td><code>EXPLAIN ANALYZE</code></td><td>Verify keyset vs offset cost</td><td>Per migration</td></tr>
+        <tr><td><span class="tag t-p">Query</span></td><td><code>pg_stat_statements</code></td><td>Top slow queries</td><td>Daily</td></tr>
+        <tr><td><span class="tag t-p">Query</span></td><td><code>log_min_duration_statement</code></td><td>Log slow queries</td><td>Always on</td></tr>
+        <tr><td><span class="tag t-a">Vacuum</span></td><td><code>pg_stat_user_tables</code></td><td>Dead tuples, last vacuum</td><td>Daily</td></tr>
+        <tr><td><span class="tag t-a">Vacuum</span></td><td><code>pg_stat_bgwriter</code></td><td>Checkpoint frequency</td><td>Hourly</td></tr>
+        <tr><td><span class="tag t-a">Vacuum</span></td><td><code>age(datfrozenxid)</code></td><td>Wraparound prevention</td><td>Daily alert</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function showSection(id) {
+  // 1. Hide all page sections and activate the target one
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + id);
+  if (t) t.classList.add('active');
+
+  // 2. Synchronize navigation active states
+  document.querySelectorAll('.nav-item, .tnav').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + id + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // 3. Smooth scroll to the top viewport
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind navigation click event listeners dynamically
+document.querySelectorAll('.nav-item, .tnav').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  if (oc) {
+    const target = oc.match(/show\('([^']+)'\)/)?.[1];
+    if (target) {
+      el.dataset.onclick = oc;
+      el.removeAttribute('onclick'); // Prevent duplicate static click execution
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.hash = 's-' + target;
+        showSection(target);
+      });
+    }
+  }
+});
+
+// Bind intro topic cards to sections dynamically
+const cardTargets = ['index', 'lock', 'pagination', 'query', 'vacuum'];
+document.querySelectorAll('#s-intro .cg3 .card').forEach((card, idx) => {
+  if (idx < cardTargets.length) {
+    const target = cardTargets[idx];
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present
+function initRouter() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'intro'
+    const activeSec = document.querySelector('.page-section.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    } else {
+      showSection('intro');
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initRouter);
+} else {
+  initRouter();
+}
+
+// Global compatibility function
+window.show = function(id) {
+  window.location.hash = 's-' + id;
+  showSection(id);
+}
+
+
+// Setup copy code buttons
+document.querySelectorAll('.cb').forEach(block => {
+  const h = block.querySelector('.ch');
+  if (h && !h.querySelector('.copy-btn')) {
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn'; btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(block.querySelector('pre').innerText).then(() => {
+        btn.textContent = '✓ Copied';
+        btn.style.color = '#3fb950';
+        btn.style.borderColor = '#3fb950';
+        setTimeout(() => { btn.textContent = 'Copy'; btn.style.color=''; btn.style.borderColor=''; }, 1800);
+      });
+    });
+    h.appendChild(btn);
+  }
+});
+</script>
+</body>
+</html>

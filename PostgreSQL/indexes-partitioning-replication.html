@@ -1,0 +1,2291 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>PostgreSQL Expert Guide Part 2 — Indexes · Partitioning · JSON · Query Optimization · Replication</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14; --bg2:#131720; --card:#1a1f2e; --code:#0f1319;
+  --cyan:#00d4ff; --green:#00ff88; --purple:#a855f7; --amber:#f59e0b;
+  --coral:#ff6b6b; --teal:#2dd4bf; --pg:#336791;
+  --t1:#e2e8f0; --t2:#94a3b8; --mu:#64748b;
+  --bdr:rgba(255,255,255,.07); --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);display:flex;min-height:100vh}
+
+#sb{width:270px;min-width:270px;background:var(--bg2);border-right:1px solid var(--bdr);
+    position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
+#sb::-webkit-scrollbar{width:4px}
+#sb::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+.logo{padding:18px 18px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px}
+.logo-i{width:34px;height:34px;background:linear-gradient(135deg,var(--teal),var(--cyan));
+         border-radius:8px;display:flex;align-items:center;justify-content:center;
+         font-size:12px;font-weight:700;color:#fff;font-family:var(--mono)}
+.logo-t{font-size:14px;font-weight:600;color:var(--t1);line-height:1.2}
+.logo-s{font-size:11px;color:var(--teal);font-family:var(--mono)}
+.ns{padding:13px 12px 5px}
+.nt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);padding:0 8px;margin-bottom:5px}
+.nb{display:flex;align-items:center;padding:7px 8px;border-radius:6px;color:var(--t2);
+    font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nb:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+.nb.active{background:rgba(45,212,191,.1);color:var(--teal);border-left:2px solid var(--teal);padding-left:6px}
+
+#tn{position:fixed;top:0;left:270px;right:0;height:52px;background:var(--bg2);
+    border-bottom:1px solid var(--bdr);display:flex;align-items:center;
+    padding:0 28px;gap:6px;z-index:50;overflow-x:auto}
+.tb{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;color:var(--t2);
+    cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
+.tb:hover{color:var(--t1);background:rgba(255,255,255,.05)}
+.tb.active{color:var(--teal);background:rgba(45,212,191,.1)}
+
+#main{margin-left:270px;margin-top:52px;flex:1;max-width:calc(100% - 270px)}
+.ct{padding:44px 52px;max-width:980px}
+
+.sh{display:flex;align-items:center;gap:14px;margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--bdr)}
+.sn{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--teal),var(--cyan));
+    display:flex;align-items:center;justify-content:center;font-family:var(--mono);
+    font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.stl{font-size:25px;font-weight:700;color:var(--t1)}
+.ss{font-size:13px;color:var(--mu);margin-top:3px}
+
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;font-family:var(--mono)}
+.be{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.ba{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.bb{background:rgba(0,212,255,.10);color:var(--cyan);border:1px solid rgba(0,212,255,.25)}
+.bt{background:rgba(45,212,191,.12);color:var(--teal);border:1px solid rgba(45,212,191,.3)}
+
+.sec{display:none}.sec.active{display:block}
+
+.p{font-size:15px;line-height:1.8;color:var(--t2);margin-bottom:18px}
+.p strong{color:var(--t1);font-weight:600}
+.p code{background:rgba(45,212,191,.08);color:var(--teal);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:13px}
+h3{font-size:17px;font-weight:600;color:var(--t1);margin:26px 0 11px}
+h4{font-size:14px;font-weight:600;color:var(--t2);margin:18px 0 7px}
+
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin-bottom:18px;transition:border-color .2s}
+.card:hover{border-color:rgba(45,212,191,.25)}
+.ct2{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:9px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-bottom:22px}
+
+.cb{background:linear-gradient(135deg,rgba(45,212,191,.05),rgba(0,212,255,.05));
+    border:1px solid rgba(45,212,191,.2);border-radius:12px;padding:22px;margin-bottom:26px}
+.cb-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--teal);margin-bottom:7px;font-family:var(--mono)}
+.cb-t{font-size:19px;font-weight:700;color:var(--t1);margin-bottom:9px}
+
+.ex{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:34px}
+.exh{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;
+     border-bottom:1px solid var(--bdr);background:rgba(255,255,255,.02)}
+.ext{font-size:15px;font-weight:600;color:var(--t1)}
+.exb{padding:22px}
+
+.pb{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.pl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:5px;font-family:var(--mono)}
+.sb{background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.18);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:5px;font-family:var(--mono)}
+.nc{background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);border-radius:8px;padding:14px 17px;margin-top:18px}
+.nl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:5px;font-family:var(--mono)}
+
+.cw{background:var(--code);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:9px 15px;
+    border-bottom:1px solid var(--bdr);background:rgba(255,255,255,.02)}
+.cl{font-size:11px;font-weight:600;color:var(--teal);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.cf{font-size:11px;color:var(--mu);font-family:var(--mono)}
+.cc{font-size:11px;cursor:pointer;background:none;border:1px solid var(--bdr);
+    border-radius:4px;padding:3px 9px;color:var(--t2);transition:all .15s}
+.cc:hover{border-color:var(--teal);color:var(--teal)}
+pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+
+.kw{color:#c084fc} .fn{color:#38bdf8} .s{color:#86efac}
+.cm{color:#4b5563;font-style:italic} .n{color:#fb923c} .tp{color:#67e8f9}
+
+.dia{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin-bottom:26px;overflow:hidden}
+.dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mu);margin-bottom:18px;font-family:var(--mono);text-align:center}
+
+.tbl{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:14px}
+.tbl th{padding:9px 13px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--bdr);color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tbl td{padding:9px 13px;border-bottom:1px solid var(--bdr);color:var(--t2)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl td code{background:rgba(45,212,191,.08);color:var(--teal);padding:2px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
+
+.note{display:flex;gap:11px;padding:13px 15px;border-radius:8px;margin-bottom:18px;font-size:14px}
+.nw{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+.ni{background:rgba(45,212,191,.06);border:1px solid rgba(45,212,191,.2);color:var(--teal)}
+.nd{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--coral)}
+.no{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--green)}
+.nic{font-size:16px;flex-shrink:0;margin-top:1px}
+.note p{margin:0;line-height:1.6}
+
+.rf{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:15px 19px;margin-bottom:11px;display:flex;align-items:flex-start;gap:13px;text-decoration:none;transition:all .15s;cursor:pointer}
+.rf:hover{border-color:var(--teal);transform:translateX(2px)}
+.ri{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.rb{flex:1;min-width:0}
+.rtl{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.rd{font-size:12px;color:var(--mu);line-height:1.5}
+.ru{font-size:11px;color:var(--teal);font-family:var(--mono);margin-top:3px;word-break:break-all}
+.rs{font-size:11px;color:var(--amber);margin-left:auto;white-space:nowrap;padding-left:10px}
+
+.c2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.cc2{background:var(--card);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.ch2{padding:11px 15px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.ht{background:rgba(45,212,191,.08);color:var(--teal)}
+.ha{background:rgba(245,158,11,.08);color:var(--amber)}
+.hp{background:rgba(168,85,247,.08);color:var(--purple)}
+.hg{background:rgba(0,255,136,.07);color:var(--green)}
+.hc{background:rgba(255,107,107,.08);color:var(--coral)}
+.cb2{padding:15px;font-size:13px;color:var(--t2);line-height:1.7}
+
+hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
+
+@media(max-width:900px){
+  #sb{width:220px;min-width:220px}
+  #main{margin-left:220px}
+  #tn{left:220px}
+  .ct{padding:28px 18px}
+  .g2,.c2,.g3{grid-template-columns:1fr}
+.card { transition: all 0.3s ease; }
+.card:hover { border-color: var(--teal); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(45,212,191,0.15); }
+.concept-img-wrapper {
+  margin: 1.5rem 0; border-radius: 12px; overflow: hidden;
+  border: 1px solid rgba(45,212,191,0.25); box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+  background: var(--card); padding: 12px; transition: all 0.3s ease;
+}
+.concept-img-wrapper:hover {
+  transform: scale(1.01); border-color: rgba(45,212,191,0.5); box-shadow: 0 8px 30px rgba(45,212,191,0.2);
+}
+.concept-img-wrapper img { display: block; width: 100%; height: auto; border-radius: 8px; }
+.concept-img-caption { text-align: center; font-size: 13px; color: var(--t2); margin-top: 10px; font-style: italic; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sb">
+  <div class="logo">
+    <div class="logo-i">P2</div>
+    <div><div class="logo-t">PostgreSQL Expert</div><div class="logo-s">// Part 2 — deep dive</div></div>
+  </div>
+
+  <div class="ns"><div class="nt">Tổng quan</div>
+    <button class="nb active" onclick="S('intro')">🏠 Giới thiệu Part 2</button>
+  </div>
+
+  <div class="ns"><div class="nt">04 — Indexing Strategies</div>
+    <button class="nb" onclick="S('idx-types')">Các loại Index</button>
+    <button class="nb" onclick="S('idx-partial')">Partial &amp; Expression Index</button>
+    <button class="nb" onclick="S('idx-cover')">Covering Index &amp; Index-Only Scan</button>
+    <button class="nb" onclick="S('idx-expert')">Expert: Index Internals &amp; Bloat</button>
+  </div>
+
+  <div class="ns"><div class="nt">05 — Table Partitioning</div>
+    <button class="nb" onclick="S('part-intro')">Khái niệm &amp; Strategies</button>
+    <button class="nb" onclick="S('part-range')">Range &amp; List Partitioning</button>
+    <button class="nb" onclick="S('part-hash')">Hash Partitioning</button>
+    <button class="nb" onclick="S('part-expert')">Expert: Partition Pruning &amp; Maintenance</button>
+  </div>
+
+  <div class="ns"><div class="nt">06 — JSONB &amp; Full-Text Search</div>
+    <button class="nb" onclick="S('json-intro')">JSONB Operators &amp; Functions</button>
+    <button class="nb" onclick="S('json-index')">GIN Index cho JSONB</button>
+    <button class="nb" onclick="S('fts-intro')">Full-Text Search</button>
+    <button class="nb" onclick="S('json-expert')">Expert: Schema-less Patterns</button>
+  </div>
+
+  <div class="ns"><div class="nt">07 — Query Optimization</div>
+    <button class="nb" onclick="S('qopt-explain')">EXPLAIN ANALYZE đọc &amp; hiểu</button>
+    <button class="nb" onclick="S('qopt-stats')">Statistics &amp; Planner</button>
+    <button class="nb" onclick="S('qopt-expert')">Expert: Query Rewrites &amp; Hints</button>
+  </div>
+
+  <div class="ns"><div class="nt">08 — Replication &amp; HA</div>
+    <button class="nb" onclick="S('repl-intro')">Streaming Replication</button>
+    <button class="nb" onclick="S('repl-logical')">Logical Replication</button>
+    <button class="nb" onclick="S('repl-expert')">Expert: Failover &amp; CDC</button>
+  </div>
+
+  <div class="ns"><div class="nt">Tham khảo</div>
+    <button class="nb" onclick="S('refs')">📚 References Part 2</button>
+  </div>
+</nav>
+
+<!-- ══ TOP NAV ══ -->
+<nav id="tn">
+  <button class="tb active" onclick="S('intro')">Intro</button>
+  <button class="tb" onclick="S('idx-types')">Index Types</button>
+  <button class="tb" onclick="S('idx-partial')">Partial Idx</button>
+  <button class="tb" onclick="S('idx-cover')">Covering</button>
+  <button class="tb" onclick="S('idx-expert')">Idx Expert</button>
+  <button class="tb" onclick="S('part-intro')">Partitioning</button>
+  <button class="tb" onclick="S('part-range')">Range/List</button>
+  <button class="tb" onclick="S('part-expert')">Part Expert</button>
+  <button class="tb" onclick="S('json-intro')">JSONB</button>
+  <button class="tb" onclick="S('json-index')">GIN Index</button>
+  <button class="tb" onclick="S('fts-intro')">FTS</button>
+  <button class="tb" onclick="S('json-expert')">JSON Expert</button>
+  <button class="tb" onclick="S('qopt-explain')">EXPLAIN</button>
+  <button class="tb" onclick="S('qopt-stats')">Stats</button>
+  <button class="tb" onclick="S('qopt-expert')">QOpt Expert</button>
+  <button class="tb" onclick="S('repl-intro')">Replication</button>
+  <button class="tb" onclick="S('repl-logical')">Logical</button>
+  <button class="tb" onclick="S('repl-expert')">Repl Expert</button>
+  <button class="tb" onclick="S('refs')">Refs</button>
+</nav>
+
+<main id="main"><div class="ct">
+
+<!-- ══════════ INTRO ══════════ -->
+<section class="sec active" id="s-intro">
+  <div class="sh">
+    <div class="sn">P2</div>
+    <div><div class="stl">PostgreSQL Expert Guide — Phần 2</div>
+         <div class="ss">Indexes · Partitioning · JSONB · Query Optimization · Replication</div></div>
+    <span class="badge bt">PostgreSQL 15/16</span>
+  </div>
+
+  <div class="cb">
+    <div class="cb-l">🎯 Phần 2 bao gồm</div>
+    <div class="cb-t">5 chủ đề nâng cao cho PostgreSQL production</div>
+    <p class="p">Tiếp nối Phần 1 (PL/pgSQL, CTE, MVCC/RLS), Phần 2 đi sâu vào: <strong>Indexing Strategies</strong> (8 loại index, partial/expression/covering index, index internals), <strong>Table Partitioning</strong> (range/list/hash với automatic partition maintenance), <strong>JSONB &amp; Full-Text Search</strong> (GIN index, tsvector/tsquery, schema-less patterns), <strong>Query Optimization</strong> (EXPLAIN ANALYZE, statistics, query rewrites), và <strong>Replication &amp; HA</strong> (streaming, logical replication, CDC với pgoutput).</p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_advanced_p2_hero.png" alt="PostgreSQL Advanced Architecture Overview Laboratory Part 2" loading="lazy">
+    <div class="concept-img-caption">Hình 0.1: Tổng quan bản đồ học tập và các trụ cột cấu trúc PostgreSQL Advanced — Phần 2</div>
+  </div>
+
+
+  <div class="g3">
+    <div class="card" style="cursor:pointer;border-color:rgba(45,212,191,.25)" onclick="S('idx-types')">
+      <div class="ct2">🗂️ 04 — Indexing Strategies</div>
+      <p class="p" style="margin:0;font-size:13px">B-Tree, Hash, GIN, GiST, BRIN, Bloom filter. Partial/expression index. Covering index và Index-Only Scan. Index bloat và maintenance.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(245,158,11,.25)" onclick="S('part-intro')">
+      <div class="ct2">📦 05 — Table Partitioning</div>
+      <p class="p" style="margin:0;font-size:13px">Declarative partitioning: RANGE, LIST, HASH. Partition pruning, sub-partitioning, foreign key constraints, automatic maintenance với pg_partman.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.25)" onclick="S('json-intro')">
+      <div class="ct2">📄 06 — JSONB &amp; Full-Text Search</div>
+      <p class="p" style="margin:0;font-size:13px">JSONB operators, GIN indexes, jsonpath, tsvector/tsquery, ranking functions, schema-less document patterns trong production.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" onclick="S('qopt-explain')">
+      <div class="ct2">⚡ 07 — Query Optimization</div>
+      <p class="p" style="margin:0;font-size:13px">EXPLAIN ANALYZE đọc execution plan, statistics và planner configuration, query rewrites, parallel query, pg_hint_plan.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(255,107,107,.2)" onclick="S('repl-intro')">
+      <div class="ct2">🔄 08 — Replication &amp; HA</div>
+      <p class="p" style="margin:0;font-size:13px">Streaming replication setup, logical replication với publications/subscriptions, CDC (Change Data Capture), failover automation.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 04: INDEX TYPES ══════════ -->
+<section class="sec" id="s-idx-types">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">Indexing Strategies — Các loại Index</div>
+         <div class="ss">B-Tree, Hash, GIN, GiST, BRIN, SP-GiST, Bloom</div></div>
+    <span class="badge bb">CƠ BẢN → NÂNG CAO</span>
+  </div>
+
+  <div class="cb">
+    <div class="cb-l">💡 Tổng quan</div>
+    <div class="cb-t">8 loại index — mỗi loại tối ưu cho một use case khác nhau</div>
+    <p class="p">PostgreSQL cung cấp nhiều loại index khác nhau, mỗi loại được thiết kế cho một kiểu truy vấn hoặc kiểu dữ liệu cụ thể. Chọn đúng loại index có thể cải thiện query từ <strong>sequential scan O(N)</strong> xuống <strong>index scan O(log N)</strong> hoặc thậm chí <strong>bitmap index scan</strong> cho range queries. Hiểu khi nào dùng loại index nào là kỹ năng phân biệt DBA junior và senior.</p>
+  </div>
+
+  <h3>Bảng so sánh các loại Index</h3>
+  <table class="tbl">
+    <thead><tr><th>Loại</th><th>Tối ưu cho</th><th>Operators</th><th>Khi nào dùng</th><th>Lưu ý</th></tr></thead>
+    <tbody>
+      <tr><td><code>B-Tree</code></td><td>Equality, range, sort</td><td><code>=, &lt;, &gt;, BETWEEN, LIKE 'abc%'</code></td><td>Default — hầu hết mọi trường hợp</td><td>Tốt nhất cho ordered data</td></tr>
+      <tr><td><code>Hash</code></td><td>Equality only</td><td><code>=</code></td><td>Chỉ equality, không cần sort</td><td>PG10+: crash-safe; nhỏ hơn B-Tree</td></tr>
+      <tr><td><code>GIN</code></td><td>Composite values</td><td><code>@&gt;, &lt;@, ??, @?</code></td><td>JSONB, array, tsvector (FTS)</td><td>Slow to build, fast to search</td></tr>
+      <tr><td><code>GiST</code></td><td>Geometric, fuzzy</td><td><code>&amp;&amp;, @&gt;, &lt;&lt;|, pg_trgm</code></td><td>PostGIS, range types, trigram search</td><td>Lossy — có thể false positive</td></tr>
+      <tr><td><code>BRIN</code></td><td>Large ordered tables</td><td><code>=, &lt;, &gt;, BETWEEN</code></td><td>Time-series, log tables, IoT</td><td>Rất nhỏ (128 bytes/range), ít hiệu quả với random data</td></tr>
+      <tr><td><code>SP-GiST</code></td><td>Space-partitioned</td><td>Geometric, network</td><td>IP ranges, coordinates, text prefix</td><td>Tốt cho non-balanced partitioned spaces</td></tr>
+      <tr><td><code>Bloom</code></td><td>Multi-column equality</td><td><code>=</code></td><td>Nhiều cột equality, ít cardinality</td><td>False positive — cần recheck; ít dùng</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Diagram: Index types -->
+  <div class="dia">
+    <div class="dt">B-Tree vs BRIN vs GIN — Kích thước và cách organize data</div>
+    <svg width="100%" viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+
+      <!-- B-Tree -->
+      <text x="120" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">B-Tree (balanced tree)</text>
+      <rect x="100" y="28" width="40" height="24" rx="4" fill="rgba(45,212,191,.15)" stroke="#2dd4bf"/>
+      <text x="120" y="44" text-anchor="middle" font-size="10" fill="#2dd4bf" font-family="JetBrains Mono">root</text>
+      <line x1="100" y1="52" x2="70" y2="72" stroke="#2dd4bf" stroke-width="1"/>
+      <line x1="140" y1="52" x2="170" y2="72" stroke="#2dd4bf" stroke-width="1"/>
+      <rect x="45"  y="72" width="50" height="22" rx="3" fill="rgba(45,212,191,.1)" stroke="rgba(45,212,191,.4)"/>
+      <text x="70" y="87" text-anchor="middle" font-size="9" fill="#2dd4bf" font-family="JetBrains Mono">10-50</text>
+      <rect x="145" y="72" width="50" height="22" rx="3" fill="rgba(45,212,191,.1)" stroke="rgba(45,212,191,.4)"/>
+      <text x="170" y="87" text-anchor="middle" font-size="9" fill="#2dd4bf" font-family="JetBrains Mono">51-99</text>
+      <text x="120" y="120" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">O(log N) search, supports range/sort</text>
+      <text x="120" y="135" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Size: ~30% of table (typical)</text>
+      <text x="120" y="155" text-anchor="middle" font-size="10" fill="#2dd4bf" font-family="Inter">✓ Default choice for most queries</text>
+
+      <!-- BRIN -->
+      <text x="420" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">BRIN (Block Range INdex)</text>
+      <rect x="290" y="32" width="80" height="22" rx="3" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.4)"/>
+      <text x="330" y="47" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Blk 0-127: min=1,max=128</text>
+      <rect x="375" y="32" width="90" height="22" rx="3" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.4)"/>
+      <text x="420" y="47" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Blk 128-255: min=129,max=256</text>
+      <rect x="470" y="32" width="85" height="22" rx="3" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.4)"/>
+      <text x="512" y="47" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Blk 256-383: min=257,max=384</text>
+      <text x="420" y="80" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Chỉ lưu min/max của từng block range (128 pages)</text>
+      <text x="420" y="96" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Size: ~128 bytes/range (cực nhỏ so với B-Tree)</text>
+      <text x="420" y="120" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="Inter">✓ IoT/time-series: created_at tự nhiên tăng dần</text>
+      <text x="420" y="136" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">✗ Random data (UUID): không hiệu quả</text>
+
+      <!-- GIN -->
+      <text x="420" y="175" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">GIN — Inverted Index (JSONB/Array/FTS)</text>
+      <rect x="290" y="188" width="260" height="36" rx="5" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.3)"/>
+      <text x="295" y="205" font-size="9" fill="#a855f7" font-family="JetBrains Mono">"user"   → [{row:1,pos:0}, {row:5,pos:2}]</text>
+      <text x="295" y="218" font-size="9" fill="#a855f7" font-family="JetBrains Mono">"admin" → [{row:2,pos:1}, {row:8,pos:0}]</text>
+      <text x="295" y="232" font-size="9" fill="#64748b" font-family="JetBrains Mono">GIN lưu: term → postings list</text>
+    </svg>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 4.1 — Chọn đúng index type: B-Tree, BRIN, GIN cho từng use case</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Ba bảng với đặc điểm rất khác nhau cần được index đúng cách: (1) bảng <code>orders</code> 50M rows, query theo date range; (2) bảng <code>events</code> 500M rows IoT, time-series; (3) bảng <code>products</code> với JSONB attributes. Dùng sai loại index gây lãng phí disk và tốc độ không cải thiện.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">index_strategy.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Case 1: orders — B-Tree cho equality + range ─────────────────────</span>
+<span class="kw">CREATE TABLE</span> orders (
+    order_id    <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    customer_id <span class="tp">BIGINT NOT NULL</span>,
+    status      <span class="tp">TEXT NOT NULL</span>,         <span class="cm">-- 'pending','confirmed','shipped'</span>
+    total       <span class="tp">NUMERIC NOT NULL</span>,
+    created_at  <span class="tp">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>()
+);
+
+<span class="cm">-- B-Tree: default, tốt cho range + equality + sort</span>
+<span class="kw">CREATE INDEX</span> idx_orders_created  <span class="kw">ON</span> orders (created_at);
+<span class="kw">CREATE INDEX</span> idx_orders_customer <span class="kw">ON</span> orders (customer_id, created_at <span class="kw">DESC</span>);
+
+<span class="cm">-- Composite index: (customer_id, created_at DESC) phục vụ:
+-- SELECT * FROM orders WHERE customer_id = 42 ORDER BY created_at DESC LIMIT 20
+-- Index Only Scan vì cả hai cột đều trong index</span>
+
+<span class="cm">-- ── Case 2: events — BRIN cho time-series 500M rows ──────────────────</span>
+<span class="kw">CREATE TABLE</span> device_events (
+    event_id   <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    device_id  <span class="tp">BIGINT NOT NULL</span>,
+    event_type <span class="tp">TEXT NOT NULL</span>,
+    payload    <span class="tp">JSONB</span>,
+    ts         <span class="tp">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>()  <span class="cm">-- tự nhiên tăng dần</span>
+);
+
+<span class="cm">-- BRIN: cực nhỏ, hiệu quả với sequential data
+-- pages_per_range=64 (default 128): range nhỏ hơn = chính xác hơn</span>
+<span class="kw">CREATE INDEX</span> idx_events_ts_brin
+<span class="kw">ON</span> device_events <span class="kw">USING</span> BRIN (ts)
+<span class="kw">WITH</span> (pages_per_range = <span class="n">64</span>);
+
+<span class="cm">-- So sánh kích thước B-Tree vs BRIN (thực tế):
+-- B-Tree trên 500M rows: ~15 GB
+-- BRIN  trên 500M rows:  ~200 KB  (75,000× nhỏ hơn!)</span>
+
+<span class="cm">-- ── Case 3: GIN cho JSONB ─────────────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> products (
+    id         <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    name       <span class="tp">TEXT NOT NULL</span>,
+    attributes <span class="tp">JSONB NOT NULL</span>  <span class="cm">-- {"color":"red","size":"M","brand":"Nike"}</span>
+);
+
+<span class="cm">-- GIN index: index tất cả keys và values trong JSONB
+-- Hỗ trợ: @>, ?, ?|, ?&, @?, @@</span>
+<span class="kw">CREATE INDEX</span> idx_products_gin
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN (attributes);
+
+<span class="cm">-- Query tận dụng GIN:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes @> <span class="s">'{"color":"red","size":"M"}'</span>;  <span class="cm">-- containment</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes ? <span class="s">'discount'</span>;               <span class="cm">-- key exists</span>
+
+<span class="cm">-- GIN jsonb_path_ops: nhỏ hơn nhưng chỉ hỗ trợ @>
+-- GIN jsonb_ops (default): lớn hơn, hỗ trợ tất cả operators</span>
+<span class="kw">CREATE INDEX</span> idx_products_gin_path
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN (attributes jsonb_path_ops);
+
+<span class="cm">-- ── Case 4: GiST cho pg_trgm (fuzzy search) ──────────────────────────</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> pg_trgm;
+
+<span class="kw">CREATE INDEX</span> idx_products_name_trgm
+<span class="kw">ON</span> products <span class="kw">USING</span> GiST (name gist_trgm_ops);
+
+<span class="cm">-- Query fuzzy search với trigram similarity:</span>
+<span class="kw">SELECT</span> name, <span class="fn">SIMILARITY</span>(name, <span class="s">'iphon'</span>) <span class="kw">AS</span> sim
+<span class="kw">FROM</span> products
+<span class="kw">WHERE</span> name % <span class="s">'iphon'</span>    <span class="cm">-- similarity >= pg_trgm.similarity_threshold (default 0.3)</span>
+<span class="kw">ORDER BY</span> sim <span class="kw">DESC LIMIT</span> <span class="n">10</span>;
+
+<span class="cm">-- Hoặc GIN cho pg_trgm (nhanh hơn GiST với LIKE/ILIKE):
+CREATE INDEX idx_products_name_gin_trgm
+ON products USING GIN (name gin_trgm_ops);
+-- Hỗ trợ: LIKE '%abc%', ILIKE, SIMILAR TO</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>BRIN chỉ hiệu quả khi data physically correlated</strong> với cột được index — tức là data insert theo thứ tự cột đó (timestamp, serial ID). Nếu data random (UUID, hash), BRIN không giúp ích gì. <strong>GIN vs GiST</strong>: GIN index nhanh hơn khi search, chậm hơn khi build/update. GiST nhanh hơn khi update, chậm hơn search. Với pg_trgm: GIN cho LIKE/ILIKE, GiST cho similarity operators (&lt;-&gt;, %). <strong>jsonb_path_ops</strong> nhỏ hơn 20–30% so với default <code>jsonb_ops</code> nhưng chỉ support <code>@&gt;</code> và jsonpath — phù hợp khi chỉ cần containment query.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ INDEX PARTIAL & EXPRESSION ══════════ -->
+<section class="sec" id="s-idx-partial">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">Partial &amp; Expression Indexes</div>
+         <div class="ss">Index thông minh: chỉ index subset cần thiết và computed expressions</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 4.2 — Partial Index: chỉ index active users, unprocessed orders</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Bảng <code>orders</code> có 50M rows nhưng 90% là <code>status='delivered'</code> — application gần như chỉ query <code>pending</code> và <code>processing</code> (khoảng 500K rows). Index đầy đủ trên <code>status</code> tốn hàng GB và scan nhiều rows không cần thiết. Partial index chỉ index subset rows thực sự cần, nhỏ hơn 10–100× và nhanh hơn.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">partial_expression_index.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Partial Index: chỉ index unprocessed orders ──────────────────────</span>
+<span class="cm">-- Full index: 50M rows → ~2GB
+-- Partial index: 500K rows → ~20MB (100× nhỏ hơn!)</span>
+<span class="kw">CREATE INDEX</span> idx_orders_pending
+<span class="kw">ON</span> orders (created_at)
+<span class="kw">WHERE</span> status <span class="kw">IN</span> (<span class="s">'pending'</span>, <span class="s">'processing'</span>);  <span class="cm">-- predicate</span>
+
+<span class="cm">-- Query phải match predicate để dùng index:
+-- ✅ Dùng partial index:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> status = <span class="s">'pending'</span>
+  <span class="kw">AND</span> created_at < NOW() - <span class="kw">INTERVAL</span> <span class="s">'1 hour'</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">LIMIT</span> <span class="n">100</span>;
+
+<span class="cm">-- ✅ Partial index cho unique email chỉ với active users:</span>
+<span class="kw">CREATE UNIQUE INDEX</span> idx_users_email_active
+<span class="kw">ON</span> users (LOWER(email))     <span class="cm">-- expression index</span>
+<span class="kw">WHERE</span> deleted_at <span class="kw">IS NULL</span>;  <span class="cm">-- partial: chỉ active users</span>
+<span class="cm">-- Cho phép: soft-deleted users cùng email với active user</span>
+
+<span class="cm">-- ── Expression Index: index trên computed expression ─────────────────</span>
+<span class="cm">-- Vấn đề: query case-insensitive email nhưng cột lưu mixed case</span>
+<span class="cm">-- Full scan vì LOWER(email) không có index:</span>
+<span class="cm">-- SELECT * FROM users WHERE LOWER(email) = 'alice@example.com' → SeqScan!</span>
+
+<span class="cm">-- Expression index: index kết quả của LOWER(email)</span>
+<span class="kw">CREATE INDEX</span> idx_users_email_lower
+<span class="kw">ON</span> users (<span class="fn">LOWER</span>(email));
+
+<span class="cm">-- Bây giờ query dùng index:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> users <span class="kw">WHERE</span> <span class="fn">LOWER</span>(email) = <span class="s">'alice@example.com'</span>;
+<span class="cm">-- → Index Scan on idx_users_email_lower ✓</span>
+
+<span class="cm">-- Expression index trên JSON path:</span>
+<span class="kw">CREATE INDEX</span> idx_orders_metadata_region
+<span class="kw">ON</span> orders ((metadata->><span class="s">'region'</span>));  <span class="cm">-- double parens: expression</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> metadata->><span class="s">'region'</span> = <span class="s">'VN'</span>;
+<span class="cm">-- → Index Scan ✓ (thay vì scan toàn bộ JSONB)</span>
+
+<span class="cm">-- Expression index với date truncation (common pattern):</span>
+<span class="kw">CREATE INDEX</span> idx_orders_month
+<span class="kw">ON</span> orders (<span class="fn">DATE_TRUNC</span>(<span class="s">'month'</span>, created_at));
+
+<span class="cm">-- Expression index cho computed column thay thế:
+-- Thay vì: WHERE EXTRACT(YEAR FROM created_at) = 2024
+-- Dùng:    WHERE created_at >= '2024-01-01' AND created_at < '2025-01-01'
+-- → B-Tree index hiệu quả hơn expression index với range</span>
+
+<span class="cm">-- ── Concurrent Index Build (không lock table) ─────────────────────────</span>
+<span class="kw">CREATE INDEX CONCURRENTLY</span> idx_orders_customer_concurrent
+<span class="kw">ON</span> orders (customer_id, created_at <span class="kw">DESC</span>);
+<span class="cm">-- CONCURRENTLY: build index mà không lock table
+-- Chậm hơn 2-3× nhưng không block reads/writes
+-- Cần dùng trong production khi table đang có traffic</span>
+
+<span class="cm">-- Verify index được sử dụng:</span>
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> status = <span class="s">'pending'</span> <span class="kw">AND</span> created_at < NOW() - <span class="kw">INTERVAL</span> <span class="s">'1 hour'</span>;
+<span class="cm">-- Expected: "Index Scan using idx_orders_pending on orders"</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Partial index quy tắc vàng</strong>: nếu query luôn có cùng một WHERE condition (status = 'active', deleted_at IS NULL), đó là ứng cử viên tốt cho partial index predicate. <strong>Expression index</strong>: function trong WHERE clause phải là <strong>IMMUTABLE</strong> (LOWER, UPPER, TO_CHAR...) để có thể index. VOLATILE functions (NOW(), RANDOM()) không thể index. <strong>CREATE INDEX CONCURRENTLY</strong> bắt buộc trong production — không bao giờ CREATE INDEX thường trên table đang có traffic. CONCURRENTLY có một limitation: nếu build fail giữa chừng, index ở trạng thái INVALID — cần DROP INDEX CONCURRENTLY và tạo lại.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ COVERING INDEX ══════════ -->
+<section class="sec" id="s-idx-cover">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">Covering Index &amp; Index-Only Scan</div>
+         <div class="ss">INCLUDE columns, heap access elimination</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 4.3 — Covering Index với INCLUDE: loại bỏ heap access hoàn toàn</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Query <code>SELECT customer_id, total FROM orders WHERE created_at BETWEEN ... ORDER BY created_at</code> dùng Index Scan nhưng vẫn phải fetch heap page để lấy <code>total</code>. Nếu <code>total</code> được INCLUDE vào index, query có thể thực hiện <strong>Index-Only Scan</strong> — không cần vào heap page, nhanh hơn đáng kể với selective queries.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">covering_index.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Không có covering index: phải heap fetch ─────────────────────────</span>
+<span class="kw">CREATE INDEX</span> idx_orders_date_only <span class="kw">ON</span> orders (created_at);
+
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> customer_id, total
+<span class="kw">FROM</span>  orders
+<span class="kw">WHERE</span> created_at <span class="kw">BETWEEN</span> <span class="s">'2024-01-01'</span> <span class="kw">AND</span> <span class="s">'2024-01-31'</span>;
+<span class="cm">-- Plan: Index Scan on idx_orders_date_only
+--   → Heap Fetches: 50000  ← phải vào heap lấy customer_id, total</span>
+
+<span class="cm">-- ── Covering Index với INCLUDE ────────────────────────────────────────</span>
+<span class="cm">-- INCLUDE columns: được lưu trong index leaf pages
+-- không tham gia vào index key (không dùng cho ORDER BY, WHERE)
+-- chỉ có trong index-only scan payload</span>
+<span class="kw">CREATE INDEX</span> idx_orders_date_cover
+<span class="kw">ON</span> orders (created_at)
+<span class="kw">INCLUDE</span> (customer_id, total);   <span class="cm">-- ← "covering" columns</span>
+
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> customer_id, total
+<span class="kw">FROM</span>  orders
+<span class="kw">WHERE</span> created_at <span class="kw">BETWEEN</span> <span class="s">'2024-01-01'</span> <span class="kw">AND</span> <span class="s">'2024-01-31'</span>;
+<span class="cm">-- Plan: Index Only Scan on idx_orders_date_cover
+--   → Heap Fetches: 0  ← KHÔNG cần vào heap!
+--   → Buffers: hit=120  (chỉ đọc index pages)</span>
+
+<span class="cm">-- ── Điều kiện để Index-Only Scan hoạt động ───────────────────────────
+-- 1. Tất cả columns trong SELECT phải có trong index (key + INCLUDE)
+-- 2. Visibility map phải "all-visible" cho pages cần scan
+--    (đảm bảo bằng VACUUM/autovacuum đủ thường xuyên)
+-- 3. pg_stat_user_tables.idx_scan: confirm index được dùng</span>
+
+<span class="cm">-- Check Index-Only Scan hit rate:</span>
+<span class="kw">SELECT</span>
+    indexrelname,
+    idx_scan,
+    idx_tup_read,
+    idx_tup_fetch,              <span class="cm">-- heap fetches</span>
+    <span class="fn">ROUND</span>(idx_tup_fetch::NUMERIC
+        / <span class="fn">NULLIF</span>(idx_tup_read, <span class="n">0</span>) * <span class="n">100</span>, <span class="n">1</span>) <span class="kw">AS</span> heap_fetch_pct
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">WHERE</span> relname = <span class="s">'orders'</span>
+<span class="kw">ORDER BY</span> idx_scan <span class="kw">DESC</span>;
+<span class="cm">-- Nếu heap_fetch_pct > 50% cho covering index → VACUUM thiếu</span>
+
+<span class="cm">-- ── Covering index cho pagination (keyset pagination) ────────────────</span>
+<span class="kw">CREATE INDEX</span> idx_orders_keyset
+<span class="kw">ON</span> orders (created_at <span class="kw">DESC</span>, order_id <span class="kw">DESC</span>)
+<span class="kw">INCLUDE</span> (customer_id, status, total);
+
+<span class="cm">-- Keyset pagination (hiệu quả hơn OFFSET rất nhiều):</span>
+<span class="kw">SELECT</span> order_id, customer_id, status, total, created_at
+<span class="kw">FROM</span>  orders
+<span class="kw">WHERE</span> (created_at, order_id) < (<span class="s">'2024-01-15 12:00:00'</span>, <span class="n">50000</span>)  <span class="cm">-- cursor</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>, order_id <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">20</span>;
+<span class="cm">-- → Index Only Scan, O(log N + limit) thay vì O(N) với OFFSET</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Index-Only Scan yêu cầu Visibility Map</strong>: PostgreSQL cần biết row có visible với current transaction mà không cần check heap. VACUUM đánh dấu pages là "all-visible" trong VM. Nếu autovacuum không đủ nhanh, heap_fetch sẽ tăng. Monitor <code>idx_tup_fetch/idx_tup_read</code>. <strong>INCLUDE vs làm key</strong>: INCLUDE columns không thể dùng trong WHERE hoặc ORDER BY, nhưng nhỏ hơn (không cần unique, không cần support tree traversal). Không nên INCLUDE quá nhiều columns — index sẽ to, update chậm. <strong>Keyset pagination</strong> (cursor-based) hiệu quả hơn OFFSET/LIMIT rất nhiều vì OFFSET vẫn phải skip N rows, còn keyset dùng index seek trực tiếp.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ INDEX EXPERT ══════════ -->
+<section class="sec" id="s-idx-expert">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">Expert: Index Internals &amp; Maintenance</div>
+         <div class="ss">Index bloat, unused indexes, statistics correlation</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_index_internals.png" alt="PostgreSQL B-Tree and GIN Index Internals Page Split and Heap Lookup Structure" loading="lazy">
+    <div class="concept-img-caption">Hình 4.1: Chi tiết cấu trúc B-Tree Index, GIN Index Internals và cơ chế Page Splits</div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 4.4 — Index audit: tìm unused, bloated, duplicate indexes</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">index_audit.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── 1. Unused indexes (ăn disk + tốn I/O khi write) ─────────────────</span>
+<span class="kw">SELECT</span>
+    schemaname,
+    tablename,
+    indexname,
+    idx_scan                                      <span class="kw">AS</span> times_used,
+    <span class="fn">ROUND</span>(<span class="fn">pg_relation_size</span>(indexrelid) / <span class="n">1e6</span>, <span class="n">1</span>)  <span class="kw">AS</span> index_mb,
+    <span class="fn">pg_get_indexdef</span>(indexrelid)                   <span class="kw">AS</span> definition
+<span class="kw">FROM</span> pg_stat_user_indexes
+<span class="kw">JOIN</span> pg_index <span class="kw">USING</span> (indexrelid)
+<span class="kw">WHERE</span> idx_scan = <span class="n">0</span>                   <span class="cm">-- chưa bao giờ được dùng</span>
+  <span class="kw">AND NOT</span> indisunique               <span class="cm">-- không phải unique constraint</span>
+  <span class="kw">AND NOT</span> indisprimary              <span class="cm">-- không phải PK</span>
+<span class="kw">ORDER BY</span> <span class="fn">pg_relation_size</span>(indexrelid) <span class="kw">DESC</span>;
+<span class="cm">-- Chú ý: reset sau pg_stat_reset() hoặc server restart
+-- Chờ đủ thời gian observe (>1 tuần) trước khi drop</span>
+
+<span class="cm">-- ── 2. Duplicate / Redundant indexes ─────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    t.relname <span class="kw">AS</span> table_name,
+    ix1.relname <span class="kw">AS</span> index1,
+    ix2.relname <span class="kw">AS</span> index2,
+    <span class="fn">pg_get_indexdef</span>(i1.indexrelid) <span class="kw">AS</span> def1,
+    <span class="fn">pg_get_indexdef</span>(i2.indexrelid) <span class="kw">AS</span> def2
+<span class="kw">FROM</span> pg_index i1
+<span class="kw">JOIN</span> pg_index i2 <span class="kw">ON</span> i1.indrelid = i2.indrelid
+    <span class="kw">AND</span> i1.indexrelid < i2.indexrelid              <span class="cm">-- tránh tự so sánh</span>
+    <span class="kw">AND</span> i1.indkey::TEXT LIKE i2.indkey::TEXT || <span class="s">' %'</span>  <span class="cm">-- i2 là prefix của i1</span>
+<span class="kw">JOIN</span> pg_class t  <span class="kw">ON</span> t.oid = i1.indrelid
+<span class="kw">JOIN</span> pg_class ix1 <span class="kw">ON</span> ix1.oid = i1.indexrelid
+<span class="kw">JOIN</span> pg_class ix2 <span class="kw">ON</span> ix2.oid = i2.indexrelid
+<span class="kw">WHERE</span> t.relnamespace = <span class="s">'public'</span>::regnamespace
+<span class="kw">ORDER BY</span> t.relname;
+<span class="cm">-- VD: idx(a,b,c) và idx(a,b) → idx(a,b) là redundant nếu selectivity tốt</span>
+
+<span class="cm">-- ── 3. Index bloat estimation ────────────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    schemaname || <span class="s">'.'</span> || tablename <span class="kw">AS</span> table_name,
+    indexname,
+    <span class="fn">ROUND</span>(<span class="fn">pg_relation_size</span>(indexrelid) / <span class="n">1e6</span>, <span class="n">1</span>) <span class="kw">AS</span> current_mb,
+    <span class="fn">ROUND</span>(stat.idx_blks_hit::NUMERIC
+          / <span class="fn">NULLIF</span>(stat.idx_blks_read + stat.idx_blks_hit, <span class="n">0</span>)
+          * <span class="n">100</span>, <span class="n">1</span>)                              <span class="kw">AS</span> cache_hit_pct
+<span class="kw">FROM</span> pg_stat_user_indexes ui
+<span class="kw">JOIN</span> pg_statio_user_indexes stat <span class="kw">USING</span> (indexrelid)
+<span class="kw">WHERE</span> <span class="fn">pg_relation_size</span>(indexrelid) > <span class="n">10e6</span>       <span class="cm">-- > 10MB</span>
+<span class="kw">ORDER BY</span> <span class="fn">pg_relation_size</span>(indexrelid) <span class="kw">DESC</span>;
+
+<span class="cm">-- ── 4. REINDEX CONCURRENTLY (rebuild index không lock) ───────────────</span>
+<span class="kw">REINDEX INDEX CONCURRENTLY</span> idx_orders_date_cover;
+<span class="cm">-- Dùng sau heavy DELETE/UPDATE để thu hồi bloat
+-- PG12+: CONCURRENTLY không lock table</span>
+
+<span class="cm">-- ── 5. Statistics correlation: quan trọng cho BRIN và planner ────────</span>
+<span class="kw">SELECT</span>
+    attname                     <span class="kw">AS</span> column_name,
+    correlation,                <span class="cm">-- -1 (reverse sorted) to 1 (sorted)</span>
+    n_distinct,                 <span class="cm">-- positive = absolute count, negative = fraction</span>
+    most_common_vals,
+    most_common_freqs
+<span class="kw">FROM</span> pg_stats
+<span class="kw">WHERE</span> tablename = <span class="s">'orders'</span>
+<span class="kw">ORDER BY</span> |correlation| <span class="kw">DESC</span>;
+<span class="cm">-- correlation gần 1 hay -1 → BRIN rất hiệu quả
+-- correlation gần 0 → BRIN kém hiệu quả, dùng B-Tree
+-- n_distinct = -0.05 → ~5% distinct values (low cardinality)</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Unused index detection</strong>: pg_stat_user_indexes được reset khi restart PostgreSQL. Luôn observe đủ lâu (ít nhất 1 tuần, bao gồm peak traffic) trước khi quyết định drop. <strong>Correlation</strong>: giá trị gần 1 hoặc -1 nghĩa là dữ liệu trong cột được lưu vật lý theo thứ tự tương ứng — BRIN sẽ rất hiệu quả. <code>pg_stats.correlation</code> là thông tin quan trọng nhất để quyết định chọn B-Tree hay BRIN. <strong>REINDEX CONCURRENTLY</strong> (PG12+) rebuild index không block, nhưng chiếm thêm disk space tạm thời. Sau rebuild, space được thu hồi. Nên chạy định kỳ cho indexes bị bloat từ heavy UPDATE/DELETE workloads.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 05: PARTITIONING INTRO ══════════ -->
+<section class="sec" id="s-part-intro">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">Table Partitioning — Khái niệm &amp; Strategies</div>
+         <div class="ss">Declarative partitioning: RANGE, LIST, HASH, Sub-partitioning</div></div>
+    <span class="badge bb">CƠ BẢN</span>
+  </div>
+
+  <div class="cb">
+    <div class="cb-l">💡 Định nghĩa</div>
+    <div class="cb-t">Partitioning: chia một bảng lớn thành nhiều bảng con nhỏ hơn</div>
+    <p class="p"><strong>Table Partitioning</strong> (phân vùng bảng) chia một bảng logic lớn thành nhiều bảng vật lý nhỏ hơn (partitions) dựa trên một partition key. PostgreSQL hỗ trợ <strong>declarative partitioning</strong> từ phiên bản 10 — chỉ cần khai báo strategy và PostgreSQL tự quản lý routing INSERT vào đúng partition, và <strong>partition pruning</strong> (chỉ scan partitions cần thiết trong query).</p>
+    <p class="p">Lợi ích: (1) <strong>Query performance</strong> — partition pruning loại bỏ phần lớn data cần scan, (2) <strong>Maintenance</strong> — DROP/DETACH partition cũ nhanh hơn DELETE nhiều triệu rows, (3) <strong>Parallel query</strong> — nhiều partitions có thể scan song song.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">RANGE Partitioning theo tháng — Partition Pruning in action</div>
+    <svg width="100%" viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ap" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Parent table -->
+      <rect x="310" y="10" width="180" height="40" rx="7" fill="rgba(45,212,191,.12)" stroke="#2dd4bf" stroke-width="2"/>
+      <text x="400" y="35" text-anchor="middle" font-size="13" fill="#2dd4bf" font-family="JetBrains Mono" font-weight="700">orders (parent)</text>
+
+      <!-- Partition lines -->
+      <line x1="350" y1="50" x2="120" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="370" y1="50" x2="280" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="400" y1="50" x2="440" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="430" y1="50" x2="600" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+      <line x1="450" y1="50" x2="720" y2="100" stroke="#1e293b" stroke-width="1.5"/>
+
+      <!-- Partitions -->
+      <rect x="35"  y="100" width="140" height="42" rx="5" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+      <text x="105" y="118" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">orders_2024_01</text>
+      <text x="105" y="133" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Jan 2024</text>
+
+      <rect x="195" y="100" width="140" height="42" rx="5" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+      <text x="265" y="118" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">orders_2024_02</text>
+      <text x="265" y="133" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Feb 2024</text>
+
+      <rect x="360" y="100" width="140" height="42" rx="5" fill="rgba(45,212,191,.15)" stroke="#2dd4bf" stroke-width="2"/>
+      <text x="430" y="118" text-anchor="middle" font-size="10" fill="#2dd4bf" font-family="JetBrains Mono">orders_2024_03</text>
+      <text x="430" y="133" text-anchor="middle" font-size="9" fill="#2dd4bf" font-family="Inter">Mar 2024 ← SCAN này</text>
+
+      <rect x="520" y="100" width="140" height="42" rx="5" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+      <text x="590" y="118" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">orders_2024_04</text>
+      <text x="590" y="133" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Apr 2024</text>
+
+      <rect x="665" y="100" width="120" height="42" rx="5" fill="rgba(100,116,139,.07)" stroke="rgba(100,116,139,.2)" stroke-dasharray="3,3"/>
+      <text x="725" y="118" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">orders_...</text>
+      <text x="725" y="133" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">...</text>
+
+      <!-- Query -->
+      <text x="400" y="168" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter">Query: WHERE created_at BETWEEN '2024-03-01' AND '2024-03-31'</text>
+      <text x="400" y="186" text-anchor="middle" font-size="11" fill="#2dd4bf" font-family="Inter">Partition Pruning: chỉ scan orders_2024_03 → bỏ qua tất cả partitions khác</text>
+      <text x="400" y="204" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">1M rows thay vì 12M rows (nếu có 12 tháng)</text>
+    </svg>
+  </div>
+
+  <table class="tbl">
+    <thead><tr><th>Strategy</th><th>Partition Key</th><th>Use Case</th><th>Ví dụ</th></tr></thead>
+    <tbody>
+      <tr><td><code>RANGE</code></td><td>Continuous values</td><td>Time-series, date-based data</td><td>orders per month, logs per day</td></tr>
+      <tr><td><code>LIST</code></td><td>Discrete values</td><td>Region, country, status</td><td>orders by country code</td></tr>
+      <tr><td><code>HASH</code></td><td>Even distribution</td><td>Sharding, parallel processing</td><td>users by hash(user_id) % N</td></tr>
+      <tr><td><code>Composite</code></td><td>Multi-level</td><td>Region + time</td><td>Range by year → Hash by customer</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ══════════ RANGE & LIST PARTITIONING ══════════ -->
+<section class="sec" id="s-part-range">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">Range &amp; List Partitioning</div>
+         <div class="ss">Automatic partition creation, DEFAULT partition, foreign keys</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 5.1 — Range partitioning theo tháng với automatic maintenance</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Bảng <code>audit_logs</code> nhận 5 triệu rows/ngày, cần giữ 2 năm data (3.6 tỷ rows tổng). Query thường chỉ đọc data của 1–7 ngày gần nhất. Cần: tự động tạo partition hàng tháng, dễ dàng DROP partition cũ (thay vì DELETE chậm), và index riêng cho từng partition.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">range_partitioning.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Setup: Declarative Range Partitioning ────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> audit_logs (
+    log_id      <span class="tp">BIGSERIAL</span>,
+    tenant_id   <span class="tp">UUID NOT NULL</span>,
+    action      <span class="tp">TEXT NOT NULL</span>,
+    entity_type <span class="tp">TEXT NOT NULL</span>,
+    entity_id   <span class="tp">BIGINT</span>,
+    details     <span class="tp">JSONB</span>,
+    created_at  <span class="tp">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>(),
+    <span class="kw">PRIMARY KEY</span> (log_id, created_at)  <span class="cm">-- partition key phải trong PK</span>
+) <span class="kw">PARTITION BY RANGE</span> (created_at);
+
+<span class="cm">-- DEFAULT partition: nhận data không khớp partition nào
+-- Quan trọng: tránh "no partition" error khi chưa tạo kịp</span>
+<span class="kw">CREATE TABLE</span> audit_logs_default
+    <span class="kw">PARTITION OF</span> audit_logs <span class="kw">DEFAULT</span>;
+
+<span class="cm">-- Tạo partitions thủ công cho các tháng cụ thể</span>
+<span class="kw">CREATE TABLE</span> audit_logs_2024_01
+    <span class="kw">PARTITION OF</span> audit_logs
+    <span class="kw">FOR VALUES FROM</span> (<span class="s">'2024-01-01'</span>) <span class="kw">TO</span> (<span class="s">'2024-02-01'</span>);
+
+<span class="kw">CREATE TABLE</span> audit_logs_2024_02
+    <span class="kw">PARTITION OF</span> audit_logs
+    <span class="kw">FOR VALUES FROM</span> (<span class="s">'2024-02-01'</span>) <span class="kw">TO</span> (<span class="s">'2024-03-01'</span>);
+
+<span class="cm">-- Index được tạo trên từng partition riêng lẻ (tốt cho vacuum, rebuild)</span>
+<span class="kw">CREATE INDEX</span> <span class="kw">ON</span> audit_logs_2024_01 (tenant_id, created_at <span class="kw">DESC</span>);
+<span class="kw">CREATE INDEX</span> <span class="kw">ON</span> audit_logs_2024_02 (tenant_id, created_at <span class="kw">DESC</span>);
+
+<span class="cm">-- Hoặc: tạo index trên parent → tự tạo trên tất cả partitions</span>
+<span class="kw">CREATE INDEX</span> idx_audit_tenant_date
+<span class="kw">ON</span> audit_logs (tenant_id, created_at <span class="kw">DESC</span>);
+
+<span class="cm">-- ── Function tự động tạo partition tháng tới ─────────────────────────</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">create_audit_partition</span>(target_month <span class="tp">DATE</span>)
+<span class="kw">RETURNS VOID LANGUAGE</span> plpgsql AS $$
+<span class="kw">DECLARE</span>
+    v_start <span class="tp">DATE</span> := <span class="fn">DATE_TRUNC</span>(<span class="s">'month'</span>, target_month);
+    v_end   <span class="tp">DATE</span> := v_start + <span class="kw">INTERVAL</span> <span class="s">'1 month'</span>;
+    v_name  <span class="tp">TEXT</span> := <span class="fn">FORMAT</span>(<span class="s">'audit_logs_%s'</span>, <span class="fn">TO_CHAR</span>(v_start, <span class="s">'YYYY_MM'</span>));
+    v_exists <span class="tp">BOOLEAN</span>;
+<span class="kw">BEGIN</span>
+    <span class="kw">SELECT EXISTS</span>(
+        <span class="kw">SELECT</span> <span class="n">1</span> <span class="kw">FROM</span> pg_class <span class="kw">WHERE</span> relname = v_name
+    ) <span class="kw">INTO</span> v_exists;
+
+    <span class="kw">IF NOT</span> v_exists <span class="kw">THEN</span>
+        <span class="kw">EXECUTE FORMAT</span>(
+            <span class="s">'CREATE TABLE %I
+             PARTITION OF audit_logs
+             FOR VALUES FROM (%L) TO (%L)'</span>,
+            v_name, v_start, v_end
+        );
+        <span class="cm">-- Tạo index ngay sau khi tạo partition</span>
+        <span class="kw">EXECUTE FORMAT</span>(
+            <span class="s">'CREATE INDEX ON %I (tenant_id, created_at DESC)'</span>,
+            v_name
+        );
+        <span class="kw">RAISE NOTICE</span> <span class="s">'Created partition: % for range [%, %)'</span>,
+            v_name, v_start, v_end;
+    <span class="kw">END IF</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- Gọi hàng tháng qua pg_cron hoặc external scheduler:</span>
+<span class="kw">SELECT</span> <span class="fn">create_audit_partition</span>(<span class="fn">NOW</span>() + <span class="kw">INTERVAL</span> <span class="s">'1 month'</span>);
+
+<span class="cm">-- ── Retire old partitions (nhanh hơn DELETE nhiều triệu rows) ────────</span>
+<span class="cm">-- Option 1: DETACH để giữ data nhưng tách khỏi parent</span>
+<span class="kw">ALTER TABLE</span> audit_logs
+    <span class="kw">DETACH PARTITION</span> audit_logs_2022_01
+    <span class="kw">CONCURRENTLY</span>;    <span class="cm">-- PG14+: DETACH không lock</span>
+
+<span class="cm">-- Option 2: DROP partition → free disk ngay lập tức</span>
+<span class="kw">DROP TABLE</span> audit_logs_2022_01;  <span class="cm">-- cực nhanh, không cần vacuum</span>
+
+<span class="cm">-- ── LIST Partitioning theo region ─────────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> orders_regional (
+    order_id   <span class="tp">BIGSERIAL</span>,
+    region     <span class="tp">TEXT NOT NULL</span>,
+    ...
+    <span class="kw">PRIMARY KEY</span> (order_id, region)
+) <span class="kw">PARTITION BY LIST</span> (region);
+
+<span class="kw">CREATE TABLE</span> orders_vn  <span class="kw">PARTITION OF</span> orders_regional <span class="kw">FOR VALUES IN</span> (<span class="s">'VN'</span>);
+<span class="kw">CREATE TABLE</span> orders_sg  <span class="kw">PARTITION OF</span> orders_regional <span class="kw">FOR VALUES IN</span> (<span class="s">'SG'</span>, <span class="s">'MY'</span>);
+<span class="kw">CREATE TABLE</span> orders_th  <span class="kw">PARTITION OF</span> orders_regional <span class="kw">FOR VALUES IN</span> (<span class="s">'TH'</span>, <span class="s">'ID'</span>);
+<span class="kw">CREATE TABLE</span> orders_rest <span class="kw">PARTITION OF</span> orders_regional <span class="kw">DEFAULT</span>;</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Partition key phải trong PRIMARY KEY</strong>: đây là yêu cầu của PostgreSQL declarative partitioning — không thể có unique constraint chỉ trên non-partition columns. <strong>DEFAULT partition</strong>: luôn tạo DEFAULT để tránh lỗi khi data không khớp partition nào. Khi tạo partition mới, PostgreSQL phải verify DEFAULT không có data conflict. <strong>DROP TABLE vs DELETE</strong>: DROP partition là O(1) metadata operation, DELETE là O(N) với vacuum sau đó. Với time-series data, DROP old partition tiết kiệm hàng giờ maintenance. <strong>DETACH CONCURRENTLY (PG14+)</strong>: DETACH thường yêu cầu lock ngắn; CONCURRENTLY không lock nhưng cần 2 phase.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ HASH PARTITIONING ══════════ -->
+<section class="sec" id="s-part-hash">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">Hash Partitioning</div>
+         <div class="ss">Even distribution, sub-partitioning, cross-partition queries</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 5.2 — Hash partitioning cho user data + sub-partitioning</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Hệ thống có 100M users phân phối đều và không có tính chất time-series hay regional. Cần chia đều data để parallel processing và giảm kích thước từng partition (index fits in memory). Hash partitioning phân phối đều nhất, kết hợp sub-partitioning để có granularity tốt hơn.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">hash_partitioning.sql</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Hash Partitioning: 8 partitions ──────────────────────────────────</span>
+<span class="kw">CREATE TABLE</span> user_activities (
+    activity_id <span class="tp">BIGSERIAL</span>,
+    user_id     <span class="tp">BIGINT NOT NULL</span>,
+    action      <span class="tp">TEXT NOT NULL</span>,
+    metadata    <span class="tp">JSONB</span>,
+    created_at  <span class="tp">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>(),
+    <span class="kw">PRIMARY KEY</span> (activity_id, user_id)
+) <span class="kw">PARTITION BY HASH</span> (user_id);   <span class="cm">-- hash của user_id</span>
+
+<span class="cm">-- Tạo 8 partitions (MODULUS = tổng partitions, REMAINDER = partition index)</span>
+<span class="kw">CREATE TABLE</span> user_activities_0 <span class="kw">PARTITION OF</span> user_activities
+    <span class="kw">FOR VALUES WITH</span> (MODULUS <span class="n">8</span>, REMAINDER <span class="n">0</span>);
+<span class="kw">CREATE TABLE</span> user_activities_1 <span class="kw">PARTITION OF</span> user_activities
+    <span class="kw">FOR VALUES WITH</span> (MODULUS <span class="n">8</span>, REMAINDER <span class="n">1</span>);
+<span class="cm">-- ... tương tự cho 2,3,4,5,6,7</span>
+
+<span class="cm">-- ── Sub-partitioning: Hash by user_id → Range by month ────────────────</span>
+<span class="kw">CREATE TABLE</span> orders_partitioned (
+    order_id    <span class="tp">BIGSERIAL</span>,
+    user_id     <span class="tp">BIGINT NOT NULL</span>,
+    total       <span class="tp">NUMERIC</span>,
+    created_at  <span class="tp">TIMESTAMPTZ NOT NULL DEFAULT NOW</span>(),
+    <span class="kw">PRIMARY KEY</span> (order_id, user_id, created_at)
+) <span class="kw">PARTITION BY HASH</span> (user_id);
+
+<span class="cm">-- Level 1: 4 hash partitions</span>
+<span class="kw">CREATE TABLE</span> orders_h0
+    <span class="kw">PARTITION OF</span> orders_partitioned
+    <span class="kw">FOR VALUES WITH</span> (MODULUS <span class="n">4</span>, REMAINDER <span class="n">0</span>)
+    <span class="kw">PARTITION BY RANGE</span> (created_at);  <span class="cm">-- sub-partition!</span>
+
+<span class="cm">-- Level 2: Range sub-partitions bên trong hash partition</span>
+<span class="kw">CREATE TABLE</span> orders_h0_2024_01
+    <span class="kw">PARTITION OF</span> orders_h0
+    <span class="kw">FOR VALUES FROM</span> (<span class="s">'2024-01-01'</span>) <span class="kw">TO</span> (<span class="s">'2024-02-01'</span>);
+
+<span class="cm">-- ── Cross-partition queries: planner dùng parallel workers ───────────</span>
+<span class="kw">SET</span> max_parallel_workers_per_gather = <span class="n">4</span>;
+<span class="kw">SET</span> enable_partitionwise_aggregate = <span class="kw">on</span>;  <span class="cm">-- aggregate per partition</span>
+<span class="kw">SET</span> enable_partitionwise_join = <span class="kw">on</span>;       <span class="cm">-- join per matching partitions</span>
+
+<span class="cm">-- Partition-wise join: nếu hai bảng partition bởi cùng key,
+-- PostgreSQL join từng pair partition tương ứng song song</span>
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">VERBOSE</span>)
+<span class="kw">SELECT</span> u.user_id, <span class="fn">COUNT</span>(*) <span class="kw">AS</span> activity_count
+<span class="kw">FROM</span> users u
+<span class="kw">JOIN</span> user_activities ua <span class="kw">USING</span> (user_id)
+<span class="kw">GROUP BY</span> u.user_id;
+<span class="cm">-- Expected: Partitioned Hash Join (if both tables hash by user_id)</span>
+
+<span class="cm">-- ── pg_partman: production-grade partition management ─────────────────</span>
+<span class="cm">-- Extension tự động tạo/drop partitions theo schedule:
+-- CREATE EXTENSION pg_partman;
+-- SELECT partman.create_parent(
+--     p_parent_table   => 'public.audit_logs',
+--     p_partition_col  => 'created_at',
+--     p_type           => 'range',
+--     p_interval       => 'monthly',
+--     p_premake        => 3  -- tạo trước 3 partitions
+-- );</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Hash partitioning không hỗ trợ partition pruning với range queries</strong> — chỉ prune được khi filter chính xác bằng partition key (equality). Với range queries trên hash partitioned table → scan tất cả partitions. <strong>enable_partitionwise_join</strong>: cực kỳ hiệu quả khi join hai bảng cùng partition strategy và key — optimizer join từng partition pair song song thay vì merge tất cả. <strong>Sub-partitioning</strong>: hữu ích nhưng tăng complexity. Bắt đầu với partitioning đơn giản, chỉ sub-partition khi partition đơn vẫn quá lớn (>50GB). <strong>pg_partman</strong> là extension production-grade tốt nhất cho partition lifecycle management.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ PARTITION EXPERT ══════════ -->
+<section class="sec" id="s-part-expert">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">Expert: Partition Pruning &amp; Maintenance</div>
+         <div class="ss">Pruning verification, foreign keys, attach/detach, statistics</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_partition_maintenance.png" alt="PostgreSQL Declarative Table Partitioning and pg_partman Automatic Maintenance Flow" loading="lazy">
+    <div class="concept-img-caption">Hình 5.1: Cơ chế hoạt động của Partition Pruning ở planner level và tự động bảo trì phân vùng với pg_partman</div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 5.3 — Partition maintenance: attach, detach, foreign keys, vacuum</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">partition_expert.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── 1. Verify partition pruning đang hoạt động ───────────────────────</span>
+<span class="cm">-- enable_partition_pruning phải ON (default):</span>
+<span class="kw">SET</span> enable_partition_pruning = <span class="kw">on</span>;
+
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> audit_logs
+<span class="kw">WHERE</span> created_at >= <span class="s">'2024-03-01'</span> <span class="kw">AND</span> created_at < <span class="s">'2024-04-01'</span>;
+<span class="cm">-- Phải thấy: "Partitions Pruned: 23 out of 24"
+-- Nếu thấy tất cả partitions → predicate không match partition key chính xác
+-- VD: WHERE DATE(created_at) = '2024-03-15' → không prune được!</span>
+
+<span class="cm">-- ── 2. Attach existing table như partition ────────────────────────────</span>
+<span class="cm">-- Load bulk data vào bảng riêng trước (nhanh hơn), sau đó ATTACH</span>
+<span class="kw">CREATE TABLE</span> audit_logs_2024_05_staging (
+    <span class="kw">LIKE</span> audit_logs <span class="kw">INCLUDING ALL</span>
+);
+<span class="cm">-- COPY bulk data vào staging (không trigger partition routing overhead)</span>
+<span class="kw">COPY</span> audit_logs_2024_05_staging <span class="kw">FROM</span> <span class="s">'/data/audit_2024_05.csv'</span> CSV;
+
+<span class="cm">-- Thêm constraint trước khi ATTACH (để planner có thể verify nhanh)</span>
+<span class="kw">ALTER TABLE</span> audit_logs_2024_05_staging
+    <span class="kw">ADD CONSTRAINT</span> chk_range
+    <span class="kw">CHECK</span> (created_at >= <span class="s">'2024-05-01'</span> <span class="kw">AND</span> created_at < <span class="s">'2024-06-01'</span>);
+
+<span class="cm">-- ATTACH: nhanh với constraint đã có (không cần scan toàn bộ)</span>
+<span class="kw">ALTER TABLE</span> audit_logs
+    <span class="kw">ATTACH PARTITION</span> audit_logs_2024_05_staging
+    <span class="kw">FOR VALUES FROM</span> (<span class="s">'2024-05-01'</span>) <span class="kw">TO</span> (<span class="s">'2024-06-01'</span>);
+
+<span class="cm">-- ── 3. Foreign Keys với Partitioned Tables ────────────────────────────</span>
+<span class="cm">-- PG12+: FK từ non-partitioned → partitioned table</span>
+<span class="kw">CREATE TABLE</span> order_items (
+    item_id     <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    order_id    <span class="tp">BIGINT</span>,
+    created_at  <span class="tp">TIMESTAMPTZ</span>,       <span class="cm">-- phải match partition key của orders</span>
+    product_id  <span class="tp">BIGINT</span>,
+    quantity    <span class="tp">INTEGER</span>,
+    <span class="kw">FOREIGN KEY</span> (order_id, created_at)
+        <span class="kw">REFERENCES</span> orders (order_id, created_at)
+        <span class="kw">ON DELETE CASCADE</span>
+);
+<span class="cm">-- Lưu ý: FK phải bao gồm partition key column</span>
+
+<span class="cm">-- ── 4. Statistics per partition ───────────────────────────────────────</span>
+<span class="cm">-- Analyze từng partition riêng thay vì parent (hiệu quả hơn)</span>
+<span class="kw">ANALYZE</span> audit_logs_2024_03;
+
+<span class="cm">-- Check partition sizes:</span>
+<span class="kw">SELECT</span>
+    c.relname <span class="kw">AS</span> partition_name,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_total_relation_size</span>(c.oid)) <span class="kw">AS</span> total_size,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_relation_size</span>(c.oid))       <span class="kw">AS</span> table_size,
+    c.reltuples::BIGINT                              <span class="kw">AS</span> estimated_rows
+<span class="kw">FROM</span> pg_class p
+<span class="kw">JOIN</span> pg_inherits i <span class="kw">ON</span> i.inhparent = p.oid
+<span class="kw">JOIN</span> pg_class c <span class="kw">ON</span> c.oid = i.inhrelid
+<span class="kw">WHERE</span> p.relname = <span class="s">'audit_logs'</span>
+<span class="kw">ORDER BY</span> pg_total_relation_size(c.oid) <span class="kw">DESC</span>;
+
+<span class="cm">-- ── 5. Partition maintenance automation với pg_cron ──────────────────</span>
+<span class="cm">-- CREATE EXTENSION pg_cron;
+-- SELECT cron.schedule(
+--   'create-monthly-partition',
+--   '0 0 20 * *',   -- ngày 20 hàng tháng
+--   $$SELECT create_audit_partition(NOW() + INTERVAL '2 months')$$
+-- );
+-- SELECT cron.schedule(
+--   'drop-old-partitions',
+--   '0 2 1 * *',    -- đầu tháng lúc 2 AM
+--   $$DROP TABLE IF EXISTS audit_logs_||TO_CHAR(NOW()-INTERVAL '25 months','YYYY_MM')$$
+-- );</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Pruning không hoạt động với function trên partition key</strong>: <code>WHERE DATE(created_at) = '2024-03-15'</code> không prune được vì planner không thể determine partition chỉ từ <code>DATE()</code> result. Luôn filter trực tiếp: <code>WHERE created_at BETWEEN ... AND ...</code>. <strong>ATTACH với CHECK constraint</strong> cực kỳ nhanh (milliseconds) vì PostgreSQL tin tưởng constraint đã được verify lúc CREATE — không cần scan. Không có constraint → scan toàn bộ bảng để verify, rất chậm với big table. <strong>Autovacuum per partition</strong>: mỗi partition được vacuum độc lập — đây là lợi thế lớn so với table monolithic. Partition được drop → không cần vacuum, disk free ngay.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ 06: JSONB ══════════ -->
+<section class="sec" id="s-json-intro">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">JSONB — Operators &amp; Functions</div>
+         <div class="ss">Binary JSON storage, operators, jsonpath (PG12+)</div></div>
+    <span class="badge bb">CƠ BẢN → NÂNG CAO</span>
+  </div>
+
+  <div class="cb">
+    <div class="cb-l">💡 JSON vs JSONB</div>
+    <div class="cb-t">Luôn dùng JSONB trong production</div>
+    <p class="p"><strong>JSON</strong> lưu text nguyên bản, preserve whitespace và key order. <strong>JSONB</strong> lưu dạng binary đã parsed — nhanh hơn khi query, hỗ trợ indexing, tự động deduplicate keys. Trừ khi cần preserve key order chính xác, luôn dùng JSONB.</p>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 6.1 — JSONB operators đầy đủ: extraction, containment, jsonpath</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">jsonb_operators.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">CREATE TABLE</span> products (
+    id          <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    name        <span class="tp">TEXT NOT NULL</span>,
+    attributes  <span class="tp">JSONB NOT NULL</span>,
+    tags        <span class="tp">TEXT[]</span>
+);
+
+<span class="kw">INSERT INTO</span> products (name, attributes) <span class="kw">VALUES</span>
+(<span class="s">'iPhone 15'</span>, <span class="s">'{"brand":"Apple","price":29000000,"colors":["black","white","blue"],"specs":{"ram":6,"storage":128},"in_stock":true}'</span>),
+(<span class="s">'MacBook Pro'</span>, <span class="s">'{"brand":"Apple","price":55000000,"colors":["silver","space_gray"],"specs":{"ram":16,"storage":512},"in_stock":false}'</span>);
+
+<span class="cm">-- ── Extraction operators ──────────────────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    attributes-><span class="s">'brand'</span>           <span class="kw">AS</span> brand_json,    <span class="cm">-- returns JSONB: "Apple"</span>
+    attributes->><span class="s">'brand'</span>          <span class="kw">AS</span> brand_text,    <span class="cm">-- returns TEXT: Apple</span>
+    attributes->><span class="s">'price'</span>          <span class="kw">AS</span> price_text,
+    (attributes->><span class="s">'price'</span>)::<span class="tp">NUMERIC</span> <span class="kw">AS</span> price_num,  <span class="cm">-- cast to numeric</span>
+    attributes-><span class="s">'colors'</span>->>0     <span class="kw">AS</span> first_color,   <span class="cm">-- array element 0</span>
+    attributes-><span class="s">'specs'</span>->><span class="s">'ram'</span>  <span class="kw">AS</span> ram_gb,        <span class="cm">-- nested path</span>
+    <span class="fn">jsonb_extract_path_text</span>(attributes, <span class="s">'specs'</span>, <span class="s">'storage'</span>) <span class="kw">AS</span> storage
+<span class="kw">FROM</span> products;
+
+<span class="cm">-- ── Containment operators ─────────────────────────────────────────────</span>
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes @> <span class="s">'{"brand":"Apple","in_stock":true}'</span>;
+<span class="cm">-- @>: "contains" — left-hand JSONB contains all key-value pairs in right-hand</span>
+<span class="cm">-- Dùng GIN index!</span>
+
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes @> <span class="s">'{"colors":["blue"]}'</span>;  <span class="cm">-- check array element</span>
+
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products <span class="kw">WHERE</span> attributes ? <span class="s">'discount'</span>;     <span class="cm">-- key exists</span>
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products <span class="kw">WHERE</span> attributes ?| ARRAY[<span class="s">'discount'</span>,<span class="s">'sale'</span>];  <span class="cm">-- any key</span>
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products <span class="kw">WHERE</span> attributes ?& ARRAY[<span class="s">'brand'</span>,<span class="s">'price'</span>];   <span class="cm">-- all keys</span>
+
+<span class="cm">-- ── jsonpath (PG12+): XPath-like cho JSONB ────────────────────────────</span>
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes @? <span class="s">'$.colors[*] ? (@ == "blue")'</span>;   <span class="cm">-- array contains blue</span>
+
+<span class="kw">SELECT</span> name <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes @? <span class="s">'$.specs.ram ? (@ > 8)'</span>;         <span class="cm">-- ram > 8</span>
+
+<span class="cm">-- jsonb_path_query: extract với jsonpath</span>
+<span class="kw">SELECT</span>
+    name,
+    <span class="fn">JSONB_PATH_QUERY_ARRAY</span>(attributes, <span class="s">'$.colors[*]'</span>) <span class="kw">AS</span> all_colors,
+    <span class="fn">JSONB_PATH_QUERY_FIRST</span>(attributes, <span class="s">'$.specs.ram'</span>)  <span class="kw">AS</span> ram
+<span class="kw">FROM</span> products;
+
+<span class="cm">-- ── Modify JSONB ──────────────────────────────────────────────────────</span>
+<span class="cm">-- JSONB_SET: update một path trong JSONB</span>
+<span class="kw">UPDATE</span> products
+<span class="kw">SET</span> attributes = <span class="fn">JSONB_SET</span>(
+    attributes,
+    <span class="s">'{price}'</span>::TEXT[],           <span class="cm">-- path</span>
+    <span class="s">'28000000'</span>::<span class="tp">JSONB</span>,            <span class="cm">-- new value</span>
+    <span class="kw">TRUE</span>                          <span class="cm">-- create_if_missing</span>
+)
+<span class="kw">WHERE</span> name = <span class="s">'iPhone 15'</span>;
+
+<span class="cm">-- || operator: merge hai JSONB objects</span>
+<span class="kw">UPDATE</span> products
+<span class="kw">SET</span> attributes = attributes || <span class="s">'{"discount":0.1,"promo_ends":"2024-12-31"}'</span>
+<span class="kw">WHERE</span> id = <span class="n">1</span>;
+
+<span class="cm">-- - operator: remove key</span>
+<span class="kw">UPDATE</span> products
+<span class="kw">SET</span> attributes = attributes - <span class="s">'discount'</span>
+<span class="kw">WHERE</span> id = <span class="n">1</span>;
+
+<span class="cm">-- #- operator: remove nested path</span>
+<span class="kw">UPDATE</span> products
+<span class="kw">SET</span> attributes = attributes #- <span class="s">'{specs,ram}'</span>
+<span class="kw">WHERE</span> id = <span class="n">1</span>;</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>-&gt; vs -&gt;&gt;</strong>: <code>-&gt;</code> trả JSONB (dùng khi cần tiếp tục traverse), <code>-&gt;&gt;</code> trả TEXT (dùng khi cần giá trị cuối, cần cast). <strong>JSONB_SET không phải atomic operation</strong> — nếu nhiều transactions cùng update JSONB field, cuối cùng thắng. Với concurrent updates, cần optimistic locking hoặc dùng column riêng thay vì JSONB nested field. <strong>jsonpath (PG12+)</strong> mạnh hơn operator cổ điển nhưng phức tạp hơn — hỗ trợ filters, arithmetic, string functions trong path expression. <code>@?</code> là "does path exist?" còn <code>@@</code> là "does predicate hold?".</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ GIN INDEX ══════════ -->
+<section class="sec" id="s-json-index">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">GIN Index cho JSONB</div>
+         <div class="ss">jsonb_ops vs jsonb_path_ops, partial GIN, performance</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 6.2 — GIN index strategy cho JSONB: từ basic đến expression GIN</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">gin_jsonb_index.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── 1. GIN jsonb_ops (default) — full JSONB index ────────────────────</span>
+<span class="kw">CREATE INDEX</span> idx_products_gin_full
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN (attributes);
+<span class="cm">-- Hỗ trợ: @>, <@, ?, ?|, ?&
+-- Kích thước: lớn hơn jsonb_path_ops ~20-30%</span>
+
+<span class="cm">-- ── 2. GIN jsonb_path_ops — nhỏ hơn, chỉ @> ─────────────────────────</span>
+<span class="kw">CREATE INDEX</span> idx_products_gin_path
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN (attributes jsonb_path_ops);
+<span class="cm">-- Chỉ hỗ trợ: @> và @?
+-- Nhỏ hơn 20-30%, nhanh hơn một chút khi chỉ dùng @></span>
+
+<span class="cm">-- ── 3. Expression GIN cho specific JSONB path ─────────────────────────</span>
+<span class="cm">-- Vấn đề: GIN toàn bộ JSONB lớn, nhưng chỉ query trên 1 field</span>
+<span class="kw">CREATE INDEX</span> idx_products_brand
+<span class="kw">ON</span> products ((attributes->><span class="s">'brand'</span>));    <span class="cm">-- B-Tree trên một field</span>
+
+<span class="cm">-- Nếu field là JSONB object/array, dùng GIN expression:</span>
+<span class="kw">CREATE INDEX</span> idx_products_colors_gin
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN ((attributes-><span class="s">'colors'</span>));  <span class="cm">-- GIN cho array field</span>
+
+<span class="cm">-- Query dùng expression index:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes-><span class="s">'colors'</span> @> <span class="s">'["blue"]'</span>;   <span class="cm">-- dùng idx_products_colors_gin</span>
+
+<span class="cm">-- ── 4. Partial GIN: chỉ index active products ────────────────────────</span>
+<span class="kw">CREATE INDEX</span> idx_active_products_gin
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN (attributes)
+<span class="kw">WHERE</span> (attributes->><span class="s">'in_stock'</span>)::BOOLEAN = <span class="kw">TRUE</span>;
+
+<span class="cm">-- ── 5. GIN maintenance: fastupdate ───────────────────────────────────</span>
+<span class="cm">-- GIN dùng "pending list" để batch updates (fastupdate=on default)
+-- Có thể gây "index cleanup" pause — disable cho read-heavy tables</span>
+<span class="kw">CREATE INDEX</span> idx_products_gin_nofastupdate
+<span class="kw">ON</span> products <span class="kw">USING</span> GIN (attributes)
+<span class="kw">WITH</span> (fastupdate = off);
+
+<span class="cm">-- Manually flush pending list (sau bulk insert):</span>
+<span class="kw">SELECT</span> <span class="fn">gin_clean_pending_list</span>(<span class="s">'idx_products_gin_full'</span>::REGCLASS);
+
+<span class="cm">-- ── 6. Verify index usage với EXPLAIN ─────────────────────────────────</span>
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> attributes @> <span class="s">'{"brand":"Apple"}'</span>;
+<span class="cm">-- Expected: Bitmap Index Scan on idx_products_gin_full (GIN)
+--           → Bitmap Heap Scan on products</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>GIN build chậm, search nhanh</strong>: GIN index chậm hơn B-Tree 3–10× khi build và update, nhưng search nhanh hơn nhiều cho containment/existence queries. Với high-update tables, cân nhắc trade-off. <strong>fastupdate = on (default)</strong>: GIN batch nhiều updates vào "pending list" trước khi integrate — làm writes nhanh hơn nhưng đôi khi trigger cleanup pause. Nếu latency spikes quan trọng hơn throughput: <code>fastupdate = off</code>. <strong>Chọn index theo operator thực tế dùng</strong>: nếu chỉ dùng <code>@&gt;</code> và <code>?</code> → <code>jsonb_path_ops</code>. Nếu dùng <code>?|</code>, <code>?&amp;</code> → cần <code>jsonb_ops</code> (default).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ FULL-TEXT SEARCH ══════════ -->
+<section class="sec" id="s-fts-intro">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">Full-Text Search</div>
+         <div class="ss">tsvector, tsquery, GIN index, ranking, highlighting</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 6.3 — Full-Text Search production-ready với ranking &amp; highlighting</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Hệ thống e-commerce cần tìm kiếm sản phẩm theo từ khóa, hỗ trợ tiếng Việt và tiếng Anh, kết quả phải ranked theo relevance (tên sản phẩm match quan trọng hơn mô tả), highlight từ khóa trong kết quả. Cần hiệu năng cao với hàng triệu sản phẩm.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">full_text_search.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Setup: tsvector generated column (PG12+) ─────────────────────────</span>
+<span class="kw">ALTER TABLE</span> products
+    <span class="kw">ADD COLUMN</span> search_vector <span class="tp">TSVECTOR</span>
+        <span class="kw">GENERATED ALWAYS AS</span> (
+            <span class="cm">-- Weighted: 'A' (highest) cho name, 'B' cho description
+            -- setweight() đánh trọng số để ts_rank ưu tiên field quan trọng</span>
+            <span class="fn">setweight</span>(<span class="fn">to_tsvector</span>(<span class="s">'english'</span>, <span class="fn">COALESCE</span>(name, <span class="s">''</span>)), <span class="s">'A'</span>)
+            ||
+            <span class="fn">setweight</span>(<span class="fn">to_tsvector</span>(<span class="s">'english'</span>, <span class="fn">COALESCE</span>(description, <span class="s">''</span>)), <span class="s">'B'</span>)
+        ) <span class="kw">STORED</span>;
+
+<span class="kw">CREATE INDEX</span> idx_products_fts <span class="kw">ON</span> products <span class="kw">USING</span> GIN (search_vector);
+
+<span class="cm">-- ── Query: tìm kiếm với ranking ──────────────────────────────────────</span>
+<span class="kw">SELECT</span>
+    name,
+    <span class="fn">ts_rank</span>(search_vector, query)      <span class="kw">AS</span> rank,
+    <span class="fn">ts_rank_cd</span>(search_vector, query)   <span class="kw">AS</span> rank_cover_density,
+    <span class="fn">ts_headline</span>(                       <span class="cm">-- highlight matching terms</span>
+        <span class="s">'english'</span>,
+        description,
+        query,
+        <span class="s">'MaxWords=25,MinWords=10,StartSel=&lt;mark&gt;,StopSel=&lt;/mark&gt;'</span>
+    ) <span class="kw">AS</span> highlighted
+<span class="kw">FROM</span>
+    products,
+    <span class="fn">plainto_tsquery</span>(<span class="s">'english'</span>, <span class="s">'apple smartphone'</span>) query
+<span class="kw">WHERE</span> search_vector @@ query
+<span class="kw">ORDER BY</span> rank <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">20</span>;
+
+<span class="cm">-- ── tsquery variations ────────────────────────────────────────────────</span>
+<span class="cm">-- plainto_tsquery: "apple smartphone" → 'apple' & 'smartphone'</span>
+<span class="cm">-- phraseto_tsquery: "apple smartphone" → 'apple' <-> 'smartphone' (adjacent)</span>
+<span class="cm">-- to_tsquery: manual, supports &, |, !, &lt;->: 'apple & !android'</span>
+<span class="cm">-- websearch_to_tsquery (PG11+): Google-like: 'apple -android OR iphone'</span>
+
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> products
+<span class="kw">WHERE</span> search_vector @@
+    <span class="fn">websearch_to_tsquery</span>(<span class="s">'english'</span>, <span class="s">'apple -android'</span>);
+
+<span class="cm">-- ── Multi-language support ────────────────────────────────────────────</span>
+<span class="cm">-- Với tiếng Việt (không dấu/có dấu): dùng unaccent extension</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> unaccent;
+<span class="kw">CREATE TEXT SEARCH CONFIGURATION</span> vietnamese (COPY = simple);
+<span class="kw">ALTER TEXT SEARCH CONFIGURATION</span> vietnamese
+    <span class="kw">ALTER MAPPING FOR</span> hword, hword_part, word <span class="kw">WITH</span> unaccent, simple;
+
+<span class="cm">-- Index với cấu hình Vietnamese:</span>
+<span class="kw">ALTER TABLE</span> products
+    <span class="kw">ADD COLUMN</span> search_vector_vi <span class="tp">TSVECTOR</span>
+    <span class="kw">GENERATED ALWAYS AS</span> (
+        <span class="fn">to_tsvector</span>(<span class="s">'vietnamese'</span>, <span class="fn">COALESCE</span>(name, <span class="s">''</span>) || <span class="s">' '</span> || <span class="fn">COALESCE</span>(description, <span class="s">''</span>))
+    ) <span class="kw">STORED</span>;
+
+<span class="cm">-- ── Hybrid search: FTS + similarity score ────────────────────────────</span>
+<span class="kw">SELECT</span>
+    name,
+    <span class="fn">ts_rank</span>(search_vector, query) * <span class="n">0.7</span>
+    + <span class="fn">SIMILARITY</span>(name, <span class="s">'iphon'</span>) * <span class="n">0.3</span>       <span class="cm">-- fuzzy bonus</span>
+    <span class="kw">AS</span> hybrid_score
+<span class="kw">FROM</span> products,
+     <span class="fn">plainto_tsquery</span>(<span class="s">'english'</span>, <span class="s">'iphone'</span>) query
+<span class="kw">WHERE</span> search_vector @@ query
+   <span class="kw">OR</span> <span class="fn">SIMILARITY</span>(name, <span class="s">'iphon'</span>) > <span class="n">0.3</span>    <span class="cm">-- fuzzy fallback</span>
+<span class="kw">ORDER BY</span> hybrid_score <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">20</span>;</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>GENERATED ALWAYS AS ... STORED</strong> (PG12+): computed column tự động cập nhật khi row thay đổi — không cần trigger. Cách clean nhất để maintain tsvector. <strong>Weighted search</strong>: <code>setweight(vec, 'A')</code> → weight A = 1.0, B = 0.4, C = 0.2, D = 0.1. <code>ts_rank</code> tính điểm dựa trên weights — match trong 'A' field quan trọng hơn 'B'. <strong>ts_headline chậm</strong>: không index được, chạy linear trên document text. Chỉ dùng cho kết quả cuối (sau LIMIT), không dùng trong WHERE. <strong>Tiếng Việt</strong>: PostgreSQL không có built-in Vietnamese dictionary. Dùng <code>unaccent + simple</code> để normalize (bỏ dấu), hoặc xem xét Meilisearch/Typesense cho FTS chuyên sâu tiếng Việt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ JSON EXPERT ══════════ -->
+<section class="sec" id="s-json-expert">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">Expert: Schema-less Document Patterns</div>
+         <div class="ss">EAV replacement, versioned schema, JSONB aggregation</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_jsonb_fts.png" alt="PostgreSQL JSONB parsing, GIN indexing and Full-Text Search FTS engine pipeline details" loading="lazy">
+    <div class="concept-img-caption">Hình 6.1: Quy trình phân tích cú pháp JSONB, chỉ mục hóa GIN và luồng xử lý văn bản tìm kiếm Full-Text Search</div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 6.4 — JSONB cho versioned product catalog với schema evolution</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">jsonb_schema_evolution.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Pattern: Semi-structured catalog với typed extraction ────────────</span>
+<span class="kw">CREATE TABLE</span> product_catalog (
+    id            <span class="tp">BIGSERIAL PRIMARY KEY</span>,
+    sku           <span class="tp">TEXT UNIQUE NOT NULL</span>,
+    category      <span class="tp">TEXT NOT NULL</span>,
+    base_price    <span class="tp">NUMERIC NOT NULL</span>,          <span class="cm">-- typed column (fast query)</span>
+    in_stock      <span class="tp">BOOLEAN NOT NULL DEFAULT TRUE</span>, <span class="cm">-- typed (indexed easily)</span>
+    attributes    <span class="tp">JSONB NOT NULL DEFAULT</span> <span class="s">'{}'</span>,  <span class="cm">-- flexible per-category data</span>
+    schema_ver    <span class="tp">SMALLINT NOT NULL DEFAULT</span> <span class="n">1</span>,   <span class="cm">-- schema versioning</span>
+    created_at    <span class="tp">TIMESTAMPTZ DEFAULT NOW</span>()
+);
+
+<span class="cm">-- Check constraint: validate JSONB structure per category</span>
+<span class="kw">ALTER TABLE</span> product_catalog
+    <span class="kw">ADD CONSTRAINT</span> chk_electronics_attrs
+    <span class="kw">CHECK</span> (
+        category != <span class="s">'electronics'</span>
+        <span class="kw">OR</span> (
+            attributes ? <span class="s">'warranty_months'</span>     <span class="cm">-- required field</span>
+            <span class="kw">AND</span> (attributes->><span class="s">'warranty_months'</span>)::INT > <span class="n">0</span>
+        )
+    );
+
+<span class="cm">-- ── Schema migration trong JSONB (không cần ALTER TABLE) ──────────────</span>
+<span class="cm">-- v1: {"ram": 6, "storage": 128}
+-- v2: {"memory_gb": 6, "storage_gb": 128, "storage_type": "NVMe"}</span>
+<span class="kw">CREATE OR REPLACE FUNCTION</span> <span class="fn">migrate_attributes_v1_to_v2</span>()
+<span class="kw">RETURNS VOID LANGUAGE</span> plpgsql AS $$
+<span class="kw">BEGIN</span>
+    <span class="kw">UPDATE</span> product_catalog
+    <span class="kw">SET</span>
+        attributes = (attributes - <span class="s">'ram'</span> - <span class="s">'storage'</span>)   <span class="cm">-- remove old keys</span>
+            || <span class="fn">JSONB_BUILD_OBJECT</span>(
+                <span class="s">'memory_gb'</span>,    attributes->><span class="s">'ram'</span>,
+                <span class="s">'storage_gb'</span>,   attributes->><span class="s">'storage'</span>,
+                <span class="s">'storage_type'</span>, <span class="s">'NVMe'</span>
+            ),
+        schema_ver = <span class="n">2</span>
+    <span class="kw">WHERE</span> category = <span class="s">'electronics'</span>
+      <span class="kw">AND</span> schema_ver = <span class="n">1</span>
+      <span class="kw">AND</span> attributes ? <span class="s">'ram'</span>;
+
+    <span class="kw">RAISE NOTICE</span> <span class="s">'Migrated % products to schema v2'</span>, <span class="fn">ROW_COUNT</span>;
+<span class="kw">END</span>;
+$$;
+
+<span class="cm">-- ── JSONB Aggregation: dynamic pivot ─────────────────────────────────</span>
+<span class="cm">-- Tổng hợp attributes statistics per category</span>
+<span class="kw">SELECT</span>
+    category,
+    <span class="fn">COUNT</span>(*) <span class="kw">AS</span> product_count,
+    <span class="fn">JSONB_OBJECT_AGG</span>(
+        key, avg_val
+    ) <span class="kw">AS</span> avg_numeric_attrs
+<span class="kw">FROM</span> (
+    <span class="kw">SELECT</span>
+        p.category,
+        attr.key,
+        <span class="fn">AVG</span>((attr.value)::NUMERIC) <span class="kw">AS</span> avg_val
+    <span class="kw">FROM</span> product_catalog p,
+         <span class="fn">JSONB_EACH_TEXT</span>(p.attributes) attr
+    <span class="kw">WHERE</span> attr.value ~ <span class="s">'^[0-9]+(\.[0-9]+)?$'</span>  <span class="cm">-- chỉ numeric values</span>
+    <span class="kw">GROUP BY</span> p.category, attr.key
+) agg
+<span class="kw">GROUP BY</span> category;
+
+<span class="cm">-- ── JSONB unpivot: flatten attributes thành rows ──────────────────────</span>
+<span class="kw">SELECT</span>
+    p.sku,
+    p.category,
+    attr.key   <span class="kw">AS</span> attribute_name,
+    attr.value <span class="kw">AS</span> attribute_value
+<span class="kw">FROM</span> product_catalog p,
+     <span class="fn">JSONB_EACH_TEXT</span>(p.attributes) attr   <span class="cm">-- LATERAL implicit</span>
+<span class="kw">WHERE</span> p.category = <span class="s">'electronics'</span>
+<span class="kw">ORDER BY</span> p.sku, attr.key;
+
+<span class="cm">-- ── Build JSONB từ query result: JSON API response ────────────────────</span>
+<span class="kw">SELECT</span>
+    <span class="fn">JSONB_BUILD_OBJECT</span>(
+        <span class="s">'total'</span>, <span class="fn">COUNT</span>(*),
+        <span class="s">'items'</span>, <span class="fn">JSONB_AGG</span>(
+            <span class="fn">JSONB_BUILD_OBJECT</span>(
+                <span class="s">'id'</span>,       p.id,
+                <span class="s">'sku'</span>,      p.sku,
+                <span class="s">'name'</span>,     p.name,
+                <span class="s">'price'</span>,    p.base_price,
+                <span class="s">'attrs'</span>,    p.attributes
+            ) <span class="kw">ORDER BY</span> p.base_price
+        )
+    ) <span class="kw">AS</span> api_response
+<span class="kw">FROM</span> product_catalog p
+<span class="kw">WHERE</span> p.in_stock = <span class="kw">TRUE</span>
+  <span class="kw">AND</span> p.category = <span class="s">'electronics'</span>;
+<span class="cm">-- Trả về JSON response ngay từ DB, không cần serialize từ application</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>JSONB + typed columns hybrid</strong>: Best practice là dùng typed columns cho fields query thường xuyên (base_price, in_stock, category) và JSONB cho flexible, per-category attributes. Không nên JSONB everything — typed columns có better query performance, stronger constraints, và smaller footprint. <strong>schema_ver column</strong>: pattern quan trọng khi JSONB schema evolve — biết row đang ở schema version nào để có thể migrate dần dần mà không cần downtime. <strong>JSONB_AGG trong SELECT</strong>: xây dựng JSON response trực tiếp trong database giảm data transfer và serialization overhead ở application — pattern tốt cho API endpoints đơn giản.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ QUERY OPTIMIZATION ══════════ -->
+<section class="sec" id="s-qopt-explain">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Query Optimization — EXPLAIN ANALYZE</div>
+         <div class="ss">Đọc execution plan, node types, buffer stats</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 7.1 — Đọc EXPLAIN ANALYZE: từ Seq Scan đến Index-Only Scan</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Query chậm trong production. Cần đọc EXPLAIN ANALYZE output để xác định bottleneck: đang dùng Seq Scan hay Index Scan, cost estimate có chính xác không, buffers ở đâu, nested loop hay hash join. Kỹ năng đọc execution plan là bắt buộc cho mọi PostgreSQL developer.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">explain_analyze.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── EXPLAIN options: dùng đầy đủ để có thông tin tối đa ─────────────</span>
+<span class="kw">EXPLAIN</span> (
+    <span class="kw">ANALYZE</span>,    <span class="cm">-- thực sự chạy query, show actual time</span>
+    <span class="kw">BUFFERS</span>,    <span class="cm">-- show buffer stats (hit/read/written)</span>
+    <span class="kw">VERBOSE</span>,    <span class="cm">-- thêm output columns, schema names</span>
+    <span class="kw">FORMAT JSON</span> <span class="cm">-- JSON format: dùng với explain.dalibo.com</span>
+)
+<span class="kw">SELECT</span> o.order_id, o.total, c.email
+<span class="kw">FROM</span> orders o
+<span class="kw">JOIN</span> customers c <span class="kw">ON</span> c.id = o.customer_id
+<span class="kw">WHERE</span> o.created_at > NOW() - <span class="kw">INTERVAL</span> <span class="s">'7 days'</span>
+  <span class="kw">AND</span> o.status = <span class="s">'pending'</span>;
+
+<span class="cm">-- ── Đọc output EXPLAIN — chú ý các node quan trọng: ──────────────────
+
+-- Seq Scan on orders  (cost=0.00..45230.00 rows=125 width=40)
+--           ────────          ─────────── ──────
+--           Table name        Estimated   Estimated
+--           (no index)        total cost  result rows
+--
+-- (actual time=0.025..892.500 rows=123 loops=1)
+--              ─────── ─────── ─────── ──────
+--              First    Last    Actual  Loop
+--              row      row     rows    count
+--              time     time
+
+-- KEY INDICATORS của vấn đề performance:
+-- 1. Seq Scan trên table lớn → thiếu index
+-- 2. rows=125 (estimate) vs rows=123 (actual): accurate ✓
+-- 3. rows=1000 (estimate) vs rows=50000 (actual): inaccurate → ANALYZE table!
+-- 4. Nested Loop với nhiều vòng (loops=50000): chậm với big data
+-- 5. Hash Join: tốt cho large datasets
+-- 6. Buffers: hit=0 read=50000 → nhiều disk I/O, cần warm cache</span>
+
+<span class="cm">-- ── Xác định slow node trong plan tree ───────────────────────────────</span>
+<span class="cm">-- Node với actual time cao nhất là bottleneck
+-- Kiểm tra: actual rows vs estimated rows
+--   Lệch nhiều (>10x) → statistics cũ → chạy ANALYZE
+-- Filter Removed: cao → poor selectivity → cần better index</span>
+
+<span class="cm">-- ── So sánh plan trước/sau khi thêm index ────────────────────────────</span>
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>, <span class="kw">BUFFERS</span>)
+<span class="kw">SELECT</span> order_id, total
+<span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> customer_id = <span class="n">12345</span> <span class="kw">AND</span> status = <span class="s">'pending'</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">10</span>;
+
+<span class="cm">-- BEFORE: Seq Scan (cost=0..450000 actual=0..800, rows=10, loops=1)
+--   Filter: (customer_id=12345 AND status='pending')
+--   Rows Removed by Filter: 49990
+--   Buffers: hit=0 read=12500 (50MB disk read!)
+
+-- AFTER adding: CREATE INDEX ON orders(customer_id, status, created_at DESC)
+--   Index Scan on idx_orders_customer_status
+--   (cost=0.56..8.58 actual=0..0.05 rows=10, loops=1)
+--   Buffers: hit=3 (chỉ 3 buffer pages!)</span>
+
+<span class="cm">-- ── pg_stat_statements: tìm slow queries tổng hợp ────────────────────</span>
+<span class="kw">CREATE EXTENSION IF NOT EXISTS</span> pg_stat_statements;
+
+<span class="kw">SELECT</span>
+    <span class="fn">ROUND</span>(total_exec_time::NUMERIC / calls, <span class="n">2</span>)  <span class="kw">AS</span> avg_ms,
+    calls,
+    <span class="fn">ROUND</span>(total_exec_time::NUMERIC, <span class="n">0</span>)          <span class="kw">AS</span> total_ms,
+    rows / calls                                  <span class="kw">AS</span> avg_rows,
+    <span class="fn">LEFT</span>(query, <span class="n">100</span>)                              <span class="kw">AS</span> query_preview
+<span class="kw">FROM</span> pg_stat_statements
+<span class="kw">WHERE</span> calls > <span class="n">100</span>
+<span class="kw">ORDER BY</span> avg_ms <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">20</span>;</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Workflow tối ưu query</strong>: (1) EXPLAIN FORMAT JSON → paste vào explain.dalibo.com hoặc explain.tensor.ru để visualize, (2) tìm node tốn thời gian nhất, (3) so sánh estimated vs actual rows — lệch &gt;10× → ANALYZE table, (4) thêm index nếu Seq Scan không phù hợp. <strong>Buffers hit vs read</strong>: hit = từ shared_buffers (nhanh), read = từ OS cache hoặc disk (chậm hơn). Nhiều read với table nhỏ → shared_buffers quá nhỏ. <strong>pg_stat_statements</strong> là extension bắt buộc trong production — cho thấy cumulative performance của từng query pattern, không phải từng execution riêng lẻ. Reset sau deploy để baseline mới: <code>SELECT pg_stat_statements_reset()</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ STATISTICS & PLANNER ══════════ -->
+<section class="sec" id="s-qopt-stats">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Statistics &amp; Planner Configuration</div>
+         <div class="ss">ANALYZE, extended statistics, planner GUCs</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 7.2 — Extended Statistics cho correlated columns</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Query với <code>WHERE city = 'Hanoi' AND country = 'VN'</code> — planner estimate sai vì giả định city và country là <em>independent</em> (95% × 95% = 90%). Nhưng thực tế country='VN' đã implicitly filter city vào subset VN cities — chỉ 5% của tổng cities. Kết quả: planner chọn sai join type. Extended statistics dạy planner về correlation giữa columns.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">extended_statistics.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── Vấn đề: planner estimate sai với correlated columns ──────────────</span>
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> addresses
+<span class="kw">WHERE</span> city = <span class="s">'Hanoi'</span> <span class="kw">AND</span> country = <span class="s">'VN'</span>;
+<span class="cm">-- rows=100 (estimate) vs rows=5000 (actual) → sai 50x!</span>
+
+<span class="cm">-- ── CREATE STATISTICS: dạy planner về correlation ────────────────────</span>
+<span class="kw">CREATE STATISTICS</span> stat_address_city_country
+    (dependencies,   <span class="cm">-- functional dependencies: country → city</span>
+     ndistinct,      <span class="cm">-- n_distinct counts across column combinations</span>
+     mcv)            <span class="cm">-- most common value combinations (PG14+)</span>
+<span class="kw">ON</span> city, country
+<span class="kw">FROM</span> addresses;
+
+<span class="kw">ANALYZE</span> addresses;  <span class="cm">-- update statistics sau khi tạo</span>
+
+<span class="cm">-- Verify statistics được tạo:</span>
+<span class="kw">SELECT</span> stxname, stxkind, stxndistinct, stxdependencies
+<span class="kw">FROM</span> pg_statistic_ext
+<span class="kw">JOIN</span> pg_statistic_ext_data <span class="kw">USING</span> (stxoid)
+<span class="kw">WHERE</span> stxrelid = <span class="s">'addresses'</span>::REGCLASS;
+
+<span class="cm">-- Sau ANALYZE: planner estimate chính xác hơn</span>
+<span class="kw">EXPLAIN</span> <span class="kw">SELECT</span> * <span class="kw">FROM</span> addresses
+<span class="kw">WHERE</span> city = <span class="s">'Hanoi'</span> <span class="kw">AND</span> country = <span class="s">'VN'</span>;
+<span class="cm">-- rows=4800 (estimate) vs rows=5000 (actual) → chính xác hơn nhiều ✓</span>
+
+<span class="cm">-- ── Tăng statistics target cho columns có cardinality cao ────────────</span>
+<span class="cm">-- default_statistics_target = 100 (100 values trong histogram)
+-- Với columns có distribution skewed, tăng để planner chính xác hơn</span>
+<span class="kw">ALTER TABLE</span> orders
+    <span class="kw">ALTER COLUMN</span> customer_id
+    <span class="kw">SET STATISTICS</span> <span class="n">500</span>;   <span class="cm">-- tăng từ 100 lên 500 buckets</span>
+
+<span class="kw">ANALYZE</span> orders (customer_id);
+
+<span class="cm">-- ── Planner GUC tuning ────────────────────────────────────────────────</span>
+<span class="cm">-- Tắt một số methods để debug/force planner:</span>
+<span class="kw">SET</span> enable_seqscan = off;          <span class="cm">-- force index usage (debug only)</span>
+<span class="kw">SET</span> enable_hashjoin = off;          <span class="cm">-- force nested loop</span>
+<span class="kw">SET</span> enable_nestloop = off;          <span class="cm">-- force hash join</span>
+
+<span class="cm">-- Cost parameters: adjust theo hardware thực tế</span>
+<span class="kw">SET</span> random_page_cost = <span class="n">1.1</span>;         <span class="cm">-- SSD: giảm từ 4 → 1.1 (gần sequential)</span>
+<span class="kw">SET</span> seq_page_cost = <span class="n">1.0</span>;            <span class="cm">-- default</span>
+<span class="kw">SET</span> cpu_tuple_cost = <span class="n">0.01</span>;          <span class="cm">-- default</span>
+<span class="kw">SET</span> effective_cache_size = <span class="s">'24GB'</span>;  <span class="cm">-- tổng OS + PG cache (ảnh hưởng index vs seqscan decision)</span>
+<span class="kw">SET</span> work_mem = <span class="s">'64MB'</span>;              <span class="cm">-- per sort/hash operation (cẩn thận: mỗi node có thể dùng)</span>
+
+<span class="cm">-- ── Parallel query tuning ─────────────────────────────────────────────</span>
+<span class="kw">SET</span> max_parallel_workers_per_gather = <span class="n">4</span>;
+<span class="kw">SET</span> parallel_setup_cost = <span class="n">1000</span>;     <span class="cm">-- lower → easier to trigger parallel</span>
+<span class="kw">SET</span> parallel_tuple_cost = <span class="n">0.1</span>;
+<span class="kw">SET</span> min_parallel_table_scan_size = <span class="s">'8MB'</span>;  <span class="cm">-- min table size cho parallel</span>
+
+<span class="kw">EXPLAIN</span>(<span class="kw">ANALYZE</span>)
+<span class="kw">SELECT</span> region, <span class="fn">COUNT</span>(*), <span class="fn">SUM</span>(total)
+<span class="kw">FROM</span> orders <span class="kw">GROUP BY</span> region;
+<span class="cm">-- Với max_parallel_workers_per_gather=4:
+-- "Gather" node ở top → parallel scan được dùng</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Extended Statistics là game-changer</strong> với queries có multiple WHERE columns. Tạo cho tất cả các cặp cột thường appear cùng nhau trong WHERE và hiểu là correlated (city+country, product+category, status+created_at). <strong>random_page_cost</strong>: một trong những parameter quan trọng nhất. Với SSD: 1.1–2.0. Với HDD: 4.0 (default). Giá trị sai → planner chọn wrong access method. <strong>work_mem cẩn thận</strong>: SET SESSION work_mem được nhân với số parallel workers + số query plans concurrent. 64MB × 4 workers × 100 queries = 25GB RAM đột biến. Chỉ tăng cho specific sessions cần sort lớn.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ QOPT EXPERT ══════════ -->
+<section class="sec" id="s-qopt-expert">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Expert: Query Rewrites &amp; Anti-patterns</div>
+         <div class="ss">OR rewrite, IN vs EXISTS, anti-join, DISTINCT vs GROUP BY</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_query_optimization.png" alt="PostgreSQL Query Optimization, Parser, Rewriter, Optimizer Planner and Executor Engine pipeline flow" loading="lazy">
+    <div class="concept-img-caption">Hình 7.1: Vòng đời truy vấn PostgreSQL: từ phân tích Parser, bộ tối ưu hóa Planner, phân tích thống kê (Statistics) đến thực thi (Executor)</div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 7.3 — Query rewrite patterns: từ slow đến fast</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">query_rewrites.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── 1. OR → UNION ALL (cho phép index usage) ─────────────────────────</span>
+<span class="cm">-- SLOW: OR thường không dùng được multiple indexes</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> customer_id = <span class="n">100</span> <span class="kw">OR</span> referred_by = <span class="n">100</span>;  <span class="cm">-- Seq Scan!</span>
+
+<span class="cm">-- FAST: UNION ALL → mỗi branch dùng index riêng</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> customer_id = <span class="n">100</span>
+<span class="kw">UNION ALL</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">WHERE</span> referred_by = <span class="n">100</span>
+  <span class="kw">AND</span> customer_id != <span class="n">100</span>;  <span class="cm">-- tránh duplicate</span>
+
+<span class="cm">-- ── 2. NOT IN → NOT EXISTS (null-safe) ───────────────────────────────</span>
+<span class="cm">-- SLOW & BUGGY: NOT IN với nullable column → luôn empty result nếu có NULL</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> customer_id <span class="kw">NOT IN</span> (<span class="kw">SELECT</span> id <span class="kw">FROM</span> blacklisted_users);  <span class="cm">-- BUG nếu có NULL!</span>
+
+<span class="cm">-- FAST & CORRECT: NOT EXISTS (anti-join, hiệu quả hơn)</span>
+<span class="kw">SELECT</span> o.* <span class="kw">FROM</span> orders o
+<span class="kw">WHERE NOT EXISTS</span> (
+    <span class="kw">SELECT</span> <span class="n">1</span> <span class="kw">FROM</span> blacklisted_users b <span class="kw">WHERE</span> b.id = o.customer_id
+);
+
+<span class="cm">-- Hoặc: LEFT JOIN + IS NULL (anti-join pattern)</span>
+<span class="kw">SELECT</span> o.* <span class="kw">FROM</span> orders o
+<span class="kw">LEFT JOIN</span> blacklisted_users b <span class="kw">ON</span> b.id = o.customer_id
+<span class="kw">WHERE</span> b.id <span class="kw">IS NULL</span>;
+
+<span class="cm">-- ── 3. DISTINCT vs GROUP BY (performance khác nhau) ──────────────────</span>
+<span class="cm">-- DISTINCT: sort và deduplicate toàn bộ output</span>
+<span class="kw">SELECT DISTINCT</span> customer_id <span class="kw">FROM</span> orders;  <span class="cm">-- HashAggregate hoặc Sort</span>
+
+<span class="cm">-- GROUP BY: với aggregate, thường dùng HashAggregate</span>
+<span class="kw">SELECT</span> customer_id <span class="kw">FROM</span> orders <span class="kw">GROUP BY</span> customer_id;  <span class="cm">-- tương đương nhưng thường nhanh hơn</span>
+
+<span class="cm">-- Nhanh nhất với index (Index Only Scan Skip):
+-- PG14+: "index skip scan" tự động nếu có index</span>
+
+<span class="cm">-- ── 4. COUNT(*) vs COUNT(col) ─────────────────────────────────────────</span>
+<span class="kw">SELECT COUNT</span>(*) <span class="kw">FROM</span> orders;     <span class="cm">-- đếm tất cả rows (kể cả NULL)</span>
+<span class="kw">SELECT COUNT</span>(1) <span class="kw">FROM</span> orders;     <span class="cm">-- tương đương COUNT(*)</span>
+<span class="kw">SELECT COUNT</span>(customer_id) <span class="kw">FROM</span> orders;  <span class="cm">-- bỏ qua NULL, chậm hơn COUNT(*)</span>
+
+<span class="cm">-- Fast approximate count cho large tables:</span>
+<span class="kw">SELECT</span> reltuples::BIGINT <span class="kw">AS</span> approx_count
+<span class="kw">FROM</span> pg_class <span class="kw">WHERE</span> relname = <span class="s">'orders'</span>;
+<span class="cm">-- Cực nhanh (O(1)), approximate (~5% error), đủ cho UI pagination</span>
+
+<span class="cm">-- ── 5. Paginate đúng cách: Keyset vs OFFSET ──────────────────────────</span>
+<span class="cm">-- SLOW: OFFSET 100000 → phải skip 100000 rows</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders <span class="kw">ORDER BY</span> created_at <span class="kw">DESC OFFSET</span> <span class="n">100000</span> <span class="kw">LIMIT</span> <span class="n">20</span>;
+
+<span class="cm">-- FAST: Keyset pagination (cursor-based)</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> orders
+<span class="kw">WHERE</span> created_at < <span class="s">'2024-03-15 10:00:00'</span>   <span class="cm">-- cursor từ trang trước</span>
+<span class="kw">ORDER BY</span> created_at <span class="kw">DESC</span>
+<span class="kw">LIMIT</span> <span class="n">20</span>;
+<span class="cm">-- Client lưu last row's created_at để làm cursor trang tiếp</span>
+
+<span class="cm">-- ── 6. UPDATE với CTE để avoid re-scan ───────────────────────────────</span>
+<span class="cm">-- Pattern: chọn rows để update, update chúng, trả kết quả</span>
+<span class="kw">WITH</span> to_process <span class="kw">AS</span> (
+    <span class="kw">SELECT</span> order_id
+    <span class="kw">FROM</span>  orders
+    <span class="kw">WHERE</span> status = <span class="s">'pending'</span>
+      <span class="kw">AND</span> created_at < NOW() - <span class="kw">INTERVAL</span> <span class="s">'1 hour'</span>
+    <span class="kw">ORDER BY</span> created_at
+    <span class="kw">LIMIT</span> <span class="n">100</span>
+    <span class="kw">FOR UPDATE SKIP LOCKED</span>           <span class="cm">-- concurrent-safe batch pick</span>
+),
+updated <span class="kw">AS</span> (
+    <span class="kw">UPDATE</span> orders o
+    <span class="kw">SET</span> status = <span class="s">'processing'</span>, updated_at = NOW()
+    <span class="kw">FROM</span> to_process tp
+    <span class="kw">WHERE</span> o.order_id = tp.order_id
+    <span class="kw">RETURNING</span> o.order_id, o.customer_id, o.total
+)
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> updated;</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>NOT IN với nullable column</strong>: SQL NULL-semantic khiến <code>x NOT IN (1, 2, NULL)</code> luôn = NULL (unknown) → empty result. Đây là bug âm thầm rất nguy hiểm trong production. Luôn dùng <code>NOT EXISTS</code> hoặc <code>LEFT JOIN ... IS NULL</code>. <strong>UPDATE với CTE</strong>: Data-modifying CTE cho phép SELECT + UPDATE trong một atomic statement. <code>FOR UPDATE SKIP LOCKED</code> trong SELECT CTE là pattern chuẩn để implement queue workers (multiple workers pick different batches). <strong>Approximate count</strong>: <code>pg_class.reltuples</code> là estimate từ lần ANALYZE cuối — đủ tốt cho hiển thị "~5M results" trên UI, không cần COUNT(*) chậm.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ REPLICATION ══════════ -->
+<section class="sec" id="s-repl-intro">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">Streaming Replication</div>
+         <div class="ss">Physical replication, WAL, standby setup, monitoring</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="cb">
+    <div class="cb-l">💡 Kiến trúc</div>
+    <div class="cb-t">Streaming Replication: WAL-based physical copy</div>
+    <p class="p"><strong>Streaming Replication</strong> là cơ chế PostgreSQL gửi WAL (Write-Ahead Log) records từ primary sang một hoặc nhiều standby servers theo thời gian thực. Standby replay WAL để maintain bản copy chính xác của primary. Standby có thể là <strong>Hot Standby</strong> (đọc được) hoặc <strong>Warm Standby</strong> (chỉ replay WAL).</p>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 8.1 — Setup streaming replication &amp; monitoring replication lag</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">streaming_replication.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ── PRIMARY SETUP ─────────────────────────────────────────────────────</span>
+
+<span class="cm">-- postgresql.conf trên PRIMARY:</span>
+<span class="cm">-- wal_level = replica              (hoặc logical)
+-- max_wal_senders = 5              (số concurrent standby)
+-- wal_keep_size = 1GB              (giữ WAL cho standby chậm)
+-- max_replication_slots = 5       (physical/logical slots)
+-- hot_standby = on
+-- synchronous_standby_names = ''  (async; 'standby1' cho sync)</span>
+
+<span class="cm">-- Tạo replication user:</span>
+<span class="kw">CREATE USER</span> replicator <span class="kw">WITH</span> REPLICATION PASSWORD <span class="s">'strong_password'</span>;
+
+<span class="cm">-- Tạo replication slot (persistent, đảm bảo WAL không bị xóa trước khi standby nhận):</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">pg_create_physical_replication_slot</span>(<span class="s">'standby1_slot'</span>);
+
+<span class="cm">-- pg_hba.conf:
+-- host replication replicator standby-ip/32 scram-sha-256</span>
+
+<span class="cm">-- ── STANDBY SETUP ─────────────────────────────────────────────────────</span>
+<span class="cm">-- Bash: pg_basebackup để clone primary:
+-- pg_basebackup -h primary-ip -U replicator -D /var/lib/postgresql/data \
+--   -Fp -Xs -P -R
+-- -R: tự tạo standby.signal và postgresql.auto.conf</span>
+
+<span class="cm">-- postgresql.auto.conf trên STANDBY (auto-generated bởi pg_basebackup -R):
+-- primary_conninfo = 'host=primary-ip port=5432 user=replicator password=...'
+-- primary_slot_name = 'standby1_slot'
+-- recovery_min_apply_delay = 0     (0 = apply ngay; set delay cho lagged replica)</span>
+
+<span class="cm">-- ── MONITORING: Replication Lag ────────────────────────────────────────</span>
+<span class="cm">-- Trên PRIMARY:</span>
+<span class="kw">SELECT</span>
+    application_name,
+    client_addr,
+    state,                          <span class="cm">-- 'streaming', 'catchup'</span>
+    sent_lsn,                       <span class="cm">-- WAL sent to standby</span>
+    write_lsn,                       <span class="cm">-- WAL written on standby disk</span>
+    flush_lsn,                       <span class="cm">-- WAL flushed (durable) on standby</span>
+    replay_lsn,                      <span class="cm">-- WAL replayed (applied)</span>
+    <span class="fn">pg_wal_lsn_diff</span>(pg_current_wal_lsn(), replay_lsn) <span class="kw">AS</span> lag_bytes,
+    write_lag,                       <span class="cm">-- time lag for write</span>
+    flush_lag,                       <span class="cm">-- time lag for flush</span>
+    replay_lag,                      <span class="cm">-- time lag for replay (DATA LAG)</span>
+    sync_state                       <span class="cm">-- 'async', 'sync', 'potential'</span>
+<span class="kw">FROM</span> pg_stat_replication;
+
+<span class="cm">-- Trên STANDBY:</span>
+<span class="kw">SELECT</span>
+    status,
+    receive_start_lsn,
+    received_tli,
+    last_msg_receipt_time,
+    latest_end_lsn,
+    latest_end_time
+<span class="kw">FROM</span> pg_stat_wal_receiver;
+
+<span class="cm">-- ── Replication Slots monitoring (phòng WAL bloat) ────────────────────</span>
+<span class="kw">SELECT</span>
+    slot_name,
+    plugin,
+    slot_type,
+    active,
+    <span class="fn">pg_wal_lsn_diff</span>(pg_current_wal_lsn(), restart_lsn) <span class="kw">AS</span> retained_bytes,
+    <span class="fn">pg_size_pretty</span>(<span class="fn">pg_wal_lsn_diff</span>(pg_current_wal_lsn(), restart_lsn)) <span class="kw">AS</span> retained
+<span class="kw">FROM</span> pg_replication_slots;
+<span class="cm">-- DANGER: inactive slot với retained_bytes > 10GB → disk full risk!
+-- Action: DROP REPLICATION SLOT 'slot_name' nếu standby permanently gone</span>
+
+<span class="cm">-- ── Synchronous replication: zero data loss ───────────────────────────</span>
+<span class="cm">-- postgresql.conf PRIMARY:
+-- synchronous_standby_names = 'FIRST 1 (standby1, standby2)'
+-- synchronous_commit = on (default)
+-- → commit chỉ return sau khi ít nhất 1 standby confirm flush</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Replication Slot nguy hiểm</strong>: nếu standby bị down và slot vẫn active, primary không thể xóa WAL → disk fill up → primary crash. Alert khi <code>retained_bytes &gt; 10GB</code>, và tự động DROP slot sau N giờ inactive. <strong>Synchronous vs Async</strong>: sync đảm bảo zero data loss nhưng tăng latency (commit phải đợi standby). Dùng <code>FIRST 1 (s1, s2)</code> để có 1 sync + 1 async standby. <strong>Hot Standby</strong>: có thể serve read queries nhưng có thể bị query conflict với recovery (long-running query trên standby có thể bị cancel). Set <code>hot_standby_feedback = on</code> để standby gửi feedback lên primary, tránh vacuum xóa rows đang được standby query.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ LOGICAL REPLICATION ══════════ -->
+<section class="sec" id="s-repl-logical">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">Logical Replication</div>
+         <div class="ss">Publications, Subscriptions, row-level filtering, CDC</div></div>
+    <span class="badge ba">NÂNG CAO</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 8.2 — Logical Replication: selective table sync &amp; CDC setup</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Cần: (1) Sync chỉ một số bảng (không phải toàn bộ DB) sang reporting server, (2) Implement CDC (Change Data Capture) để stream data changes sang Kafka/event bus. Logical replication cho phép row-level filtering, bi-directional, và cross-version replication.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">logical_replication.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ══ PUBLISHER (Source DB) ════════════════════════════════════════════</span>
+
+<span class="cm">-- postgresql.conf:
+-- wal_level = logical   (phải là logical cho logical replication)</span>
+
+<span class="cm">-- Publication: định nghĩa NHỮNG GÌ sẽ được replicate</span>
+<span class="kw">CREATE PUBLICATION</span> pub_orders_reporting
+<span class="kw">FOR TABLE</span>
+    orders,
+    order_items,
+    customers
+<span class="kw">WITH</span> (
+    publish = <span class="s">'insert,update,delete'</span>,  <span class="cm">-- bao gồm truncate cho PG11+</span>
+    publish_via_partition_root = <span class="kw">TRUE</span>   <span class="cm">-- PG13+: replicate từ parent partition</span>
+);
+
+<span class="cm">-- Row filtering (PG15+): chỉ replicate VN orders</span>
+<span class="kw">CREATE PUBLICATION</span> pub_vn_orders
+<span class="kw">FOR TABLE</span> orders <span class="kw">WHERE</span> (region = <span class="s">'VN'</span>);  <span class="cm">-- predicate filter</span>
+
+<span class="cm">-- Column filtering (PG15+): chỉ replicate một số cột</span>
+<span class="kw">CREATE PUBLICATION</span> pub_orders_columns
+<span class="kw">FOR TABLE</span> orders (order_id, status, total, updated_at);  <span class="cm">-- exclude PII columns</span>
+
+<span class="cm">-- ══ SUBSCRIBER (Target DB) ═══════════════════════════════════════════</span>
+
+<span class="cm">-- Tạo tables matching schema trước:</span>
+<span class="kw">CREATE TABLE</span> orders ( <span class="cm">-- same schema as source</span>
+    order_id   <span class="tp">BIGINT PRIMARY KEY</span>,
+    status     <span class="tp">TEXT</span>,
+    total      <span class="tp">NUMERIC</span>,
+    created_at <span class="tp">TIMESTAMPTZ</span>
+);
+
+<span class="cm">-- Subscription: kết nối đến publisher và bắt đầu nhận data</span>
+<span class="kw">CREATE SUBSCRIPTION</span> sub_orders_reporting
+    <span class="kw">CONNECTION</span> <span class="s">'host=primary-ip dbname=mydb user=replicator password=...'</span>
+    <span class="kw">PUBLICATION</span> pub_orders_reporting
+    <span class="kw">WITH</span> (
+        copy_data = <span class="kw">true</span>,        <span class="cm">-- copy initial data</span>
+        create_slot = <span class="kw">true</span>,      <span class="cm">-- tạo replication slot trên publisher</span>
+        enabled = <span class="kw">true</span>           <span class="cm">-- bắt đầu ngay</span>
+    );
+
+<span class="cm">-- Monitor subscription status:</span>
+<span class="kw">SELECT</span>
+    subname,
+    pid,
+    received_lsn,
+    last_msg_send_time,
+    last_msg_receipt_time,
+    <span class="fn">pg_wal_lsn_diff</span>(pg_current_wal_lsn(), received_lsn) <span class="kw">AS</span> lag_bytes
+<span class="kw">FROM</span> pg_stat_subscription;
+
+<span class="cm">-- ══ CDC với pgoutput: stream changes như events ═══════════════════════</span>
+<span class="cm">-- pgoutput là built-in logical replication plugin
+-- Debezium, pglogical, wal2json đọc từ replication slot</span>
+
+<span class="cm">-- Tạo logical replication slot cho CDC:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">pg_create_logical_replication_slot</span>(
+    <span class="s">'cdc_orders_slot'</span>,   <span class="cm">-- slot name</span>
+    <span class="s">'pgoutput'</span>            <span class="cm">-- plugin (hoặc 'wal2json')</span>
+);
+
+<span class="cm">-- Peek changes (dùng để test, không consume permanently):</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">pg_logical_slot_peek_changes</span>(
+    <span class="s">'cdc_orders_slot'</span>, <span class="kw">NULL</span>, <span class="kw">NULL</span>,
+    <span class="s">'proto_version'</span>, <span class="s">'1'</span>,
+    <span class="s">'publication_names'</span>, <span class="s">'pub_orders_reporting'</span>
+);
+
+<span class="cm">-- Get and consume changes (advance LSN):</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">pg_logical_slot_get_changes</span>(
+    <span class="s">'cdc_orders_slot'</span>, <span class="kw">NULL</span>, <span class="n">100</span>,    <span class="cm">-- max 100 changes</span>
+    <span class="s">'proto_version'</span>, <span class="s">'1'</span>,
+    <span class="s">'publication_names'</span>, <span class="s">'pub_orders_reporting'</span>
+);</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Logical vs Physical Replication</strong>: Physical replicate toàn bộ cluster (binary WAL), Logical replicate theo table/row (decoded WAL). Logical cho phép: chọn tables, cross-version, bi-directional, row filtering. Physical đơn giản hơn và always consistent. <strong>Column filtering (PG15+)</strong>: tuyệt vời cho GDPR/privacy compliance — exclude PII columns từ reporting replica. Subscriber nhận NULL cho excluded columns. <strong>Replication slot cho CDC</strong>: slot không tự advance LSN → WAL accumulate. Application CDC (Debezium) phải regularly consume và confirm offset. Monitor slot lag cực kỳ quan trọng. <strong>Row filtering (PG15+)</strong>: predicate evaluated trên publisher — chỉ rows matching được gửi đi.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ REPLICATION EXPERT ══════════ -->
+<section class="sec" id="s-repl-expert">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">Expert: Failover &amp; Production HA</div>
+         <div class="ss">pg_ctl promote, Patroni, replication monitoring script</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../public/images/pg_replication_ha.png" alt="PostgreSQL physical streaming and logical replication publish subscribe High Availability Patroni orchestrator HAProxy topology" loading="lazy">
+    <div class="concept-img-caption">Hình 8.1: Kiến trúc so sánh Streaming Replication, Logical Replication và mô hình tự động Failover (Patroni / HAProxy)</div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 8.3 — Failover automation &amp; comprehensive replication health check</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">sql</span><span class="cf">replication_health.sql</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">-- ══ COMPREHENSIVE REPLICATION HEALTH CHECK SCRIPT ════════════════════</span>
+
+\echo <span class="s">'=== 1. Primary/Standby Role Check ==='</span>
+<span class="kw">SELECT</span>
+    <span class="fn">pg_is_in_recovery</span>()          <span class="kw">AS</span> is_standby,
+    <span class="kw">CASE</span> <span class="kw">WHEN</span> <span class="fn">pg_is_in_recovery</span>() <span class="kw">THEN</span> <span class="s">'STANDBY'</span> <span class="kw">ELSE</span> <span class="s">'PRIMARY'</span> <span class="kw">END</span> <span class="kw">AS</span> role,
+    <span class="fn">pg_current_wal_lsn</span>()        <span class="kw">AS</span> current_lsn;
+
+\echo <span class="s">'=== 2. Replication Lag (run on PRIMARY) ==='</span>
+<span class="kw">SELECT</span>
+    application_name,
+    state,
+    sync_state,
+    <span class="fn">pg_size_pretty</span>(
+        <span class="fn">pg_wal_lsn_diff</span>(<span class="fn">pg_current_wal_lsn</span>(), replay_lsn)
+    )                          <span class="kw">AS</span> lag_size,
+    replay_lag,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN</span> replay_lag > <span class="kw">INTERVAL</span> <span class="s">'30 seconds'</span> <span class="kw">THEN</span> <span class="s">'🔴 HIGH LAG'</span>
+        <span class="kw">WHEN</span> replay_lag > <span class="kw">INTERVAL</span> <span class="s">'5 seconds'</span>  <span class="kw">THEN</span> <span class="s">'🟡 WARN'</span>
+        <span class="kw">ELSE</span>                                          <span class="s">'🟢 OK'</span>
+    <span class="kw">END</span>                        <span class="kw">AS</span> lag_status
+<span class="kw">FROM</span> pg_stat_replication;
+
+\echo <span class="s">'=== 3. Replication Slots Health ==='</span>
+<span class="kw">SELECT</span>
+    slot_name, slot_type, active, temporary,
+    <span class="fn">pg_size_pretty</span>(
+        <span class="fn">pg_wal_lsn_diff</span>(<span class="fn">pg_current_wal_lsn</span>(), restart_lsn)
+    )                          <span class="kw">AS</span> wal_retained,
+    <span class="kw">CASE</span>
+        <span class="kw">WHEN NOT</span> active
+         <span class="kw">AND</span> <span class="fn">pg_wal_lsn_diff</span>(<span class="fn">pg_current_wal_lsn</span>(), restart_lsn) > <span class="n">10e9</span>
+        <span class="kw">THEN</span> <span class="s">'🔴 DANGER: inactive slot holding >10GB WAL'</span>
+        <span class="kw">WHEN NOT</span> active <span class="kw">THEN</span> <span class="s">'🟡 WARN: inactive slot'</span>
+        <span class="kw">ELSE</span> <span class="s">'🟢 OK'</span>
+    <span class="kw">END</span>                        <span class="kw">AS</span> status
+<span class="kw">FROM</span> pg_replication_slots;
+
+\echo <span class="s">'=== 4. WAL archive status ==='</span>
+<span class="kw">SELECT</span>
+    archived_count,
+    last_archived_wal,
+    last_archived_time,
+    failed_count,
+    last_failed_wal,
+    last_failed_time
+<span class="kw">FROM</span> pg_stat_archiver;
+
+\echo <span class="s">'=== 5. Conflict stats on STANDBY ==='</span>
+<span class="kw">SELECT</span>
+    datname,
+    confl_tablespace,    <span class="cm">-- tablespace dropped</span>
+    confl_lock,          <span class="cm">-- lock conflict</span>
+    confl_snapshot,      <span class="cm">-- snapshot too old (hot_standby_feedback=off)</span>
+    confl_bufferpin,     <span class="cm">-- buffer pin</span>
+    confl_deadlock       <span class="cm">-- deadlock</span>
+<span class="kw">FROM</span> pg_stat_database_conflicts
+<span class="kw">WHERE</span> datname = current_database();
+
+<span class="cm">-- ══ MANUAL FAILOVER (khi primary chết) ═══════════════════════════════</span>
+<span class="cm">-- Trên STANDBY server (bash):
+-- pg_ctl promote -D /var/lib/postgresql/data
+-- → Standby trở thành new primary
+-- → Các standbys còn lại cần update primary_conninfo
+
+-- Với Patroni (recommended cho automated HA):
+-- patronictl failover cluster-name --master old-primary --candidate new-primary
+-- patronictl switchover cluster-name  (planned, graceful)</span>
+
+<span class="cm">-- ══ TIMELINE & POINT-IN-TIME RECOVERY ═══════════════════════════════</span>
+<span class="cm">-- Kiểm tra timeline history:</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> <span class="fn">pg_control_recovery</span>();
+
+<span class="cm">-- PITR: khôi phục về thời điểm cụ thể (recovery.conf / postgresql.conf):
+-- recovery_target_time = '2024-03-15 14:30:00 UTC'
+-- recovery_target_action = 'promote'  (hoặc 'pause' để verify trước)</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Patroni là standard industry</strong> cho PostgreSQL HA: tự động failover với consensus (etcd/Consul/ZooKeeper), quản lý replication config, REST API cho management. Không nên build manual failover trong production. <strong>confl_snapshot</strong>: conflict xảy ra khi query trên standby cần rows mà vacuum trên primary đã xóa. Fix: <code>hot_standby_feedback = on</code> (standby nói primary "đừng vacuum rows này chưa") hoặc <code>max_standby_streaming_delay</code>. <strong>WAL archiver failures</strong>: nếu <code>failed_count</code> tăng, archive command đang fail — nguy hiểm cho PITR. Monitor và alert ngay. <strong>Scheduled switchover</strong> (planned failover) khác <strong>failover</strong> (emergency): switchover graceful — primary shutdown clean, standby promote. Luôn test failover procedure định kỳ trong staging.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════ REFERENCES ══════════ -->
+<section class="sec" id="s-refs">
+  <div class="sh">
+    <div class="sn">REF</div>
+    <div><div class="stl">References — Phần 2</div>
+         <div class="ss">Indexing, Partitioning, JSONB, Query Opt, Replication</div></div>
+  </div>
+
+  <h3>📚 Tài liệu chính thức</h3>
+  <a class="rf" href="https://www.postgresql.org/docs/current/indexes.html" target="_blank">
+    <div class="ri" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="rb">
+      <div class="rtl">PostgreSQL Docs — Indexes (Chapter 11)</div>
+      <div class="rd">Đầy đủ về tất cả loại index: B-Tree, Hash, GiST, GIN, BRIN, SP-GiST, Bloom. Index types, partial indexes, expression indexes, covering indexes (INCLUDE). Bắt buộc đọc trước khi quyết định indexing strategy.</div>
+      <div class="ru">postgresql.org/docs/current/indexes.html</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+
+  <a class="rf" href="https://www.postgresql.org/docs/current/ddl-partitioning.html" target="_blank">
+    <div class="ri" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="rb">
+      <div class="rtl">PostgreSQL Docs — Table Partitioning (Section 5.11)</div>
+      <div class="rd">Declarative partitioning: RANGE, LIST, HASH. Sub-partitioning, partition pruning, foreign keys with partitioned tables, partition management. Bao gồm performance tips và limitations.</div>
+      <div class="ru">postgresql.org/docs/current/ddl-partitioning.html</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+
+  <a class="rf" href="https://www.postgresql.org/docs/current/datatype-json.html" target="_blank">
+    <div class="ri" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="rb">
+      <div class="rtl">PostgreSQL Docs — JSON Types (Section 8.14) &amp; Functions (Section 9.16)</div>
+      <div class="rd">JSON vs JSONB, tất cả operators (@>, ?, @?), functions (jsonb_set, jsonb_build_object, jsonb_array_elements...), jsonpath (PG12+). Cùng với Chapter 12 về Full-Text Search.</div>
+      <div class="ru">postgresql.org/docs/current/datatype-json.html</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+
+  <a class="rf" href="https://www.postgresql.org/docs/current/using-explain.html" target="_blank">
+    <div class="ri" style="background:rgba(51,103,145,.2)">🐘</div>
+    <div class="rb">
+      <div class="rtl">PostgreSQL Docs — Using EXPLAIN (Chapter 14)</div>
+      <div class="rd">Đọc execution plan: node types, cost model, buffer statistics. Cùng với Chapter 14.3 về planner statistics và 14.4 về controlling the planner. Tài liệu gốc về query optimization.</div>
+      <div class="ru">postgresql.org/docs/current/using-explain.html</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+
+  <h3>🛠️ Tools &amp; Extensions cần thiết</h3>
+  <a class="rf" href="https://explain.dalibo.com" target="_blank">
+    <div class="ri" style="background:rgba(45,212,191,.1)">📊</div>
+    <div class="rb">
+      <div class="rtl">explain.dalibo.com — EXPLAIN ANALYZE Visualizer</div>
+      <div class="rd">Paste EXPLAIN (FORMAT JSON) output → nhận visual tree với node costs, timing breakdown, buffer stats highlighted. Công cụ số 1 để phân tích slow queries. Miễn phí, không cần login.</div>
+      <div class="ru">explain.dalibo.com</div>
+    </div>
+    <div class="rs">⭐ Must Use</div>
+  </a>
+
+  <a class="rf" href="https://github.com/dimitri/pg_activity" target="_blank">
+    <div class="ri" style="background:rgba(0,255,136,.1)">🖥️</div>
+    <div class="rb">
+      <div class="rtl">pg_activity — Real-time top-like PostgreSQL monitor</div>
+      <div class="rd">htop-like monitor cho PostgreSQL: real-time query activity, locks, I/O per query. Cực hữu ích để debug performance vấn đề trong production ngay lập tức.</div>
+      <div class="ru">github.com/dimitri/pg_activity</div>
+    </div>
+    <div class="rs">⭐ 2.5k★</div>
+  </a>
+
+  <a class="rf" href="https://github.com/pgpartman/pg_partman" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">📦</div>
+    <div class="rb">
+      <div class="rtl">pg_partman — Partition Management Extension</div>
+      <div class="rd">Production-grade extension cho partition lifecycle management: tự động tạo partitions theo schedule, retention policies, sub-partitioning. Standard choice cho time-series partitioning production.</div>
+      <div class="ru">github.com/pgpartman/pg_partman</div>
+    </div>
+    <div class="rs">⭐ 2.1k★</div>
+  </a>
+
+  <a class="rf" href="https://github.com/zalando/patroni" target="_blank">
+    <div class="ri" style="background:rgba(168,85,247,.1)">🔄</div>
+    <div class="rb">
+      <div class="rtl">Patroni — PostgreSQL HA Solution (Zalando)</div>
+      <div class="rd">Industry standard cho PostgreSQL High Availability: automated failover với etcd/Consul/ZooKeeper consensus, REST API, configuration management. Dùng tại Zalando, GitLab, và hàng nghìn production deployments.</div>
+      <div class="ru">github.com/zalando/patroni</div>
+    </div>
+    <div class="rs">⭐ 6.1k★</div>
+  </a>
+
+  <a class="rf" href="https://github.com/debezium/debezium" target="_blank">
+    <div class="ri" style="background:rgba(255,107,107,.1)">📡</div>
+    <div class="rb">
+      <div class="rtl">Debezium — CDC Platform (Red Hat)</div>
+      <div class="rd">Enterprise CDC platform dùng PostgreSQL logical replication để stream changes sang Kafka. Hỗ trợ PostgreSQL 9.6+, row filtering, column masking, schema evolution. Standard choice cho event-driven architectures.</div>
+      <div class="ru">github.com/debezium/debezium</div>
+    </div>
+    <div class="rs">⭐ 11k★</div>
+  </a>
+
+  <h3>📖 Blog &amp; Books</h3>
+  <a class="rf" href="https://pganalyze.com/blog" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">📝</div>
+    <div class="rb">
+      <div class="rtl">pganalyze Blog — PostgreSQL Performance Articles</div>
+      <div class="rd">Bài viết chất lượng cao về PostgreSQL performance: index tuning, query optimization, autovacuum tuning, replication monitoring. Đặc biệt series về EXPLAIN và index strategies rất chi tiết.</div>
+      <div class="ru">pganalyze.com/blog</div>
+    </div>
+    <div class="rs">⭐ Must Follow</div>
+  </a>
+
+  <a class="rf" href="https://www.crunchydata.com/blog" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">📝</div>
+    <div class="rb">
+      <div class="rtl">Crunchy Data Blog — PostgreSQL Expert Articles</div>
+      <div class="rd">Blog từ Crunchy Data với các bài viết expert về PostgreSQL internals, JSON, FTS, partitioning, replication. Nhiều tác giả là core PostgreSQL contributors.</div>
+      <div class="ru">crunchydata.com/blog</div>
+    </div>
+    <div class="rs">⭐ Expert Level</div>
+  </a>
+
+  <hr class="div">
+
+  <div class="note no"><div class="nic">✅</div>
+    <p><strong>Kết hợp Phần 1 + Phần 2:</strong><br>
+    <strong>Phần 1</strong> (PL/pgSQL + CTE/LATERAL + MVCC/RLS) → <strong>Phần 2</strong> (Indexes + Partitioning + JSONB + Query Opt + Replication) tạo nên bộ kiến thức PostgreSQL hoàn chỉnh cho Senior/Staff DBA/Developer.<br><br>
+    <strong>Roadmap thực hành đề xuất:</strong> Cài PostgreSQL local → Thực hành từng ví dụ → Dùng explain.dalibo.com để visualize query plans → Setup replication env với Docker Compose → Thực hành failover → Monitor với pg_activity và pganalyze. Mọi kỹ năng đều cần <strong>hands-on practice</strong> — đọc không đủ.</p>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function showSection(name) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  const t = document.getElementById('s-' + name);
+  if (t) t.classList.add('active');
+  
+  // Sync the navigation highlights
+  document.querySelectorAll('.nb, .tb').forEach(b => {
+    b.classList.remove('active');
+    const oc = b.getAttribute('onclick') || b.dataset.onclick;
+    if (oc && oc.includes("'" + name + "'")) {
+      b.classList.add('active');
+    }
+  });
+
+  // Smooth scroll to top of page/main container
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Bind dynamic click events for sidebar, topnav, cards, and tags
+document.querySelectorAll('.nb, .tb, .card').forEach(el => {
+  const oc = el.getAttribute('onclick');
+  const target = el.getAttribute('data-target') || oc?.match(/S\('([^']+)'\)/)?.[1];
+  if (target) {
+    // Save original click handler target in dataset to assist highlighting
+    el.dataset.onclick = oc;
+    el.removeAttribute('onclick'); // prevent double execution
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Dynamic bindings for intro topic cards specifically to sections
+const cardTargets = ['idx-types', 'part-intro', 'json-intro', 'qopt-explain', 'repl-intro'];
+document.querySelectorAll('#s-intro .g3 .card').forEach((card, idx) => {
+  if (idx < cardTargets.length) {
+    const target = cardTargets[idx];
+    card.style.cursor = 'pointer';
+    card.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.location.hash = 's-' + target;
+      showSection(target);
+    });
+  }
+});
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate the correct section if a hash is present in the URL
+function initRouter() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    // Default to active state in DOM or 'intro'
+    const activeSec = document.querySelector('.sec.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    } else {
+      showSection('intro');
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initRouter);
+} else {
+  initRouter();
+}
+
+// Global compatibility function
+window.S = function(name) {
+  window.location.hash = 's-' + name;
+  showSection(name);
+}
+
+
+// Setup copy code buttons
+window.cp = function(btn) {
+  const pre = btn.closest('.cw').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = 'Copied!';
+    btn.style.color = '#00ff88';
+    setTimeout(() => { btn.textContent = 'Copy'; btn.style.color = ''; }, 2000);
+  });
+}
+</script>
+</body>
+</html>
