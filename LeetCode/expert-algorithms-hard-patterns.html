@@ -1913,6 +1913,12 @@ document.querySelectorAll('.nav-item, .topnav-item, .nav-sub, .tag, .ref-card').
   }
 });
 
+// Global compatibility mapping
+window.S = function(name) {
+  window.location.hash = 's-' + name;
+  showSection(name);
+};
+
 // Sync layout dynamically if hash changes in the URL
 window.addEventListener('hashchange', () => {
   const hash = window.location.hash;
@@ -1922,7 +1928,7 @@ window.addEventListener('hashchange', () => {
 });
 
 // On initial DOM load, automatically activate the correct section if a hash is present in the URL
-window.addEventListener('DOMContentLoaded', () => {
+function initRouter() {
   const hash = window.location.hash;
   if (hash.startsWith('#s-')) {
     showSection(hash.replace('#s-', ''));
@@ -1934,7 +1940,13 @@ window.addEventListener('DOMContentLoaded', () => {
       showSection(activeId);
     }
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initRouter);
+} else {
+  initRouter();
+}
 
 // Setup copy code buttons
 window.copyCode = function(btn) {

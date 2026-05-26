@@ -3341,7 +3341,44 @@
 				document.querySelectorAll(".topnav-item").forEach((n) => {
 					if (n.getAttribute("onclick")?.includes("'" + name + "'")) n.classList.add("active");
 				});
-				window.scrollTo(0, 0);
+				window.scrollTo({ top: 0, behavior: "smooth" });
+			}
+
+			// Global compatibility mapping
+			window.showSection = showSection;
+			window.S = function(name) {
+				window.location.hash = 's-' + name;
+				showSection(name);
+			};
+
+			// Sync layout dynamically if hash changes in the URL
+			window.addEventListener('hashchange', () => {
+				const hash = window.location.hash;
+				if (hash.startsWith('#s-')) {
+					showSection(hash.replace('#s-', ''));
+				}
+			});
+
+			// On initial DOM load, automatically activate correct section if hash is present
+			function initRouter() {
+				const hash = window.location.hash;
+				if (hash.startsWith('#s-')) {
+					showSection(hash.replace('#s-', ''));
+				} else {
+					const activeSec = document.querySelector('.page-section.active');
+					if (activeSec) {
+						const activeId = activeSec.id.replace('s-', '');
+						showSection(activeId);
+					} else {
+						showSection('intro');
+					}
+				}
+			}
+
+			if (document.readyState === 'loading') {
+				window.addEventListener('DOMContentLoaded', initRouter);
+			} else {
+				initRouter();
 			}
 
 			function copyCode(btn) {
