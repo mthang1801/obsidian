@@ -1,0 +1,2080 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Security Architecture Guide — mTLS · Zero Trust · RBAC · ABAC · OAuth2/OIDC · JWT · Secrets · CORS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#131720;--card:#1a1f2e;--code:#0f1319;
+  --cyan:#00d4ff;--green:#00ff88;--purple:#a855f7;--amber:#f59e0b;
+  --coral:#ff6b6b;--teal:#2dd4bf;--rose:#f43f5e;--indigo:#6366f1;
+  --t1:#e2e8f0;--t2:#94a3b8;--mu:#64748b;
+  --bdr:rgba(255,255,255,.07);
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);display:flex;min-height:100vh}
+
+/* SIDEBAR */
+#sb{width:272px;min-width:272px;background:var(--bg2);border-right:1px solid var(--bdr);
+    position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
+#sb::-webkit-scrollbar{width:4px}
+#sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.logo{padding:18px 18px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px}
+.logo-i{width:36px;height:36px;background:linear-gradient(135deg,var(--rose),var(--purple));
+         border-radius:8px;display:flex;align-items:center;justify-content:center;
+         font-size:13px;font-weight:700;color:#fff;font-family:var(--mono)}
+.logo-t{font-size:14px;font-weight:600;color:var(--t1);line-height:1.2}
+.logo-s{font-size:11px;color:var(--rose);font-family:var(--mono)}
+.ns{padding:12px 12px 4px}
+.nt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);padding:0 8px;margin-bottom:5px}
+.nb{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:6px;color:var(--t2);
+    font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nb:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+.nb.active{background:rgba(244,63,94,.1);color:var(--rose);border-left:2px solid var(--rose);padding-left:6px}
+
+/* TOP NAV */
+#tn{position:fixed;top:0;left:272px;right:0;height:52px;background:var(--bg2);
+    border-bottom:1px solid var(--bdr);display:flex;align-items:center;
+    padding:0 28px;gap:6px;z-index:50;overflow-x:auto}
+#tn::-webkit-scrollbar{height:3px}
+.tb{padding:5px 13px;border-radius:6px;font-size:12px;font-weight:500;color:var(--t2);
+    cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
+.tb:hover{color:var(--t1);background:rgba(255,255,255,.05)}
+.tb.active{color:var(--rose);background:rgba(244,63,94,.1)}
+
+/* MAIN */
+#main{margin-left:272px;margin-top:52px;flex:1;max-width:calc(100% - 272px)}
+.ct{padding:44px 52px;max-width:980px}
+
+/* SECTION HEADER */
+.sh{display:flex;align-items:center;gap:14px;margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--bdr)}
+.sn{width:36px;height:36px;border-radius:8px;
+    background:linear-gradient(135deg,var(--rose),var(--purple));
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.stl{font-size:24px;font-weight:700;color:var(--t1)}
+.ss{font-size:13px;color:var(--mu);margin-top:3px}
+
+/* BADGES */
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;font-family:var(--mono)}
+.be{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.ba{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.bb{background:rgba(0,212,255,.10);color:var(--cyan);border:1px solid rgba(0,212,255,.25)}
+.br{background:rgba(244,63,94,.12);color:var(--rose);border:1px solid rgba(244,63,94,.3)}
+.bg{background:rgba(0,255,136,.10);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+
+/* SECTIONS */
+.sec{display:none}.sec.active{display:block}
+
+/* PROSE */
+.p{font-size:15px;line-height:1.8;color:var(--t2);margin-bottom:18px}
+.p strong{color:var(--t1);font-weight:600}
+.p code{background:rgba(244,63,94,.08);color:var(--rose);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:13px}
+h3{font-size:17px;font-weight:600;color:var(--t1);margin:26px 0 11px}
+h4{font-size:14px;font-weight:600;color:var(--t2);margin:18px 0 7px}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin-bottom:18px;transition:border-color .2s}
+.card:hover{border-color:rgba(244,63,94,.2)}
+.ct2{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:9px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-bottom:22px}
+.g4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:22px}
+
+/* CONCEPT BOX */
+.cbox{background:linear-gradient(135deg,rgba(244,63,94,.05),rgba(168,85,247,.05));
+      border:1px solid rgba(244,63,94,.2);border-radius:12px;padding:22px;margin-bottom:26px}
+.cbox-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--rose);margin-bottom:7px;font-family:var(--mono)}
+.cbox-t{font-size:19px;font-weight:700;color:var(--t1);margin-bottom:9px}
+
+/* EXAMPLE CARD */
+.ex{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:34px}
+.exh{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;
+     border-bottom:1px solid var(--bdr);background:rgba(255,255,255,.02)}
+.ext{font-size:15px;font-weight:600;color:var(--t1)}
+.exb{padding:22px}
+
+/* Problem / Solution / Note boxes */
+.pb{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-left:3px solid var(--amber);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.pl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:6px;font-family:var(--mono)}
+.sb2{background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.18);border-left:3px solid var(--green);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:6px;font-family:var(--mono)}
+.vb{background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.2);border-left:3px solid var(--indigo);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.vl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--indigo);margin-bottom:6px;font-family:var(--mono)}
+.nc{background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);border-left:3px solid var(--purple);border-radius:8px;padding:14px 17px;margin-top:18px}
+.nl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:6px;font-family:var(--mono)}
+
+/* DIAGRAM */
+.dia{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin:18px 0 24px;overflow:hidden}
+.dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mu);margin-bottom:18px;font-family:var(--mono);text-align:center}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:14px}
+.tbl th{padding:9px 13px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--bdr);color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tbl td{padding:9px 13px;border-bottom:1px solid var(--bdr);color:var(--t2)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl td code{background:rgba(244,63,94,.08);color:var(--rose);padding:2px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
+
+/* NOTES */
+.note{display:flex;gap:11px;padding:13px 15px;border-radius:8px;margin-bottom:18px;font-size:14px}
+.nw{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+.ni{background:rgba(99,102,241,.06);border:1px solid rgba(99,102,241,.2);color:var(--indigo)}
+.nd{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--coral)}
+.ng{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--green)}
+.nic{font-size:16px;flex-shrink:0;margin-top:1px}.note p{margin:0;line-height:1.6}
+
+/* COMPARE */
+.c2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.cc{background:var(--card);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.cch{padding:11px 15px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.hr{background:rgba(244,63,94,.08);color:var(--rose)}
+.hg2{background:rgba(0,255,136,.07);color:var(--green)}
+.hp{background:rgba(168,85,247,.08);color:var(--purple)}
+.ha{background:rgba(245,158,11,.08);color:var(--amber)}
+.ht{background:rgba(45,212,191,.08);color:var(--teal)}
+.hi{background:rgba(99,102,241,.08);color:var(--indigo)}
+.ccb{padding:14px 15px;font-size:13px;color:var(--t2);line-height:1.7}
+
+/* REF CARDS */
+.rf{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:15px 19px;margin-bottom:11px;
+    display:flex;align-items:flex-start;gap:13px;text-decoration:none;transition:all .15s;cursor:pointer}
+.rf:hover{border-color:var(--rose);transform:translateX(2px)}
+.ri{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.rb{flex:1;min-width:0}
+.rtl{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.rd{font-size:12px;color:var(--mu);line-height:1.5}
+.ru{font-size:11px;color:var(--rose);font-family:var(--mono);margin-top:3px;word-break:break-all}
+.rs{font-size:11px;color:var(--amber);margin-left:auto;white-space:nowrap;padding-left:10px}
+
+/* FLOW STEPS */
+.flow{display:flex;align-items:stretch;gap:0;margin:16px 0 24px;flex-wrap:wrap}
+.fstep{background:var(--card);border:1px solid var(--bdr);border-radius:8px;padding:14px 16px;
+       flex:1;min-width:120px;position:relative;font-size:13px;color:var(--t2);line-height:1.5}
+.fstep:not(:last-child)::after{content:'→';position:absolute;right:-14px;top:50%;transform:translateY(-50%);
+  color:var(--mu);font-size:16px;z-index:1;background:var(--bg);padding:0 2px}
+.fstep-n{font-family:var(--mono);font-size:10px;font-weight:700;color:var(--rose);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em}
+.fstep-t{font-weight:600;color:var(--t1);margin-bottom:3px;font-size:13px}
+
+/* TAG PILLS */
+.tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:5px;font-size:12px;font-family:var(--mono);margin:3px}
+.tg{background:rgba(0,255,136,.08);color:var(--green);border:1px solid rgba(0,255,136,.2)}
+.tr{background:rgba(244,63,94,.08);color:var(--rose);border:1px solid rgba(244,63,94,.2)}
+.ta{background:rgba(245,158,11,.08);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.tp2{background:rgba(168,85,247,.08);color:var(--purple);border:1px solid rgba(168,85,247,.2)}
+
+hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
+
+@media(max-width:900px){
+  #sb{width:220px;min-width:220px}
+  #main{margin-left:220px}
+  #tn{left:220px}
+  .ct{padding:28px 18px}
+  .g2,.c2,.g3,.g4{grid-template-columns:1fr}
+  .flow{flex-direction:column}
+  .fstep:not(:last-child)::after{content:'↓';right:auto;left:50%;top:auto;bottom:-14px;transform:translateX(-50%)}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sb">
+  <div class="logo">
+    <div class="logo-i">🔐</div>
+    <div><div class="logo-t">Security Architecture</div><div class="logo-s">// zero-trust &amp; modern auth</div></div>
+  </div>
+
+  <div class="ns"><div class="nt">Tổng quan</div>
+    <button class="nb active" onclick="S('intro')">🏠 Giới thiệu</button>
+  </div>
+  <div class="ns"><div class="nt">01 — mTLS</div>
+    <button class="nb" onclick="S('mtls-concept')">Khái niệm &amp; Hoạt động</button>
+    <button class="nb" onclick="S('mtls-cases')">Use Cases thực tế</button>
+  </div>
+  <div class="ns"><div class="nt">02 — Zero Trust</div>
+    <button class="nb" onclick="S('zt-concept')">Nguyên tắc &amp; Kiến trúc</button>
+    <button class="nb" onclick="S('zt-cases')">Use Cases thực tế</button>
+  </div>
+  <div class="ns"><div class="nt">03 — RBAC</div>
+    <button class="nb" onclick="S('rbac-concept')">Khái niệm &amp; Mô hình</button>
+    <button class="nb" onclick="S('rbac-cases')">Use Cases thực tế</button>
+  </div>
+  <div class="ns"><div class="nt">04 — ABAC</div>
+    <button class="nb" onclick="S('abac-concept')">Khái niệm &amp; Policy Engine</button>
+    <button class="nb" onclick="S('abac-cases')">Use Cases thực tế</button>
+  </div>
+  <div class="ns"><div class="nt">05 — OAuth 2.0 / OIDC</div>
+    <button class="nb" onclick="S('oauth-concept')">Flows &amp; Kiến trúc</button>
+    <button class="nb" onclick="S('oauth-cases')">Use Cases thực tế</button>
+  </div>
+  <div class="ns"><div class="nt">06 — JWT</div>
+    <button class="nb" onclick="S('jwt-concept')">Cấu trúc &amp; Hoạt động</button>
+    <button class="nb" onclick="S('jwt-cases')">Use Cases &amp; Anti-patterns</button>
+  </div>
+  <div class="ns"><div class="nt">07 — Secret Management</div>
+    <button class="nb" onclick="S('secret-concept')">Khái niệm &amp; Chiến lược</button>
+    <button class="nb" onclick="S('secret-cases')">Use Cases thực tế</button>
+  </div>
+  <div class="ns"><div class="nt">08 — CORS</div>
+    <button class="nb" onclick="S('cors-concept')">Cơ chế &amp; Headers</button>
+    <button class="nb" onclick="S('cors-cases')">Use Cases &amp; Pitfalls</button>
+  </div>
+  <div class="ns"><div class="nt">Tham khảo</div>
+    <button class="nb" onclick="S('refs')">📚 References</button>
+  </div>
+</nav>
+
+<!-- ══ TOP NAV ══ -->
+<nav id="tn">
+  <button class="tb active" onclick="S('intro')">Intro</button>
+  <button class="tb" onclick="S('mtls-concept')">mTLS</button>
+  <button class="tb" onclick="S('zt-concept')">Zero Trust</button>
+  <button class="tb" onclick="S('rbac-concept')">RBAC</button>
+  <button class="tb" onclick="S('abac-concept')">ABAC</button>
+  <button class="tb" onclick="S('oauth-concept')">OAuth2/OIDC</button>
+  <button class="tb" onclick="S('jwt-concept')">JWT</button>
+  <button class="tb" onclick="S('secret-concept')">Secrets</button>
+  <button class="tb" onclick="S('cors-concept')">CORS</button>
+  <button class="tb" onclick="S('refs')">Refs</button>
+</nav>
+
+<main id="main"><div class="ct">
+
+<!-- ═══════════════════ INTRO ═══════════════════ -->
+<section class="sec active" id="s-intro">
+  <div class="sh">
+    <div class="sn">🔐</div>
+    <div><div class="stl">Security Architecture Guide</div>
+         <div class="ss">mTLS · Zero Trust · RBAC · ABAC · OAuth 2.0/OIDC · JWT · Secret Management · CORS</div></div>
+    <span class="badge br">Modern Security</span>
+  </div>
+
+  <div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/security_arch_hero.png" alt="Security Architecture Hero" style="width: 100%; display: block; object-fit: cover; max-height: 380px;"></div>
+
+  <div class="cbox">
+    <div class="cbox-l">🎯 Mục tiêu tài liệu</div>
+    <div class="cbox-t">Hiểu sâu 8 trụ cột bảo mật của hệ thống hiện đại</div>
+    <p class="p">Tài liệu này trình bày chi tiết 8 chủ đề bảo mật cốt lõi trong kiến trúc phần mềm hiện đại — từ cách xác thực lẫn nhau giữa các service (<strong>mTLS</strong>), mô hình không tin tưởng mặc định (<strong>Zero Trust</strong>), kiểm soát quyền theo vai trò (<strong>RBAC</strong>) và thuộc tính (<strong>ABAC</strong>), ủy quyền và xác thực danh tính (<strong>OAuth 2.0/OIDC</strong>), token stateless (<strong>JWT</strong>), quản lý thông tin bí mật (<strong>Secret Management</strong>), đến kiểm soát truy cập tài nguyên web (<strong>CORS</strong>). Mỗi chủ đề đi kèm sơ đồ minh họa, use cases thực tế và best practices.</p>
+  </div>
+
+  <div class="g4">
+    <div class="card" style="cursor:pointer;border-color:rgba(244,63,94,.2)" onclick="S('mtls-concept')">
+      <div class="ct2">🔒 mTLS</div>
+      <p class="p" style="margin:0;font-size:13px">Xác thực hai chiều — cả client và server đều phải xuất trình certificate hợp lệ.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.2)" onclick="S('zt-concept')">
+      <div class="ct2">🛡️ Zero Trust</div>
+      <p class="p" style="margin:0;font-size:13px">"Never trust, always verify" — không ai được tin tưởng mặc định dù trong hay ngoài mạng.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(0,212,255,.2)" onclick="S('rbac-concept')">
+      <div class="ct2">👥 RBAC</div>
+      <p class="p" style="margin:0;font-size:13px">Phân quyền theo vai trò — user được gán role, role được gán permissions.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(245,158,11,.2)" onclick="S('abac-concept')">
+      <div class="ct2">🏷️ ABAC</div>
+      <p class="p" style="margin:0;font-size:13px">Phân quyền theo thuộc tính — policy engine đánh giá nhiều attribute để quyết định access.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" onclick="S('oauth-concept')">
+      <div class="ct2">🔑 OAuth2/OIDC</div>
+      <p class="p" style="margin:0;font-size:13px">Ủy quyền và xác thực danh tính — Authorization Code, PKCE, Client Credentials flows.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(99,102,241,.2)" onclick="S('jwt-concept')">
+      <div class="ct2">🎟️ JWT</div>
+      <p class="p" style="margin:0;font-size:13px">JSON Web Token stateless — header, payload, signature và các anti-patterns nguy hiểm.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(45,212,191,.2)" onclick="S('secret-concept')">
+      <div class="ct2">🗝️ Secrets</div>
+      <p class="p" style="margin:0;font-size:13px">Quản lý credentials, API keys, certificates — Vault, AWS Secrets Manager, rotation.</p>
+    </div>
+    <div class="card" style="cursor:pointer;border-color:rgba(244,63,94,.2)" onclick="S('cors-concept')">
+      <div class="ct2">🌐 CORS</div>
+      <p class="p" style="margin:0;font-size:13px">Cross-Origin Resource Sharing — preflight, headers, credentials, và các cấu hình sai phổ biến.</p>
+    </div>
+  </div>
+
+  <div class="note ni"><div class="nic">💡</div>
+    <p>Tài liệu viết bằng tiếng Việt, giữ nguyên thuật ngữ kỹ thuật tiếng Anh. Mỗi chủ đề có sơ đồ SVG minh họa luồng hoạt động và cấu trúc kiến trúc cụ thể.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════ mTLS CONCEPT ═══════════════════ -->
+<section class="sec" id="s-mtls-concept">
+  <div class="sh">
+    <div class="sn">01</div>
+    <div><div class="stl">mTLS — Mutual TLS</div>
+         <div class="ss">Xác thực hai chiều giữa client và server bằng certificate</div></div>
+    <span class="badge br">IDENTITY</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">mTLS là gì?</div>
+    <p class="p"><strong>Mutual TLS (mTLS)</strong> là phần mở rộng của giao thức TLS thông thường. Trong TLS thông thường, chỉ có <em>server</em> xuất trình certificate cho client xác minh. Với mTLS, <strong>cả hai phía</strong> — client và server — đều phải xuất trình certificate hợp lệ được ký bởi một Certificate Authority (CA) tin cậy chung. Đây là nền tảng của xác thực service-to-service trong kiến trúc microservices và Zero Trust.</p>
+    <p class="p">mTLS giải quyết câu hỏi: <em>"Tôi không chỉ biết đây là server đúng, mà còn biết đây là client được phép kết nối."</em> Không cần username/password, không cần API key — certificate chính là danh tính.</p>
+  </div>
+
+  <h3>TLS thông thường vs mTLS</h3>
+  <div class="dia">
+    <div class="dt">TLS vs mTLS — Luồng xác thực so sánh</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- TLS Side -->
+      <text x="180" y="20" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="Inter" font-weight="600">TLS (One-way)</text>
+      <rect x="30"  y="35" width="100" height="40" rx="6" fill="rgba(244,63,94,.1)" stroke="#f43f5e" stroke-width="1.5"/>
+      <text x="80" y="60" text-anchor="middle" font-size="12" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Browser</text>
+      <rect x="230" y="35" width="100" height="40" rx="6" fill="rgba(244,63,94,.1)" stroke="#f43f5e" stroke-width="1.5"/>
+      <text x="280" y="60" text-anchor="middle" font-size="12" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Server</text>
+      <!-- TLS arrows -->
+      <line x1="132" y1="52" x2="228" y2="52" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="180" y="46" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">ClientHello</text>
+      <line x1="228" y1="68" x2="132" y2="68" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#a1)"/>
+      <text x="180" y="82" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="Inter" font-weight="600">Server Certificate ↓</text>
+      <text x="80"  y="100" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Verify cert</text>
+      <text x="280" y="100" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">NO verify</text>
+      <rect x="30" y="110" width="310" height="24" rx="4" fill="rgba(255,107,107,.06)" stroke="rgba(255,107,107,.2)"/>
+      <text x="185" y="126" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">✗ Server không biết ai là client — chỉ encrypt traffic</text>
+
+      <!-- mTLS Side -->
+      <text x="600" y="20" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="Inter" font-weight="600">mTLS (Mutual)</text>
+      <rect x="450" y="35" width="110" height="40" rx="6" fill="rgba(0,255,136,.08)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="505" y="60" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Service A</text>
+      <rect x="660" y="35" width="110" height="40" rx="6" fill="rgba(0,255,136,.08)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="715" y="60" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Service B</text>
+
+      <line x1="562" y1="50" x2="658" y2="50" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="610" y="44" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">ClientHello</text>
+      <line x1="658" y1="62" x2="562" y2="62" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="610" y="76" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Server Cert ↓</text>
+      <line x1="562" y1="88" x2="658" y2="88" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a2)"/>
+      <text x="610" y="102" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Client Cert ↑</text>
+
+      <text x="505" y="120" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Verify B cert</text>
+      <text x="715" y="120" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Verify A cert</text>
+      <rect x="450" y="130" width="320" height="24" rx="4" fill="rgba(0,255,136,.06)" stroke="rgba(0,255,136,.2)"/>
+      <text x="610" y="146" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">✓ Cả hai xác minh danh tính nhau — không cần password/API key</text>
+
+      <!-- CA Box -->
+      <rect x="450" y="170" width="320" height="60" rx="8" fill="rgba(168,85,247,.06)" stroke="rgba(168,85,247,.3)" stroke-dasharray="4,3"/>
+      <text x="610" y="192" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Certificate Authority (CA)</text>
+      <text x="610" y="210" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Ký cả Service A cert VÀ Service B cert</text>
+      <text x="610" y="225" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Cả hai tin cùng một CA → trust được thiết lập</text>
+
+      <line x1="505" y1="75" x2="530" y2="170" stroke="rgba(168,85,247,.3)" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="715" y1="75" x2="690" y2="170" stroke="rgba(168,85,247,.3)" stroke-width="1" stroke-dasharray="3,3"/>
+    </svg>
+  </div>
+
+  <h3>Các thành phần cốt lõi của mTLS</h3>
+  <div class="g3">
+    <div class="card">
+      <div class="ct2">🏛️ Certificate Authority (CA)</div>
+      <p class="p" style="font-size:13px;margin:0">Tổ chức/hệ thống ký certificate cho các service. Trong internal PKI (Public Key Infrastructure), tổ chức tự vận hành CA riêng (như CFSSL, Vault PKI, cert-manager). Cả client và server phải tin cùng một CA.</p>
+    </div>
+    <div class="card">
+      <div class="ct2">📜 X.509 Certificate</div>
+      <p class="p" style="font-size:13px;margin:0">Chứa: Public key, thông tin định danh (Subject), CA chữ ký, thời hạn (NotBefore/NotAfter), Subject Alternative Name (SAN) dùng để verify hostname/service name.</p>
+    </div>
+    <div class="card">
+      <div class="ct2">🔑 Private Key</div>
+      <p class="p" style="font-size:13px;margin:0">Không bao giờ rời khỏi service sở hữu. Dùng để tạo chữ ký chứng minh sở hữu certificate. Cần được bảo vệ nghiêm ngặt — nên lưu trong Secret Manager hoặc HSM, không bao giờ commit vào code.</p>
+    </div>
+  </div>
+
+  <h3>Certificate Rotation — Thách thức lớn nhất</h3>
+  <div class="note nw"><div class="nic">⚠️</div>
+    <p><strong>Certificate expiry là nguồn gốc của nhiều outage nghiêm trọng</strong>. Hệ thống mTLS yêu cầu certificate rotation tự động. Tools như cert-manager (Kubernetes), Vault PKI với lease TTL ngắn (24h–7 ngày), hoặc SPIFFE/SPIRE giúp tự động hóa lifecycle quản lý certificate.</p>
+  </div>
+
+  <div class="c2">
+    <div class="cc">
+      <div class="cch hr">❌ Không nên làm</div>
+      <div class="ccb">
+        <ul style="list-style:none;padding:0">
+          <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Certificate thời hạn 1–2 năm, rotate thủ công</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Private key lưu trong file config hoặc environment variable</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Dùng self-signed cert mà không có CA hierarchy</li>
+          <li style="padding:6px 0">• Bỏ qua verify hostname/SAN trong code</li>
+        </ul>
+      </div>
+    </div>
+    <div class="cc">
+      <div class="cch hg2">✅ Best Practices</div>
+      <div class="ccb">
+        <ul style="list-style:none;padding:0">
+          <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Certificate TTL ngắn (24h–7 ngày) + auto-rotate</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Private key trong Vault/HSM hoặc Kubernetes Secret (encrypted)</li>
+          <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Internal PKI với Root CA offline, Intermediate CA online</li>
+          <li style="padding:6px 0">• SPIFFE/SPIRE cho workload identity trong multi-cluster</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ mTLS CASES ═══════════════════ -->
+<section class="sec" id="s-mtls-cases">
+  <div class="sh">
+    <div class="sn">01</div>
+    <div><div class="stl">mTLS — Use Cases thực tế</div>
+         <div class="ss">Service mesh, API Gateway, Zero Trust network</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <!-- Case 1 -->
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 1.1 — Service Mesh: mTLS trong Kubernetes với Istio/Linkerd</span><span class="badge bb">INTERMEDIATE</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Một hệ thống microservices chạy trên Kubernetes gồm 20+ services giao tiếp với nhau qua HTTP. Traffic nội bộ hoàn toàn không được mã hóa — nếu một pod bị compromise, attacker có thể sniff traffic hoặc impersonate service khác. Security team yêu cầu mọi service-to-service communication phải được mã hóa và xác thực. Việc sửa code từng service để implement mTLS riêng lẻ sẽ tốn hàng tháng.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Transparent mTLS qua Service Mesh Sidecar</div>
+        <p class="p" style="margin:0;font-size:14px">Service Mesh (Istio hoặc Linkerd) inject một sidecar proxy (Envoy/Linkerd2-proxy) vào mỗi pod. Sidecar tự động xử lý mTLS: nhận certificate từ control plane, thực hiện handshake, mã hóa/giải mã traffic — <strong>hoàn toàn transparent với application code</strong>. Developer không cần sửa một dòng code nào.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — Architecture Diagram</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 300" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="ms" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+              <marker id="mi" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+            </defs>
+            <!-- Control Plane -->
+            <rect x="300" y="10" width="200" height="40" rx="7" fill="rgba(168,85,247,.12)" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="400" y="35" text-anchor="middle" font-size="12" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Istiod (Control Plane)</text>
+
+            <!-- Pod A -->
+            <rect x="30" y="90" width="320" height="130" rx="8" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.3)" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="190" y="110" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Pod: Order Service</text>
+            <rect x="50" y="118" width="110" height="50" rx="5" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+            <text x="105" y="142" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">App</text>
+            <text x="105" y="157" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">:8080</text>
+            <rect x="175" y="118" width="130" height="50" rx="5" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-width="2"/>
+            <text x="240" y="138" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Envoy Sidecar</text>
+            <text x="240" y="153" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">mTLS termination</text>
+            <text x="240" y="164" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">cert from Istiod</text>
+            <text x="190" y="200" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">loopback: app → sidecar (plain)</text>
+            <line x1="162" y1="143" x2="173" y2="143" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2"/>
+
+            <!-- Pod B -->
+            <rect x="450" y="90" width="320" height="130" rx="8" fill="rgba(244,63,94,.03)" stroke="rgba(244,63,94,.3)" stroke-width="1.5" stroke-dasharray="5,3"/>
+            <text x="610" y="110" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono">Pod: Payment Service</text>
+            <rect x="465" y="118" width="130" height="50" rx="5" fill="rgba(0,255,136,.1)" stroke="#00ff88" stroke-width="2"/>
+            <text x="530" y="138" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Envoy Sidecar</text>
+            <text x="530" y="153" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">mTLS termination</text>
+            <rect x="610" y="118" width="110" height="50" rx="5" fill="rgba(244,63,94,.1)" stroke="#f43f5e"/>
+            <text x="665" y="142" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">App</text>
+            <text x="665" y="157" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">:8080</text>
+            <line x1="597" y1="143" x2="608" y2="143" stroke="#94a3b8" stroke-width="1" stroke-dasharray="2,2"/>
+            <text x="610" y="200" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">loopback: sidecar → app (plain)</text>
+
+            <!-- mTLS connection between sidecars -->
+            <line x1="307" y1="143" x2="463" y2="143" stroke="#00ff88" stroke-width="2.5" marker-end="url(#ms)"/>
+            <rect x="340" y="220" width="120" height="26" rx="5" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="400" y="237" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">mTLS encrypted</text>
+            <text x="400" y="260" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">Network traffic giữa các pods — fully encrypted &amp; authenticated</text>
+
+            <!-- Istiod cert distribution -->
+            <line x1="300" y1="50" x2="210" y2="90" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#mi)"/>
+            <line x1="500" y1="50" x2="590" y2="90" stroke="#a855f7" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#mi)"/>
+            <text x="180" y="80" font-size="9" fill="#a855f7" font-family="Inter">cấp cert</text>
+            <text x="560" y="80" font-size="9" fill="#a855f7" font-family="Inter">cấp cert</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Service mesh là cách tiếp cận đúng đắn</strong> khi cần roll out mTLS cho nhiều service: không cần sửa code, certificate lifecycle tự động, policy quản lý tập trung. <strong>Trade-off</strong>: overhead latency ~1ms per hop và memory/CPU cho sidecar (~50MB RAM/pod). <strong>Istio PeerAuthentication</strong> cho phép set <code>STRICT</code> mode (chỉ chấp nhận mTLS) hoặc <code>PERMISSIVE</code> (chấp nhận cả plain text, dùng trong giai đoạn migration). Với Linkerd, tất cả meshed traffic tự động là mTLS.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Case 2 -->
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 1.2 — mTLS cho API Gateway: xác thực IoT devices và B2B partners</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Một công ty fintech cần cho phép 500 thiết bị IoT (POS terminals) và 30 B2B partners gọi API. API key dễ bị đánh cắp, rotate khó. Yêu cầu: mỗi device và partner phải có danh tính không thể giả mạo, không phụ thuộc vào secret key truyền qua network. Khi một device bị compromise, cần revoke ngay lập tức mà không ảnh hưởng các device khác.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Certificate-based Authentication tại API Gateway</div>
+        <p class="p" style="margin:0;font-size:14px">Cấp certificate riêng cho từng device/partner. API Gateway (NGINX, Kong, AWS API Gateway) config verify client certificate. Certificate chứa device ID trong Subject/SAN. Khi device bị compromise, chỉ cần add cert vào CRL (Certificate Revocation List) hoặc OCSP — revoke tức thì mà không ảnh hưởng các cert khác.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — Revocation Flow</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="rv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+              <marker id="rv2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+            </defs>
+            <!-- Device OK -->
+            <rect x="20" y="30" width="80" height="40" rx="5" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="60" y="55" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">POS #001</text>
+            <!-- Device Compromised -->
+            <rect x="20" y="110" width="80" height="40" rx="5" fill="rgba(244,63,94,.1)" stroke="#f43f5e" stroke-dasharray="3,3"/>
+            <text x="60" y="127" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono">POS #007</text>
+            <text x="60" y="141" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">COMPROMISED</text>
+
+            <!-- Gateway -->
+            <rect x="200" y="60" width="120" height="80" rx="7" fill="rgba(99,102,241,.1)" stroke="#6366f1" stroke-width="1.5"/>
+            <text x="260" y="90" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">API Gateway</text>
+            <text x="260" y="106" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">verify client cert</text>
+            <text x="260" y="122" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">check CRL/OCSP</text>
+
+            <!-- CRL/OCSP -->
+            <rect x="400" y="60" width="130" height="80" rx="7" fill="rgba(245,158,11,.08)" stroke="#f59e0b"/>
+            <text x="465" y="90" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">CRL / OCSP</text>
+            <text x="465" y="106" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">revoked certs list</text>
+            <text x="465" y="122" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="Inter">POS #007 ← REVOKED</text>
+
+            <!-- API -->
+            <rect x="620" y="70" width="100" height="60" rx="6" fill="rgba(0,212,255,.08)" stroke="#00d4ff"/>
+            <text x="670" y="103" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">API Server</text>
+
+            <!-- Arrows -->
+            <line x1="102" y1="50" x2="198" y2="90" stroke="#00ff88" stroke-width="1.5" marker-end="url(#rv2)"/>
+            <text x="150" y="60" font-size="9" fill="#00ff88" font-family="Inter">cert valid</text>
+            <line x1="102" y1="130" x2="198" y2="115" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#rv)"/>
+            <text x="135" y="130" font-size="9" fill="#f43f5e" font-family="Inter">cert revoked</text>
+            <line x1="322" y1="100" x2="398" y2="100" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#rv)"/>
+            <text x="360" y="94" font-size="9" fill="#64748b" font-family="Inter">check</text>
+            <line x1="532" y1="88" x2="618" y2="96" stroke="#00ff88" stroke-width="1.5" marker-end="url(#rv2)"/>
+            <text x="565" y="84" font-size="9" fill="#00ff88" font-family="Inter">allowed</text>
+            <text x="240" y="170" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">← POS #007 bị block ngay lập tức sau khi thêm vào CRL</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Certificate-based auth vượt trội hơn API key</strong> cho IoT và B2B: (1) Private key không bao giờ truyền qua network, (2) Revocation granular từng device, (3) Certificate có thể encode metadata (device model, location, tier) trong Subject/Extensions. <strong>OCSP Stapling</strong> cải thiện performance — server tự cache OCSP response, client không cần round-trip riêng để check revocation. <strong>Lưu ý</strong>: OCSP có thể là single point of failure — cần OCSP responder HA. CRL với TTL ngắn (1h) là fallback tốt.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ ZERO TRUST CONCEPT ═══════════════════ -->
+<section class="sec" id="s-zt-concept">
+  <div class="sh">
+    <div class="sn">02</div>
+    <div><div class="stl">Zero Trust — Không tin tưởng mặc định</div>
+         <div class="ss">"Never trust, always verify" — xác minh mọi request bất kể nguồn gốc</div></div>
+    <span class="badge br">FRAMEWORK</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">Zero Trust Security Model</div>
+    <p class="p"><strong>Zero Trust</strong> là mô hình bảo mật dựa trên nguyên tắc: <em>không có gì được tin tưởng mặc định</em> — dù là user nội bộ, thiết bị trong LAN, hay service trong cùng datacenter. Mọi request đều phải được <strong>xác thực danh tính</strong>, <strong>kiểm tra quyền truy cập</strong>, và <strong>verify context</strong> (thiết bị có compliant không, vị trí địa lý, thời điểm) trước khi được phép.</p>
+    <p class="p">Zero Trust ra đời từ nhận thức rằng <strong>perimeter-based security</strong> (firewall bảo vệ nội bộ) đã lỗi thời: với cloud, remote work, và insider threats, khái niệm "inside = trusted" không còn ý nghĩa.</p>
+  </div>
+
+  <h3>7 Trụ cột của Zero Trust (NIST SP 800-207)</h3>
+  <div class="g4">
+    <div class="card" style="border-color:rgba(244,63,94,.2)">
+      <div class="ct2" style="color:var(--rose)">1. Identity</div>
+      <p class="p" style="font-size:13px;margin:0">Mọi user, service, device phải có danh tính mạnh (strong auth: MFA, certificate, FIDO2). Identity là perimeter mới.</p>
+    </div>
+    <div class="card" style="border-color:rgba(168,85,247,.2)">
+      <div class="ct2" style="color:var(--purple)">2. Device</div>
+      <p class="p" style="font-size:13px;margin:0">Thiết bị phải đăng ký, compliant với policy (EDR, patch level, disk encryption). Chỉ managed devices được cấp quyền nhất định.</p>
+    </div>
+    <div class="card" style="border-color:rgba(0,212,255,.2)">
+      <div class="ct2" style="color:var(--cyan)">3. Network</div>
+      <p class="p" style="font-size:13px;margin:0">Micro-segmentation thay vì flat network. Service-to-service communication kiểm soát bằng policy (mTLS + RBAC), không phải VLAN/firewall đơn thuần.</p>
+    </div>
+    <div class="card" style="border-color:rgba(245,158,11,.2)">
+      <div class="ct2" style="color:var(--amber)">4. Workload</div>
+      <p class="p" style="font-size:13px;margin:0">Application, container, serverless function đều có workload identity (SPIFFE). Không tin tưởng vì "chạy trong internal network".</p>
+    </div>
+    <div class="card" style="border-color:rgba(0,255,136,.2)">
+      <div class="ct2" style="color:var(--green)">5. Data</div>
+      <p class="p" style="font-size:13px;margin:0">Classify và protect data (DLP, encryption at rest/transit). Access decisions dựa trên data classification, không chỉ user role.</p>
+    </div>
+    <div class="card" style="border-color:rgba(99,102,241,.2)">
+      <div class="ct2" style="color:var(--indigo)">6. Visibility</div>
+      <p class="p" style="font-size:13px;margin:0">Log và monitor mọi access event. Anomaly detection, SIEM integration. Zero Trust không có giá trị nếu không có observability.</p>
+    </div>
+    <div class="card" style="border-color:rgba(45,212,191,.2)">
+      <div class="ct2" style="color:var(--teal)">7. Automation</div>
+      <p class="p" style="font-size:13px;margin:0">Policy enforcement tự động. Khi phát hiện anomaly, tự động revoke session, quarantine device, escalate. Con người không thể response đủ nhanh.</p>
+    </div>
+  </div>
+
+  <h3>Zero Trust Architecture — Luồng request đi qua Policy Engine</h3>
+  <div class="dia">
+    <div class="dt">Zero Trust Request Evaluation Flow</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="zt1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="zt2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Subject -->
+      <rect x="15" y="100" width="100" height="60" rx="7" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+      <text x="65" y="127" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Subject</text>
+      <text x="65" y="143" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">User/Service/Device</text>
+
+      <!-- Policy Enforcement Point -->
+      <rect x="165" y="85" width="150" height="90" rx="7" fill="rgba(99,102,241,.1)" stroke="#6366f1" stroke-width="2"/>
+      <text x="240" y="112" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">Policy Enforcement</text>
+      <text x="240" y="128" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">Point (PEP)</text>
+      <text x="240" y="148" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">API Gateway / Proxy</text>
+      <text x="240" y="162" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">intercepts every request</text>
+
+      <!-- Policy Decision Point -->
+      <rect x="390" y="65" width="180" height="130" rx="7" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-width="2"/>
+      <text x="480" y="92" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Policy Decision</text>
+      <text x="480" y="108" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Point (PDP)</text>
+      <text x="480" y="128" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Evaluate:</text>
+      <text x="480" y="144" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">• Identity verified?</text>
+      <text x="480" y="158" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">• Device compliant?</text>
+      <text x="480" y="172" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">• Permission exists?</text>
+      <text x="480" y="186" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">• Context normal?</text>
+
+      <!-- Resource -->
+      <rect x="660" y="100" width="120" height="60" rx="7" fill="rgba(0,255,136,.08)" stroke="#00ff88"/>
+      <text x="720" y="127" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Resource</text>
+      <text x="720" y="143" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Protected Service/Data</text>
+
+      <!-- Policy Information Point (data sources) -->
+      <rect x="390" y="218" width="180" height="35" rx="5" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.3)" stroke-dasharray="4,3"/>
+      <text x="480" y="237" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="Inter">Policy Information Point (PIP)</text>
+      <text x="480" y="249" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">IdP • CMDB • Threat Intel • SIEM</text>
+
+      <!-- Arrows -->
+      <line x1="117" y1="130" x2="163" y2="130" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#zt1)"/>
+      <line x1="317" y1="130" x2="388" y2="130" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#zt1)"/>
+      <text x="352" y="124" font-size="9" fill="#64748b" font-family="Inter">evaluate?</text>
+      <line x1="572" y1="115" x2="658" y2="120" stroke="#00ff88" stroke-width="1.5" marker-end="url(#zt2)"/>
+      <text x="600" y="108" font-size="9" fill="#00ff88" font-family="Inter">ALLOW</text>
+      <line x1="480" y1="197" x2="480" y2="216" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#zt1)"/>
+
+      <!-- DENY path -->
+      <path d="M 240 175 Q 240 240 350 240 Q 390 240 390 240" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="4,3"/>
+      <text x="285" y="255" font-size="9" fill="#ff6b6b" font-family="Inter">DENY → 403 Forbidden + log event</text>
+    </svg>
+  </div>
+
+  <div class="note ng"><div class="nic">✅</div>
+    <p><strong>Điểm mấu chốt của Zero Trust</strong>: <em>Access là dynamic, không phải static</em>. Ngay cả sau khi đã được cấp quyền, mỗi request tiếp theo vẫn được evaluate lại. Context thay đổi (thiết bị bị đánh dấu suspicious, IP thay đổi bất thường) → quyền truy cập bị thu hồi tự động.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════ ZT CASES ═══════════════════ -->
+<section class="sec" id="s-zt-cases">
+  <div class="sh">
+    <div class="sn">02</div>
+    <div><div class="stl">Zero Trust — Use Cases thực tế</div>
+         <div class="ss">Remote work, microservices, insider threat prevention</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 2.1 — Zero Trust cho Remote Work: thay thế VPN truyền thống</span><span class="badge bb">INTERMEDIATE</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Công ty có 2000 nhân viên làm remote. VPN truyền thống đặt ra vấn đề: (1) Sau khi kết nối VPN, nhân viên có access vào toàn bộ internal network — rủi ro nếu laptop bị compromise; (2) VPN không phân biệt BYOD vs managed device; (3) Khi bị hack, attacker có thể lateral move tự do trong mạng nội bộ; (4) VPN scaling khi 2000 người cùng connect.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Zero Trust Network Access (ZTNA) thay thế VPN</div>
+        <p class="p" style="margin:0;font-size:14px">Triển khai ZTNA (Cloudflare Access, Google BeyondCorp, Zscaler ZPA). Mỗi lần nhân viên truy cập ứng dụng: (1) Xác thực danh tính qua IdP (Okta/Azure AD) + MFA; (2) Đánh giá device posture (MDM compliance, OS patch level, EDR status); (3) Cấp quyền chỉ cho ứng dụng cụ thể được request, không phải toàn bộ network. Application connector chạy trong datacenter, không expose port ra internet.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — ZTNA vs VPN Access Model</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 240" xmlns="http://www.w3.org/2000/svg">
+            <!-- VPN side -->
+            <text x="170" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">VPN — "Vào được nội bộ = tin tưởng"</text>
+            <rect x="20" y="28" width="300" height="195" rx="8" fill="rgba(255,107,107,.03)" stroke="rgba(255,107,107,.2)" stroke-dasharray="4,3"/>
+            <rect x="35" y="42" width="80" height="36" rx="5" fill="rgba(244,63,94,.1)" stroke="#f43f5e"/>
+            <text x="75" y="65" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono">Laptop</text>
+            <text x="115" y="60" font-size="16" fill="#64748b">→</text>
+            <rect x="130" y="42" width="80" height="36" rx="5" fill="rgba(99,102,241,.1)" stroke="#6366f1"/>
+            <text x="170" y="65" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono">VPN GW</text>
+            <text x="215" y="60" font-size="14" fill="#64748b">⚡</text>
+            <text x="170" y="96" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">Kết nối xong → full internal access</text>
+            <!-- Internal zone: everything accessible -->
+            <rect x="35" y="108" width="270" height="100" rx="5" fill="rgba(255,107,107,.05)" stroke="rgba(255,107,107,.2)"/>
+            <text x="170" y="125" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">Internal Network (flat)</text>
+            <rect x="50" y="133" width="55" height="28" rx="3" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.3)"/>
+            <text x="77" y="152" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="JetBrains Mono">DB Server</text>
+            <rect x="115" y="133" width="55" height="28" rx="3" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.3)"/>
+            <text x="142" y="152" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="JetBrains Mono">HR System</text>
+            <rect x="180" y="133" width="55" height="28" rx="3" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.3)"/>
+            <text x="207" y="152" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="JetBrains Mono">Finance</text>
+            <rect x="245" y="133" width="50" height="28" rx="3" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.3)"/>
+            <text x="270" y="152" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="JetBrains Mono">Source</text>
+            <text x="170" y="200" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">⚠ Lateral movement dễ dàng nếu bị hack</text>
+
+            <!-- Divider -->
+            <line x1="340" y1="20" x2="340" y2="230" stroke="#1e293b" stroke-width="1.5" stroke-dasharray="4,4"/>
+
+            <!-- ZTNA side -->
+            <text x="575" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">ZTNA — "Từng app, từng request"</text>
+            <rect x="360" y="28" width="420" height="195" rx="8" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)" stroke-dasharray="4,3"/>
+            <rect x="375" y="42" width="70" height="36" rx="5" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="410" y="65" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Laptop</text>
+            <!-- IdP verify -->
+            <rect x="460" y="30" width="100" height="30" rx="4" fill="rgba(168,85,247,.1)" stroke="#a855f7"/>
+            <text x="510" y="50" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">IdP + MFA + Device</text>
+            <text x="445" y="62" font-size="9" fill="#a855f7" font-family="Inter">verify →</text>
+            <!-- Policy Engine -->
+            <rect x="570" y="42" width="90" height="36" rx="5" fill="rgba(245,158,11,.1)" stroke="#f59e0b"/>
+            <text x="615" y="60" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Policy</text>
+            <text x="615" y="72" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Engine</text>
+            <!-- Apps with individual access -->
+            <rect x="375" y="108" width="390" height="100" rx="5" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.2)"/>
+            <text x="570" y="125" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Chỉ app được authorize mới accessible</text>
+            <rect x="385" y="133" width="55" height="28" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="412" y="152" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">Jira ✓</text>
+            <rect x="450" y="133" width="55" height="28" rx="3" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+            <text x="477" y="152" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">HR ✗</text>
+            <rect x="515" y="133" width="60" height="28" rx="3" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+            <text x="545" y="152" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Finance ✗</text>
+            <rect x="585" y="133" width="55" height="28" rx="3" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="612" y="152" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">GitHub ✓</text>
+            <rect x="650" y="133" width="55" height="28" rx="3" fill="rgba(100,116,139,.1)" stroke="rgba(100,116,139,.3)"/>
+            <text x="677" y="152" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">DB ✗</text>
+            <text x="570" y="200" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">✓ Lateral movement không thể — không có network access</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>ZTNA là evolution tự nhiên từ VPN</strong>. Điểm khác biệt cốt lõi: VPN cấp network access, ZTNA cấp application access. Với ZTNA, ngay cả khi laptop bị compromise, attacker chỉ có thể access những app user đó có quyền — không thể lateral move. <strong>Device posture check</strong> là component quan trọng: unmanaged/BYOD chỉ được access low-sensitivity apps. <strong>Thách thức</strong>: legacy apps không support modern auth cần ZTNA connector wrap. Migration từ VPN sang ZTNA nên làm dần dần, app-by-app.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ RBAC CONCEPT ═══════════════════ -->
+<section class="sec" id="s-rbac-concept">
+  <div class="sh">
+    <div class="sn">03</div>
+    <div><div class="stl">RBAC — Role-Based Access Control</div>
+         <div class="ss">Phân quyền theo vai trò: đơn giản, dễ audit, dễ scale</div></div>
+    <span class="badge br">AUTHORIZATION</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">RBAC là gì?</div>
+    <p class="p"><strong>Role-Based Access Control (RBAC)</strong> là mô hình kiểm soát truy cập trong đó quyền truy cập (permissions) được gán cho <em>roles</em>, và users được gán các roles phù hợp. User có quyền gì phụ thuộc vào role họ có, không phải được cấp trực tiếp. Đây là mô hình phổ biến nhất trong enterprise vì dễ quản lý và audit.</p>
+    <p class="p">RBAC tuân theo nguyên tắc <strong>Least Privilege</strong>: user chỉ có quyền tối thiểu cần thiết cho công việc. Role tách biệt khỏi user — khi cần thay đổi quyền của một nhóm user, chỉ cần sửa role một lần.</p>
+  </div>
+
+  <h3>Các mô hình RBAC</h3>
+  <div class="c2">
+    <div class="cc">
+      <div class="cch ht">RBAC0 — Core RBAC</div>
+      <div class="ccb">
+        <p style="margin-bottom:10px">Cơ bản nhất: Users → Roles → Permissions. Một user có thể có nhiều roles, một role có thể có nhiều permissions.</p>
+        <div class="flow">
+          <div class="fstep"><div class="fstep-n">Entity</div><div class="fstep-t">User</div></div>
+          <div class="fstep"><div class="fstep-n">Assigned</div><div class="fstep-t">Role</div></div>
+          <div class="fstep"><div class="fstep-n">Has</div><div class="fstep-t">Permission</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="cc">
+      <div class="cch hp">RBAC2 — Hierarchical RBAC</div>
+      <div class="ccb">
+        <p style="margin-bottom:10px">Role có thể kế thừa từ role khác. <code>Admin</code> kế thừa tất cả permissions của <code>Manager</code>, <code>Manager</code> kế thừa của <code>Viewer</code>. Giảm duplication trong role definition.</p>
+        <div class="flow">
+          <div class="fstep"><div class="fstep-n">Level 3</div><div class="fstep-t">Admin</div></div>
+          <div class="fstep"><div class="fstep-n">Level 2</div><div class="fstep-t">Manager</div></div>
+          <div class="fstep"><div class="fstep-n">Level 1</div><div class="fstep-t">Viewer</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h3>RBAC trong Kubernetes — Ví dụ thực tế nhất</h3>
+  <div class="dia">
+    <div class="dt">Kubernetes RBAC: Role, ClusterRole, RoleBinding, ServiceAccount</div>
+    <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="rb1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- ServiceAccount -->
+      <rect x="15" y="95" width="130" height="50" rx="6" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+      <text x="80" y="118" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">ServiceAccount</text>
+      <text x="80" y="133" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">app: order-service</text>
+      <!-- User -->
+      <rect x="15" y="165" width="130" height="50" rx="6" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+      <text x="80" y="188" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">User</text>
+      <text x="80" y="203" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">alice@company.com</text>
+
+      <!-- RoleBinding -->
+      <rect x="195" y="80" width="140" height="160" rx="7" fill="rgba(99,102,241,.08)" stroke="#6366f1" stroke-width="1.5"/>
+      <text x="265" y="105" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">RoleBinding</text>
+      <text x="265" y="122" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">namespace: production</text>
+      <rect x="210" y="133" width="110" height="26" rx="4" fill="rgba(99,102,241,.1)" stroke="rgba(99,102,241,.3)"/>
+      <text x="265" y="150" text-anchor="middle" font-size="9" fill="#6366f1" font-family="Inter">subjects:</text>
+      <text x="265" y="162" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">ServiceAccount + User</text>
+      <rect x="210" y="168" width="110" height="26" rx="4" fill="rgba(99,102,241,.1)" stroke="rgba(99,102,241,.3)"/>
+      <text x="265" y="185" text-anchor="middle" font-size="9" fill="#6366f1" font-family="Inter">roleRef:</text>
+      <text x="265" y="197" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">pod-reader Role</text>
+      <text x="265" y="228" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">scoped to namespace</text>
+
+      <!-- Role -->
+      <rect x="395" y="60" width="180" height="130" rx="7" fill="rgba(0,255,136,.07)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="485" y="85" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Role: pod-reader</text>
+      <text x="485" y="103" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">namespace: production</text>
+      <text x="485" y="122" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">rules:</text>
+      <text x="485" y="138" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">apiGroups: [""]</text>
+      <text x="485" y="152" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">resources: ["pods", "logs"]</text>
+      <text x="485" y="166" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">verbs: [get, list, watch]</text>
+      <text x="485" y="180" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">NOT: [create, delete, patch]</text>
+
+      <!-- ClusterRole -->
+      <rect x="395" y="205" width="180" height="50" rx="6" fill="rgba(245,158,11,.07)" stroke="#f59e0b"/>
+      <text x="485" y="228" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">ClusterRole</text>
+      <text x="485" y="244" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">cluster-wide (all namespaces)</text>
+
+      <!-- K8s API Server -->
+      <rect x="640" y="95" width="150" height="110" rx="7" fill="rgba(168,85,247,.08)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="715" y="118" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">K8s API Server</text>
+      <text x="715" y="136" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">AuthN: verify token</text>
+      <text x="715" y="152" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">AuthZ: RBAC check</text>
+      <rect x="655" y="162" width="120" height="30" rx="4" fill="rgba(0,255,136,.08)" stroke="#00ff88"/>
+      <text x="715" y="181" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">GET /api/v1/pods → ALLOW</text>
+      <text x="715" y="196" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">(matches role verbs)</text>
+
+      <!-- Arrows -->
+      <line x1="147" y1="120" x2="193" y2="140" stroke="#f43f5e" stroke-width="1" marker-end="url(#rb1)"/>
+      <line x1="147" y1="190" x2="193" y2="170" stroke="#f43f5e" stroke-width="1" marker-end="url(#rb1)"/>
+      <line x1="337" y1="130" x2="393" y2="100" stroke="#6366f1" stroke-width="1" marker-end="url(#rb1)"/>
+      <line x1="577" y1="120" x2="638" y2="140" stroke="#a855f7" stroke-width="1" marker-end="url(#rb1)"/>
+    </svg>
+  </div>
+
+  <h3>RBAC vs các mô hình khác</h3>
+  <table class="tbl">
+    <thead><tr><th>Tiêu chí</th><th>RBAC</th><th>ABAC</th><th>ACL (Access Control List)</th></tr></thead>
+    <tbody>
+      <tr><td>Độ phức tạp</td><td>Thấp — dễ hiểu</td><td>Cao — cần policy engine</td><td>Trung bình</td></tr>
+      <tr><td>Tính linh hoạt</td><td>Trung bình</td><td>Rất cao — context-aware</td><td>Thấp</td></tr>
+      <tr><td>Scalability</td><td>Tốt với role hierarchy</td><td>Tốt nhất</td><td>Kém (N×M entries)</td></tr>
+      <tr><td>Audit</td><td>Dễ — rõ role → permission</td><td>Khó hơn</td><td>Khó với nhiều resource</td></tr>
+      <tr><td>Use case phù hợp</td><td>Enterprise apps, K8s, SaaS</td><td>Financial, Healthcare, Gov</td><td>File system, S3 bucket</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════ RBAC CASES ═══════════════════ -->
+<section class="sec" id="s-rbac-cases">
+  <div class="sh">
+    <div class="sn">03</div>
+    <div><div class="stl">RBAC — Use Cases thực tế</div>
+         <div class="ss">SaaS multi-tenant, API authorization, database access</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 3.1 — RBAC cho SaaS Multi-tenant: mỗi tenant có role hierarchy riêng</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Một SaaS HR platform phục vụ 500 công ty (tenants). Mỗi công ty có cấu trúc tổ chức riêng và cần phân quyền khác nhau: HR Manager thấy lương của tất cả nhân viên trong phòng ban của mình nhưng không thấy phòng ban khác; CEO thấy tất cả; Employee chỉ thấy thông tin của bản thân. Cần thiết kế RBAC system không để tenant này access data của tenant khác (isolation) và cho phép mỗi tenant customize roles theo nhu cầu.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Tenant-scoped RBAC với Resource-level Permissions</div>
+        <p class="p" style="margin:0;font-size:14px">Mô hình: mỗi tenant có scope RBAC riêng. Role không phải global mà là tenant-specific. Permission bao gồm cả resource scope (chỉ department của mình). Token JWT chứa <code>tenant_id</code> + <code>roles</code>. Mọi query tự động filter theo <code>tenant_id</code> từ token — không cần developer nhớ thêm filter.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — Multi-tenant RBAC Model</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 230" xmlns="http://www.w3.org/2000/svg">
+            <!-- Tenant A -->
+            <rect x="15" y="20" width="360" height="200" rx="8" fill="rgba(0,212,255,.03)" stroke="rgba(0,212,255,.25)" stroke-width="1.5"/>
+            <text x="195" y="42" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Tenant A: VinGroup</text>
+            <rect x="30" y="55" width="80" height="32" rx="4" fill="rgba(244,63,94,.1)" stroke="#f43f5e"/>
+            <text x="70" y="75" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono">CEO</text>
+            <rect x="125" y="55" width="100" height="32" rx="4" fill="rgba(245,158,11,.1)" stroke="#f59e0b"/>
+            <text x="175" y="75" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">HR Manager</text>
+            <rect x="240" y="55" width="80" height="32" rx="4" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="280" y="75" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Employee</text>
+            <!-- Permissions -->
+            <rect x="30" y="105" width="80" height="70" rx="4" fill="rgba(244,63,94,.05)" stroke="rgba(244,63,94,.2)"/>
+            <text x="70" y="122" text-anchor="middle" font-size="8" fill="#f43f5e" font-family="Inter">ALL employees</text>
+            <text x="70" y="136" text-anchor="middle" font-size="8" fill="#f43f5e" font-family="Inter">ALL salary data</text>
+            <text x="70" y="150" text-anchor="middle" font-size="8" fill="#f43f5e" font-family="Inter">ALL reports</text>
+            <text x="70" y="164" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">tenant A only</text>
+
+            <rect x="125" y="105" width="100" height="70" rx="4" fill="rgba(245,158,11,.05)" stroke="rgba(245,158,11,.2)"/>
+            <text x="175" y="122" text-anchor="middle" font-size="8" fill="#f59e0b" font-family="Inter">OWN dept employees</text>
+            <text x="175" y="136" text-anchor="middle" font-size="8" fill="#f59e0b" font-family="Inter">OWN dept salary</text>
+            <text x="175" y="150" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="Inter">NO other depts</text>
+            <text x="175" y="164" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">tenant A only</text>
+
+            <rect x="240" y="105" width="80" height="70" rx="4" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.2)"/>
+            <text x="280" y="122" text-anchor="middle" font-size="8" fill="#00ff88" font-family="Inter">OWN profile</text>
+            <text x="280" y="136" text-anchor="middle" font-size="8" fill="#00ff88" font-family="Inter">OWN payslip</text>
+            <text x="280" y="150" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="Inter">NO others</text>
+            <text x="280" y="164" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">tenant A only</text>
+
+            <!-- Tenant B -->
+            <rect x="420" y="20" width="365" height="200" rx="8" fill="rgba(168,85,247,.03)" stroke="rgba(168,85,247,.25)" stroke-width="1.5"/>
+            <text x="602" y="42" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Tenant B: FPT Software</text>
+            <rect x="435" y="55" width="80" height="32" rx="4" fill="rgba(244,63,94,.1)" stroke="#f43f5e"/>
+            <text x="475" y="75" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono">Admin</text>
+            <rect x="530" y="55" width="100" height="32" rx="4" fill="rgba(0,212,255,.1)" stroke="#00d4ff"/>
+            <text x="580" y="75" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Team Lead</text>
+            <rect x="645" y="55" width="90" height="32" rx="4" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+            <text x="690" y="75" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Developer</text>
+            <text x="602" y="120" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">FPT tạo roles khác hoàn toàn với VinGroup</text>
+            <text x="602" y="138" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">nhưng cùng RBAC engine</text>
+            <!-- Hard isolation -->
+            <rect x="435" y="155" width="330" height="50" rx="6" fill="rgba(244,63,94,.05)" stroke="rgba(244,63,94,.3)" stroke-dasharray="3,3"/>
+            <text x="600" y="178" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Inter">⛔ Tenant isolation: không bao giờ cross-tenant query</text>
+            <text x="600" y="195" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">JWT claim: tenant_id injected vào mọi DB query WHERE clause</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Row-level tenant isolation</strong> phải được enforce ở tầng middleware/ORM, không chỉ ở application logic. Dùng PostgreSQL RLS (Row-Level Security) với <code>current_setting('app.tenant_id')</code> từ JWT claim để database tự động filter — không thể bị bypass ngay cả khi developer quên. <strong>Role explosion anti-pattern</strong>: nếu số lượng roles tăng theo cấp số nhân, cần xem lại thiết kế — thường là dấu hiệu cần chuyển sang ABAC cho phần fine-grained authorization.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ ABAC CONCEPT ═══════════════════ -->
+<section class="sec" id="s-abac-concept">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">ABAC — Attribute-Based Access Control</div>
+         <div class="ss">Policy engine đánh giá nhiều attribute — linh hoạt nhất</div></div>
+    <span class="badge br">AUTHORIZATION</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">ABAC là gì và tại sao vượt trội hơn RBAC trong nhiều tình huống?</div>
+    <p class="p"><strong>Attribute-Based Access Control (ABAC)</strong> đưa ra quyết định phân quyền dựa trên <em>tập hợp các thuộc tính</em> (attributes) của <strong>Subject</strong> (người dùng), <strong>Resource</strong> (tài nguyên), <strong>Action</strong> (hành động), và <strong>Environment</strong> (context). Thay vì hỏi "User có role X không?", ABAC hỏi "User này, với các attributes này, trong context này, có được phép thực hiện action này trên resource này không?"</p>
+    <p class="p">Ví dụ ABAC policy: <em>"Doctor có thể xem medical record của patient nếu patient đang điều trị tại cùng hospital và doctor đang trong ca trực và access từ hospital network."</em> — điều này không thể biểu diễn gọn gàng với RBAC.</p>
+  </div>
+
+  <h3>4 loại Attributes trong ABAC</h3>
+  <div class="g2">
+    <div class="card">
+      <div class="ct2" style="color:var(--rose)">👤 Subject Attributes</div>
+      <p class="p" style="font-size:13px;margin-bottom:8px">Thuộc tính của người thực hiện request:</p>
+      <div><span class="tag tg">department: engineering</span><span class="tag tg">level: senior</span><span class="tag tg">clearance: secret</span><span class="tag tg">location: hanoi</span><span class="tag ta">on_call: true</span></div>
+    </div>
+    <div class="card">
+      <div class="ct2" style="color:var(--purple)">📄 Resource Attributes</div>
+      <p class="p" style="font-size:13px;margin-bottom:8px">Thuộc tính của tài nguyên được access:</p>
+      <div><span class="tag tp2">classification: confidential</span><span class="tag tp2">owner: alice</span><span class="tag tp2">department: finance</span><span class="tag tr">sensitivity: high</span></div>
+    </div>
+    <div class="card">
+      <div class="ct2" style="color:var(--amber)">⚡ Action Attributes</div>
+      <p class="p" style="font-size:13px;margin-bottom:8px">Thuộc tính của action được thực hiện:</p>
+      <div><span class="tag ta">type: read</span><span class="tag ta">type: write</span><span class="tag tr">type: delete</span><span class="tag ta">type: export</span></div>
+    </div>
+    <div class="card">
+      <div class="ct2" style="color:var(--teal)">🌍 Environment Attributes</div>
+      <p class="p" style="font-size:13px;margin-bottom:8px">Context của request:</p>
+      <div><span class="tag tg">time: 09:00-18:00</span><span class="tag tg">network: vpn</span><span class="tag tr">device: unmanaged</span><span class="tag ta">risk_score: low</span></div>
+    </div>
+  </div>
+
+  <h3>ABAC Policy Evaluation — XACML/OPA Flow</h3>
+  <div class="dia">
+    <div class="dt">ABAC với OPA (Open Policy Agent) — Request evaluation pipeline</div>
+    <svg width="100%" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="ab1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="ab2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Request Input -->
+      <rect x="10" y="80" width="140" height="110" rx="7" fill="rgba(244,63,94,.07)" stroke="#f43f5e"/>
+      <text x="80" y="102" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Request Input</text>
+      <text x="80" y="118" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">subject.role=admin</text>
+      <text x="80" y="132" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">subject.dept=finance</text>
+      <text x="80" y="146" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">resource.class=secret</text>
+      <text x="80" y="160" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">action=download</text>
+      <text x="80" y="174" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">env.network=office</text>
+
+      <!-- OPA Engine -->
+      <rect x="205" y="60" width="200" height="150" rx="8" fill="rgba(99,102,241,.1)" stroke="#6366f1" stroke-width="2"/>
+      <text x="305" y="85" text-anchor="middle" font-size="12" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">OPA Policy Engine</text>
+      <text x="305" y="103" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Evaluate Rego policy:</text>
+      <rect x="218" y="110" width="174" height="80" rx="5" fill="rgba(0,0,0,.3)" stroke="rgba(99,102,241,.3)"/>
+      <text x="305" y="128" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">allow {</text>
+      <text x="305" y="143" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">  input.action == "download"</text>
+      <text x="305" y="157" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">  input.subject.clearance</text>
+      <text x="305" y="171" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">    == "secret"</text>
+      <text x="305" y="185" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">}</text>
+
+      <!-- External Data -->
+      <rect x="210" y="228" width="185" height="16" rx="3" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.25)"/>
+      <text x="302" y="240" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="Inter">External data: LDAP, DB, Risk Engine</text>
+
+      <!-- Decision -->
+      <rect x="465" y="90" width="120" height="70" rx="7" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="525" y="115" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Decision</text>
+      <text x="525" y="133" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">{ "allow":</text>
+      <text x="525" y="148" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">  true }</text>
+
+      <!-- Enforcement -->
+      <rect x="645" y="70" width="160" height="110" rx="7" fill="rgba(0,255,136,.07)" stroke="#00ff88"/>
+      <text x="725" y="95" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">PEP Enforcement</text>
+      <text x="725" y="113" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">API Gateway</text>
+      <text x="725" y="127" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">Service Middleware</text>
+      <rect x="660" y="140" width="130" height="28" rx="4" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+      <text x="725" y="158" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">✓ Allow request</text>
+
+      <!-- Arrows -->
+      <line x1="152" y1="135" x2="203" y2="135" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#ab1)"/>
+      <line x1="407" y1="135" x2="463" y2="125" stroke="#a855f7" stroke-width="1.5" marker-end="url(#ab1)"/>
+      <line x1="587" y1="125" x2="643" y2="115" stroke="#00ff88" stroke-width="1.5" marker-end="url(#ab2)"/>
+      <line x1="305" y1="212" x2="305" y2="226" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#ab1)"/>
+    </svg>
+  </div>
+
+  <div class="note ni"><div class="nic">💡</div>
+    <p><strong>OPA (Open Policy Agent)</strong> là de-facto standard cho ABAC trong cloud-native. Policy được viết bằng ngôn ngữ <strong>Rego</strong>, test được như code, version control được. Tích hợp vào Kubernetes admission webhook, Envoy, Terraform, CI/CD pipeline.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════ ABAC CASES ═══════════════════ -->
+<section class="sec" id="s-abac-cases">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">ABAC — Use Cases thực tế</div>
+         <div class="ss">Healthcare, Financial compliance, Dynamic access control</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 4.1 — ABAC cho Healthcare: bác sĩ chỉ xem hồ sơ bệnh nhân của mình</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Bệnh viện có 500 bác sĩ, 10,000 bệnh nhân. Yêu cầu phức tạp: Bác sĩ A có thể xem hồ sơ bệnh nhân X nếu X đang điều trị tại khoa của A VÀ A đang trong ca trực VÀ access từ thiết bị đã đăng ký. Bác sĩ cấp cứu có thể xem mọi hồ sơ nhưng chỉ trong 24h sau khi xử lý ca cấp cứu. RBAC không thể handle được độ phức tạp này.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — ABAC với OPA Policy kết hợp nhiều nguồn data</div>
+        <p class="p" style="margin:0;font-size:14px">OPA policy đánh giá: (1) subject.department == resource.treating_department, (2) subject.on_duty == true (từ shift schedule system), (3) subject.device_registered == true (từ MDM), (4) hoặc subject.specialty == "emergency" AND time_since_treatment &lt; 24h. Policy được test như unit test, deploy độc lập với application code.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — Decision Matrix</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- Header -->
+            <rect x="10" y="10" width="780" height="28" rx="5" fill="rgba(255,255,255,.04)"/>
+            <text x="180" y="29" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono" font-weight="700">DOCTOR</text>
+            <text x="370" y="29" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono" font-weight="700">RECORD</text>
+            <text x="540" y="29" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono" font-weight="700">CONDITION</text>
+            <text x="720" y="29" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono" font-weight="700">DECISION</text>
+            <!-- Row 1 -->
+            <rect x="10" y="42" width="780" height="30" rx="3" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.1)"/>
+            <text x="180" y="62" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Dr. A (Cardiology, on_duty=true)</text>
+            <text x="370" y="62" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Patient in Cardiology</text>
+            <text x="540" y="62" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Same dept + on duty + registered device</text>
+            <rect x="660" y="47" width="120" height="20" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+            <text x="720" y="61" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">✓ ALLOW</text>
+            <!-- Row 2 -->
+            <rect x="10" y="76" width="780" height="30" rx="3" fill="rgba(255,107,107,.04)" stroke="rgba(255,107,107,.1)"/>
+            <text x="180" y="96" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Dr. A (Cardiology, on_duty=false)</text>
+            <text x="370" y="96" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Patient in Cardiology</text>
+            <text x="540" y="96" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Same dept BUT not on duty</text>
+            <rect x="660" y="81" width="120" height="20" rx="3" fill="rgba(244,63,94,.15)" stroke="#f43f5e"/>
+            <text x="720" y="95" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">✗ DENY</text>
+            <!-- Row 3 -->
+            <rect x="10" y="110" width="780" height="30" rx="3" fill="rgba(255,107,107,.04)" stroke="rgba(255,107,107,.1)"/>
+            <text x="180" y="130" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Dr. B (Neurology, on_duty=true)</text>
+            <text x="370" y="130" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Patient in Cardiology</text>
+            <text x="540" y="130" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Different department</text>
+            <rect x="660" y="115" width="120" height="20" rx="3" fill="rgba(244,63,94,.15)" stroke="#f43f5e"/>
+            <text x="720" y="129" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">✗ DENY</text>
+            <!-- Row 4 -->
+            <rect x="10" y="144" width="780" height="30" rx="3" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.1)"/>
+            <text x="180" y="164" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Dr. C (Emergency, specialty=ER)</text>
+            <text x="370" y="164" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Any patient</text>
+            <text x="540" y="164" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="Inter">Treated patient within 24h ago</text>
+            <rect x="660" y="149" width="120" height="20" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+            <text x="720" y="163" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">✓ ALLOW</text>
+            <!-- Row 5 -->
+            <rect x="10" y="178" width="780" height="16" rx="3" fill="rgba(245,158,11,.04)" stroke="rgba(245,158,11,.1)"/>
+            <text x="400" y="190" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="Inter">Tất cả DENY attempts đều được log với full context → SIEM alert nếu suspicious pattern</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>ABAC phù hợp nhất khi access control phụ thuộc vào nhiều yếu tố động</strong> mà RBAC không thể capture. Điểm mạnh: (1) Policy là code — test được, version control được; (2) Context-aware — xem xét time, location, device; (3) Centralized — một policy engine cho toàn bộ hệ thống. <strong>Điểm yếu</strong>: phức tạp hơn RBAC, cần đội ngũ hiểu Rego/policy language, OPA là external dependency cần HA. <strong>Practical recommendation</strong>: dùng RBAC cho coarse-grained authorization (user có access vào app không?), ABAC cho fine-grained (user có thể xem record cụ thể này không?).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ OAuth2/OIDC CONCEPT ═══════════════════ -->
+<section class="sec" id="s-oauth-concept">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">OAuth 2.0 &amp; OIDC</div>
+         <div class="ss">Ủy quyền và xác thực danh tính — tiêu chuẩn modern auth</div></div>
+    <span class="badge br">AUTH PROTOCOL</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Phân biệt quan trọng</div>
+    <div class="cbox-t">OAuth 2.0 ≠ OpenID Connect — Hai mục đích khác nhau</div>
+    <p class="p"><strong>OAuth 2.0</strong> là framework <em>ủy quyền</em> (authorization): cho phép application A được phép truy cập tài nguyên của user trên service B, <em>không cần biết password</em> của user. Câu hỏi: <em>"Application này có được phép làm X thay mặt user không?"</em></p>
+    <p class="p"><strong>OpenID Connect (OIDC)</strong> là <em>identity layer</em> xây dựng trên OAuth 2.0: thêm khả năng <em>xác thực danh tính</em> (authentication). Câu hỏi: <em>"Ai là người đang login?"</em>. OIDC trả về <strong>ID Token</strong> (JWT chứa thông tin user), trong khi OAuth 2.0 trả về <strong>Access Token</strong> (quyền truy cập resource).</p>
+  </div>
+
+  <h3>Các OAuth 2.0 Flows</h3>
+  <table class="tbl">
+    <thead><tr><th>Flow</th><th>Dùng khi</th><th>Client Type</th><th>Token nhận</th></tr></thead>
+    <tbody>
+      <tr><td><code>Authorization Code + PKCE</code></td><td>Web app, SPA, Mobile app có user</td><td>Public + Confidential</td><td>Access + Refresh + ID Token</td></tr>
+      <tr><td><code>Client Credentials</code></td><td>Service-to-service, daemon, M2M</td><td>Confidential (no user)</td><td>Access Token only</td></tr>
+      <tr><td><code>Device Code</code></td><td>TV, CLI tool, IoT device</td><td>Public (input-limited)</td><td>Access + Refresh Token</td></tr>
+      <tr><td><code>Implicit</code> ⚠️</td><td>DEPRECATED — đừng dùng</td><td>Legacy SPA</td><td>Insecure</td></tr>
+      <tr><td><code>Resource Owner Password</code> ⚠️</td><td>DEPRECATED — đừng dùng</td><td>Trusted app only</td><td>Không recommend</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Authorization Code Flow với PKCE</h3>
+  <div class="dia">
+    <div class="dt">OAuth 2.0 Authorization Code + PKCE — Luồng hoàn chỉnh</div>
+    <svg width="100%" viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="oa1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Entities -->
+      <rect x="30" y="15" width="100" height="36" rx="5" fill="rgba(244,63,94,.1)" stroke="#f43f5e"/>
+      <text x="80" y="38" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">User/Browser</text>
+      <rect x="230" y="15" width="140" height="36" rx="5" fill="rgba(99,102,241,.1)" stroke="#6366f1"/>
+      <text x="300" y="38" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">Client App</text>
+      <rect x="470" y="15" width="150" height="36" rx="5" fill="rgba(168,85,247,.1)" stroke="#a855f7"/>
+      <text x="545" y="38" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Auth Server</text>
+      <rect x="680" y="15" width="120" height="36" rx="5" fill="rgba(0,255,136,.1)" stroke="#00ff88"/>
+      <text x="740" y="38" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Resource API</text>
+
+      <!-- Vertical lifelines -->
+      <line x1="80"  y1="51" x2="80"  y2="355" stroke="rgba(244,63,94,.2)"  stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="300" y1="51" x2="300" y2="355" stroke="rgba(99,102,241,.2)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="545" y1="51" x2="545" y2="355" stroke="rgba(168,85,247,.2)" stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="740" y1="51" x2="740" y2="355" stroke="rgba(0,255,136,.2)"  stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Step 1 -->
+      <line x1="80" y1="75" x2="295" y2="75" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="185" y="68" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">1. Click "Login with Google"</text>
+
+      <!-- Step 2: PKCE -->
+      <rect x="215" y="83" width="170" height="30" rx="4" fill="rgba(99,102,241,.06)" stroke="rgba(99,102,241,.2)"/>
+      <text x="300" y="98" text-anchor="middle" font-size="9" fill="#6366f1" font-family="Inter">2. Generate code_verifier (random)</text>
+      <text x="300" y="108" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">code_challenge = SHA256(code_verifier)</text>
+
+      <!-- Step 3 -->
+      <line x1="300" y1="120" x2="540" y2="120" stroke="#6366f1" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="420" y="113" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">3. Redirect to /authorize?code_challenge=...&amp;scope=openid profile</text>
+
+      <!-- Step 4 -->
+      <line x1="545" y1="138" x2="85" y2="138" stroke="#a855f7" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="310" y="132" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">4. Show login page</text>
+
+      <!-- Step 5 -->
+      <line x1="80" y1="155" x2="540" y2="155" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="310" y="148" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">5. User nhập credentials + consent</text>
+
+      <!-- Step 6 -->
+      <line x1="545" y1="172" x2="85" y2="172" stroke="#a855f7" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="310" y="166" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">6. Redirect to client_redirect_uri?code=AUTH_CODE</text>
+
+      <!-- Step 7 -->
+      <line x1="80" y1="190" x2="295" y2="190" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="185" y="183" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">7. Browser → Client app with code</text>
+
+      <!-- Step 8 (backend) -->
+      <line x1="300" y1="208" x2="540" y2="208" stroke="#6366f1" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="420" y="201" text-anchor="middle" font-size="9" fill="#6366f1" font-family="Inter">8. POST /token { code, code_verifier, client_secret } — server-to-server</text>
+
+      <!-- Step 9 -->
+      <rect x="460" y="216" width="170" height="24" rx="4" fill="rgba(168,85,247,.06)" stroke="rgba(168,85,247,.2)"/>
+      <text x="545" y="230" text-anchor="middle" font-size="9" fill="#a855f7" font-family="Inter">9. Verify: SHA256(code_verifier) == code_challenge</text>
+
+      <!-- Step 10 -->
+      <line x1="545" y1="248" x2="305" y2="248" stroke="#a855f7" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="420" y="242" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">10. Return: access_token + id_token + refresh_token</text>
+
+      <!-- Step 11 -->
+      <line x1="300" y1="268" x2="735" y2="268" stroke="#6366f1" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="520" y="261" text-anchor="middle" font-size="9" fill="#6366f1" font-family="Inter">11. API call: Authorization: Bearer &lt;access_token&gt;</text>
+
+      <!-- Step 12 -->
+      <line x1="740" y1="285" x2="305" y2="285" stroke="#00ff88" stroke-width="1.5" marker-end="url(#oa1)"/>
+      <text x="520" y="299" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">12. Validate token signature + expiry → Return data</text>
+
+      <!-- PKCE note -->
+      <rect x="30" y="310" width="420" height="36" rx="5" fill="rgba(0,255,136,.05)" stroke="rgba(0,255,136,.2)"/>
+      <text x="240" y="325" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">PKCE bảo vệ: nếu auth code bị intercepted, attacker không thể dùng</text>
+      <text x="240" y="339" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">vì không có code_verifier gốc để trao đổi lấy token</text>
+    </svg>
+  </div>
+</section>
+
+<!-- ═══════════════════ OAuth CASES ═══════════════════ -->
+<section class="sec" id="s-oauth-cases">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">OAuth2/OIDC — Use Cases thực tế</div>
+         <div class="ss">SSO, M2M, Social Login, Token introspection</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 5.1 — Client Credentials Flow: Service-to-Service auth không có user</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Hệ thống microservices có một <code>notification-service</code> cần gọi API của <code>user-service</code> để lấy email addresses vào lúc 2 AM — không có user nào đang login. Dùng API key đơn giản nhưng không có expiry, không có scope, khó rotate. Cần một cơ chế xác thực service-to-service đúng chuẩn với short-lived tokens và scope rõ ràng.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — OAuth 2.0 Client Credentials với scoped token</div>
+        <p class="p" style="margin:0;font-size:14px">Mỗi service được đăng ký tại Authorization Server với <code>client_id</code> và <code>client_secret</code>. Khi cần gọi API, service tự request access token với scope cụ thể (<code>users:read:email</code>). Token có TTL ngắn (15 phút – 1 giờ). Resource server verify token và scope trước khi trả data. Tốt hơn API key vì: scope hạn chế, expiry ngắn, có thể revoke per-client.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — M2M Auth Flow</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="m2m" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+            </defs>
+            <rect x="15" y="55" width="150" height="50" rx="7" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+            <text x="90" y="78" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Notification Svc</text>
+            <text x="90" y="93" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">client_id + secret</text>
+
+            <rect x="295" y="40" width="170" height="80" rx="7" fill="rgba(168,85,247,.1)" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="380" y="65" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">Auth Server</text>
+            <text x="380" y="82" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">validate credentials</text>
+            <text x="380" y="97" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">issue scoped token</text>
+            <text x="380" y="112" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">scope: users:read:email</text>
+
+            <rect x="590" y="55" width="170" height="50" rx="7" fill="rgba(0,255,136,.08)" stroke="#00ff88"/>
+            <text x="675" y="78" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">User Service API</text>
+            <text x="675" y="93" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">verify token + scope</text>
+
+            <line x1="167" y1="70" x2="293" y2="70" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#m2m)"/>
+            <text x="230" y="63" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">POST /token</text>
+            <text x="230" y="74" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">grant_type=client_credentials</text>
+            <line x1="467" y1="95" x2="165" y2="88" stroke="#a855f7" stroke-width="1.5" marker-end="url(#m2m)"/>
+            <text x="315" y="108" text-anchor="middle" font-size="9" fill="#a855f7" font-family="Inter">access_token (JWT, 1h TTL)</text>
+            <line x1="167" y1="75" x2="588" y2="75" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#m2m)" stroke-dasharray="5,3"/>
+            <text x="377" y="68" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Authorization: Bearer &lt;token&gt;</text>
+            <text x="90" y="135" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Cache token đến gần expiry</text>
+            <text x="380" y="150" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Token contains: sub=notification-svc, scope=users:read:email, exp=...</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Client Credentials là pattern chuẩn cho M2M</strong>. Best practices: (1) <code>client_secret</code> lưu trong Secret Manager, không hardcode; (2) Cache token đến lúc gần expire (tránh request mỗi lần); (3) Scope hẹp nhất có thể — <code>users:read:email</code> thay vì <code>users:*</code>; (4) Token TTL ngắn (1h) với không có refresh token cho M2M — service phải request new token khi cần. <strong>Mutual TLS có thể thay thế hoàn toàn</strong> client_secret trong môi trường service mesh — mTLS + Client Credentials không dùng secret, chỉ dùng certificate.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ JWT CONCEPT ═══════════════════ -->
+<section class="sec" id="s-jwt-concept">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">JWT — JSON Web Token</div>
+         <div class="ss">Stateless token với signature — cấu trúc, verify, và anti-patterns nguy hiểm</div></div>
+    <span class="badge br">TOKEN</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">JWT là gì?</div>
+    <p class="p"><strong>JSON Web Token (JWT)</strong> là chuẩn mở (RFC 7519) định nghĩa cách truyền thông tin giữa các party dưới dạng JSON object được <strong>ký số</strong> (signed). JWT có thể được verify mà không cần query database — đây là lợi thế lớn về scalability. Token gồm 3 phần: <code>Header.Payload.Signature</code>, được base64url-encode và nối với dấu chấm.</p>
+  </div>
+
+  <h3>Cấu trúc JWT chi tiết</h3>
+  <div class="dia">
+    <div class="dt">JWT Structure — Header . Payload . Signature</div>
+    <svg width="100%" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg">
+      <!-- Raw token -->
+      <rect x="10" y="10" width="800" height="30" rx="5" fill="rgba(0,0,0,.4)" stroke="var(--bdr)"/>
+      <text x="15" y="30" font-size="10" fill="#f43f5e" font-family="JetBrains Mono">eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9</text>
+      <text x="370" y="30" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">.</text>
+      <text x="380" y="30" font-size="10" fill="#00ff88" font-family="JetBrains Mono">eyJzdWIiOiJ1c2VyXzEyMyIsInJvbGUiOiJhZG1pbiIsImV4cCI6MTcwMDAwMH0</text>
+      <text x="695" y="30" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">.</text>
+      <text x="700" y="30" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">SflKxwR...</text>
+
+      <!-- Header -->
+      <rect x="10" y="55" width="230" height="110" rx="7" fill="rgba(244,63,94,.06)" stroke="#f43f5e"/>
+      <text x="125" y="75" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Header</text>
+      <text x="125" y="92" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">Base64URL decoded:</text>
+      <rect x="20" y="98" width="210" height="56" rx="4" fill="rgba(0,0,0,.3)"/>
+      <text x="30" y="114" font-size="9" fill="#64748b" font-family="JetBrains Mono">{"</text>
+      <text x="30" y="128" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">  "alg": "RS256",  ← thuật toán ký</text>
+      <text x="30" y="142" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">  "typ": "JWT"</text>
+      <text x="30" y="155" font-size="9" fill="#64748b" font-family="JetBrains Mono">}</text>
+
+      <!-- Payload -->
+      <rect x="260" y="55" width="300" height="150" rx="7" fill="rgba(0,255,136,.05)" stroke="#00ff88"/>
+      <text x="410" y="75" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">Payload (Claims)</text>
+      <text x="410" y="92" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">⚠ Không encrypt — visible to anyone!</text>
+      <rect x="270" y="98" width="280" height="96" rx="4" fill="rgba(0,0,0,.3)"/>
+      <text x="280" y="114" font-size="9" fill="#64748b" font-family="JetBrains Mono">{"</text>
+      <text x="280" y="128" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">  "sub": "user_123",      // Subject</text>
+      <text x="280" y="142" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">  "iss": "auth.app.com", // Issuer</text>
+      <text x="280" y="156" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">  "aud": "api.app.com",  // Audience</text>
+      <text x="280" y="170" font-size="9" fill="#f43f5e" font-family="JetBrains Mono">  "exp": 1700000000,     // Expiry !</text>
+      <text x="280" y="184" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">  "role": "admin"</text>
+      <text x="280" y="193" font-size="9" fill="#64748b" font-family="JetBrains Mono">}</text>
+
+      <!-- Signature -->
+      <rect x="580" y="55" width="230" height="110" rx="7" fill="rgba(245,158,11,.06)" stroke="#f59e0b"/>
+      <text x="695" y="75" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">Signature</text>
+      <rect x="590" y="82" width="210" height="70" rx="4" fill="rgba(0,0,0,.3)"/>
+      <text x="695" y="100" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">RS256(</text>
+      <text x="695" y="114" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">  base64(header) + "." +</text>
+      <text x="695" y="128" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">  base64(payload),</text>
+      <text x="695" y="142" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="Inter">  PRIVATE_KEY</text>
+      <text x="695" y="153" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">)</text>
+
+      <!-- Notes -->
+      <text x="125" y="180" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="Inter">RS256: RSA + SHA256</text>
+      <text x="125" y="193" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">HS256 dùng symmetric key</text>
+      <rect x="230" y="218" width="350" height="16" rx="3" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.25)"/>
+      <text x="405" y="229" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="Inter">⚠ Payload không encrypted — KHÔNG lưu sensitive data (password, PII)</text>
+    </svg>
+  </div>
+
+  <h3>JWT Signing Algorithms — HS256 vs RS256 vs ES256</h3>
+  <div class="g3">
+    <div class="card">
+      <div class="ct2" style="color:var(--amber)">HS256 — HMAC SHA256</div>
+      <p class="p" style="font-size:13px;margin:0">Symmetric: cùng một secret key để sign VÀ verify. Nhanh. <strong>Vấn đề</strong>: mọi service cần verify token phải biết secret key — nếu một service bị lộ, tất cả bị lộ. Chỉ dùng nếu chỉ có 1 service verify.</p>
+    </div>
+    <div class="card">
+      <div class="ct2" style="color:var(--green)">RS256 — RSA SHA256 (khuyến nghị)</div>
+      <p class="p" style="font-size:13px;margin:0">Asymmetric: private key để sign (chỉ Auth Server có), public key để verify (publish qua JWKS endpoint). Service nào cũng verify được mà không biết private key. <strong>Tiêu chuẩn cho production.</strong></p>
+    </div>
+    <div class="card">
+      <div class="ct2" style="color:var(--teal)">ES256 — ECDSA SHA256</div>
+      <p class="p" style="font-size:13px;margin:0">Asymmetric, signature nhỏ hơn RS256 (~50%), verify nhanh hơn. Tốt cho mobile/IoT nơi bandwidth và CPU quan trọng. Security tương đương RS256 với key nhỏ hơn nhiều.</p>
+    </div>
+  </div>
+
+  <h3>🚨 JWT Anti-patterns Nguy Hiểm Nhất</h3>
+  <div class="note nd"><div class="nic">⛔</div>
+    <p><strong>Algorithm Confusion Attack (alg=none)</strong>: Nếu server không kiểm tra <code>alg</code> trong header, attacker có thể đặt <code>"alg":"none"</code> và bỏ signature. Server accept token không có signature! <strong>Fix</strong>: Luôn whitelist algorithm cụ thể, reject nếu không match.</p>
+  </div>
+  <div class="note nw"><div class="nic">⚠️</div>
+    <p><strong>Lưu JWT trong localStorage</strong>: Dễ bị XSS đánh cắp. <strong>Fix</strong>: Lưu access token trong memory (JavaScript variable), refresh token trong <code>httpOnly</code> cookie (không accessible từ JS). Đây là pattern được khuyến nghị nhất hiện tại.</p>
+  </div>
+</section>
+
+<!-- ═══════════════════ JWT CASES ═══════════════════ -->
+<section class="sec" id="s-jwt-cases">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">JWT — Use Cases &amp; Anti-patterns</div>
+         <div class="ss">Token refresh, revocation, claims design</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 6.1 — Silent Token Refresh: access token ngắn + refresh token dài</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Ứng dụng web dùng JWT access token 24 giờ. Nếu user bị hack, attacker có 24 giờ để dùng token — không thể revoke. Nếu đặt TTL 5 phút, user bị logout thường xuyên, trải nghiệm kém. Cần balance giữa security (token ngắn) và UX (không bị logout).</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Access Token 15 phút + Refresh Token 7 ngày (rotating)</div>
+        <p class="p" style="margin:0;font-size:14px">Access token TTL ngắn (15 phút). Refresh token TTL dài (7 ngày), lưu trong <code>httpOnly secure SameSite=strict</code> cookie. Khi access token expire, client tự động dùng refresh token để lấy access token mới — <strong>silent refresh</strong>, user không bị gián đoạn. Rotation: mỗi lần dùng refresh token, issue token mới và invalidate token cũ — nếu token bị đánh cắp, sử dụng lần 2 sẽ bị detect.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — Token Refresh &amp; Rotation Flow</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 220" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="jr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+            </defs>
+            <!-- Timeline -->
+            <line x1="40" y1="50" x2="760" y2="50" stroke="#1e293b" stroke-width="2"/>
+            <text x="30" y="44" font-size="9" fill="#64748b" font-family="JetBrains Mono">TIME →</text>
+            <!-- AT1 -->
+            <rect x="40" y="30" width="180" height="22" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+            <text x="130" y="45" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Access Token 1 (15 min)</text>
+            <line x1="222" y1="30" x2="222" y2="70" stroke="#f43f5e" stroke-width="1" stroke-dasharray="3,3"/>
+            <text x="222" y="78" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="Inter">expired</text>
+            <!-- AT2 -->
+            <rect x="222" y="30" width="180" height="22" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+            <text x="312" y="45" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Access Token 2 (15 min)</text>
+            <line x1="404" y1="30" x2="404" y2="70" stroke="#f43f5e" stroke-width="1" stroke-dasharray="3,3"/>
+            <!-- AT3 -->
+            <rect x="404" y="30" width="180" height="22" rx="3" fill="rgba(0,255,136,.15)" stroke="#00ff88"/>
+            <text x="494" y="45" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Access Token 3 (15 min)</text>
+            <text x="600" y="44" font-size="9" fill="#64748b" font-family="Inter">... and so on</text>
+
+            <!-- Refresh token bar -->
+            <rect x="40" y="90" width="700" height="22" rx="3" fill="rgba(168,85,247,.1)" stroke="#a855f7"/>
+            <text x="390" y="105" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">Refresh Token (7 days) — httpOnly cookie</text>
+
+            <!-- Silent refresh events -->
+            <rect x="200" y="120" width="130" height="36" rx="5" fill="rgba(99,102,241,.08)" stroke="#6366f1"/>
+            <text x="265" y="136" text-anchor="middle" font-size="9" fill="#6366f1" font-family="JetBrains Mono">Silent Refresh</text>
+            <text x="265" y="149" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">new AT + new RT issued</text>
+            <rect x="380" y="120" width="130" height="36" rx="5" fill="rgba(99,102,241,.08)" stroke="#6366f1"/>
+            <text x="445" y="136" text-anchor="middle" font-size="9" fill="#6366f1" font-family="JetBrains Mono">Silent Refresh</text>
+            <text x="445" y="149" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">new AT + new RT issued</text>
+
+            <!-- Detection of theft -->
+            <rect x="590" y="115" width="180" height="46" rx="5" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+            <text x="680" y="132" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="JetBrains Mono">Detect Token Reuse!</text>
+            <text x="680" y="146" text-anchor="middle" font-size="8" fill="#64748b" font-family="Inter">Old RT reused → revoke ALL</text>
+            <text x="680" y="158" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="Inter">tokens for this user</text>
+
+            <text x="400" y="190" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">User không bị logout — access token mới được cấp tự động mỗi 15 phút</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Refresh token rotation</strong> là kỹ thuật quan trọng nhất để detect token theft: nếu attacker đánh cắp refresh token và dùng nó, server phát hiện "token đã được dùng rồi" → revoke toàn bộ token của user đó → attacker bị kick. <strong>Token Family</strong>: nhóm tất cả RT từ cùng login session vào một family — nếu bất kỳ RT nào trong family bị reuse, revoke toàn bộ family. <strong>httpOnly + SameSite=Strict</strong> cookie: không thể access từ JavaScript (chống XSS), không tự động gửi với cross-site request (chống CSRF).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECRET MANAGEMENT ═══════════════════ -->
+<section class="sec" id="s-secret-concept">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Secret Management</div>
+         <div class="ss">Quản lý credentials, API keys, certificates — rotation và audit</div></div>
+    <span class="badge br">SECRETS</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Tại sao Secret Management quan trọng</div>
+    <div class="cbox-t">Secret sprawl là rủi ro bảo mật số 1 trong cloud-native</div>
+    <p class="p"><strong>Secret sprawl</strong> xảy ra khi credentials, API keys, database passwords... bị scatter khắp nơi: hardcoded trong code, trong environment variables, trong config files, trong CI/CD variables — không ai biết hết tất cả đang ở đâu. Khi bị breach, không thể rotate nhanh vì không track được hết. <strong>Secret Management</strong> tập trung lưu trữ, kiểm soát access, audit mọi lần đọc, và tự động rotate secrets.</p>
+  </div>
+
+  <h3>So sánh các giải pháp Secret Management</h3>
+  <table class="tbl">
+    <thead><tr><th>Tool</th><th>Type</th><th>Điểm mạnh</th><th>Phù hợp với</th></tr></thead>
+    <tbody>
+      <tr><td>HashiCorp Vault</td><td>Self-hosted</td><td>Dynamic secrets, PKI, full control</td><td>On-prem, multi-cloud, enterprise</td></tr>
+      <tr><td>AWS Secrets Manager</td><td>Managed</td><td>RDS auto-rotation, IAM integration</td><td>AWS-native workloads</td></tr>
+      <tr><td>Azure Key Vault</td><td>Managed</td><td>HSM-backed, AD integration</td><td>Azure workloads</td></tr>
+      <tr><td>GCP Secret Manager</td><td>Managed</td><td>Versioning, audit log, IAM</td><td>GCP workloads</td></tr>
+      <tr><td>Kubernetes Secrets</td><td>Built-in</td><td>Native K8s, easy setup</td><td>Simple use cases (cần encrypt etcd!)</td></tr>
+      <tr><td>External Secrets Operator</td><td>K8s Operator</td><td>Sync từ Vault/AWS/GCP vào K8s Secret</td><td>K8s + external secret store</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Secret Lifecycle — Từ Creation đến Rotation</h3>
+  <div class="dia">
+    <div class="dt">Secret Lifecycle Management với HashiCorp Vault</div>
+    <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="sv" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="sv2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- App -->
+      <rect x="15" y="100" width="120" height="60" rx="7" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+      <text x="75" y="127" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">App Service</text>
+      <text x="75" y="143" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">has: k8s service account</text>
+
+      <!-- Vault -->
+      <rect x="220" y="80" width="200" height="100" rx="8" fill="rgba(245,158,11,.08)" stroke="#f59e0b" stroke-width="2"/>
+      <text x="320" y="108" text-anchor="middle" font-size="12" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">HashiCorp Vault</text>
+      <text x="320" y="126" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">Auth: K8s ServiceAccount JWT</text>
+      <text x="320" y="141" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">Policy: app-policy</text>
+      <text x="320" y="156" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">Issues: dynamic DB credential</text>
+      <text x="320" y="168" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">TTL: 1 hour, auto-revoke</text>
+
+      <!-- Database -->
+      <rect x="510" y="100" width="130" height="60" rx="7" fill="rgba(0,255,136,.07)" stroke="#00ff88"/>
+      <text x="575" y="125" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">PostgreSQL</text>
+      <text x="575" y="141" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Vault creates temp user</text>
+
+      <!-- Static secret -->
+      <rect x="510" y="180" width="130" height="50" rx="7" fill="rgba(168,85,247,.07)" stroke="#a855f7"/>
+      <text x="575" y="202" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">KV Store</text>
+      <text x="575" y="216" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">API keys, certs</text>
+
+      <!-- Audit Log -->
+      <rect x="680" y="100" width="130" height="80" rx="7" fill="rgba(99,102,241,.07)" stroke="#6366f1"/>
+      <text x="745" y="125" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">Audit Log</text>
+      <text x="745" y="143" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">WHO accessed WHAT</text>
+      <text x="745" y="158" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">WHEN and from WHERE</text>
+      <text x="745" y="172" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">→ SIEM integration</text>
+
+      <!-- Arrows -->
+      <line x1="137" y1="130" x2="218" y2="130" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#sv)"/>
+      <text x="177" y="123" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">auth request</text>
+      <line x1="422" y1="130" x2="508" y2="130" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#sv)"/>
+      <text x="465" y="123" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="Inter">CREATE USER app_1h</text>
+      <line x1="508" y1="150" x2="422" y2="155" stroke="#00ff88" stroke-width="1.5" marker-end="url(#sv2)"/>
+      <text x="465" y="147" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">temp_user + password</text>
+      <line x1="218" y1="150" x2="138" y2="150" stroke="#00ff88" stroke-width="1.5" marker-end="url(#sv2)"/>
+      <text x="177" y="165" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Vault Token</text>
+      <line x1="640" y1="140" x2="678" y2="140" stroke="#6366f1" stroke-width="1.5" marker-end="url(#sv)"/>
+
+      <!-- Dynamic secret lifecycle note -->
+      <rect x="15" y="200" width="450" height="48" rx="6" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.2)"/>
+      <text x="240" y="218" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Inter">Dynamic Secrets: Vault tạo DB user với TTL 1h → tự động revoke sau TTL</text>
+      <text x="240" y="234" text-anchor="middle" font-size="10" fill="#64748b" font-family="Inter">App không bao giờ biết password lâu dài — mỗi lần restart có credentials mới</text>
+      <text x="240" y="247" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Breach một service → chỉ credentials đó bị lộ, expire sau 1h</text>
+    </svg>
+  </div>
+
+  <h3>Các anti-patterns nguy hiểm nhất</h3>
+  <div class="g2">
+    <div class="card" style="border-color:rgba(244,63,94,.3)">
+      <div class="ct2" style="color:var(--rose)">🚨 Anti-patterns phổ biến</div>
+      <ul style="list-style:none;padding:0;font-size:13px;color:var(--t2)">
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Secrets hardcoded trong source code / Docker image</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Secrets trong <code>.env</code> file commit lên Git</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Shared service accounts với permanent credentials</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Không rotate secrets sau khi nhân viên nghỉ việc</li>
+        <li style="padding:6px 0">• Log chứa giá trị secret (debug logging vô tình leak)</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:rgba(0,255,136,.2)">
+      <div class="ct2" style="color:var(--green)">✅ Best Practices</div>
+      <ul style="list-style:none;padding:0;font-size:13px;color:var(--t2)">
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Dùng Dynamic Secrets (Vault) thay vì long-lived credentials</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• GitLeaks / TruffleHog scan trong CI/CD pipeline</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Workload Identity (SPIFFE, IAM Role) thay vì API key</li>
+        <li style="padding:6px 0;border-bottom:1px solid var(--bdr)">• Automated rotation với zero downtime</li>
+        <li style="padding:6px 0">• Principle of least privilege cho vault policies</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ SECRET CASES ═══════════════════ -->
+<section class="sec" id="s-secret-cases">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Secret Management — Use Cases thực tế</div>
+         <div class="ss">K8s + External Secrets, GitOps, rotation automation</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 7.1 — Kubernetes + External Secrets Operator: sync từ AWS Secrets Manager</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Team DevOps lưu secrets trong AWS Secrets Manager (compliance, audit, rotation tự động). Nhưng Kubernetes pods cần đọc secrets từ K8s Secrets object — nếu lưu song song ở cả hai nơi, dễ out-of-sync khi rotate. Cần cơ chế tự động sync từ AWS Secrets Manager vào K8s Secrets mà không cần human intervention.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — External Secrets Operator (ESO)</div>
+        <p class="p" style="margin:0;font-size:14px">External Secrets Operator chạy trong K8s, định kỳ sync từ external secret store (AWS/GCP/Vault) vào K8s Secrets. Developer khai báo <code>ExternalSecret</code> CRD pointing đến AWS Secrets Manager path — ESO tự động tạo và update K8s Secret. Khi AWS secret rotate, K8s Secret được update sau interval (1 phút). Pod tự động restart khi secret thay đổi nếu cấu hình auto-reload.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — External Secrets Operator Architecture</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="eso" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+              <marker id="eso2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+            </defs>
+            <!-- AWS SM -->
+            <rect x="10" y="60" width="150" height="80" rx="7" fill="rgba(245,158,11,.08)" stroke="#f59e0b"/>
+            <text x="85" y="85" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">AWS Secrets</text>
+            <text x="85" y="101" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">Manager</text>
+            <text x="85" y="118" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">/prod/myapp/db-pass</text>
+            <text x="85" y="131" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">/prod/myapp/api-key</text>
+
+            <!-- ESO -->
+            <rect x="230" y="50" width="200" height="100" rx="7" fill="rgba(99,102,241,.1)" stroke="#6366f1" stroke-width="2"/>
+            <text x="330" y="78" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">External Secrets</text>
+            <text x="330" y="94" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">Operator</text>
+            <text x="330" y="112" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">reads ExternalSecret CRD</text>
+            <text x="330" y="126" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">fetches from AWS via IRSA</text>
+            <text x="330" y="140" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">sync interval: 1m</text>
+
+            <!-- K8s Secret -->
+            <rect x="500" y="60" width="150" height="80" rx="7" fill="rgba(168,85,247,.1)" stroke="#a855f7"/>
+            <text x="575" y="85" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">K8s Secret</text>
+            <text x="575" y="101" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">auto-created by ESO</text>
+            <text x="575" y="115" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">DB_PASSWORD=***</text>
+            <text x="575" y="128" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">API_KEY=***</text>
+
+            <!-- Pod -->
+            <rect x="690" y="70" width="95" height="60" rx="6" fill="rgba(0,255,136,.08)" stroke="#00ff88"/>
+            <text x="737" y="98" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">App Pod</text>
+            <text x="737" y="113" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">mount secret</text>
+
+            <!-- Arrows -->
+            <line x1="162" y1="100" x2="228" y2="100" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#eso)"/>
+            <text x="194" y="94" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">fetch</text>
+            <line x1="432" y1="100" x2="498" y2="100" stroke="#6366f1" stroke-width="1.5" marker-end="url(#eso)"/>
+            <text x="465" y="94" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">sync</text>
+            <line x1="652" y1="100" x2="688" y2="100" stroke="#00ff88" stroke-width="1.5" marker-end="url(#eso2)"/>
+
+            <!-- AWS rotate note -->
+            <rect x="10" y="160" width="480" height="30" rx="5" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.2)"/>
+            <text x="245" y="174" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Khi AWS rotate secret → ESO sync sau &lt;1m → Pod tự reload (nếu dùng Reloader) → Zero downtime</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>External Secrets Operator</strong> là giải pháp chuẩn cho GitOps + secrets: config được version control (ExternalSecret CRD), actual secret values trong AWS/Vault. K8s Secrets object không bao giờ commit vào Git. <strong>IRSA (IAM Role for Service Account)</strong>: ESO xác thực với AWS qua Kubernetes ServiceAccount, không cần AWS credentials — workload identity thay vì static key. <strong>Reloader</strong> (stakater/Reloader) tự động restart deployment khi K8s Secret thay đổi — cần thiết để pod dùng secrets mới sau rotation.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ CORS CONCEPT ═══════════════════ -->
+<section class="sec" id="s-cors-concept">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">CORS — Cross-Origin Resource Sharing</div>
+         <div class="ss">Same-origin policy, preflight, headers, credentials</div></div>
+    <span class="badge br">WEB SECURITY</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">CORS là cơ chế browser, không phải server-side security</div>
+    <p class="p"><strong>CORS (Cross-Origin Resource Sharing)</strong> là cơ chế browser cho phép hoặc từ chối web application từ một origin (<code>https://app.com</code>) gọi API tại origin khác (<code>https://api.company.com</code>). Browser mặc định chặn cross-origin requests theo <strong>Same-Origin Policy</strong> — CORS là cách server <em>nới lỏng</em> restriction này một cách có kiểm soát.</p>
+    <p class="p"><strong>Quan trọng</strong>: CORS chỉ được enforce bởi <strong>browser</strong>. Curl, Postman, server-to-server calls không bị ảnh hưởng. CORS không phải là authentication hay authorization — nó chỉ kiểm soát browser nào được phép gọi API.</p>
+  </div>
+
+  <h3>Same-Origin Policy: khi nào bị chặn?</h3>
+  <table class="tbl">
+    <thead><tr><th>Request từ</th><th>Đến</th><th>Same Origin?</th><th>Kết quả</th></tr></thead>
+    <tbody>
+      <tr><td><code>https://app.com</code></td><td><code>https://app.com/api</code></td><td>✅ Yes</td><td>Allowed</td></tr>
+      <tr><td><code>https://app.com</code></td><td><code>https://api.app.com</code></td><td>❌ No (subdomain)</td><td>CORS check</td></tr>
+      <tr><td><code>https://app.com</code></td><td><code>http://app.com</code></td><td>❌ No (protocol)</td><td>CORS check</td></tr>
+      <tr><td><code>https://app.com</code></td><td><code>https://app.com:8080</code></td><td>❌ No (port)</td><td>CORS check</td></tr>
+      <tr><td><code>https://evil.com</code></td><td><code>https://api.app.com</code></td><td>❌ No</td><td>CORS check (blocked if not allowed)</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Preflight Request Flow</h3>
+  <div class="dia">
+    <div class="dt">CORS Preflight (OPTIONS) → Main Request Flow</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="cr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+        <marker id="cr2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+        </marker>
+      </defs>
+      <!-- Browser -->
+      <rect x="20" y="30" width="130" height="50" rx="6" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+      <text x="85" y="52" text-anchor="middle" font-size="11" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Browser</text>
+      <text x="85" y="67" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">origin: https://app.com</text>
+
+      <!-- API Server -->
+      <rect x="560" y="30" width="140" height="50" rx="6" fill="rgba(0,255,136,.08)" stroke="#00ff88"/>
+      <text x="630" y="52" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">API Server</text>
+      <text x="630" y="67" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">api.company.com</text>
+
+      <!-- Lifelines -->
+      <line x1="85"  y1="82" x2="85"  y2="265" stroke="rgba(244,63,94,.2)"  stroke-width="1" stroke-dasharray="4,3"/>
+      <line x1="630" y1="82" x2="630" y2="265" stroke="rgba(0,255,136,.2)"  stroke-width="1" stroke-dasharray="4,3"/>
+
+      <!-- Step 1: Preflight -->
+      <line x1="85" y1="105" x2="625" y2="105" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#cr)"/>
+      <text x="355" y="98" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">1. OPTIONS /api/data</text>
+      <text x="355" y="112" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Origin: https://app.com | Access-Control-Request-Method: POST</text>
+
+      <!-- Step 2: Preflight response -->
+      <line x1="625" y1="135" x2="90" y2="135" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#cr)"/>
+      <text x="355" y="128" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">2. 200 OK (preflight response)</text>
+      <rect x="200" y="140" width="310" height="45" rx="4" fill="rgba(245,158,11,.05)" stroke="rgba(245,158,11,.2)"/>
+      <text x="355" y="156" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Access-Control-Allow-Origin: https://app.com</text>
+      <text x="355" y="170" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Access-Control-Allow-Methods: GET, POST, PUT</text>
+      <text x="355" y="181" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Access-Control-Max-Age: 86400</text>
+
+      <!-- Step 3: Actual request -->
+      <line x1="85" y1="200" x2="625" y2="200" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#cr)"/>
+      <text x="355" y="193" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono">3. POST /api/data (actual request)</text>
+
+      <!-- Step 4: Response -->
+      <line x1="625" y1="220" x2="90" y2="220" stroke="#00ff88" stroke-width="1.5" marker-end="url(#cr2)"/>
+      <text x="355" y="213" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">4. 200 OK + Access-Control-Allow-Origin header</text>
+
+      <!-- Cache note -->
+      <rect x="20" y="238" width="200" height="28" rx="4" fill="rgba(99,102,241,.06)" stroke="rgba(99,102,241,.2)"/>
+      <text x="120" y="252" text-anchor="middle" font-size="9" fill="#6366f1" font-family="Inter">Preflight cached 86400s</text>
+      <text x="120" y="263" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">next requests: skip preflight</text>
+
+      <!-- Preflight triggered when -->
+      <rect x="440" y="238" width="360" height="28" rx="4" fill="rgba(244,63,94,.05)" stroke="rgba(244,63,94,.2)"/>
+      <text x="620" y="252" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="Inter">Preflight triggered khi: non-simple method (PUT/DELETE/PATCH)</text>
+      <text x="620" y="263" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">hoặc custom headers (Authorization, Content-Type: application/json)</text>
+    </svg>
+  </div>
+
+  <h3>CORS Headers quan trọng nhất</h3>
+  <table class="tbl">
+    <thead><tr><th>Header</th><th>Response/Request</th><th>Ý nghĩa</th><th>Giá trị ví dụ</th></tr></thead>
+    <tbody>
+      <tr><td><code>Access-Control-Allow-Origin</code></td><td>Response</td><td>Origin nào được phép — KHÔNG dùng <code>*</code> với credentials</td><td><code>https://app.com</code></td></tr>
+      <tr><td><code>Access-Control-Allow-Methods</code></td><td>Response (preflight)</td><td>HTTP methods được phép</td><td><code>GET, POST, PUT, DELETE</code></td></tr>
+      <tr><td><code>Access-Control-Allow-Headers</code></td><td>Response (preflight)</td><td>Headers được phép trong request</td><td><code>Content-Type, Authorization</code></td></tr>
+      <tr><td><code>Access-Control-Allow-Credentials</code></td><td>Response</td><td>Cho phép gửi cookies/auth headers</td><td><code>true</code></td></tr>
+      <tr><td><code>Access-Control-Max-Age</code></td><td>Response (preflight)</td><td>Cache preflight response bao lâu (giây)</td><td><code>86400</code></td></tr>
+      <tr><td><code>Origin</code></td><td>Request</td><td>Origin của browser gửi request</td><td><code>https://app.com</code></td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════════════════ CORS CASES ═══════════════════ -->
+<section class="sec" id="s-cors-cases">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">CORS — Use Cases &amp; Pitfalls</div>
+         <div class="ss">Common misconfigurations, wildcard origins, credentials</div></div>
+    <span class="badge ba">USE CASES</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 8.1 — CORS Misconfiguration: Wildcard + Credentials = Security Hole</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Developer cấu hình API server với <code>Access-Control-Allow-Origin: *</code> cho tiện, sau đó cũng thêm <code>Access-Control-Allow-Credentials: true</code> vì SPA cần gửi cookies. Ngạc nhiên: browser từ chối — báo lỗi "Wildcard origin cannot be used with credentials". Developer không hiểu tại sao và fix bằng cách chấp nhận mọi Origin header gửi lên: <code>res.setHeader('Access-Control-Allow-Origin', req.headers.origin)</code> — đây là <strong>lỗ hổng nghiêm trọng</strong>.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Whitelist Origins + Validate + Vary Header</div>
+        <p class="p" style="margin:0;font-size:14px">Duy trì danh sách allowed origins. Validate <code>Origin</code> header request so với whitelist. Chỉ phản hồi với <code>Access-Control-Allow-Origin</code> nếu origin trong whitelist. Luôn thêm <code>Vary: Origin</code> header để CDN cache đúng theo từng origin. Không bao giờ reflect Origin header mà không validate.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — CORS Security Matrix</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+            <!-- Header row -->
+            <rect x="10" y="10" width="780" height="26" rx="4" fill="rgba(255,255,255,.04)"/>
+            <text x="160" y="28" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Config</text>
+            <text x="370" y="28" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Cho phép Credentials</text>
+            <text x="570" y="28" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Kết quả</text>
+            <text x="720" y="28" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Security</text>
+            <!-- Row 1 -->
+            <rect x="10" y="40" width="780" height="30" rx="3" fill="rgba(255,107,107,.04)"/>
+            <text x="160" y="59" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Allow-Origin: *</text>
+            <text x="370" y="59" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">credentials: true</text>
+            <text x="570" y="59" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">Browser ERROR — spec forbids this</text>
+            <text x="720" y="59" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">N/A</text>
+            <!-- Row 2 -->
+            <rect x="10" y="74" width="780" height="30" rx="3" fill="rgba(255,107,107,.06)" stroke="rgba(255,107,107,.15)"/>
+            <text x="160" y="93" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">Allow-Origin: req.origin</text>
+            <text x="370" y="93" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">credentials: true (unvalidated)</text>
+            <text x="570" y="93" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Works in browser</text>
+            <text x="720" y="93" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">🚨 VULN!</text>
+            <!-- Row 3 -->
+            <rect x="10" y="108" width="780" height="30" rx="3" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.1)"/>
+            <text x="160" y="127" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Allow-Origin: *</text>
+            <text x="370" y="127" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">No credentials</text>
+            <text x="570" y="127" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Works — public API only</text>
+            <text x="720" y="127" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">✓ Safe</text>
+            <!-- Row 4 -->
+            <rect x="10" y="142" width="780" height="30" rx="3" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.1)"/>
+            <text x="160" y="161" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Whitelist validated origin</text>
+            <text x="370" y="161" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">credentials: true</text>
+            <text x="570" y="161" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Works + secure</text>
+            <text x="720" y="161" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">✓ Best</text>
+            <!-- Note -->
+            <rect x="10" y="180" width="780" height="16" rx="3" fill="rgba(244,63,94,.05)" stroke="rgba(244,63,94,.2)"/>
+            <text x="400" y="191" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="Inter">🚨 Row 2: evil.com → browser gửi cookies → attacker đọc user data! (CORS-based CSRF)</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Reflect Origin mà không validate = CORS-based CSRF vulnerability</strong>. Attacker có thể host evil.com, user visit → evil.com gọi api.company.com với user's cookies → read user data. <strong>Luôn validate Origin với whitelist cứng</strong>. <strong>Vary: Origin header</strong> bắt buộc khi respond khác nhau theo Origin — nếu không CDN cache response của origin A và trả cho origin B. <strong>CORS không phải authentication</strong> — kể cả cấu hình CORS đúng, vẫn cần authenticate request (JWT/session). CORS chỉ là browser enforcement, không bảo vệ direct API calls từ non-browser clients.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Case 8.2 — CORS cho Microservices: API Gateway là single CORS handler</span><span class="badge bb">INTERMEDIATE</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Hệ thống có 15 microservices, mỗi service phải configure CORS riêng — dễ inconsistency, dễ misconfigure ở từng service. Team developer của các service không phải security expert. Cần centralized CORS policy, không duplicate ở mỗi service.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — Xử lý CORS tập trung tại API Gateway</div>
+        <p class="p" style="margin:0;font-size:14px">API Gateway (Nginx, Kong, AWS API Gateway) xử lý tất cả CORS headers. Các internal microservices không cần biết về CORS — họ chỉ nhận requests đã qua gateway. Gateway intercept OPTIONS preflight, respond với CORS headers, forward actual requests sau khi validate origin. Internal services nhận request không có CORS concerns vì gateway đã handle.</p>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — Centralized CORS at Gateway</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 190" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <marker id="gw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#f43f5e" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+              <marker id="gw2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+                <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+              </marker>
+            </defs>
+            <!-- Browser -->
+            <rect x="10" y="70" width="100" height="50" rx="6" fill="rgba(244,63,94,.08)" stroke="#f43f5e"/>
+            <text x="60" y="92" text-anchor="middle" font-size="10" fill="#f43f5e" font-family="JetBrains Mono" font-weight="700">Browser</text>
+            <text x="60" y="107" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">app.com</text>
+            <!-- Gateway -->
+            <rect x="165" y="50" width="180" height="90" rx="7" fill="rgba(99,102,241,.1)" stroke="#6366f1" stroke-width="2"/>
+            <text x="255" y="75" text-anchor="middle" font-size="11" fill="#6366f1" font-family="JetBrains Mono" font-weight="700">API Gateway</text>
+            <text x="255" y="92" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">✓ CORS whitelist check</text>
+            <text x="255" y="106" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">✓ Handle OPTIONS preflight</text>
+            <text x="255" y="120" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Inter">✓ Add CORS response headers</text>
+            <text x="255" y="132" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">Single source of truth</text>
+            <!-- Microservices -->
+            <rect x="420" y="30" width="110" height="36" rx="5" fill="rgba(0,255,136,.07)" stroke="#00ff88"/>
+            <text x="475" y="53" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Order Svc</text>
+            <rect x="420" y="78" width="110" height="36" rx="5" fill="rgba(0,255,136,.07)" stroke="#00ff88"/>
+            <text x="475" y="101" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">Payment Svc</text>
+            <rect x="420" y="126" width="110" height="36" rx="5" fill="rgba(0,255,136,.07)" stroke="#00ff88"/>
+            <text x="475" y="149" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">User Svc</text>
+            <text x="540" y="52" font-size="9" fill="#64748b" font-family="Inter">No CORS config</text>
+            <text x="540" y="100" font-size="9" fill="#64748b" font-family="Inter">No CORS config</text>
+            <text x="540" y="148" font-size="9" fill="#64748b" font-family="Inter">No CORS config</text>
+
+            <!-- Block from bad origin -->
+            <rect x="10" y="150" width="150" height="30" rx="4" fill="rgba(244,63,94,.08)" stroke="rgba(244,63,94,.25)"/>
+            <text x="85" y="164" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="JetBrains Mono">evil.com browser</text>
+            <text x="85" y="176" text-anchor="middle" font-size="9" fill="#f43f5e" font-family="Inter">→ 403 at Gateway</text>
+
+            <line x1="112" y1="94" x2="163" y2="94" stroke="#f43f5e" stroke-width="1.5" marker-end="url(#gw)"/>
+            <line x1="347" y1="70" x2="418" y2="48" stroke="#00ff88" stroke-width="1" marker-end="url(#gw2)"/>
+            <line x1="347" y1="95" x2="418" y2="96" stroke="#00ff88" stroke-width="1" marker-end="url(#gw2)"/>
+            <line x1="347" y1="120" x2="418" y2="144" stroke="#00ff88" stroke-width="1" marker-end="url(#gw2)"/>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>API Gateway là điểm lý tưởng để xử lý CORS</strong> vì: (1) Single policy cho tất cả services; (2) Developer không cần hiểu CORS để viết services; (3) Dễ audit và thay đổi policy. <strong>Lưu ý với Load Balancer / CDN</strong>: nếu CDN cache preflight response, cần đảm bảo CDN không cache response sai origin (dùng Vary: Origin). <strong>SPA với multiple API domains</strong>: mỗi API domain cần CORS config riêng — không thể dùng wildcard nếu cần credentials. Xem xét BFF (Backend for Frontend) pattern để consolidate API calls qua một origin.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════ REFERENCES ═══════════════════ -->
+<section class="sec" id="s-refs">
+  <div class="sh">
+    <div class="sn">REF</div>
+    <div><div class="stl">References &amp; Tài liệu tham khảo</div>
+         <div class="ss">Nguồn chất lượng cao nhất cho Security Architecture</div></div>
+  </div>
+
+  <h3>🔐 mTLS &amp; PKI</h3>
+  <a class="rf" href="https://spiffe.io/docs/latest/spiffe-about/overview/" target="_blank">
+    <div class="ri" style="background:rgba(244,63,94,.1)">🆔</div>
+    <div class="rb">
+      <div class="rtl">SPIFFE/SPIRE — Workload Identity for Zero Trust</div>
+      <div class="rd">Tiêu chuẩn mở cho workload identity. SPIFFE định nghĩa SVID (SPIFFE Verifiable Identity Document), SPIRE là implementation. Dùng thay mTLS manual certificate management trong multi-cluster environments.</div>
+      <div class="ru">spiffe.io/docs/latest</div>
+    </div>
+    <div class="rs">⭐ CNCF</div>
+  </a>
+  <a class="rf" href="https://cert-manager.io/docs/" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">📜</div>
+    <div class="rb">
+      <div class="rtl">cert-manager — Kubernetes Certificate Management</div>
+      <div class="rd">De-facto standard cho certificate lifecycle management trong Kubernetes. Tự động issue, renew certificates từ Let's Encrypt, Vault, ACME. Required cho production mTLS trong K8s.</div>
+      <div class="ru">cert-manager.io/docs</div>
+    </div>
+    <div class="rs">⭐ 11k★</div>
+  </a>
+
+  <h3>🛡️ Zero Trust</h3>
+  <a class="rf" href="https://csrc.nist.gov/publications/detail/sp/800-207/final" target="_blank">
+    <div class="ri" style="background:rgba(168,85,247,.1)">📋</div>
+    <div class="rb">
+      <div class="rtl">NIST SP 800-207 — Zero Trust Architecture</div>
+      <div class="rd">Tài liệu chính thức từ NIST định nghĩa Zero Trust Architecture. Là baseline reference cho mọi ZTA implementation. 59 trang, free download. Bắt buộc đọc cho security architects.</div>
+      <div class="ru">csrc.nist.gov/publications/detail/sp/800-207/final</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+  <a class="rf" href="https://cloud.google.com/beyondcorp" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">🔍</div>
+    <div class="rb">
+      <div class="rtl">Google BeyondCorp — Real-world Zero Trust</div>
+      <div class="rd">Google's implementation của Zero Trust (BeyondCorp). Loạt papers mô tả cách Google migrate từ VPN-based security sang device + user identity. Ảnh hưởng lớn đến toàn ngành.</div>
+      <div class="ru">cloud.google.com/beyondcorp</div>
+    </div>
+    <div class="rs">⭐ Landmark</div>
+  </a>
+
+  <h3>👥 RBAC &amp; ABAC</h3>
+  <a class="rf" href="https://www.openpolicyagent.org/docs/latest/" target="_blank">
+    <div class="ri" style="background:rgba(0,255,136,.1)">⚖️</div>
+    <div class="rb">
+      <div class="rtl">Open Policy Agent (OPA) — ABAC Policy Engine</div>
+      <div class="rd">De-facto standard cho ABAC trong cloud-native. Tích hợp với Kubernetes, Envoy, Terraform, CI/CD. Rego policy language mạnh mẽ, testable. CNCF graduated project.</div>
+      <div class="ru">openpolicyagent.org/docs/latest</div>
+    </div>
+    <div class="rs">⭐ CNCF Graduated</div>
+  </a>
+  <a class="rf" href="https://casbin.org/docs/overview" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">🏷️</div>
+    <div class="rb">
+      <div class="rtl">Casbin — Authorization Library (Go, Node, Python...)</div>
+      <div class="rd">Authorization library hỗ trợ ACL, RBAC, ABAC. Có SDK cho 10+ ngôn ngữ. Policy lưu trong file/DB/etcd. Dễ tích hợp vào existing application hơn OPA standalone.</div>
+      <div class="ru">casbin.org/docs/overview</div>
+    </div>
+    <div class="rs">⭐ 17k★</div>
+  </a>
+
+  <h3>🔑 OAuth 2.0 &amp; OIDC &amp; JWT</h3>
+  <a class="rf" href="https://oauth.net/2/" target="_blank">
+    <div class="ri" style="background:rgba(244,63,94,.1)">🔐</div>
+    <div class="rb">
+      <div class="rtl">oauth.net — OAuth 2.0 Official Resources</div>
+      <div class="rd">Tập hợp RFC, best practices, security considerations cho OAuth 2.0 và OIDC. Bao gồm OAuth 2.0 Security Best Current Practice (BCP), OAuth 2.1 draft. Nguồn tham khảo chính thức nhất.</div>
+      <div class="ru">oauth.net/2</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+  <a class="rf" href="https://portswigger.net/web-security/jwt" target="_blank">
+    <div class="ri" style="background:rgba(168,85,247,.1)">🎟️</div>
+    <div class="rb">
+      <div class="rtl">PortSwigger Web Security — JWT Attacks</div>
+      <div class="rd">Phân tích chi tiết các JWT vulnerabilities: alg=none, algorithm confusion, key confusion attacks. Có interactive labs để practice. Tốt nhất để hiểu JWT từ góc độ offensive security.</div>
+      <div class="ru">portswigger.net/web-security/jwt</div>
+    </div>
+    <div class="rs">⭐ Best Labs</div>
+  </a>
+  <a class="rf" href="https://jwt.io/" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">🔍</div>
+    <div class="rb">
+      <div class="rtl">jwt.io — JWT Debugger &amp; Libraries</div>
+      <div class="rd">Tool decode/verify JWT online. Liệt kê JWT libraries cho 20+ ngôn ngữ với tính năng được support. Reference cho algorithm support per library.</div>
+      <div class="ru">jwt.io</div>
+    </div>
+    <div class="rs">⭐ Must-Have Tool</div>
+  </a>
+
+  <h3>🗝️ Secret Management</h3>
+  <a class="rf" href="https://developer.hashicorp.com/vault/docs" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">🔒</div>
+    <div class="rb">
+      <div class="rtl">HashiCorp Vault Documentation</div>
+      <div class="rd">Tài liệu đầy đủ về Vault: Secret Engines (KV, PKI, Database, SSH), Auth Methods (K8s, OIDC, AWS IAM), Policies, Dynamic Secrets. Bắt buộc cho production Vault deployment.</div>
+      <div class="ru">developer.hashicorp.com/vault/docs</div>
+    </div>
+    <div class="rs">⭐ Official</div>
+  </a>
+  <a class="rf" href="https://external-secrets.io/latest/" target="_blank">
+    <div class="ri" style="background:rgba(0,255,136,.1)">🔄</div>
+    <div class="rb">
+      <div class="rtl">External Secrets Operator — K8s + External Secret Stores</div>
+      <div class="rd">Sync secrets từ AWS Secrets Manager, GCP Secret Manager, HashiCorp Vault, Azure Key Vault vào K8s Secrets. Standard solution cho GitOps + secret management.</div>
+      <div class="ru">external-secrets.io/latest</div>
+    </div>
+    <div class="rs">⭐ CNCF Sandbox</div>
+  </a>
+
+  <h3>🌐 CORS</h3>
+  <a class="rf" href="https://developer.mozilla.org/en-US/docs/Web/HTTP/CORS" target="_blank">
+    <div class="ri" style="background:rgba(99,102,241,.1)">📖</div>
+    <div class="rb">
+      <div class="rtl">MDN Web Docs — Cross-Origin Resource Sharing (CORS)</div>
+      <div class="rd">Tài liệu CORS đầy đủ và chính xác nhất. Giải thích preflight, simple requests, credentials, headers. Có interactive examples. Reference đầu tiên cần đọc khi debug CORS issues.</div>
+      <div class="ru">developer.mozilla.org/en-US/docs/Web/HTTP/CORS</div>
+    </div>
+    <div class="rs">⭐ MDN Official</div>
+  </a>
+  <a class="rf" href="https://portswigger.net/web-security/cors" target="_blank">
+    <div class="ri" style="background:rgba(244,63,94,.1)">⚠️</div>
+    <div class="rb">
+      <div class="rtl">PortSwigger — CORS Vulnerabilities &amp; Attacks</div>
+      <div class="rd">Phân tích các CORS misconfigurations thực tế: trusting null origin, reflected origins, pre-domain wildcards. Interactive labs để test. Tốt nhất để hiểu tại sao CORS config sai nguy hiểm.</div>
+      <div class="ru">portswigger.net/web-security/cors</div>
+    </div>
+    <div class="rs">⭐ Best Labs</div>
+  </a>
+
+  <hr class="div">
+
+  <div class="note ng"><div class="nic">✅</div>
+    <p><strong>Lộ trình học Security Architecture được đề xuất:</strong><br>
+    <strong>Nền tảng:</strong> CORS → JWT → OAuth2/OIDC (hiểu web auth trước)<br>
+    <strong>Infrastructure:</strong> RBAC → ABAC → Secret Management (hiểu authorization và secrets)<br>
+    <strong>Advanced:</strong> mTLS → Zero Trust (hiểu network và identity trong distributed systems)<br><br>
+    Với mỗi topic: đọc RFC/spec → implement toy project → tìm hiểu known vulnerabilities → implement production-grade. Security là iterative process — không có "done", chỉ có "better".</p>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function showSection(id) {
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb,.tb').forEach(b=>b.classList.remove('active'));
+  const s=document.getElementById('s-'+id);
+  if(s) s.classList.add('active');
+  document.querySelectorAll('.nb,.tb').forEach(b=>{
+    if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"))
+      b.classList.add('active');
+  });
+  // Sync hash in URL
+  try {
+    if (history.replaceState) {
+      history.replaceState(null, null, '#s-' + id);
+    } else {
+      location.hash = '#s-' + id;
+    }
+  } catch (e) {}
+  window.scrollTo(0,0);
+}
+
+// Global compat wrappers
+window.showSection = showSection;
+window.S = showSection;
+window.show = showSection;
+
+// Sync layout dynamically if hash changes in the URL
+window.addEventListener('hashchange', () => {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  }
+});
+
+// On initial DOM load, automatically activate correct section if a hash is present
+function initRouter() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#s-')) {
+    showSection(hash.replace('#s-', ''));
+  } else {
+    const activeSec = document.querySelector('.sec.active');
+    if (activeSec) {
+      const activeId = activeSec.id.replace('s-', '');
+      showSection(activeId);
+    }
+  }
+}
+
+if (document.readyState === 'loading') {
+  window.addEventListener('DOMContentLoaded', initRouter);
+} else {
+  initRouter();
+}
+</script>
+</body>
+</html>

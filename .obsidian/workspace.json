@@ -41,10 +41,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "PostgreSQL/optimize-performance.html"
+                "file": "Go/Concurrency/02-buffered-unbuffered-channels.html"
               },
               "icon": "lucide-file",
-              "title": "optimize-performance"
+              "title": "02-buffered-unbuffered-channels"
             }
           }
         ],
@@ -121,7 +121,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "PostgreSQL/optimize-performance.html",
+                "file": "Go/Concurrency/02-buffered-unbuffered-channels.html",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -131,7 +131,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for optimize-performance"
+              "title": "Backlinks for 02-buffered-unbuffered-channels"
             }
           },
           {
@@ -223,25 +223,25 @@
   },
   "active": "8cbe7c10a5389a73",
   "lastOpenFiles": [
-    "PostgreSQL/indexes-partitioning-replication.html",
-    "PostgreSQL/🎯 Overview PostgreSQL.md",
-    "PostgreSQL/plpgsql-cte-mvcc.html",
-    "public/Screencast_20260527_043457.webm",
+    "Go/Concurrency/🎯 Overview Go Concurrency.md",
+    "Design Pattern/structural-patterns.html",
+    "Design Pattern/structural-design-patterns.html",
+    "Go/Concurrency/21-asynq.html",
+    "Go/Concurrency/20-bounded-parallelism-errgroup.html",
+    "Go/Concurrency/19-semaphore-guide.html",
+    "Go/Concurrency/18-rate-limiting-go.html",
+    "Go/Concurrency/17-resource-manager.html",
+    "Go/Concurrency/16-sync-pool.html",
+    "Go/Concurrency/15-errgroup-guide.html",
+    "Go/Concurrency/14-tee-channel-go-pattern.html",
     "LeetCode/🎯 Overview LeetCode.md",
-    "PostgreSQL/optimize-performance.html",
+    "PostgreSQL/🎯 Overview PostgreSQL.md",
     "public/images/pg_replication_ha.png",
     "public/images/pg_query_optimization.png",
     "public/images/pg_jsonb_fts.png",
     "public/images/pg_partition_maintenance.png",
     "public/images/pg_index_internals.png",
     "public/images/pg_advanced_p2_hero.png",
-    "PostgreSQL/advanced.html",
-    "PostgreSQL/advanced-p1.html",
-    "PostgreSQL/advanced-p2.html",
-    "PostgreSQL/postgresql-expert-guide-part2.html",
-    "Go/Concurrency/buffered-unbuffered-channels.html",
-    "Go/Concurrency/bounded-parallelism-errgroup.html",
-    "Go/Concurrency/🎯 Overview Go Concurrency.md",
     "public/images/pg_perf_vacuum_wal.png",
     "public/images/pg_perf_query_analysis.png",
     "public/images/pg_perf_pagination_cost.png",

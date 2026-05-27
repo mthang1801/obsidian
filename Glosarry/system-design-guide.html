@@ -1,0 +1,3141 @@
+<!doctype html>
+<html lang="vi">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>System Design & Architecture - Hướng dẫn chuyên sâu</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<style>
+			:root {
+				--bg-primary: #0d0f14;
+				--bg-secondary: #131720;
+				--bg-card: #1a1f2e;
+				--bg-code: #0f1319;
+				--accent-cyan: #00d4ff;
+				--accent-green: #00ff88;
+				--accent-purple: #a855f7;
+				--accent-amber: #f59e0b;
+				--accent-coral: #ff6b6b;
+				--accent-blue: #3b82f6;
+				--text-primary: #e2e8f0;
+				--text-secondary: #94a3b8;
+				--text-muted: #64748b;
+				--border: rgba(255, 255, 255, 0.07);
+				--border-accent: rgba(0, 212, 255, 0.3);
+				--font-mono: "JetBrains Mono", monospace;
+				--font-sans: "Inter", sans-serif;
+			}
+			* {
+				margin: 0;
+				padding: 0;
+				box-sizing: border-box;
+			}
+			body {
+				background: var(--bg-primary);
+				color: var(--text-primary);
+				font-family: var(--font-sans);
+				display: flex;
+				min-height: 100vh;
+			}
+			#sidebar {
+				width: 280px;
+				min-width: 280px;
+				background: var(--bg-secondary);
+				border-right: 1px solid var(--border);
+				position: fixed;
+				top: 0;
+				left: 0;
+				bottom: 0;
+				overflow-y: auto;
+				z-index: 100;
+				display: flex;
+				flex-direction: column;
+			}
+			#sidebar::-webkit-scrollbar {
+				width: 4px;
+			}
+			#sidebar::-webkit-scrollbar-thumb {
+				background: var(--border);
+				border-radius: 2px;
+			}
+			.sidebar-logo {
+				padding: 20px 20px 16px;
+				border-bottom: 1px solid var(--border);
+				display: flex;
+				align-items: center;
+				gap: 10px;
+			}
+			.logo-icon {
+				width: 36px;
+				height: 36px;
+				background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+				border-radius: 8px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 14px;
+				font-weight: 700;
+				color: #fff;
+				font-family: var(--font-mono);
+			}
+			.logo-text {
+				font-size: 13px;
+				font-weight: 600;
+				color: var(--text-primary);
+				line-height: 1.2;
+			}
+			.logo-sub {
+				font-size: 11px;
+				color: var(--accent-cyan);
+				font-family: var(--font-mono);
+			}
+			.nav-section {
+				padding: 14px 12px 6px;
+			}
+			.nav-section-title {
+				font-size: 10px;
+				font-weight: 600;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				color: var(--text-muted);
+				padding: 0 8px;
+				margin-bottom: 6px;
+			}
+			.nav-item {
+				display: flex;
+				align-items: center;
+				padding: 6px 8px;
+				border-radius: 6px;
+				text-decoration: none;
+				color: var(--text-secondary);
+				font-size: 12px;
+				cursor: pointer;
+				transition: all 0.15s;
+				border: none;
+				background: none;
+				width: 100%;
+				text-align: left;
+			}
+			.nav-item:hover {
+				background: rgba(255, 255, 255, 0.05);
+				color: var(--text-primary);
+			}
+			.nav-item.active {
+				background: rgba(0, 212, 255, 0.1);
+				color: var(--accent-cyan);
+				border-left: 2px solid var(--accent-cyan);
+				padding-left: 6px;
+			}
+			#topnav {
+				position: fixed;
+				top: 0;
+				left: 280px;
+				right: 0;
+				height: 52px;
+				background: var(--bg-secondary);
+				border-bottom: 1px solid var(--border);
+				display: flex;
+				align-items: center;
+				padding: 0 20px;
+				gap: 2px;
+				z-index: 50;
+				overflow-x: auto;
+			}
+			.topnav-item {
+				padding: 5px 9px;
+				border-radius: 6px;
+				font-size: 11px;
+				font-weight: 500;
+				color: var(--text-secondary);
+				cursor: pointer;
+				white-space: nowrap;
+				border: none;
+				background: none;
+				transition: all 0.15s;
+			}
+			.topnav-item:hover {
+				color: var(--text-primary);
+				background: rgba(255, 255, 255, 0.05);
+			}
+			.topnav-item.active {
+				color: var(--accent-cyan);
+				background: rgba(0, 212, 255, 0.1);
+			}
+			#main {
+				margin-left: 280px;
+				margin-top: 52px;
+				flex: 1;
+				max-width: calc(100% - 280px);
+			}
+			.content-area {
+				padding: 48px 56px;
+				max-width: 980px;
+			}
+			.page-section {
+				display: none;
+			}
+			.page-section.active {
+				display: block;
+			}
+			.section-header {
+				display: flex;
+				align-items: center;
+				gap: 14px;
+				margin-bottom: 32px;
+				padding-bottom: 20px;
+				border-bottom: 1px solid var(--border);
+			}
+			.section-number {
+				width: 36px;
+				height: 36px;
+				border-radius: 8px;
+				background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-family: var(--font-mono);
+				font-size: 14px;
+				font-weight: 700;
+				color: #fff;
+				flex-shrink: 0;
+			}
+			.section-title {
+				font-size: 26px;
+				font-weight: 700;
+				color: var(--text-primary);
+			}
+			.section-subtitle {
+				font-size: 14px;
+				color: var(--text-muted);
+				margin-top: 4px;
+			}
+			.badge {
+				padding: 4px 10px;
+				border-radius: 20px;
+				font-size: 11px;
+				font-weight: 600;
+				letter-spacing: 0.05em;
+				font-family: var(--font-mono);
+			}
+			.badge-basic {
+				background: rgba(0, 212, 255, 0.1);
+				color: var(--accent-cyan);
+				border: 1px solid rgba(0, 212, 255, 0.25);
+			}
+			.badge-advanced {
+				background: rgba(245, 158, 11, 0.12);
+				color: var(--accent-amber);
+				border: 1px solid rgba(245, 158, 11, 0.3);
+			}
+			.badge-expert {
+				background: rgba(168, 85, 247, 0.15);
+				color: var(--accent-purple);
+				border: 1px solid rgba(168, 85, 247, 0.3);
+			}
+			.prose {
+				font-size: 15px;
+				line-height: 1.8;
+				color: var(--text-secondary);
+				margin-bottom: 20px;
+			}
+			.prose strong {
+				color: var(--text-primary);
+				font-weight: 600;
+			}
+			.prose code {
+				background: rgba(0, 212, 255, 0.08);
+				color: var(--accent-cyan);
+				padding: 2px 6px;
+				border-radius: 4px;
+				font-family: var(--font-mono);
+				font-size: 13px;
+			}
+			h3 {
+				font-size: 18px;
+				font-weight: 600;
+				color: var(--text-primary);
+				margin: 28px 0 12px;
+			}
+			h4 {
+				font-size: 15px;
+				font-weight: 600;
+				color: var(--text-secondary);
+				margin: 20px 0 8px;
+			}
+			.card {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 24px;
+				margin-bottom: 20px;
+				transition: border-color 0.2s;
+			}
+			.card:hover {
+				border-color: var(--border-accent);
+			}
+			.card-title {
+				font-size: 15px;
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 10px;
+			}
+			.card-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 16px;
+				margin-bottom: 24px;
+			}
+			.concept-box {
+				background: linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(168, 85, 247, 0.05));
+				border: 1px solid rgba(0, 212, 255, 0.2);
+				border-radius: 12px;
+				padding: 24px;
+				margin-bottom: 28px;
+			}
+			.concept-box .label {
+				font-size: 10px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--accent-cyan);
+				margin-bottom: 8px;
+				font-family: var(--font-mono);
+			}
+			.concept-box .title {
+				font-size: 20px;
+				font-weight: 700;
+				color: var(--text-primary);
+				margin-bottom: 10px;
+			}
+			.diagram-container {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				padding: 24px;
+				margin-bottom: 28px;
+				overflow-x: auto;
+			}
+			.diagram-title {
+				font-size: 11px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				color: var(--text-muted);
+				margin-bottom: 20px;
+				font-family: var(--font-mono);
+				text-align: center;
+			}
+			.note {
+				display: flex;
+				gap: 12px;
+				padding: 14px 16px;
+				border-radius: 8px;
+				margin-bottom: 20px;
+				font-size: 14px;
+			}
+			.note-warn {
+				background: rgba(245, 158, 11, 0.08);
+				border: 1px solid rgba(245, 158, 11, 0.2);
+				color: #fcd34d;
+			}
+			.note-info {
+				background: rgba(0, 212, 255, 0.06);
+				border: 1px solid rgba(0, 212, 255, 0.2);
+				color: var(--accent-cyan);
+			}
+			.note-danger {
+				background: rgba(255, 107, 107, 0.08);
+				border: 1px solid rgba(255, 107, 107, 0.2);
+				color: var(--accent-coral);
+			}
+			.note-success {
+				background: rgba(0, 255, 136, 0.06);
+				border: 1px solid rgba(0, 255, 136, 0.2);
+				color: var(--accent-green);
+			}
+			.note-icon {
+				font-size: 16px;
+				flex-shrink: 0;
+				margin-top: 1px;
+			}
+			.note p {
+				margin: 0;
+				line-height: 1.6;
+			}
+			.data-table {
+				width: 100%;
+				border-collapse: collapse;
+				margin-bottom: 24px;
+				font-size: 14px;
+			}
+			.data-table th {
+				padding: 10px 14px;
+				text-align: left;
+				background: rgba(255, 255, 255, 0.03);
+				border-bottom: 1px solid var(--border);
+				color: var(--text-muted);
+				font-size: 11px;
+				text-transform: uppercase;
+				letter-spacing: 0.06em;
+				font-weight: 600;
+			}
+			.data-table td {
+				padding: 10px 14px;
+				border-bottom: 1px solid var(--border);
+				color: var(--text-secondary);
+			}
+			.data-table tr:hover td {
+				background: rgba(255, 255, 255, 0.02);
+			}
+			.data-table td code {
+				background: rgba(0, 212, 255, 0.08);
+				color: var(--accent-cyan);
+				padding: 2px 6px;
+				border-radius: 4px;
+				font-family: var(--font-mono);
+				font-size: 12px;
+			}
+			.compare-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 16px;
+				margin-bottom: 24px;
+			}
+			.compare-card {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				overflow: hidden;
+			}
+			.compare-head {
+				padding: 12px 16px;
+				font-size: 12px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.07em;
+				font-family: var(--font-mono);
+				border-bottom: 1px solid var(--border);
+			}
+			.compare-head.cyan {
+				background: rgba(0, 212, 255, 0.08);
+				color: var(--accent-cyan);
+			}
+			.compare-head.purple {
+				background: rgba(168, 85, 247, 0.08);
+				color: var(--accent-purple);
+			}
+			.compare-head.green {
+				background: rgba(0, 255, 136, 0.08);
+				color: var(--accent-green);
+			}
+			.compare-head.amber {
+				background: rgba(245, 158, 11, 0.08);
+				color: var(--accent-amber);
+			}
+			.divider {
+				border: none;
+				border-top: 1px solid var(--border);
+				margin: 36px 0;
+			}
+			.ref-card {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 10px;
+				padding: 16px 20px;
+				margin-bottom: 12px;
+				display: flex;
+				align-items: flex-start;
+				gap: 14px;
+				text-decoration: none;
+				transition: all 0.15s;
+				cursor: pointer;
+			}
+			.ref-card:hover {
+				border-color: var(--accent-cyan);
+				transform: translateX(2px);
+			}
+			.ref-icon {
+				width: 38px;
+				height: 38px;
+				border-radius: 8px;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				font-size: 18px;
+				flex-shrink: 0;
+			}
+			.ref-body {
+				flex: 1;
+				min-width: 0;
+			}
+			.ref-title {
+				font-size: 14px;
+				font-weight: 600;
+				color: var(--text-primary);
+				margin-bottom: 3px;
+			}
+			.ref-desc {
+				font-size: 12px;
+				color: var(--text-muted);
+				line-height: 1.5;
+			}
+			.ref-url {
+				font-size: 11px;
+				color: var(--accent-cyan);
+				font-family: var(--font-mono);
+				margin-top: 4px;
+				word-break: break-all;
+			}
+			.ref-stars {
+				font-size: 11px;
+				color: var(--accent-amber);
+				margin-left: auto;
+				white-space: nowrap;
+				padding-left: 12px;
+			}
+			.tag {
+				display: inline-flex;
+				align-items: center;
+				gap: 6px;
+				padding: 5px 10px;
+				border-radius: 5px;
+				font-size: 12px;
+				font-family: var(--font-mono);
+				margin: 3px;
+			}
+			.tag-good {
+				background: rgba(0, 255, 136, 0.08);
+				color: var(--accent-green);
+				border: 1px solid rgba(0, 255, 136, 0.2);
+			}
+			.tag-bad {
+				background: rgba(255, 107, 107, 0.08);
+				color: var(--accent-coral);
+				border: 1px solid rgba(255, 107, 107, 0.2);
+			}
+			.case-study {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 12px;
+				overflow: hidden;
+				margin-bottom: 28px;
+			}
+			.case-header {
+				padding: 16px 24px;
+				border-bottom: 1px solid var(--border);
+				background: rgba(255, 255, 255, 0.02);
+			}
+			.case-badge {
+				font-size: 10px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.1em;
+				font-family: var(--font-mono);
+				margin-bottom: 6px;
+			}
+			.case-badge.basic {
+				color: var(--accent-cyan);
+			}
+			.case-badge.advanced {
+				color: var(--accent-amber);
+			}
+			.case-badge.expert {
+				color: var(--accent-purple);
+			}
+			.case-title {
+				font-size: 16px;
+				font-weight: 700;
+				color: var(--text-primary);
+			}
+			.case-body {
+				padding: 24px;
+			}
+			.case-label {
+				font-size: 11px;
+				font-weight: 700;
+				text-transform: uppercase;
+				letter-spacing: 0.08em;
+				margin-bottom: 8px;
+				font-family: var(--font-mono);
+			}
+			.case-label.problem {
+				color: var(--accent-coral);
+			}
+			.case-label.solution {
+				color: var(--accent-green);
+			}
+			.case-label.note {
+				color: var(--accent-amber);
+			}
+			.glossary-grid {
+				display: grid;
+				grid-template-columns: 1fr 1fr;
+				gap: 12px;
+				margin-bottom: 24px;
+			}
+			.gl-item {
+				background: var(--bg-card);
+				border: 1px solid var(--border);
+				border-radius: 8px;
+				padding: 14px 16px;
+			}
+			.gl-term {
+				font-size: 13px;
+				font-weight: 700;
+				color: var(--accent-cyan);
+				font-family: var(--font-mono);
+				margin-bottom: 4px;
+			}
+			.gl-def {
+				font-size: 12px;
+				color: var(--text-secondary);
+				line-height: 1.5;
+			}
+			ul.bp-list {
+				list-style: none;
+				padding: 0;
+				margin-bottom: 20px;
+			}
+			ul.bp-list li {
+				padding: 8px 0 8px 24px;
+				font-size: 14px;
+				color: var(--text-secondary);
+				position: relative;
+				border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+			}
+			ul.bp-list li::before {
+				content: "▸";
+				color: var(--accent-cyan);
+				position: absolute;
+				left: 4px;
+				font-weight: 700;
+			}
+		</style>
+	</head>
+	<body>
+		<!-- ===== SIDEBAR ===== -->
+		<nav id="sidebar">
+			<div class="sidebar-logo">
+				<div class="logo-icon">SD</div>
+				<div>
+					<div class="logo-text">System Design</div>
+					<div class="logo-sub">Architecture Patterns</div>
+				</div>
+			</div>
+			<div class="nav-section">
+				<div class="nav-section-title">Foundations</div>
+				<button class="nav-item active" onclick="showSection('idempotency')">📝 01 Idempotency</button>
+				<button class="nav-item" onclick="showSection('eventual')">📝 02 Eventual Consistency</button>
+				<button class="nav-item" onclick="showSection('cap')">📝 03 CAP Theorem</button>
+			</div>
+			<div class="nav-section">
+				<div class="nav-section-title">Data Patterns</div>
+				<button class="nav-item" onclick="showSection('saga')">📝 04 Saga Pattern</button>
+				<button class="nav-item" onclick="showSection('cqrs')">📝 05 CQRS</button>
+				<button class="nav-item" onclick="showSection('eventsourcing')">📝 06 Event Sourcing</button>
+				<button class="nav-item" onclick="showSection('outbox')">📝 07 Outbox Pattern</button>
+			</div>
+			<div class="nav-section">
+				<div class="nav-section-title">Migration & Resilience</div>
+				<button class="nav-item" onclick="showSection('strangler')">📝 08 Strangler Fig</button>
+				<button class="nav-item" onclick="showSection('circuitbreaker')">📝 09 Circuit Breaker</button>
+				<button class="nav-item" onclick="showSection('bulkhead')">📝 10 Bulkhead Pattern</button>
+			</div>
+			<div class="nav-section">
+				<div class="nav-section-title">Infrastructure</div>
+				<button class="nav-item" onclick="showSection('sidecar')">📝 11 Sidecar Pattern</button>
+				<button class="nav-item" onclick="showSection('servicemesh')">📝 12 Service Mesh</button>
+				<button class="nav-item" onclick="showSection('apigateway')">📝 13 API Gateway</button>
+				<button class="nav-item" onclick="showSection('bff')">📝 14 Backend For Frontend</button>
+			</div>
+			<div class="nav-section">
+				<div class="nav-section-title">Appendix</div>
+				<button class="nav-item" onclick="showSection('refs')">📚 References</button>
+			</div>
+		</nav>
+		<!-- ===== TOP NAV ===== -->
+		<nav id="topnav">
+			<button class="topnav-item active" onclick="showSection('idempotency')">Idempotency</button>
+			<button class="topnav-item" onclick="showSection('eventual')">Eventual</button>
+			<button class="topnav-item" onclick="showSection('cap')">CAP</button>
+			<button class="topnav-item" onclick="showSection('saga')">Saga</button>
+			<button class="topnav-item" onclick="showSection('cqrs')">CQRS</button>
+			<button class="topnav-item" onclick="showSection('eventsourcing')">Event Src</button>
+			<button class="topnav-item" onclick="showSection('outbox')">Outbox</button>
+			<button class="topnav-item" onclick="showSection('strangler')">Strangler</button>
+			<button class="topnav-item" onclick="showSection('circuitbreaker')">Circuit Brk</button>
+			<button class="topnav-item" onclick="showSection('bulkhead')">Bulkhead</button>
+			<button class="topnav-item" onclick="showSection('sidecar')">Sidecar</button>
+			<button class="topnav-item" onclick="showSection('servicemesh')">Svc Mesh</button>
+			<button class="topnav-item" onclick="showSection('apigateway')">API GW</button>
+			<button class="topnav-item" onclick="showSection('bff')">BFF</button>
+			<button class="topnav-item" onclick="showSection('refs')">Refs</button>
+		</nav>
+		<main id="main">
+			<div class="content-area">
+				<!-- ==================== 01 IDEMPOTENCY ==================== -->
+				<section class="page-section active" id="s-idempotency">
+					<div class="section-header">
+						<div class="section-number">01</div>
+						<div>
+							<div class="section-title">Idempotency</div>
+							<div class="section-subtitle">Đảm bảo tính nhất quán khi retry — nền tảng của distributed systems</div>
+						</div>
+						<span class="badge badge-basic">FOUNDATION</span>
+					</div>
+
+					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/sys_design_hero.png" alt="System Design Hero" style="width: 100%; display: block; object-fit: cover; max-height: 380px;"></div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Idempotency là gì?</div>
+						<p class="prose">
+							<strong>Idempotency</strong> (tính lũy đẳng) là đặc tính của một operation mà khi thực hiện <strong>nhiều lần</strong> với cùng input,
+							kết quả <strong>không thay đổi</strong> so với lần thực hiện đầu tiên. Trong toán học: <code>f(f(x)) = f(x)</code>. Trong API: gọi cùng
+							một request 1 lần hay 10 lần đều cho cùng kết quả.
+						</p>
+						<p class="prose">
+							Idempotency là <strong>nền tảng cốt lõi</strong> của mọi distributed system vì network không đáng tin cậy — packets có thể bị mất,
+							duplicate, hoặc delay. Nếu không có idempotency, việc retry sẽ tạo ra side effects không mong muốn (ví dụ: tính tiền 2 lần).
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Idempotency Key</div>
+							<div class="gl-def">
+								Một unique identifier (UUID) gắn kèm mỗi request, cho phép server nhận diện request đã xử lý hay chưa. Client tạo key, server lưu trữ.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">At-Least-Once Delivery</div>
+							<div class="gl-def">Message được đảm bảo gửi ít nhất 1 lần, nhưng có thể duplicate. Yêu cầu consumer phải idempotent.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">At-Most-Once Delivery</div>
+							<div class="gl-def">Message chỉ gửi tối đa 1 lần, có thể bị mất. Không cần idempotency nhưng chấp nhận data loss.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Exactly-Once Semantics</div>
+							<div class="gl-def">Mỗi message được xử lý đúng 1 lần. Đạt được bằng cách kết hợp at-least-once + idempotent consumer.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Deduplication</div>
+							<div class="gl-def">Quá trình loại bỏ các request/message trùng lặp dựa trên idempotency key hoặc message ID.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Idempotent Consumer</div>
+							<div class="gl-def">Pattern trong messaging — consumer có khả năng xử lý cùng một message nhiều lần mà không tạo side effect.</div>
+						</div>
+					</div>
+					<h3>Cách hoạt động</h3>
+					<div class="diagram-container">
+						<div class="diagram-title">Idempotency Key Flow — Payment API</div>
+						<svg width="100%" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a1" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Client -->
+							<rect x="30" y="40" width="120" height="50" rx="8" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" />
+							<text x="90" y="70" text-anchor="middle" font-size="13" fill="#00d4ff" font-family="JetBrains Mono">Client</text>
+							<!-- Request 1 -->
+							<line x1="150" y1="65" x2="280" y2="65" stroke="#00ff88" stroke-width="1.5" marker-end="url(#a1)" />
+							<text x="215" y="55" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">POST /pay</text>
+							<text x="215" y="85" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Key: abc-123</text>
+							<!-- Server -->
+							<rect x="280" y="30" width="200" height="70" rx="8" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.3)" />
+							<text x="380" y="55" text-anchor="middle" font-size="13" fill="#a855f7" font-family="JetBrains Mono">Payment API</text>
+							<text x="380" y="75" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Check idempotency_keys</text>
+							<!-- DB -->
+							<rect x="550" y="30" width="140" height="70" rx="8" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" />
+							<text x="620" y="55" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">DB Store</text>
+							<text x="620" y="75" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">key → response</text>
+							<line x1="480" y1="65" x2="548" y2="65" stroke="#475569" stroke-width="1.2" marker-end="url(#a1)" />
+							<!-- First time: process -->
+							<text x="30" y="140" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">LẦN 1: Key chưa tồn tại</text>
+							<rect x="30" y="150" width="760" height="60" rx="8" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.15)" />
+							<text x="50" y="175" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">
+								① Nhận request (key=abc-123) → ② Lookup DB: NOT FOUND → ③ Process payment → ④ Save {key, response} → ⑤ Return 200
+							</text>
+							<text x="50" y="198" font-size="11" fill="#00ff88" font-family="JetBrains Mono">
+								✓ Thực thi business logic, charge $100, lưu kết quả
+							</text>
+							<!-- Retry: return cached -->
+							<text x="30" y="240" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">
+								LẦN 2+: Key đã tồn tại (retry / duplicate)
+							</text>
+							<rect x="30" y="250" width="760" height="60" rx="8" fill="rgba(245,158,11,0.04)" stroke="rgba(245,158,11,0.15)" />
+							<text x="50" y="275" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">
+								① Nhận request (key=abc-123) → ② Lookup DB: FOUND → ③ Return cached response → SKIP business logic
+							</text>
+							<text x="50" y="298" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">
+								⚡ Không charge lại, trả về kết quả cũ — an toàn khi retry
+							</text>
+						</svg>
+					</div>
+					<!-- Use Case Basic -->
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">1.1 — Payment API với Idempotency Key</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Một fintech app cho phép user chuyển tiền. User bấm nút "Chuyển $100" nhưng network timeout — app không biết server đã xử lý hay chưa
+								nên <strong>tự động retry</strong>. Không có idempotency → user bị trừ $200 (charge 2 lần). Đây là lỗi <strong>double-charge</strong>,
+								vi phạm nghiêm trọng trong financial systems.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Client tạo một <code>Idempotency-Key</code> (UUID v4) trước khi gửi request. Server lưu key + response vào DB (với TTL 24h). Khi nhận
+								request trùng key → trả cached response, <strong>không thực thi lại business logic</strong>.
+							</p>
+							<p class="prose">
+								<strong>Flow:</strong> Client → tạo <code>Idempotency-Key: 550e8400-e29b...</code> → gửi <code>POST /transfers</code> → Server check
+								DB → nếu key chưa có: xử lý + lưu key/response → nếu key đã có: trả cached response.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Khi nào dùng:</strong> Mọi API có side effect (POST, PUT, DELETE) — đặc biệt payment, order creation, inventory deduction.
+								<strong>Không cần cho GET</strong> vì GET đã tự nhiên idempotent.
+							</p>
+							<p class="prose">
+								<strong>Bài học:</strong> Idempotency key phải do <em>client</em> tạo (không phải server) để client có thể retry với cùng key. Key nên
+								có TTL để tránh DB phình to.
+							</p>
+						</div>
+					</div>
+					<!-- Use Case Advanced -->
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">1.2 — Idempotent Event Consumer trong Microservices</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Trong kiến trúc event-driven, <strong>Order Service</strong> publish event <code>OrderCreated</code> vào Kafka.
+								<strong>Inventory Service</strong> consume event này để trừ stock. Kafka đảm bảo <code>at-least-once delivery</code> — nếu consumer
+								crash trước khi commit offset, message sẽ được re-deliver → stock bị trừ 2 lần.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Áp dụng <strong>Idempotent Consumer Pattern</strong>: mỗi event có <code>event_id</code> duy nhất. Consumer duy trì bảng
+								<code>processed_events</code>. Trước khi xử lý, check event_id: nếu đã xử lý → skip. Xử lý xong → INSERT event_id + COMMIT offset
+								trong cùng một <strong>database transaction</strong> (atomic).
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Critical:</strong> Check + process + save phải nằm trong <strong>cùng một transaction</strong>. Nếu tách ra, vẫn có race
+								condition khi 2 consumer instances xử lý cùng event đồng thời. Dùng <code>INSERT ... ON CONFLICT DO NOTHING</code> hoặc
+								<code>UPSERT</code>.
+							</p>
+						</div>
+					</div>
+					<!-- Use Case Expert -->
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">1.3 — Distributed Idempotency với Redis + Lua Script</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Hệ thống e-commerce xử lý <strong>50,000 orders/giây</strong> trên 20 server instances. Dùng PostgreSQL lưu idempotency keys → DB trở
+								thành bottleneck vì mỗi request đều cần query + write. Cần giải pháp có latency &lt; 1ms cho idempotency check.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Dùng <strong>Redis + Lua Script</strong> để đảm bảo atomic check-and-set: Lua script chạy <code>SETNX key value EX ttl</code> — nếu
+								key chưa tồn tại → set + return "NEW"; nếu đã tồn tại → return "DUPLICATE". Toàn bộ logic chạy atomic trên Redis (single-threaded),
+								không cần distributed lock. Kết hợp Redis cluster cho high availability.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Trade-off:</strong> Redis là in-memory → TTL phải hợp lý (24-48h cho payment, 5-10 min cho non-critical). Nếu Redis restart mà
+								chưa persist → có thể mất key. Giải pháp: Redis AOF persistence + application-level fallback check vào DB.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>
+							HTTP Methods: <code>GET</code>, <code>PUT</code>, <code>DELETE</code> nên được thiết kế idempotent. <code>POST</code> cần idempotency
+							key.
+						</li>
+						<li>Idempotency key nên là <strong>UUID v4</strong> hoặc <strong>UUID v7</strong> (time-sortable) do client generate.</li>
+						<li>Server lưu key với TTL (24h cho payment, 1h cho non-critical) để tránh storage leak.</li>
+						<li>Response của idempotent request phải trả <strong>cùng HTTP status code</strong> và body — kể cả error response.</li>
+						<li>Dùng <code>409 Conflict</code> nếu client gửi cùng key nhưng khác payload (request tampering).</li>
+						<li>Trong database: dùng <strong>UNIQUE constraint</strong> trên idempotency key column thay vì check-then-insert (race condition).</li>
+					</ul>
+				</section>
+				<!-- ==================== 02 EVENTUAL CONSISTENCY ==================== -->
+				<section class="page-section" id="s-eventual">
+					<div class="section-header">
+						<div class="section-number">02</div>
+						<div>
+							<div class="section-title">Eventual Consistency</div>
+							<div class="section-subtitle">Mô hình nhất quán cuối cùng trong hệ thống phân tán</div>
+						</div>
+						<span class="badge badge-basic">FOUNDATION</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Eventual Consistency là gì?</div>
+						<p class="prose">
+							<strong>Eventual Consistency</strong> là mô hình nhất quán dữ liệu trong đó hệ thống <strong>không đảm bảo</strong> tất cả các nodes sẽ
+							có cùng dữ liệu tại mọi thời điểm, nhưng đảm bảo rằng nếu không có write mới, tất cả các nodes <strong>cuối cùng sẽ hội tụ</strong> về
+							cùng một trạng thái (convergence).
+						</p>
+						<p class="prose">
+							Đây là trade-off cốt lõi trong CAP Theorem: để đạt <strong>high availability</strong> và <strong>partition tolerance</strong>, hệ thống
+							chấp nhận dữ liệu có thể <em>tạm thời</em> không nhất quán giữa các replicas.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Strong Consistency</div>
+							<div class="gl-def">Mọi read sau write luôn trả về giá trị mới nhất. Đạt được bằng synchronous replication, nhưng tốn latency.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Causal Consistency</div>
+							<div class="gl-def">Các operations có quan hệ nhân quả (causal) được đảm bảo thứ tự. Mạnh hơn eventual, yếu hơn strong.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Read-Your-Writes</div>
+							<div class="gl-def">
+								User luôn thấy dữ liệu mà chính mình đã write, dù hệ thống eventual consistent. Đạt bằng sticky sessions hoặc read-from-primary.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Convergence</div>
+							<div class="gl-def">
+								Trạng thái cuối cùng khi tất cả replicas đồng bộ xong và có cùng dữ liệu. Thời gian convergence là "consistency window".
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Consistency Window</div>
+							<div class="gl-def">
+								Khoảng thời gian từ lúc write đến lúc tất cả replicas đồng bộ. Có thể từ milliseconds đến seconds tùy hệ thống.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Anti-Entropy</div>
+							<div class="gl-def">
+								Cơ chế background synchronization giữa các replicas để phát hiện và sửa chữa data inconsistency (ví dụ: Merkle trees).
+							</div>
+						</div>
+					</div>
+					<h3>Strong vs Eventual Consistency</h3>
+					<div class="compare-grid">
+						<div class="compare-card">
+							<div class="compare-head cyan">Strong Consistency</div>
+							<div style="padding: 16px">
+								<p class="prose" style="font-size: 13px">
+									<strong>Ưu điểm:</strong> Dữ liệu luôn chính xác, dễ reasoning. <strong>Nhược điểm:</strong> High latency, lower availability, không
+									scale tốt. <strong>Ví dụ:</strong> Banking transactions, inventory count, seat booking.
+								</p>
+							</div>
+						</div>
+						<div class="compare-card">
+							<div class="compare-head purple">Eventual Consistency</div>
+							<div style="padding: 16px">
+								<p class="prose" style="font-size: 13px">
+									<strong>Ưu điểm:</strong> Low latency, high availability, scale horizontally. <strong>Nhược điểm:</strong> Stale reads, conflict
+									resolution phức tạp. <strong>Ví dụ:</strong> Social media feed, DNS, shopping cart, product catalog.
+								</p>
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Eventual Consistency — Replication Timeline</div>
+						<svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a2" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<text x="40" y="20" font-size="10" fill="#64748b" font-family="JetBrains Mono">TIME →</text>
+							<line x1="40" y1="28" x2="780" y2="28" stroke="#1e293b" stroke-width="1.5" marker-end="url(#a2)" />
+							<!-- Primary -->
+							<text x="40" y="70" font-size="12" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Primary</text>
+							<rect x="160" y="52" width="80" height="28" rx="4" fill="rgba(0,255,136,0.15)" stroke="rgba(0,255,136,0.4)" />
+							<text x="200" y="71" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">WRITE v2</text>
+							<!-- Replica 1 -->
+							<text x="40" y="130" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">Replica-1</text>
+							<rect x="160" y="112" width="200" height="28" rx="4" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)" stroke-dasharray="4,3" />
+							<text x="260" y="131" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">stale (v1)</text>
+							<rect x="360" y="112" width="80" height="28" rx="4" fill="rgba(0,255,136,0.15)" stroke="rgba(0,255,136,0.4)" />
+							<text x="400" y="131" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">v2 ✓</text>
+							<!-- Replica 2 -->
+							<text x="40" y="190" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">Replica-2</text>
+							<rect x="160" y="172" width="340" height="28" rx="4" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)" stroke-dasharray="4,3" />
+							<text x="330" y="191" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">stale (v1) — longer delay</text>
+							<rect x="500" y="172" width="80" height="28" rx="4" fill="rgba(0,255,136,0.15)" stroke="rgba(0,255,136,0.4)" />
+							<text x="540" y="191" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">v2 ✓</text>
+							<!-- Consistency window -->
+							<line x1="240" y1="220" x2="240" y2="260" stroke="rgba(255,107,107,0.4)" stroke-width="1" stroke-dasharray="3,3" />
+							<line x1="580" y1="220" x2="580" y2="260" stroke="rgba(0,255,136,0.4)" stroke-width="1" stroke-dasharray="3,3" />
+							<line x1="240" y1="248" x2="580" y2="248" stroke="rgba(255,107,107,0.4)" stroke-width="1.5" />
+							<text x="410" y="244" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">← Consistency Window →</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">2.1 — Social Media Feed: Like Count</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Facebook hiển thị like count trên mỗi post. Với hàng tỷ users, nếu mỗi like đều phải strong consistent → hệ thống phải lock row,
+								synchronous replicate ra tất cả data centers → <strong>latency tăng cực kỳ cao</strong>, user experience tệ.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Dùng <strong>Eventual Consistency</strong>: khi user like, write vào local data center → async replicate ra các DC khác. User A ở Việt
+								Nam thấy "1,000 likes", user B ở Mỹ có thể thấy "999 likes" trong vài giây. Không ai bị ảnh hưởng nghiêm trọng bởi sự chênh lệch này.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Nguyên tắc:</strong> Eventual consistency phù hợp khi <em>"stale data không gây hại"</em>. Like count sai 1-2 trong vài giây
+								không ảnh hưởng business. Nhưng <strong>account balance</strong> sai 1 đồng là thảm họa → cần strong consistency.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">2.2 — E-commerce: Product Catalog + Inventory</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Shopee có catalog 500M sản phẩm, replicate qua 7 data centers. Nếu seller cập nhật giá sản phẩm, tất cả 7 DCs phải đồng bộ ngay →
+								write latency quá cao (>500ms). Nhưng nếu eventual consistent cho <strong>inventory count</strong>, có thể bán oversell.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Hybrid approach:</strong> Product catalog (tên, mô tả, giá) dùng eventual consistency — stale vài giây chấp nhận được.
+								<strong>Inventory count</strong> dùng strong consistency tại thời điểm checkout: khi user click "Mua", hệ thống read-from-primary để
+								check stock chính xác, rồi dùng <code>SELECT FOR UPDATE</code> để lock row.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Bài học:</strong> Không phải toàn bộ hệ thống cần cùng một consistency level. Thiết kế theo
+								<strong>per-field consistency</strong>: mỗi field có consistency requirement riêng dựa trên business impact.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">2.3 — CRDTs: Conflict-Free Replicated Data Types</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Trong collaborative editing (Google Docs), nhiều users edit cùng document đồng thời ở các regions khác nhau. Nếu dùng strong
+								consistency → high latency, bad UX. Nếu dùng eventual consistency → <strong>write conflicts</strong> khi 2 users edit cùng vị trí.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Dùng <strong>CRDTs</strong> — data structures được thiết kế toán học để tự động merge mà không conflict. Ví dụ:
+								<strong>G-Counter</strong> (grow-only counter) — mỗi node giữ counter riêng, tổng = sum tất cả nodes. <strong>OR-Set</strong> —
+								add/remove tự động resolve bằng timestamps. CRDTs đảm bảo <em>strong eventual consistency</em>: mọi replicas nhận cùng set updates sẽ
+								converge về cùng trạng thái, không cần consensus protocol.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Trade-off:</strong> CRDTs có overhead về storage (mỗi node giữ metadata). Chỉ phù hợp cho các data types đơn giản (counters,
+								sets, registers). Cho complex business logic, vẫn cần Saga pattern hoặc consensus.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>Phân loại data theo <strong>consistency requirement</strong>: critical (strong) vs non-critical (eventual).</li>
+						<li>Implement <strong>Read-Your-Writes</strong> cho UX tốt hơn — user luôn thấy data mình vừa write.</li>
+						<li>Dùng <strong>version vectors</strong> hoặc <strong>vector clocks</strong> để detect và resolve conflicts.</li>
+						<li>Monitor <strong>replication lag</strong> — nếu consistency window quá lớn (>30s), cần investigation.</li>
+						<li>Communicate rõ cho frontend team: data nào có thể stale, để hiển thị UI phù hợp (ví dụ: "~1,000 likes").</li>
+					</ul>
+				</section>
+				<!-- ==================== 03 CAP THEOREM ==================== -->
+				<section class="page-section" id="s-cap">
+					<div class="section-header">
+						<div class="section-number">03</div>
+						<div>
+							<div class="section-title">CAP Theorem</div>
+							<div class="section-subtitle">Consistency, Availability, Partition Tolerance — chọn 2 trong 3</div>
+						</div>
+						<span class="badge badge-basic">FOUNDATION</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">CAP Theorem là gì?</div>
+						<p class="prose">
+							<strong>CAP Theorem</strong> (Brewer's Theorem, 2000) phát biểu rằng trong một distributed system, bạn chỉ có thể đảm bảo
+							<strong>tối đa 2 trong 3</strong> thuộc tính: <strong>Consistency</strong> (mọi node trả cùng data), <strong>Availability</strong> (mọi
+							request đều được response), <strong>Partition Tolerance</strong> (hệ thống vẫn hoạt động khi network bị chia cắt).
+						</p>
+						<p class="prose">
+							Trong thực tế, <strong>Partition Tolerance là bắt buộc</strong> (network failures luôn xảy ra) → bạn thực sự chỉ chọn giữa
+							<strong>CP</strong> (Consistency + Partition Tolerance) hoặc <strong>AP</strong> (Availability + Partition Tolerance).
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Consistency (C)</div>
+							<div class="gl-def">Mọi read nhận được data mới nhất hoặc error. Tất cả nodes thấy cùng data tại cùng thời điểm (linearizability).</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Availability (A)</div>
+							<div class="gl-def">Mọi request đến non-failing node đều nhận được response (có thể stale). Không có request nào bị từ chối.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Partition Tolerance (P)</div>
+							<div class="gl-def">Hệ thống tiếp tục hoạt động dù network bị split thành 2+ phần không thể giao tiếp với nhau.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">PACELC Theorem</div>
+							<div class="gl-def">
+								Mở rộng CAP: nếu có Partition → chọn A hoặc C; Else (bình thường) → chọn Latency hoặc Consistency. Thực tế hơn CAP.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Linearizability</div>
+							<div class="gl-def">
+								Mức consistency mạnh nhất: mọi operation dường như xảy ra tại một thời điểm duy nhất, giữa invocation và response.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Quorum</div>
+							<div class="gl-def">
+								Số nodes tối thiểu phải đồng ý cho một operation (W + R > N). Ví dụ: 3 nodes, quorum = 2. Dùng để tune CP vs AP.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">CAP Theorem — Trade-off Triangle</div>
+						<svg width="100%" viewBox="0 0 820 380" xmlns="http://www.w3.org/2000/svg">
+							<!-- Triangle -->
+							<polygon points="410,30 100,330 720,330" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="2" />
+							<!-- C vertex -->
+							<circle cx="410" cy="30" r="30" fill="rgba(0,212,255,0.15)" stroke="rgba(0,212,255,0.4)" stroke-width="1.5" />
+							<text x="410" y="36" text-anchor="middle" font-size="16" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">C</text>
+							<text x="410" y="8" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">Consistency</text>
+							<!-- A vertex -->
+							<circle cx="100" cy="330" r="30" fill="rgba(0,255,136,0.15)" stroke="rgba(0,255,136,0.4)" stroke-width="1.5" />
+							<text x="100" y="336" text-anchor="middle" font-size="16" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">A</text>
+							<text x="100" y="370" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">Availability</text>
+							<!-- P vertex -->
+							<circle cx="720" cy="330" r="30" fill="rgba(168,85,247,0.15)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5" />
+							<text x="720" y="336" text-anchor="middle" font-size="16" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">P</text>
+							<text x="720" y="370" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">Partition Tolerance</text>
+							<!-- CP zone -->
+							<text x="570" y="170" text-anchor="middle" font-size="14" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">CP</text>
+							<text x="570" y="190" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">MongoDB, HBase</text>
+							<text x="570" y="205" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Redis, etcd, Zookeeper</text>
+							<!-- AP zone -->
+							<text x="250" y="270" text-anchor="middle" font-size="14" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">AP</text>
+							<text x="250" y="290" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Cassandra, DynamoDB</text>
+							<text x="250" y="305" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">CouchDB, Riak</text>
+							<!-- CA zone (theoretical) -->
+							<text x="250" y="130" text-anchor="middle" font-size="14" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">CA</text>
+							<text x="250" y="150" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Single-node RDBMS</text>
+							<text x="250" y="165" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">(không distributed)</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">3.1 — Banking System: Chọn CP</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Ngân hàng cần hệ thống transfer tiền giữa accounts. Nếu chọn AP (availability over consistency), khi network partition xảy ra, 2
+								partitions có thể <strong>approve cùng transfer</strong> → account balance âm, mất tiền.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Chọn <strong>CP system</strong>: khi partition xảy ra, hệ thống <strong>từ chối writes</strong> (return error) thay vì cho phép
+								inconsistent writes. Dùng consensus protocol (Raft/Paxos) — chỉ partition có majority nodes mới được phục vụ. Minority partition trả
+								<code>503 Service Unavailable</code>. User bị ảnh hưởng tạm thời nhưng <strong>dữ liệu không bao giờ sai</strong>.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Quy tắc:</strong> Khi sai data tốn tiền nhiều hơn downtime → chọn CP. Banking, payment, inventory (physical goods) luôn là CP.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">3.2 — DNS System: Chọn AP</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								DNS phải phục vụ hàng tỷ queries/ngày. Nếu chọn CP, khi một root nameserver bị partition → toàn bộ internet segment không resolve được
+								domain → thảm họa.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								DNS chọn <strong>AP</strong>: mọi nameserver luôn respond (dù data có thể stale). TTL mechanism cho phép cached data expired sau thời
+								gian nhất định. Khi partition heal, data tự convergence qua zone transfers. User có thể nhận stale IP trong vài phút nhưng
+								<strong>service không bao giờ unavailable</strong>.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Quy tắc:</strong> Khi downtime tốn tiền nhiều hơn stale data → chọn AP. DNS, CDN, social feeds, product catalogs thường là AP.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">3.3 — PACELC: Vượt qua giới hạn CAP</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								CAP chỉ nói về trường hợp partition. Nhưng <strong>99.99% thời gian</strong> hệ thống hoạt động bình thường (no partition). Trong
+								trường hợp bình thường, bạn vẫn phải trade-off giữa <strong>Latency vs Consistency</strong>.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>PACELC Theorem</strong>: if <strong>P</strong>artition → choose <strong>A</strong> or <strong>C</strong>;
+								<strong>E</strong>lse → choose <strong>L</strong>atency or <strong>C</strong>onsistency. Ví dụ: DynamoDB là
+								<strong>PA/EL</strong> (partition → available; else → low latency). MongoDB là <strong>PC/EC</strong> (partition → consistent; else →
+								consistent). Cassandra cho phép tune per-query: <code>QUORUM</code> reads = PC/EC, <code>ONE</code> reads = PA/EL.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Key insight:</strong> CAP là oversimplification. PACELC cho phép reasoning chính xác hơn. Khi thiết kế system, hãy xác định:
+								(1) Khi partition: ưu tiên A hay C? (2) Bình thường: ưu tiên L hay C? Mỗi service/query có thể có câu trả lời khác nhau.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>Không có "CA distributed system" thực tế — network partition <strong>luôn có thể xảy ra</strong>.</li>
+						<li>Thiết kế <strong>per-service CAP choice</strong>: Payment → CP, Product Catalog → AP, User Profile → AP.</li>
+						<li>Dùng <strong>Quorum reads/writes</strong> để fine-tune giữa CP và AP trong cùng một database.</li>
+						<li>Monitor partition events và có <strong>runbook</strong> cho mỗi scenario (split-brain, network flap).</li>
+						<li>Trong interviews, luôn mention <strong>PACELC</strong> thay vì chỉ CAP — thể hiện hiểu biết sâu hơn.</li>
+					</ul>
+				</section>
+				<!-- ==================== 04 SAGA PATTERN ==================== -->
+				<section class="page-section" id="s-saga">
+					<div class="section-header">
+						<div class="section-number">04</div>
+						<div>
+							<div class="section-title">Saga Pattern</div>
+							<div class="section-subtitle">Quản lý distributed transactions qua chuỗi compensating actions</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Saga Pattern là gì?</div>
+						<p class="prose">
+							<strong>Saga</strong> là pattern quản lý <strong>distributed transactions</strong> bằng cách chia một transaction lớn thành chuỗi
+							<strong>local transactions</strong> nhỏ. Mỗi local transaction update một service và publish event/message để trigger transaction tiếp
+							theo. Nếu một step thất bại, saga thực hiện <strong>compensating transactions</strong> (rollback ngược) cho các steps đã hoàn thành.
+						</p>
+						<p class="prose">
+							Saga thay thế <strong>2-Phase Commit (2PC)</strong> — vốn không khả thi trong microservices vì tạo tight coupling và single point of
+							failure.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Choreography Saga</div>
+							<div class="gl-def">
+								Mỗi service tự lắng nghe events và quyết định bước tiếp theo. Không có central coordinator. Phù hợp saga đơn giản (2-4 steps).
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Orchestration Saga</div>
+							<div class="gl-def">
+								Một Saga Orchestrator trung tâm điều phối toàn bộ flow, gửi commands đến từng service. Phù hợp saga phức tạp (5+ steps).
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Compensating Transaction</div>
+							<div class="gl-def">Operation ngược lại để "undo" một local transaction đã commit. Ví dụ: Debit → Credit back. Phải idempotent.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Semantic Rollback</div>
+							<div class="gl-def">
+								Không phải DB rollback thực sự (đã commit rồi), mà là business-level undo. Ví dụ: cancel order, refund payment.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Pivot Transaction</div>
+							<div class="gl-def">
+								Transaction quyết định saga thành công hay thất bại. Trước pivot: có thể compensate. Sau pivot: chỉ có retryable transactions.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Saga Execution Coordinator (SEC)</div>
+							<div class="gl-def">Component lưu trữ saga state, quyết định step tiếp theo, xử lý failures. Thường dùng state machine.</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Orchestration Saga — Order Processing Flow</div>
+						<svg width="100%" viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a4" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Orchestrator -->
+							<rect x="300" y="10" width="220" height="50" rx="8" fill="rgba(168,85,247,0.12)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5" />
+							<text x="410" y="40" text-anchor="middle" font-size="14" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">
+								Saga Orchestrator
+							</text>
+							<!-- Services row -->
+							<rect x="30" y="110" width="130" height="50" rx="6" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" />
+							<text x="95" y="140" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Order Svc</text>
+							<rect x="190" y="110" width="130" height="50" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" />
+							<text x="255" y="140" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Payment Svc</text>
+							<rect x="350" y="110" width="130" height="50" rx="6" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" />
+							<text x="415" y="140" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Inventory Svc</text>
+							<rect x="510" y="110" width="130" height="50" rx="6" fill="rgba(59,130,246,0.08)" stroke="rgba(59,130,246,0.3)" />
+							<text x="575" y="140" text-anchor="middle" font-size="11" fill="#3b82f6" font-family="JetBrains Mono">Shipping Svc</text>
+							<rect x="670" y="110" width="120" height="50" rx="6" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" />
+							<text x="730" y="140" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">Notification</text>
+							<!-- Arrows from orchestrator -->
+							<line x1="350" y1="60" x2="95" y2="108" stroke="rgba(0,212,255,0.5)" stroke-width="1.2" marker-end="url(#a4)" />
+							<line x1="380" y1="60" x2="255" y2="108" stroke="rgba(0,255,136,0.5)" stroke-width="1.2" marker-end="url(#a4)" />
+							<line x1="410" y1="60" x2="415" y2="108" stroke="rgba(245,158,11,0.5)" stroke-width="1.2" marker-end="url(#a4)" />
+							<line x1="440" y1="60" x2="575" y2="108" stroke="rgba(59,130,246,0.5)" stroke-width="1.2" marker-end="url(#a4)" />
+							<line x1="470" y1="60" x2="730" y2="108" stroke="rgba(255,107,107,0.5)" stroke-width="1.2" marker-end="url(#a4)" />
+							<!-- Happy path -->
+							<text x="30" y="200" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">✓ HAPPY PATH</text>
+							<rect x="30" y="210" width="760" height="35" rx="6" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.15)" />
+							<text x="50" y="233" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">
+								Create Order → Charge Payment → Reserve Inventory → Schedule Shipping → Send Notification
+							</text>
+							<!-- Compensation path -->
+							<text x="30" y="275" font-size="12" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">
+								✗ COMPENSATION (Inventory fails)
+							</text>
+							<rect x="30" y="285" width="760" height="35" rx="6" fill="rgba(255,107,107,0.04)" stroke="rgba(255,107,107,0.15)" />
+							<text x="50" y="308" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">
+								Inventory FAIL → Refund Payment (compensate) → Cancel Order (compensate) → Notify user "Out of stock"
+							</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">4.1 — E-commerce Order: Choreography Saga</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Hệ thống e-commerce có 3 services: Order, Payment, Inventory. Khi user đặt hàng, cần: (1) tạo order, (2) charge tiền, (3) trừ
+								inventory. Nếu inventory hết hàng sau khi đã charge → phải refund. Không thể dùng <strong>distributed transaction (2PC)</strong> vì
+								mỗi service có DB riêng.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Choreography Saga:</strong> Order Service tạo order + publish <code>OrderCreated</code> event → Payment Service listen, charge
+								tiền + publish <code>PaymentCharged</code> → Inventory Service listen, reserve stock. Nếu Inventory fail → publish
+								<code>StockReservationFailed</code> → Payment Service listen, refund → Order Service listen, cancel order. Mỗi service tự biết phải
+								làm gì khi nhận event.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Ưu điểm:</strong> Loose coupling, simple. <strong>Nhược điểm:</strong> Khó debug vì logic phân tán. Khi saga có 5+ steps →
+								spaghetti events, khó hiểu flow. → Chuyển sang Orchestration.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">4.2 — Travel Booking: Orchestration Saga</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Booking platform cần đặt: Flight + Hotel + Car rental. Mỗi service là third-party API (Amadeus, Booking.com, Hertz). Nếu flight booked
+								nhưng hotel full → phải cancel flight. Flow phức tạp với 6+ steps, nhiều edge cases.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Orchestration Saga</strong> với state machine: Orchestrator giữ saga state (<code>PENDING</code> →
+								<code>FLIGHT_BOOKED</code> → <code>HOTEL_BOOKED</code> → <code>CAR_BOOKED</code> → <code>COMPLETED</code>). Mỗi state transition gửi
+								command đến service tương ứng. Nếu step fail, orchestrator biết chính xác đã hoàn thành steps nào → gửi compensating commands ngược
+								lại. State được persist vào DB để survive crashes.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Key design:</strong> Mỗi saga step phải có compensating action tương ứng. Compensating actions phải
+								<strong>idempotent</strong> (có thể retry). Orchestrator state phải <strong>persisted</strong> (not in-memory) để survive restarts.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">4.3 — Saga State Machine với Dead Letter Queue</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Trong production, compensating transaction cũng có thể <strong>fail</strong>. Ví dụ: cần refund payment nhưng payment gateway đang
+								down. Saga bị stuck ở trạng thái "partially compensated" — <strong>không thể hoàn thành, cũng không thể rollback</strong>.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Thiết kế <strong>retry + DLQ (Dead Letter Queue)</strong>: compensating actions được retry với exponential backoff (1s → 2s → 4s → max
+								5 min). Sau N retries fail → message chuyển vào DLQ. Monitoring alert ops team. Manual intervention hoặc scheduled job xử lý DLQ. Saga
+								state chuyển sang <code>COMPENSATION_FAILED</code> — cần human review. Bổ sung <strong>saga timeout</strong>: nếu saga không complete
+								trong 24h → auto-escalate.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Reality check:</strong> Saga không phải silver bullet. Nó đưa complexity từ database layer lên application layer. Hãy chắc
+								chắn bạn <em>thực sự cần</em> distributed transactions trước khi dùng Saga. Nhiều trường hợp,
+								<strong>một database duy nhất</strong> với ACID transactions là giải pháp tốt nhất.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 05 CQRS ==================== -->
+				<section class="page-section" id="s-cqrs">
+					<div class="section-header">
+						<div class="section-number">05</div>
+						<div>
+							<div class="section-title">CQRS</div>
+							<div class="section-subtitle">Command Query Responsibility Segregation — tách biệt đọc và ghi</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">CQRS là gì?</div>
+						<p class="prose">
+							<strong>CQRS</strong> (Command Query Responsibility Segregation) là pattern tách biệt <strong>write model</strong> (Command) và
+							<strong>read model</strong> (Query) thành hai models riêng biệt, có thể sử dụng khác data stores, schemas, và scaling strategies.
+							Commands thay đổi state, Queries đọc state — hai responsibilities này có requirements rất khác nhau.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Command</div>
+							<div class="gl-def">
+								Request thay đổi state. Ví dụ: CreateOrder, UpdateProfile. Không trả về data (chỉ success/failure). Validated trước khi execute.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Query</div>
+							<div class="gl-def">
+								Request đọc data. Ví dụ: GetOrderById, SearchProducts. Không thay đổi state. Có thể cached, replicated, denormalized.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Write Model</div>
+							<div class="gl-def">Domain model tối ưu cho business rules, validation, invariants. Normalized, ACID. Thường dùng RDBMS.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Read Model</div>
+							<div class="gl-def">
+								View model tối ưu cho queries. Denormalized, pre-computed. Có thể dùng Elasticsearch, Redis, materialized views.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Projection</div>
+							<div class="gl-def">Process biến đổi write events thành read model. Ví dụ: OrderCreated event → update order_summary_view table.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Thin Read Layer</div>
+							<div class="gl-def">Read side không có business logic, chỉ query denormalized data. Rất nhanh, dễ scale, dễ cache.</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">CQRS Architecture — Separated Read/Write Paths</div>
+						<svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a5" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Client -->
+							<rect x="20" y="120" width="100" height="60" rx="8" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" />
+							<text x="70" y="155" text-anchor="middle" font-size="13" fill="#e2e8f0" font-family="JetBrains Mono">Client</text>
+							<!-- Command path -->
+							<text x="200" y="30" font-size="12" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">COMMAND (Write)</text>
+							<line x1="120" y1="135" x2="195" y2="70" stroke="rgba(255,107,107,0.5)" stroke-width="1.5" marker-end="url(#a5)" />
+							<rect x="195" y="42" width="160" height="50" rx="8" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" />
+							<text x="275" y="72" text-anchor="middle" font-size="12" fill="#ff6b6b" font-family="JetBrains Mono">Command Handler</text>
+							<line x1="355" y1="67" x2="430" y2="67" stroke="rgba(255,107,107,0.4)" stroke-width="1.2" marker-end="url(#a5)" />
+							<rect x="430" y="42" width="140" height="50" rx="8" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.3)" />
+							<text x="500" y="62" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">Write DB</text>
+							<text x="500" y="80" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Normalized/ACID</text>
+							<!-- Sync arrow -->
+							<line
+								x1="500"
+								y1="92"
+								x2="500"
+								y2="155"
+								stroke="rgba(245,158,11,0.4)"
+								stroke-width="1.2"
+								stroke-dasharray="4,3"
+								marker-end="url(#a5)"
+							/>
+							<text x="520" y="130" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">Events/CDC</text>
+							<!-- Projection -->
+							<rect x="430" y="158" width="140" height="40" rx="6" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.25)" />
+							<text x="500" y="183" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Projection</text>
+							<line x1="500" y1="198" x2="500" y2="235" stroke="rgba(245,158,11,0.4)" stroke-width="1.2" marker-end="url(#a5)" />
+							<!-- Query path -->
+							<text x="200" y="230" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">QUERY (Read)</text>
+							<line x1="120" y1="160" x2="195" y2="255" stroke="rgba(0,255,136,0.5)" stroke-width="1.5" marker-end="url(#a5)" />
+							<rect x="195" y="235" width="160" height="50" rx="8" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" />
+							<text x="275" y="265" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Query Handler</text>
+							<line x1="355" y1="260" x2="430" y2="260" stroke="rgba(0,255,136,0.4)" stroke-width="1.2" marker-end="url(#a5)" />
+							<rect x="430" y="235" width="140" height="50" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" />
+							<text x="500" y="255" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">Read DB</text>
+							<text x="500" y="273" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Denormalized</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">5.1 — E-commerce: Product Listing với Read-Optimized Store</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Product page cần hiển thị: tên, giá, rating, review count, seller info, shipping options — dữ liệu nằm ở
+								<strong>6 tables khác nhau</strong>. Mỗi page view = 6 JOINs. Với 100K concurrent users → database không chịu nổi.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Tách thành <strong>Write DB</strong> (PostgreSQL, normalized) cho product management + <strong>Read DB</strong> (Elasticsearch) cho
+								product search/listing. Khi seller update product → write vào PostgreSQL → CDC/event publish → Projection service update Elasticsearch
+								document (denormalized, chứa tất cả data cần hiển thị). Query chỉ cần 1 request vào ES — no JOINs, sub-millisecond latency.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Trade-off:</strong> Read model sẽ <em>eventually consistent</em> so với write model. Seller update giá → user có thể thấy giá
+								cũ trong 1-2 giây. Chấp nhận được cho product catalog, không chấp nhận cho inventory count.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">5.2 — CQRS + Event Sourcing: Full Audit Trail</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Hệ thống tài chính cần: (1) full audit trail mọi thay đổi, (2) khả năng reconstruct state tại bất kỳ thời điểm nào (point-in-time
+								recovery), (3) multiple read views (dashboard, report, compliance). Traditional CRUD chỉ lưu state hiện tại, không có history.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>CQRS + Event Sourcing:</strong> Write side lưu <strong>events</strong> (không lưu state) vào append-only event store. Mỗi
+								event = fact đã xảy ra (<code>AccountDebited $100</code>, <code>AccountCredited $50</code>). Read side: nhiều projections khác nhau
+								consume cùng event stream để tạo các views khác nhau — dashboard projection, report projection, compliance projection. Mỗi projection
+								có thể rebuild từ đầu bằng cách replay tất cả events.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Warning:</strong> CQRS + Event Sourcing là <strong>một trong những patterns phức tạp nhất</strong>. Chỉ dùng khi business thực
+								sự cần audit trail + multiple views + temporal queries. Cho CRUD apps đơn giản, đây là massive over-engineering.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>Bắt đầu với <strong>simple CQRS</strong>: cùng DB nhưng tách read/write models ở application level.</li>
+						<li>Chỉ dùng <strong>separate databases</strong> khi read/write có scaling requirements thực sự khác nhau.</li>
+						<li>Read model projections phải <strong>idempotent</strong> — có thể rebuild bất cứ lúc nào.</li>
+						<li>Đảm bảo UI handle <strong>eventual consistency</strong> gracefully (optimistic updates, loading states).</li>
+						<li>CQRS <strong>không yêu cầu</strong> Event Sourcing — hai patterns này independent nhưng complementary.</li>
+					</ul>
+				</section>
+				<!-- ==================== 06 EVENT SOURCING ==================== -->
+				<section class="page-section" id="s-eventsourcing">
+					<div class="section-header">
+						<div class="section-number">06</div>
+						<div>
+							<div class="section-title">Event Sourcing</div>
+							<div class="section-subtitle">Lưu trữ state dưới dạng chuỗi immutable events</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Event Sourcing là gì?</div>
+						<p class="prose">
+							<strong>Event Sourcing</strong> là pattern lưu trữ state của một entity không phải bằng current state (row trong DB), mà bằng
+							<strong>chuỗi tất cả events</strong> (facts) đã xảy ra. State hiện tại được <strong>reconstruct</strong> bằng cách replay tất cả events
+							từ đầu. Events là <strong>immutable</strong> — không bao giờ update hay delete.
+						</p>
+						<p class="prose">
+							Tương tự như <strong>git</strong>: bạn không lưu file cuối cùng, mà lưu tất cả commits. Muốn xem state tại bất kỳ thời điểm → checkout
+							commit tương ứng.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Event Store</div>
+							<div class="gl-def">
+								Database chuyên dụng lưu events. Append-only, ordered by sequence. Ví dụ: EventStoreDB, Kafka, PostgreSQL (append-only table).
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Aggregate Stream</div>
+							<div class="gl-def">Chuỗi events thuộc về một aggregate instance. Ví dụ: tất cả events của Order #123 tạo thành một stream.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Snapshot</div>
+							<div class="gl-def">Periodic checkpoint lưu current state để tránh replay toàn bộ events. Ví dụ: snapshot mỗi 100 events.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Event Upcasting</div>
+							<div class="gl-def">Chuyển đổi event schema cũ sang schema mới khi event format thay đổi. Giống database migration cho events.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Temporal Query</div>
+							<div class="gl-def">
+								Query state tại một thời điểm trong quá khứ bằng cách replay events đến thời điểm đó. Unique capability của event sourcing.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Event Replay</div>
+							<div class="gl-def">Quá trình tái tạo state bằng cách apply tất cả events tuần tự. Dùng để rebuild read models hoặc debug.</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Event Sourcing — Account Balance Reconstruction</div>
+						<svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a6" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Events stream -->
+							<text x="40" y="25" font-size="11" fill="#64748b" font-family="JetBrains Mono" font-weight="700">EVENT STREAM (Account #42)</text>
+							<!-- Event boxes -->
+							<rect x="40" y="40" width="130" height="55" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" />
+							<text x="105" y="58" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">AccountOpened</text>
+							<text x="105" y="78" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">balance: $0</text>
+							<line x1="170" y1="67" x2="195" y2="67" stroke="#475569" stroke-width="1.2" marker-end="url(#a6)" />
+							<rect x="195" y="40" width="130" height="55" rx="6" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" />
+							<text x="260" y="58" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">MoneyDeposited</text>
+							<text x="260" y="78" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">+$500</text>
+							<line x1="325" y1="67" x2="350" y2="67" stroke="#475569" stroke-width="1.2" marker-end="url(#a6)" />
+							<rect x="350" y="40" width="130" height="55" rx="6" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" />
+							<text x="415" y="58" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">MoneyWithdrawn</text>
+							<text x="415" y="78" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">-$200</text>
+							<line x1="480" y1="67" x2="505" y2="67" stroke="#475569" stroke-width="1.2" marker-end="url(#a6)" />
+							<rect x="505" y="40" width="130" height="55" rx="6" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" />
+							<text x="570" y="58" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">MoneyDeposited</text>
+							<text x="570" y="78" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">+$1000</text>
+							<line x1="635" y1="67" x2="660" y2="67" stroke="#475569" stroke-width="1.2" marker-end="url(#a6)" />
+							<rect x="660" y="40" width="130" height="55" rx="6" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" />
+							<text x="725" y="58" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">MoneyWithdrawn</text>
+							<text x="725" y="78" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">-$100</text>
+							<!-- Replay arrow -->
+							<text x="40" y="140" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">
+								REPLAY → RECONSTRUCT CURRENT STATE
+							</text>
+							<rect x="40" y="150" width="750" height="40" rx="6" fill="rgba(168,85,247,0.06)" stroke="rgba(168,85,247,0.2)" />
+							<text x="415" y="175" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">
+								$0 → +$500 = $500 → -$200 = $300 → +$1000 = $1300 → -$100 =
+								<tspan fill="#00ff88" font-weight="700">$1200</tspan>
+							</text>
+							<rect x="600" y="200" width="190" height="35" rx="6" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" />
+							<text x="695" y="223" text-anchor="middle" font-size="14" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">
+								Current Balance: $1200
+							</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">6.1 — Banking Ledger: Full Transaction History</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Ngân hàng cần lưu <strong>toàn bộ lịch sử giao dịch</strong> của mỗi tài khoản cho mục đích audit, compliance, và dispute resolution.
+								Traditional CRUD chỉ lưu balance hiện tại — nếu có bug tính sai, không thể trace nguyên nhân.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Dùng <strong>Event Sourcing</strong>: mỗi transaction là một event (<code>Deposited</code>, <code>Withdrawn</code>,
+								<code>Transferred</code>). Balance = replay tất cả events. Mọi thay đổi đều có trace. Khi phát hiện bug → replay events với fixed
+								logic → tự động tính lại balance chính xác. Regulators có thể audit toàn bộ history.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Performance:</strong> Replay 1M events để tính balance rất chậm. Giải pháp: <strong>Snapshots</strong> — lưu balance tại mỗi
+								1000 events. Reconstruct = load snapshot + replay events sau snapshot.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">6.2 — Event Schema Evolution & Upcasting</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Hệ thống đã chạy 3 năm, có 500M events. Event <code>OrderCreated v1</code> có field <code>price</code> (single currency). Business mở
+								rộng multi-currency → cần <code>price</code> thành <code>{amount, currency}</code>. Không thể update 500M events (immutable). Code mới
+								cần đọc cả events cũ và mới.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Event Upcasting:</strong> Khi đọc event cũ, upcast middleware tự động transform <code>v1 → v2</code>:
+								<code>{price: 100}</code> → <code>{amount: 100, currency: "USD"}</code> (default currency). Events trong store vẫn giữ nguyên
+								(immutable). Code chỉ cần handle event v2. Upcaster chain: v1→v2→v3 cho multiple migrations. Đây là "database migration" cho event
+								sourcing.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Key challenge:</strong> Event schema evolution là <strong>khó nhất</strong> của event sourcing. Events là immutable contracts
+								— thay đổi schema phải backward compatible. Dùng <strong>schema registry</strong> (Avro/Protobuf) để enforce compatibility.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 07 OUTBOX PATTERN ==================== -->
+				<section class="page-section" id="s-outbox">
+					<div class="section-header">
+						<div class="section-number">07</div>
+						<div>
+							<div class="section-title">Outbox Pattern</div>
+							<div class="section-subtitle">Đảm bảo reliable messaging giữa DB write và event publish</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Outbox Pattern là gì?</div>
+						<p class="prose">
+							<strong>Outbox Pattern</strong> giải quyết bài toán <strong>dual write</strong>: khi cần vừa write vào database vừa publish event vào
+							message broker, hai operations này không nằm trong cùng một transaction → có thể một thành công, một thất bại → data inconsistency.
+						</p>
+						<p class="prose">
+							Giải pháp: thay vì publish trực tiếp vào broker, <strong>write event vào outbox table</strong> trong cùng DB transaction với business
+							data. Một background process (poller hoặc CDC) đọc outbox table và publish vào broker.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Dual Write Problem</div>
+							<div class="gl-def">Khi cần write vào 2 systems (DB + broker) mà không có distributed transaction. Nếu một fail → inconsistency.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Outbox Table</div>
+							<div class="gl-def">
+								Table trong cùng DB chứa pending events. Columns: id, aggregate_type, aggregate_id, event_type, payload, created_at, published_at.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Polling Publisher</div>
+							<div class="gl-def">
+								Background job query outbox table định kỳ (mỗi 100ms-1s), publish unpublished events, mark as published. Simple nhưng có delay.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">CDC (Change Data Capture)</div>
+							<div class="gl-def">
+								Capture changes từ DB transaction log (WAL/binlog) real-time. Ví dụ: Debezium đọc PostgreSQL WAL → publish vào Kafka. No polling
+								delay.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Transaction Log Tailing</div>
+							<div class="gl-def">
+								Đọc database's internal transaction log để detect inserts vào outbox table. Real-time, no additional queries. Debezium, Maxwell,
+								Canal.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Exactly-Once Publishing</div>
+							<div class="gl-def">
+								Đảm bảo mỗi event chỉ publish một lần. Đạt bằng cách marking outbox row as published trong cùng transaction với ack.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Outbox Pattern — Transactional Messaging Flow</div>
+						<svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a7" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Service -->
+							<rect x="30" y="30" width="150" height="60" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" />
+							<text x="105" y="55" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono">Order Service</text>
+							<text x="105" y="75" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Business Logic</text>
+							<!-- DB Transaction box -->
+							<rect
+								x="240"
+								y="10"
+								width="260"
+								height="200"
+								rx="10"
+								fill="rgba(0,255,136,0.03)"
+								stroke="rgba(0,255,136,0.2)"
+								stroke-width="1.5"
+								stroke-dasharray="6,3"
+							/>
+							<text x="370" y="30" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">
+								SINGLE DB TRANSACTION
+							</text>
+							<!-- Orders table -->
+							<rect x="260" y="45" width="100" height="45" rx="6" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.3)" />
+							<text x="310" y="65" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">orders</text>
+							<text x="310" y="82" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">INSERT</text>
+							<!-- Outbox table -->
+							<rect x="380" y="45" width="100" height="45" rx="6" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.3)" />
+							<text x="430" y="65" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">outbox</text>
+							<text x="430" y="82" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">INSERT</text>
+							<line x1="180" y1="60" x2="258" y2="60" stroke="rgba(0,212,255,0.5)" stroke-width="1.2" marker-end="url(#a7)" />
+							<!-- CDC/Poller -->
+							<rect x="260" y="130" width="220" height="55" rx="6" fill="rgba(0,212,255,0.06)" stroke="rgba(0,212,255,0.2)" />
+							<text x="370" y="152" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">CDC / Polling Publisher</text>
+							<text x="370" y="172" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">
+								Read outbox → Publish → Mark done
+							</text>
+							<!-- Message Broker -->
+							<rect x="580" y="30" width="200" height="80" rx="8" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" />
+							<text x="680" y="58" text-anchor="middle" font-size="13" fill="#ff6b6b" font-family="JetBrains Mono">Message Broker</text>
+							<text x="680" y="78" text-anchor="middle" font-size="11" fill="#64748b" font-family="JetBrains Mono">Kafka / RabbitMQ</text>
+							<text x="680" y="98" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">OrderCreated event</text>
+							<line x1="480" y1="155" x2="578" y2="85" stroke="rgba(0,255,136,0.5)" stroke-width="1.5" marker-end="url(#a7)" />
+							<!-- Consumer -->
+							<rect x="580" y="150" width="200" height="60" rx="8" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" />
+							<text x="680" y="178" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono">Consumer Services</text>
+							<text x="680" y="198" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Payment, Inventory...</text>
+							<line x1="680" y1="110" x2="680" y2="148" stroke="#475569" stroke-width="1.2" marker-end="url(#a7)" />
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">7.1 — Order Service: DB + Event Consistency</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Order Service cần: (1) INSERT order vào DB, (2) Publish <code>OrderCreated</code> event vào Kafka. Nếu INSERT thành công nhưng Kafka
+								publish fail → order tồn tại nhưng không ai biết. Nếu publish trước rồi INSERT fail → event đã gửi nhưng order không tồn tại.
+								<strong>Dual write = data inconsistency</strong>.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Dùng <strong>Outbox Pattern</strong>: trong cùng DB transaction, INSERT vào <code>orders</code> table VÀ INSERT vào
+								<code>outbox</code> table. Background poller (mỗi 500ms) query outbox WHERE <code>published_at IS NULL</code> → publish vào Kafka →
+								UPDATE <code>published_at = NOW()</code>. Nếu poller crash trước update → event chưa mark published → sẽ re-publish (at-least-once).
+								Consumer phải idempotent.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Key insight:</strong> Outbox biến dual write thành <strong>single write</strong> (cùng DB). Reliability chuyển từ "DB +
+								Broker" thành "chỉ DB" (ACID). Trade-off: thêm latency (polling interval) và thêm table trong DB.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">7.2 — Debezium CDC: Zero-Latency Outbox</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Polling outbox mỗi 500ms tạo delay. Với hệ thống xử lý 10K orders/giây, polling query trở thành bottleneck. Cần real-time event
+								publishing mà vẫn đảm bảo transactional consistency.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Dùng <strong>Debezium CDC Connector</strong>: Debezium đọc PostgreSQL WAL (Write-Ahead Log) real-time, detect INSERT vào outbox table
+								→ tự động publish vào Kafka. Latency: milliseconds thay vì seconds. Không cần polling query → no DB load. Debezium giữ offset trong
+								Kafka → crash-safe. Kết hợp <strong>Outbox Event Router SMT</strong> (Single Message Transform) để transform outbox row thành proper
+								event format.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Production stack:</strong> PostgreSQL + Debezium + Kafka là gold standard cho transactional messaging. Trade-off: thêm
+								infrastructure complexity (Debezium connector, Kafka Connect cluster). Cho small teams, polling publisher đủ tốt.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 08 STRANGLER FIG ==================== -->
+				<section class="page-section" id="s-strangler">
+					<div class="section-header">
+						<div class="section-number">08</div>
+						<div>
+							<div class="section-title">Strangler Fig Pattern</div>
+							<div class="section-subtitle">Migration từ monolith sang microservices một cách an toàn</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Strangler Fig Pattern là gì?</div>
+						<p class="prose">
+							<strong>Strangler Fig Pattern</strong> (đặt tên theo cây Strangler Fig — loài cây bắt đầu mọc bám trên cây chủ rồi dần thay thế hoàn
+							toàn) là chiến lược <strong>migration incremental</strong> từ legacy system sang system mới. Thay vì rewrite toàn bộ (Big Bang), bạn dần
+							dần <strong>chặn và chuyển hướng</strong> từng feature sang service mới cho đến khi legacy system không còn được sử dụng.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Strangler Facade</div>
+							<div class="gl-def">Layer proxy đứng trước cả legacy và new system, routing requests dựa trên feature flags hoặc URL paths.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Feature Toggle</div>
+							<div class="gl-def">Cơ chế bật/tắt routing giữa legacy và new system per-feature. Cho phép gradual rollout và instant rollback.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Anti-Corruption Layer (ACL)</div>
+							<div class="gl-def">Adapter layer giữa new service và legacy system. Translate giữa new domain model và legacy data format.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Shadow Traffic</div>
+							<div class="gl-def">
+								Gửi copy của production traffic sang new system để test nhưng không trả response cho client. Dùng để validate correctness.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Strangler Fig — Phased Migration</div>
+						<svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a8" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Phase 1 -->
+							<text x="30" y="20" font-size="11" fill="#94a3b8" font-family="JetBrains Mono" font-weight="700">PHASE 1: Proxy</text>
+							<rect x="30" y="30" width="55" height="35" rx="4" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" />
+							<text x="57" y="52" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="JetBrains Mono">Client</text>
+							<line x1="85" y1="47" x2="108" y2="47" stroke="#475569" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="108" y="30" width="55" height="35" rx="4" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)" />
+							<text x="135" y="52" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Facade</text>
+							<line x1="163" y1="47" x2="186" y2="47" stroke="#475569" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="186" y="30" width="70" height="35" rx="4" fill="rgba(255,107,107,0.1)" stroke="rgba(255,107,107,0.3)" />
+							<text x="221" y="52" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">Monolith</text>
+							<text x="221" y="82" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">100% traffic</text>
+							<!-- Phase 2 -->
+							<text x="300" y="20" font-size="11" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">PHASE 2: Migrate features</text>
+							<rect x="300" y="30" width="55" height="35" rx="4" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)" />
+							<text x="327" y="52" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Facade</text>
+							<line x1="355" y1="40" x2="380" y2="35" stroke="rgba(0,255,136,0.5)" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="380" y="18" width="90" height="30" rx="4" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" />
+							<text x="425" y="38" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">New Svc A</text>
+							<line x1="355" y1="55" x2="380" y2="60" stroke="rgba(255,107,107,0.4)" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="380" y="50" width="90" height="30" rx="4" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.2)" />
+							<text x="425" y="70" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">Monolith</text>
+							<text x="425" y="100" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">
+								Feature A → New, rest → Legacy
+							</text>
+							<!-- Phase 3 -->
+							<text x="540" y="20" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">PHASE 3: Complete</text>
+							<rect x="540" y="30" width="55" height="35" rx="4" fill="rgba(245,158,11,0.1)" stroke="rgba(245,158,11,0.3)" />
+							<text x="567" y="52" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Facade</text>
+							<line x1="595" y1="37" x2="620" y2="28" stroke="rgba(0,255,136,0.5)" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="620" y="12" width="80" height="28" rx="4" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" />
+							<text x="660" y="31" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Svc A</text>
+							<line x1="595" y1="47" x2="620" y2="50" stroke="rgba(0,212,255,0.5)" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="620" y="42" width="80" height="28" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" />
+							<text x="660" y="61" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">Svc B</text>
+							<line x1="595" y1="57" x2="620" y2="77" stroke="rgba(168,85,247,0.5)" stroke-width="1" marker-end="url(#a8)" />
+							<rect x="620" y="72" width="80" height="28" rx="4" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.3)" />
+							<text x="660" y="91" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">Svc C</text>
+							<text x="660" y="118" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Monolith decommissioned ✓</text>
+							<!-- Timeline -->
+							<rect x="30" y="140" width="770" height="50" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" />
+							<text x="415" y="162" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">
+								Timeline: Weeks → Months → Legacy fully replaced. Zero downtime throughout.
+							</text>
+							<text x="415" y="180" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">
+								Risk: LOW — rollback bất cứ lúc nào bằng feature toggle
+							</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">8.1 — Monolith to Microservices: Gradual Migration</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Công ty có monolith PHP 8 năm tuổi, 2M LOC. Muốn chuyển sang Go microservices nhưng: (1) Big Bang rewrite mất 2 năm và risk cực cao,
+								(2) Không thể freeze features 2 năm, (3) Team vẫn phải deliver business features trong lúc migrate.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Strangler Fig:</strong> Đặt API Gateway (NGINX/Kong) trước monolith. Migrate từng bounded context: bắt đầu với module ít
+								coupling nhất (ví dụ: Notification). Route <code>/api/notifications/*</code> sang new Go service, phần còn lại vẫn vào monolith. Mỗi
+								sprint migrate 1-2 modules. Dùng feature flags để A/B test new vs legacy. Sau 12 tháng, monolith chỉ còn lại core module → migrate
+								cuối cùng → decommission.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Critical success factor:</strong> Chọn module đầu tiên phải là module <strong>ít dependency</strong> nhất. Dùng
+								<strong>Anti-Corruption Layer</strong> để new service không bị "nhiễm" legacy data model. Database: ban đầu new service có thể đọc từ
+								legacy DB (shared database), sau đó tách dần sang DB riêng.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 09 CIRCUIT BREAKER ==================== -->
+				<section class="page-section" id="s-circuitbreaker">
+					<div class="section-header">
+						<div class="section-number">09</div>
+						<div>
+							<div class="section-title">Circuit Breaker</div>
+							<div class="section-subtitle">Bảo vệ hệ thống khỏi cascading failures</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Circuit Breaker là gì?</div>
+						<p class="prose">
+							<strong>Circuit Breaker</strong> là resilience pattern lấy cảm hứng từ cầu dao điện: khi phát hiện downstream service liên tục fail,
+							circuit breaker <strong>"ngắt mạch"</strong> — tất cả requests tiếp theo bị reject ngay lập tức (fail-fast) thay vì chờ timeout. Sau một
+							khoảng thời gian, circuit breaker cho phép một vài requests thử lại (half-open) để kiểm tra service đã recover chưa.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Closed State</div>
+							<div class="gl-def">
+								Trạng thái bình thường. Requests đi qua. Circuit breaker đếm failures. Khi failure count vượt threshold → chuyển sang Open.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Open State</div>
+							<div class="gl-def">
+								Trạng thái "ngắt mạch". Tất cả requests bị reject ngay (không gọi downstream). Sau timeout → chuyển sang Half-Open.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Half-Open State</div>
+							<div class="gl-def">
+								Cho phép một số requests thử lại. Nếu thành công → Closed. Nếu fail → Open lại. Probe mechanism để test recovery.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Failure Threshold</div>
+							<div class="gl-def">
+								Số failures liên tiếp hoặc failure rate (%) để trigger Open. Ví dụ: 5 failures liên tiếp hoặc 50% failure rate trong 60s.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Recovery Timeout</div>
+							<div class="gl-def">Thời gian ở Open state trước khi chuyển Half-Open. Thường 30-60 giây. Cho downstream time to recover.</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Fallback</div>
+							<div class="gl-def">
+								Response thay thế khi circuit Open. Ví dụ: cached data, default value, degraded response. Đảm bảo UX vẫn acceptable.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Circuit Breaker — State Machine</div>
+						<svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a9" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Closed -->
+							<circle cx="150" cy="140" r="60" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.4)" stroke-width="2" />
+							<text x="150" y="133" text-anchor="middle" font-size="14" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">CLOSED</text>
+							<text x="150" y="153" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Normal flow</text>
+							<!-- Open -->
+							<circle cx="670" cy="140" r="60" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.4)" stroke-width="2" />
+							<text x="670" y="133" text-anchor="middle" font-size="14" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">OPEN</text>
+							<text x="670" y="153" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Fail fast</text>
+							<!-- Half-Open -->
+							<circle cx="410" cy="140" r="60" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.4)" stroke-width="2" />
+							<text x="410" y="127" text-anchor="middle" font-size="13" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">HALF</text>
+							<text x="410" y="145" text-anchor="middle" font-size="13" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">OPEN</text>
+							<text x="410" y="163" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Probe</text>
+							<!-- Arrows -->
+							<line x1="210" y1="120" x2="350" y2="120" stroke="rgba(255,107,107,0.6)" stroke-width="1.5" marker-end="url(#a9)" />
+							<text x="280" y="112" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">failures > threshold</text>
+							<path d="M470,120 Q550,60 610,120" fill="none" stroke="rgba(255,107,107,0.6)" stroke-width="1.5" marker-end="url(#a9)" />
+							<text x="540" y="72" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">probe fails</text>
+							<line x1="610" y1="160" x2="470" y2="160" stroke="rgba(245,158,11,0.6)" stroke-width="1.5" marker-end="url(#a9)" />
+							<text x="540" y="178" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">timeout expires</text>
+							<path d="M350,160 Q280,220 210,160" fill="none" stroke="rgba(0,255,136,0.6)" stroke-width="1.5" marker-end="url(#a9)" />
+							<text x="280" y="228" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">probe succeeds</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">9.1 — Payment Gateway: Fail-Fast Protection</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Order Service gọi Payment Gateway (Stripe). Stripe đang bị outage — mỗi request timeout sau 30 giây. Với 1000 concurrent users, Order
+								Service tạo 1000 threads chờ timeout → <strong>thread pool exhaustion</strong> → Order Service cũng chết →
+								<strong>cascading failure</strong> lan sang toàn hệ thống.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								Wrap Stripe calls trong <strong>Circuit Breaker</strong>: threshold = 5 consecutive failures, timeout = 30s. Sau 5 lần Stripe fail →
+								circuit Open → tất cả payment requests tiếp theo nhận ngay error <code>"Payment service temporarily unavailable"</code> (fail trong
+								1ms thay vì 30s). Sau 30s → Half-Open → thử 1 request → nếu Stripe recovered → Closed → bình thường. Order Service sống sót, user nhận
+								feedback nhanh.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Giá trị cốt lõi:</strong> Circuit Breaker biến <strong>slow failure thành fast failure</strong>. Slow failure (30s timeout)
+								nguy hiểm hơn fast failure (1ms reject) rất nhiều vì nó giữ resources (threads, connections, memory).
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">9.2 — Adaptive Circuit Breaker với Sliding Window</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Simple circuit breaker (count-based) có vấn đề: nếu 5 failures xảy ra cách nhau 1 giờ → circuit Open, dù failure rate thực tế rất thấp
+								(5/10000 = 0.05%). Cần circuit breaker thông minh hơn dựa trên <strong>failure rate</strong>, không phải absolute count.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Sliding Window Circuit Breaker:</strong> theo dõi failure rate trong sliding window (ví dụ: 60 giây, minimum 20 calls). Chỉ
+								trip khi failure rate > 50% VÀ minimum calls > 20. Kết hợp <strong>slow call rate</strong>: nếu >80% calls mất >5s → cũng trip (dù
+								không error, nhưng downstream đang chậm). Libraries: <code>resilience4j</code> (Java), <code>sony/gobreaker</code> (Go),
+								<code>polly</code> (.NET).
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Best practice:</strong> Expose circuit breaker metrics (state, failure rate, call count) vào monitoring (Prometheus/Grafana).
+								Alert khi circuit Opens. Log mọi state transitions. Đây là critical observability cho production systems.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 10 BULKHEAD ==================== -->
+				<section class="page-section" id="s-bulkhead">
+					<div class="section-header">
+						<div class="section-number">10</div>
+						<div>
+							<div class="section-title">Bulkhead Pattern</div>
+							<div class="section-subtitle">Cô lập failures bằng resource partitioning</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Bulkhead Pattern là gì?</div>
+						<p class="prose">
+							<strong>Bulkhead</strong> (vách ngăn tàu) là pattern cô lập các components của hệ thống vào <strong>resource pools riêng biệt</strong>,
+							để khi một component fail, nó không consume hết resources của toàn hệ thống. Tương tự vách ngăn trên tàu: khi một khoang bị thủng, nước
+							chỉ tràn vào khoang đó, không chìm toàn bộ tàu.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Thread Pool Bulkhead</div>
+							<div class="gl-def">
+								Mỗi dependency có thread pool riêng. Payment calls: 20 threads. Inventory calls: 10 threads. Nếu Payment timeout → chỉ 20 threads bị
+								block.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Semaphore Bulkhead</div>
+							<div class="gl-def">
+								Dùng semaphore giới hạn concurrent calls. Lightweight hơn thread pool (no thread creation overhead). Chạy trên caller's thread.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Connection Pool Isolation</div>
+							<div class="gl-def">
+								Mỗi service/database có connection pool riêng. DB query chậm chỉ exhaust pool của nó, không ảnh hưởng pools khác.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Process Isolation</div>
+							<div class="gl-def">Chạy components trong processes riêng (containers). Heaviest isolation: memory, CPU, network all separated.</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Bulkhead — Resource Pool Isolation</div>
+						<svg width="100%" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg">
+							<!-- Without bulkhead -->
+							<text x="30" y="25" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono" font-weight="700">
+								❌ WITHOUT BULKHEAD — Shared Thread Pool
+							</text>
+							<rect x="30" y="35" width="350" height="80" rx="8" fill="rgba(255,107,107,0.05)" stroke="rgba(255,107,107,0.2)" />
+							<rect x="45" y="50" width="320" height="50" rx="4" fill="rgba(255,107,107,0.08)" />
+							<text x="205" y="72" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">Shared Pool: 50 threads</text>
+							<text x="205" y="90" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">
+								Payment timeout → ALL 50 threads blocked → ALL services fail
+							</text>
+							<!-- With bulkhead -->
+							<text x="440" y="25" font-size="11" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">
+								✓ WITH BULKHEAD — Isolated Pools
+							</text>
+							<rect x="440" y="35" width="350" height="80" rx="8" fill="rgba(0,255,136,0.03)" stroke="rgba(0,255,136,0.15)" />
+							<rect x="455" y="50" width="95" height="50" rx="4" fill="rgba(255,107,107,0.15)" stroke="rgba(255,107,107,0.3)" />
+							<text x="502" y="72" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">Payment</text>
+							<text x="502" y="88" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">20t FULL ⚠</text>
+							<rect x="560" y="50" width="95" height="50" rx="4" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.3)" />
+							<text x="607" y="72" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Inventory</text>
+							<text x="607" y="88" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">10t OK ✓</text>
+							<rect x="665" y="50" width="95" height="50" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" />
+							<text x="712" y="72" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">Shipping</text>
+							<text x="712" y="88" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">10t OK ✓</text>
+							<!-- Result -->
+							<rect x="30" y="140" width="760" height="80" rx="8" fill="rgba(0,255,136,0.03)" stroke="rgba(0,255,136,0.1)" />
+							<text x="415" y="168" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">
+								Bulkhead Benefit
+							</text>
+							<text x="415" y="192" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="JetBrains Mono">
+								Payment down → chỉ payment bị ảnh hưởng. Inventory + Shipping vẫn hoạt động bình thường.
+							</text>
+							<text x="415" y="210" text-anchor="middle" font-size="11" fill="#64748b" font-family="JetBrains Mono">
+								Blast radius được giới hạn bởi pool size → system survives partial failure.
+							</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">10.1 — API Gateway: Per-Service Rate Limiting</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								API Gateway forward requests đến 5 downstream services. Recommendation Service bị chậm (ML inference heavy) → gateway dùng hết
+								connection pool chờ recommendations → <strong>các services khác cũng không được phục vụ</strong> dù chúng hoàn toàn healthy.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Connection Pool Bulkhead:</strong> Gateway tạo separate connection pool cho mỗi downstream service: Recommendation (20
+								connections), Product (50), User (30), Order (50), Search (30). Khi Recommendation pool đầy → chỉ recommendation requests bị reject
+								(với fallback: hiển thị trending products thay vì personalized). Các services khác không bị ảnh hưởng vì dùng pools riêng.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Kết hợp với Circuit Breaker:</strong> Bulkhead (giới hạn concurrent calls) + Circuit Breaker (fast-fail khi downstream dead) =
+								robust resilience. Bulkhead giới hạn <em>blast radius</em>, Circuit Breaker giới hạn <em>duration of impact</em>.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 11 SIDECAR ==================== -->
+				<section class="page-section" id="s-sidecar">
+					<div class="section-header">
+						<div class="section-number">11</div>
+						<div>
+							<div class="section-title">Sidecar Pattern</div>
+							<div class="section-subtitle">Tách cross-cutting concerns vào container phụ trợ</div>
+						</div>
+						<span class="badge badge-expert">EXPERT</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Sidecar Pattern là gì?</div>
+						<p class="prose">
+							<strong>Sidecar</strong> là pattern triển khai helper component song song cùng main application trong cùng một host (thường là cùng Pod
+							trong Kubernetes). Sidecar xử lý <strong>cross-cutting concerns</strong> như logging, monitoring, networking, security — cho phép main
+							app tập trung vào business logic. Tương tự xe máy có thùng phụ (sidecar) chở thêm hành lý.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Sidecar Proxy</div>
+							<div class="gl-def">
+								Proxy chạy bên cạnh app, intercept tất cả inbound/outbound traffic. Ví dụ: Envoy proxy trong Istio. Xử lý mTLS, load balancing, retry.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Init Container</div>
+							<div class="gl-def">
+								Container chạy trước main container để setup (ví dụ: inject iptables rules cho traffic redirection). Khác sidecar: chạy một lần rồi
+								exit.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Ambassador Pattern</div>
+							<div class="gl-def">
+								Variant của Sidecar — proxy outbound calls. Ví dụ: sidecar handle connection pooling, retry, circuit breaking cho calls đến external
+								services.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Adapter Pattern</div>
+							<div class="gl-def">
+								Variant của Sidecar — transform data format. Ví dụ: sidecar convert logs từ app-specific format sang standardized format cho central
+								logging.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Sidecar Pattern — Kubernetes Pod Architecture</div>
+						<svg width="100%" viewBox="0 0 820 250" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a11" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Pod boundary -->
+							<rect
+								x="100"
+								y="20"
+								width="620"
+								height="200"
+								rx="12"
+								fill="rgba(168,85,247,0.03)"
+								stroke="rgba(168,85,247,0.25)"
+								stroke-width="1.5"
+								stroke-dasharray="8,4"
+							/>
+							<text x="120" y="42" font-size="11" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">
+								KUBERNETES POD (shared network namespace)
+							</text>
+							<!-- Main app -->
+							<rect x="140" y="60" width="200" height="120" rx="8" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" stroke-width="1.5" />
+							<text x="240" y="90" text-anchor="middle" font-size="14" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Main App</text>
+							<text x="240" y="112" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">Business Logic</text>
+							<text x="240" y="132" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">:8080</text>
+							<text x="240" y="165" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">Go / Java / Python</text>
+							<!-- Sidecar -->
+							<rect x="440" y="60" width="240" height="120" rx="8" fill="rgba(0,255,136,0.06)" stroke="rgba(0,255,136,0.25)" stroke-width="1.5" />
+							<text x="560" y="85" text-anchor="middle" font-size="13" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">
+								Sidecar (Envoy)
+							</text>
+							<text x="560" y="108" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">mTLS termination</text>
+							<text x="560" y="124" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Load balancing</text>
+							<text x="560" y="140" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Metrics collection</text>
+							<text x="560" y="156" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Retry + Circuit Breaker</text>
+							<!-- Connection between them -->
+							<line x1="340" y1="120" x2="438" y2="120" stroke="rgba(245,158,11,0.5)" stroke-width="1.5" marker-end="url(#a11)" />
+							<text x="389" y="112" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">localhost</text>
+							<!-- External traffic -->
+							<rect x="10" y="100" width="70" height="40" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" />
+							<text x="45" y="125" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">Traffic</text>
+							<line x1="80" y1="120" x2="138" y2="120" stroke="#475569" stroke-width="1.2" marker-end="url(#a11)" />
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge advanced">USE CASE NÂNG CAO</div>
+							<div class="case-title">11.1 — Polyglot Observability với Sidecar</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Tổ chức có 30+ microservices viết bằng Go, Java, Python, Node.js. Mỗi team dùng logging library khác nhau, metrics format khác nhau.
+								Cần <strong>unified observability</strong> nhưng không thể yêu cầu tất cả teams refactor code.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Observability Sidecar:</strong> Deploy sidecar container (OpenTelemetry Collector) trong mỗi pod. Sidecar thu thập: (1) Logs
+								từ stdout/files → ship đến Loki/ELK, (2) Metrics từ <code>/metrics</code> endpoint → ship đến Prometheus, (3) Traces qua OTLP → ship
+								đến Jaeger. App chỉ cần output logs ra stdout và expose metrics endpoint — sidecar handle tất cả formatting, batching, shipping. Zero
+								code change cho existing services.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Trade-off:</strong> Mỗi pod thêm 1 container → tốn RAM (~30-100MB/pod) và CPU. Với 500 pods = thêm 15-50GB RAM cluster-wide.
+								Nhưng đổi lại: unified observability, language-agnostic, no code changes. Giá trị >> cost.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 12 SERVICE MESH ==================== -->
+				<section class="page-section" id="s-servicemesh">
+					<div class="section-header">
+						<div class="section-number">12</div>
+						<div>
+							<div class="section-title">Service Mesh</div>
+							<div class="section-subtitle">Infrastructure layer cho service-to-service communication</div>
+						</div>
+						<span class="badge badge-expert">EXPERT</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Service Mesh là gì?</div>
+						<p class="prose">
+							<strong>Service Mesh</strong> là <strong>dedicated infrastructure layer</strong> xử lý service-to-service communication, bao gồm:
+							service discovery, load balancing, encryption (mTLS), observability, traffic management, và resilience (retry, circuit breaking). Nó
+							triển khai bằng cách inject <strong>sidecar proxy</strong> vào mỗi service — tạo thành một "mesh" (lưới) proxy quản lý toàn bộ network
+							traffic.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Data Plane</div>
+							<div class="gl-def">
+								Tập hợp tất cả sidecar proxies (Envoy). Xử lý actual traffic: routing, load balancing, TLS, metrics. Nằm trong mỗi pod.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Control Plane</div>
+							<div class="gl-def">
+								Centralized management layer (Istiod). Cấu hình policies, distribute certificates, push routing rules đến data plane.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">mTLS (mutual TLS)</div>
+							<div class="gl-def">
+								Cả client và server đều verify certificate. Service mesh auto-manage certificates: generation, distribution, rotation. Zero-trust
+								networking.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Traffic Splitting</div>
+							<div class="gl-def">
+								Route % traffic giữa versions. Ví dụ: 95% → v1, 5% → v2 (canary deployment). Managed tại mesh level, transparent to apps.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Istio</div>
+							<div class="gl-def">
+								Service mesh phổ biến nhất, dùng Envoy proxy. Feature-rich nhưng complex. Phù hợp large-scale deployments (100+ services).
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Linkerd</div>
+							<div class="gl-def">
+								Lightweight service mesh, dùng Rust-based proxy (linkerd2-proxy). Simpler than Istio, lower resource overhead. CNCF graduated project.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Service Mesh Architecture — Data Plane + Control Plane</div>
+						<svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a12" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Control Plane -->
+							<rect x="200" y="10" width="420" height="60" rx="8" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.4)" stroke-width="1.5" />
+							<text x="410" y="35" text-anchor="middle" font-size="14" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">
+								CONTROL PLANE (Istiod)
+							</text>
+							<text x="410" y="55" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">
+								Config • Certificates • Policy • Telemetry
+							</text>
+							<!-- Data Plane pods -->
+							<text x="50" y="105" font-size="11" fill="#64748b" font-family="JetBrains Mono" font-weight="700">DATA PLANE</text>
+							<!-- Pod A -->
+							<rect x="50" y="115" width="200" height="80" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.2)" stroke-dasharray="5,3" />
+							<rect x="65" y="130" width="80" height="45" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" />
+							<text x="105" y="158" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Svc A</text>
+							<rect x="155" y="130" width="80" height="45" rx="4" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.25)" />
+							<text x="195" y="150" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Envoy</text>
+							<text x="195" y="165" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Proxy</text>
+							<!-- Pod B -->
+							<rect x="310" y="115" width="200" height="80" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.2)" stroke-dasharray="5,3" />
+							<rect x="325" y="130" width="80" height="45" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" />
+							<text x="365" y="158" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Svc B</text>
+							<rect x="415" y="130" width="80" height="45" rx="4" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.25)" />
+							<text x="455" y="150" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Envoy</text>
+							<text x="455" y="165" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Proxy</text>
+							<!-- Pod C -->
+							<rect x="570" y="115" width="200" height="80" rx="8" fill="rgba(0,212,255,0.04)" stroke="rgba(0,212,255,0.2)" stroke-dasharray="5,3" />
+							<rect x="585" y="130" width="80" height="45" rx="4" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.3)" />
+							<text x="625" y="158" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">Svc C</text>
+							<rect x="675" y="130" width="80" height="45" rx="4" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.25)" />
+							<text x="715" y="150" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Envoy</text>
+							<text x="715" y="165" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Proxy</text>
+							<!-- Mesh lines -->
+							<line x1="235" y1="155" x2="325" y2="155" stroke="rgba(0,255,136,0.3)" stroke-width="1.2" stroke-dasharray="3,2" />
+							<line x1="495" y1="155" x2="585" y2="155" stroke="rgba(0,255,136,0.3)" stroke-width="1.2" stroke-dasharray="3,2" />
+							<!-- Control plane arrows -->
+							<line x1="195" y1="130" x2="300" y2="70" stroke="rgba(168,85,247,0.3)" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#a12)" />
+							<line x1="455" y1="130" x2="410" y2="70" stroke="rgba(168,85,247,0.3)" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#a12)" />
+							<line x1="715" y1="130" x2="520" y2="70" stroke="rgba(168,85,247,0.3)" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#a12)" />
+							<!-- Benefits -->
+							<rect x="50" y="215" width="720" height="40" rx="6" fill="rgba(0,255,136,0.04)" stroke="rgba(0,255,136,0.1)" />
+							<text x="410" y="240" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="JetBrains Mono">
+								Auto mTLS • Traffic Splitting • Distributed Tracing • Rate Limiting • Circuit Breaking — ALL without code changes
+							</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">12.1 — Zero-Trust Security với mTLS Mesh</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Tổ chức tài chính có 200+ microservices trong Kubernetes. Security team yêu cầu: (1) encrypt mọi traffic in-transit, (2) authenticate
+								mọi service call (service-to-service), (3) RBAC: Service A chỉ được gọi Service B, không được gọi Service C. Implement vào mỗi service
+								= enormous effort (200 services × multiple languages).
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Istio Service Mesh:</strong> Deploy Istio → auto-inject Envoy sidecar vào tất cả pods. Istio CA auto-generate mTLS
+								certificates cho mỗi service. Mọi traffic giữa services tự động encrypted + authenticated. Define <code>AuthorizationPolicy</code>:
+								chỉ cho phép Order Service → Payment Service (deny all by default). Zero code changes. Certificates auto-rotated mỗi 24h.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Khi nào cần Service Mesh:</strong> 50+ services, polyglot (multiple languages), security requirements (mTLS mandatory),
+								complex traffic routing (canary, A/B). Dưới 10 services → overkill, dùng library-based approach (ví dụ: gRPC interceptors).
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 13 API GATEWAY ==================== -->
+				<section class="page-section" id="s-apigateway">
+					<div class="section-header">
+						<div class="section-number">13</div>
+						<div>
+							<div class="section-title">API Gateway</div>
+							<div class="section-subtitle">Single entry point cho microservices — routing, auth, rate limiting</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">API Gateway là gì?</div>
+						<p class="prose">
+							<strong>API Gateway</strong> là server đóng vai trò <strong>single entry point</strong> cho tất cả client requests. Nó nhận request từ
+							clients, route đến appropriate microservice, aggregate responses nếu cần, và xử lý cross-cutting concerns: authentication, rate
+							limiting, SSL termination, caching, request/response transformation, logging.
+						</p>
+						<p class="prose">
+							Thay vì client gọi trực tiếp 10 microservices (phải biết address, handle auth, retry cho mỗi service), client chỉ gọi
+							<strong>1 gateway</strong>. Gateway = "front door" của hệ thống.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Reverse Proxy</div>
+							<div class="gl-def">
+								Server nhận requests từ clients và forward đến backend services. API Gateway là reverse proxy + thêm nhiều features.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Request Aggregation</div>
+							<div class="gl-def">
+								Gateway gọi multiple services song song và merge responses thành 1 response trả cho client. Giảm number of round trips.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Rate Limiting</div>
+							<div class="gl-def">
+								Giới hạn số requests per client/IP/API key trong time window. Ví dụ: 1000 req/minute. Bảo vệ backend khỏi overload.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">SSL/TLS Termination</div>
+							<div class="gl-def">
+								Gateway xử lý SSL handshake, decrypt HTTPS. Backend services communicate qua HTTP (internal network). Giảm TLS overhead cho backends.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">API Composition</div>
+							<div class="gl-def">
+								Pattern gateway gọi multiple services để compose một API response mà không service nào có đủ data. Ví dụ: product + reviews + seller
+								info.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Kong / APISIX / Traefik</div>
+							<div class="gl-def">
+								Popular open-source API Gateways. Kong (Lua/NGINX), APISIX (Lua/NGINX), Traefik (Go). Cloud: AWS API Gateway, Azure API Management.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">API Gateway — Microservices Entry Point</div>
+						<svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a13" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Clients -->
+							<rect x="20" y="40" width="90" height="40" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" />
+							<text x="65" y="65" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">Web App</text>
+							<rect x="20" y="100" width="90" height="40" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" />
+							<text x="65" y="125" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">Mobile</text>
+							<rect x="20" y="160" width="90" height="40" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" />
+							<text x="65" y="185" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">3rd Party</text>
+							<!-- Gateway -->
+							<rect x="200" y="20" width="200" height="230" rx="10" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.3)" stroke-width="1.5" />
+							<text x="300" y="48" text-anchor="middle" font-size="14" fill="#f59e0b" font-family="JetBrains Mono" font-weight="700">
+								API GATEWAY
+							</text>
+							<text x="300" y="80" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Authentication</text>
+							<text x="300" y="100" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Rate Limiting</text>
+							<text x="300" y="120" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ SSL Termination</text>
+							<text x="300" y="140" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Request Routing</text>
+							<text x="300" y="160" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Response Caching</text>
+							<text x="300" y="180" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Load Balancing</text>
+							<text x="300" y="200" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Logging / Metrics</text>
+							<text x="300" y="220" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">✓ Request Transform</text>
+							<!-- Arrows client → gateway -->
+							<line x1="110" y1="60" x2="198" y2="100" stroke="#475569" stroke-width="1.2" marker-end="url(#a13)" />
+							<line x1="110" y1="120" x2="198" y2="130" stroke="#475569" stroke-width="1.2" marker-end="url(#a13)" />
+							<line x1="110" y1="180" x2="198" y2="160" stroke="#475569" stroke-width="1.2" marker-end="url(#a13)" />
+							<!-- Services -->
+							<line x1="400" y1="70" x2="478" y2="50" stroke="rgba(0,212,255,0.5)" stroke-width="1.2" marker-end="url(#a13)" />
+							<line x1="400" y1="110" x2="478" y2="110" stroke="rgba(0,255,136,0.5)" stroke-width="1.2" marker-end="url(#a13)" />
+							<line x1="400" y1="150" x2="478" y2="170" stroke="rgba(168,85,247,0.5)" stroke-width="1.2" marker-end="url(#a13)" />
+							<line x1="400" y1="190" x2="478" y2="230" stroke="rgba(255,107,107,0.5)" stroke-width="1.2" marker-end="url(#a13)" />
+							<rect x="480" y="30" width="140" height="40" rx="6" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.25)" />
+							<text x="550" y="55" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">User Service</text>
+							<rect x="480" y="90" width="140" height="40" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.25)" />
+							<text x="550" y="115" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">Order Service</text>
+							<rect x="480" y="150" width="140" height="40" rx="6" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.25)" />
+							<text x="550" y="175" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">Product Service</text>
+							<rect x="480" y="210" width="140" height="40" rx="6" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.25)" />
+							<text x="550" y="235" text-anchor="middle" font-size="11" fill="#ff6b6b" font-family="JetBrains Mono">Payment Service</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">13.1 — Centralized Authentication</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								10 microservices, mỗi service tự implement JWT validation. Khi cần thay đổi auth logic (ví dụ: thêm API key support, rotate signing
+								keys) → phải update 10 services, deploy 10 lần. Inconsistent auth → security gaps.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>API Gateway handles authentication:</strong> Gateway validate JWT token, extract user info, attach vào request headers
+								(<code>X-User-Id</code>, <code>X-User-Role</code>). Backend services trust headers từ gateway (internal network). Thay đổi auth logic:
+								chỉ cần update gateway. Backend services đơn giản hóa: không cần biết JWT, chỉ đọc headers.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Security:</strong> Backend services PHẢI chỉ accept requests từ gateway (network policy). Nếu attacker bypass gateway gọi trực
+								tiếp → no auth check. Dùng <strong>network segmentation</strong> hoặc <strong>mTLS</strong> giữa gateway và services.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">13.2 — API Composition & Response Aggregation</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Mobile app cần hiển thị dashboard: user profile + recent orders + recommendations + notifications. Nếu gọi 4 APIs riêng biệt → 4 round
+								trips, mỗi round trip qua cellular network (200ms latency) = <strong>800ms+ total</strong>. UX rất tệ trên mobile.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>API Composition tại Gateway:</strong> Gateway expose <code>/api/dashboard</code>. Khi nhận request, gateway gọi
+								<strong>song song</strong> 4 services (user, orders, recommendations, notifications), aggregate responses thành 1 JSON. Client chỉ cần
+								1 round trip = 200ms (thay vì 800ms). Gateway dùng goroutines/threads để fan-out requests. Nếu 1 service slow → timeout + partial
+								response (dashboard vẫn hiển thị, thiếu 1 section).
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Cẩn trọng:</strong> Gateway không nên chứa business logic. API composition chỉ nên là simple aggregation + formatting. Nếu
+								logic phức tạp (ví dụ: filter orders by status, calculate totals) → tạo BFF service chuyên biệt.
+							</p>
+						</div>
+					</div>
+				</section>
+				<!-- ==================== 14 BFF ==================== -->
+				<section class="page-section" id="s-bff">
+					<div class="section-header">
+						<div class="section-number">14</div>
+						<div>
+							<div class="section-title">Backend For Frontend (BFF)</div>
+							<div class="section-subtitle">API layer tối ưu cho từng loại client</div>
+						</div>
+						<span class="badge badge-expert">EXPERT</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">BFF là gì?</div>
+						<p class="prose">
+							<strong>Backend For Frontend</strong> (BFF) là pattern tạo <strong>backend service riêng</strong> cho mỗi loại frontend client (web,
+							mobile, IoT, partner API). Mỗi BFF chỉ expose data và format mà client đó cần, tối ưu cho characteristics cụ thể của từng platform
+							(bandwidth, screen size, capabilities).
+						</p>
+						<p class="prose">
+							BFF giải quyết vấn đề <strong>"one API fits all"</strong>: web app cần rich data (100 fields), mobile cần compact data (20 fields), IoT
+							cần minimal data (5 fields). Một generic API không thể tối ưu cho tất cả.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">BFF Layer</div>
+							<div class="gl-def">
+								Thin backend layer giữa frontend và microservices. Xử lý data aggregation, transformation, formatting cụ thể cho client type.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">API Composition</div>
+							<div class="gl-def">
+								BFF gọi multiple downstream services, compose response tối ưu cho frontend. Ví dụ: mobile BFF chỉ lấy fields cần thiết.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Experience API</div>
+							<div class="gl-def">
+								API thiết kế xung quanh user experience, không phải domain model. Mỗi endpoint = 1 screen/feature trên frontend.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">GraphQL BFF</div>
+							<div class="gl-def">
+								Dùng GraphQL thay vì REST cho BFF layer. Client tự specify fields cần → giảm over-fetching. Một BFF serve nhiều clients.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">BFF Architecture — Per-Client Backend Services</div>
+						<svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="a14" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+									<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" />
+								</marker>
+							</defs>
+							<!-- Clients -->
+							<rect x="20" y="30" width="100" height="50" rx="6" fill="rgba(0,212,255,0.08)" stroke="rgba(0,212,255,0.3)" />
+							<text x="70" y="52" text-anchor="middle" font-size="11" fill="#00d4ff" font-family="JetBrains Mono">🖥️ Web</text>
+							<text x="70" y="70" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Rich data</text>
+							<rect x="20" y="110" width="100" height="50" rx="6" fill="rgba(0,255,136,0.08)" stroke="rgba(0,255,136,0.3)" />
+							<text x="70" y="132" text-anchor="middle" font-size="11" fill="#00ff88" font-family="JetBrains Mono">📱 Mobile</text>
+							<text x="70" y="150" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Compact</text>
+							<rect x="20" y="190" width="100" height="50" rx="6" fill="rgba(168,85,247,0.08)" stroke="rgba(168,85,247,0.3)" />
+							<text x="70" y="212" text-anchor="middle" font-size="11" fill="#a855f7" font-family="JetBrains Mono">🤖 IoT</text>
+							<text x="70" y="230" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Minimal</text>
+							<!-- BFFs -->
+							<line x1="120" y1="55" x2="198" y2="55" stroke="rgba(0,212,255,0.5)" stroke-width="1.2" marker-end="url(#a14)" />
+							<rect x="200" y="30" width="140" height="50" rx="6" fill="rgba(0,212,255,0.1)" stroke="rgba(0,212,255,0.35)" />
+							<text x="270" y="52" text-anchor="middle" font-size="12" fill="#00d4ff" font-family="JetBrains Mono" font-weight="700">Web BFF</text>
+							<text x="270" y="70" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">REST + SSR data</text>
+							<line x1="120" y1="135" x2="198" y2="135" stroke="rgba(0,255,136,0.5)" stroke-width="1.2" marker-end="url(#a14)" />
+							<rect x="200" y="110" width="140" height="50" rx="6" fill="rgba(0,255,136,0.1)" stroke="rgba(0,255,136,0.35)" />
+							<text x="270" y="132" text-anchor="middle" font-size="12" fill="#00ff88" font-family="JetBrains Mono" font-weight="700">
+								Mobile BFF
+							</text>
+							<text x="270" y="150" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Optimized payload</text>
+							<line x1="120" y1="215" x2="198" y2="215" stroke="rgba(168,85,247,0.5)" stroke-width="1.2" marker-end="url(#a14)" />
+							<rect x="200" y="190" width="140" height="50" rx="6" fill="rgba(168,85,247,0.1)" stroke="rgba(168,85,247,0.35)" />
+							<text x="270" y="212" text-anchor="middle" font-size="12" fill="#a855f7" font-family="JetBrains Mono" font-weight="700">IoT BFF</text>
+							<text x="270" y="230" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Binary protocol</text>
+							<!-- Downstream services -->
+							<line x1="340" y1="55" x2="458" y2="80" stroke="#475569" stroke-width="1" marker-end="url(#a14)" />
+							<line x1="340" y1="135" x2="458" y2="120" stroke="#475569" stroke-width="1" marker-end="url(#a14)" />
+							<line x1="340" y1="135" x2="458" y2="180" stroke="#475569" stroke-width="1" marker-end="url(#a14)" />
+							<line x1="340" y1="215" x2="458" y2="180" stroke="#475569" stroke-width="1" marker-end="url(#a14)" />
+							<rect x="460" y="60" width="160" height="45" rx="6" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.2)" />
+							<text x="540" y="87" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">User Service</text>
+							<rect x="460" y="120" width="160" height="45" rx="6" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.2)" />
+							<text x="540" y="147" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Product Service</text>
+							<rect x="460" y="180" width="160" height="45" rx="6" fill="rgba(245,158,11,0.06)" stroke="rgba(245,158,11,0.2)" />
+							<text x="540" y="207" text-anchor="middle" font-size="11" fill="#f59e0b" font-family="JetBrains Mono">Order Service</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge basic">USE CASE CƠ BẢN</div>
+							<div class="case-title">14.1 — Mobile vs Web: Khác biệt Data Requirements</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Product detail page: Web app hiển thị 50 fields (full description, reviews, related products, seller history...), Mobile app chỉ hiển
+								thị 15 fields (title, price, main image, rating). Dùng chung 1 API → mobile download <strong>10x dữ liệu không cần thiết</strong> →
+								tốn bandwidth, chậm trên 3G/4G.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Separate BFFs:</strong> Web BFF (<code>/web/products/:id</code>) trả full 50 fields, kèm HTML-friendly format. Mobile BFF
+								(<code>/mobile/products/:id</code>) trả 15 fields, images ở resolution thấp hơn, payload gzip compressed. Mỗi BFF team align với
+								frontend team tương ứng → develop, deploy independent. API contract tối ưu cho từng platform.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Trade-off:</strong> Thêm 1 service per client type = thêm code duplication (gọi cùng downstream services). Mitigation: share
+								common libraries/SDK cho downstream calls. Hoặc dùng <strong>GraphQL</strong> làm unified BFF — client tự specify fields cần.
+							</p>
+						</div>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">14.2 — GraphQL BFF: Single BFF, Multiple Clients</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Công ty có Web, iOS, Android, Partner API — tạo 4 BFFs = too much overhead cho small team (5 backend developers). Nhưng vẫn cần tối ưu
+								payload cho từng client.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>GraphQL BFF:</strong> Tạo 1 GraphQL server đóng vai trò BFF cho tất cả clients. Schema define tất cả available data. Web query
+								50 fields, mobile query 15 fields — từ cùng schema. <strong>No over-fetching, no under-fetching.</strong> Kết hợp
+								<strong>DataLoader</strong> pattern để batch + cache downstream service calls. 1 BFF, N clients, mỗi client tự tối ưu query cho mình.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Khi nào BFF vs GraphQL:</strong> BFF khi clients có logic khác nhau (web cần SSR, mobile cần push notification integration).
+								GraphQL khi sự khác biệt chỉ là fields/payload. Cả hai có thể kết hợp: Mobile BFF dùng GraphQL internally.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>BFF nên được <strong>own bởi frontend team</strong> (hoặc full-stack team). Backend team own downstream services.</li>
+						<li>BFF là <strong>thin layer</strong>: chỉ aggregation + transformation. Không chứa core business logic.</li>
+						<li>Mỗi BFF có thể dùng <strong>tech stack riêng</strong>: Web BFF dùng Node.js (SSR), Mobile BFF dùng Go (performance).</li>
+						<li>Dùng <strong>shared client libraries</strong> cho downstream service calls để tránh code duplication giữa BFFs.</li>
+						<li>BFF endpoints nên được thiết kế theo <strong>screen/feature</strong>, không theo domain model.</li>
+					</ul>
+				</section>
+				<!-- ==================== REFERENCES ==================== -->
+				<section class="page-section" id="s-refs">
+					<div class="section-header">
+						<div class="section-number">📚</div>
+						<div>
+							<div class="section-title">References</div>
+							<div class="section-subtitle">Tài liệu tham khảo chất lượng cao từ cộng đồng</div>
+						</div>
+					</div>
+					<h3>📖 Sách & Tài liệu chính thức</h3>
+					<a class="ref-card" href="https://microservices.io/patterns/" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 212, 255, 0.1)">📘</div>
+						<div class="ref-body">
+							<div class="ref-title">Microservices.io — Pattern Catalog by Chris Richardson</div>
+							<div class="ref-desc">
+								Catalog đầy đủ nhất về microservices patterns: Saga, CQRS, Event Sourcing, API Gateway, BFF, Circuit Breaker, Outbox, Strangler...
+							</div>
+							<div class="ref-url">microservices.io/patterns</div>
+						</div>
+						<div class="ref-stars">⭐ Canonical</div>
+					</a>
+					<a class="ref-card" href="https://learn.microsoft.com/en-us/azure/architecture/patterns/" target="_blank">
+						<div class="ref-icon" style="background: rgba(59, 130, 246, 0.1)">☁️</div>
+						<div class="ref-body">
+							<div class="ref-title">Microsoft — Cloud Design Patterns</div>
+							<div class="ref-desc">
+								45+ patterns cho distributed systems: Circuit Breaker, Bulkhead, Sidecar, Strangler Fig, Gateway Aggregation, CQRS. Có diagrams và
+								code samples.
+							</div>
+							<div class="ref-url">learn.microsoft.com/azure/architecture/patterns</div>
+						</div>
+						<div class="ref-stars">⭐ Official</div>
+					</a>
+					<a class="ref-card" href="https://www.amazon.com/Designing-Data-Intensive-Applications-Reliable-Maintainable/dp/1449373321" target="_blank">
+						<div class="ref-icon" style="background: rgba(168, 85, 247, 0.1)">📕</div>
+						<div class="ref-body">
+							<div class="ref-title">Designing Data-Intensive Applications — Martin Kleppmann</div>
+							<div class="ref-desc">
+								Bible của distributed systems. Chapters 5-9 cover: Replication, Consistency, CAP, Partitioning, Transactions, Event Processing. Bắt
+								buộc đọc.
+							</div>
+							<div class="ref-url">dataintensive.net</div>
+						</div>
+						<div class="ref-stars">⭐ Must-Read</div>
+					</a>
+					<a class="ref-card" href="https://www.amazon.com/Building-Microservices-Designing-Fine-Grained-Systems/dp/1492034029" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 255, 136, 0.1)">📗</div>
+						<div class="ref-body">
+							<div class="ref-title">Building Microservices, 2nd Edition — Sam Newman</div>
+							<div class="ref-desc">
+								Cover Saga, CQRS, Event Sourcing, API Gateway, BFF, Service Mesh, Strangler Fig Pattern với real-world examples. Chapters 12-15 đặc
+								biệt relevant.
+							</div>
+							<div class="ref-url">samnewman.io/books/building_microservices_2nd_edition</div>
+						</div>
+						<div class="ref-stars">⭐ Essential</div>
+					</a>
+					<h3>🔧 GitHub Repositories</h3>
+					<a class="ref-card" href="https://github.com/donnemartin/system-design-primer" target="_blank">
+						<div class="ref-icon" style="background: rgba(245, 158, 11, 0.1)">⭐</div>
+						<div class="ref-body">
+							<div class="ref-title">system-design-primer</div>
+							<div class="ref-desc">
+								Tổng hợp kiến thức system design. Cover CAP, Consistency, Caching, Load Balancing, Database. Có quizzes và flashcards.
+							</div>
+							<div class="ref-url">github.com/donnemartin/system-design-primer</div>
+						</div>
+						<div class="ref-stars">⭐ 290k★</div>
+					</a>
+					<a class="ref-card" href="https://github.com/ByteByteGoHq/system-design-101" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 212, 255, 0.1)">📊</div>
+						<div class="ref-body">
+							<div class="ref-title">ByteByteGo — System Design 101</div>
+							<div class="ref-desc">
+								Visual-first system design guide. Diagrams tuyệt đẹp cho mỗi concept: CAP, CQRS, Event Sourcing, API Gateway, Service Mesh, Circuit
+								Breaker.
+							</div>
+							<div class="ref-url">github.com/ByteByteGoHq/system-design-101</div>
+						</div>
+						<div class="ref-stars">⭐ 68k★</div>
+					</a>
+					<a class="ref-card" href="https://github.com/resilience4j/resilience4j" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 255, 136, 0.1)">🛡️</div>
+						<div class="ref-body">
+							<div class="ref-title">Resilience4j — Fault Tolerance Library</div>
+							<div class="ref-desc">
+								Implementation reference cho Circuit Breaker, Bulkhead, Rate Limiter, Retry, TimeLimiter. Java nhưng concepts applicable cho mọi
+								language.
+							</div>
+							<div class="ref-url">github.com/resilience4j/resilience4j</div>
+						</div>
+						<div class="ref-stars">⭐ 10k★</div>
+					</a>
+					<a class="ref-card" href="https://github.com/sony/gobreaker" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 212, 255, 0.1)">🔌</div>
+						<div class="ref-body">
+							<div class="ref-title">sony/gobreaker — Circuit Breaker for Go</div>
+							<div class="ref-desc">Production-grade Circuit Breaker implementation trong Go. Simple API, lightweight, battle-tested tại Sony.</div>
+							<div class="ref-url">github.com/sony/gobreaker</div>
+						</div>
+						<div class="ref-stars">⭐ 3k★</div>
+					</a>
+					<a class="ref-card" href="https://github.com/debezium/debezium" target="_blank">
+						<div class="ref-icon" style="background: rgba(255, 107, 107, 0.1)">📤</div>
+						<div class="ref-body">
+							<div class="ref-title">Debezium — Change Data Capture Platform</div>
+							<div class="ref-desc">
+								Production-grade CDC cho Outbox Pattern. Connectors cho PostgreSQL, MySQL, MongoDB, SQL Server. Outbox Event Router SMT built-in.
+							</div>
+							<div class="ref-url">github.com/debezium/debezium</div>
+						</div>
+						<div class="ref-stars">⭐ 11k★</div>
+					</a>
+					<a class="ref-card" href="https://github.com/EventStore/EventStore" target="_blank">
+						<div class="ref-icon" style="background: rgba(168, 85, 247, 0.1)">📋</div>
+						<div class="ref-body">
+							<div class="ref-title">EventStoreDB — Purpose-built Event Sourcing Database</div>
+							<div class="ref-desc">
+								Database chuyên dụng cho Event Sourcing. Immutable append-only streams, projections, subscriptions. Reference implementation.
+							</div>
+							<div class="ref-url">github.com/EventStore/EventStore</div>
+						</div>
+						<div class="ref-stars">⭐ 5.5k★</div>
+					</a>
+					<h3>📝 Bài viết chất lượng cao</h3>
+					<a class="ref-card" href="https://martinfowler.com/bliki/CQRS.html" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 255, 136, 0.1)">✍️</div>
+						<div class="ref-body">
+							<div class="ref-title">Martin Fowler — CQRS</div>
+							<div class="ref-desc">
+								Bài viết gốc từ Martin Fowler giải thích CQRS, khi nào nên/không nên dùng, và mối quan hệ với Event Sourcing.
+							</div>
+							<div class="ref-url">martinfowler.com/bliki/CQRS.html</div>
+						</div>
+						<div class="ref-stars">⭐ Classic</div>
+					</a>
+					<a class="ref-card" href="https://martinfowler.com/bliki/StranglerFigApplication.html" target="_blank">
+						<div class="ref-icon" style="background: rgba(245, 158, 11, 0.1)">✍️</div>
+						<div class="ref-body">
+							<div class="ref-title">Martin Fowler — Strangler Fig Application</div>
+							<div class="ref-desc">Bài viết gốc đặt tên cho Strangler Fig Pattern. Mô tả chiến lược migration incremental từ legacy systems.</div>
+							<div class="ref-url">martinfowler.com/bliki/StranglerFigApplication.html</div>
+						</div>
+						<div class="ref-stars">⭐ Original</div>
+					</a>
+					<a class="ref-card" href="https://stripe.com/blog/idempotency" target="_blank">
+						<div class="ref-icon" style="background: rgba(168, 85, 247, 0.1)">💳</div>
+						<div class="ref-body">
+							<div class="ref-title">Stripe Engineering — Designing robust and predictable APIs with idempotency</div>
+							<div class="ref-desc">
+								Stripe chia sẻ cách implement idempotency keys trong payment APIs. Production-tested patterns, edge cases, và best practices.
+							</div>
+							<div class="ref-url">stripe.com/blog/idempotency</div>
+						</div>
+						<div class="ref-stars">⭐ Top Rated</div>
+					</a>
+					<a class="ref-card" href="https://newsletter.systemdesign.one/" target="_blank">
+						<div class="ref-icon" style="background: rgba(0, 212, 255, 0.1)">📬</div>
+						<div class="ref-body">
+							<div class="ref-title">System Design Newsletter — Weekly Deep Dives</div>
+							<div class="ref-desc">
+								Newsletter chất lượng cao với visual explanations cho mỗi system design concept. Weekly updates, free tier available.
+							</div>
+							<div class="ref-url">newsletter.systemdesign.one</div>
+						</div>
+						<div class="ref-stars">⭐ Weekly</div>
+					</a>
+					<hr class="divider" />
+					<div class="note note-success">
+						<div class="note-icon">✅</div>
+						<p>
+							<strong>Tóm tắt toàn bộ guide:</strong> 14 patterns được chia thành 4 nhóm: <strong>Foundations</strong> (Idempotency, Eventual
+							Consistency, CAP) → hiểu nền tảng lý thuyết. <strong>Data Patterns</strong> (Saga, CQRS, Event Sourcing, Outbox) → quản lý data trong
+							distributed systems. <strong>Resilience</strong> (Strangler Fig, Circuit Breaker, Bulkhead) → bảo vệ hệ thống khỏi failures.
+							<strong>Infrastructure</strong> (Sidecar, Service Mesh, API Gateway, BFF) → kiến trúc infrastructure layer. Mỗi pattern giải quyết một
+							vấn đề cụ thể — không dùng tất cả, chỉ dùng khi cần.
+						</p>
+					</div>
+				</section>
+			</div>
+		</main>
+		<script>
+			function showSection(name) {
+				document.querySelectorAll(".page-section").forEach((s) => s.classList.remove("active"));
+				document.querySelectorAll(".nav-item").forEach((n) => n.classList.remove("active"));
+				document.querySelectorAll(".topnav-item").forEach((n) => n.classList.remove("active"));
+				const section = document.getElementById("s-" + name);
+				if (section) section.classList.add("active");
+				document.querySelectorAll(".nav-item").forEach((n) => {
+					const onclick = n.getAttribute("onclick");
+					if (onclick && onclick.indexOf("'" + name + "'") !== -1) n.classList.add("active");
+				});
+				document.querySelectorAll(".topnav-item").forEach((n) => {
+					const onclick = n.getAttribute("onclick");
+					if (onclick && onclick.indexOf("'" + name + "'") !== -1) n.classList.add("active");
+				});
+				// Sync hash in URL
+				try {
+					if (history.replaceState) {
+						history.replaceState(null, null, '#s-' + name);
+					} else {
+						location.hash = '#s-' + name;
+					}
+				} catch (e) {}
+				window.scrollTo(0, 0);
+			}
+
+			// Global compat wrappers
+			window.showSection = showSection;
+			window.S = showSection;
+			window.show = showSection;
+
+			// Sync layout dynamically if hash changes in the URL
+			window.addEventListener('hashchange', () => {
+				const hash = window.location.hash;
+				if (hash.startsWith('#s-')) {
+					showSection(hash.replace('#s-', ''));
+				}
+			});
+
+			// On initial DOM load, automatically activate correct section if a hash is present
+			function initRouter() {
+				const hash = window.location.hash;
+				if (hash.startsWith('#s-')) {
+					showSection(hash.replace('#s-', ''));
+				} else {
+					const activeSec = document.querySelector('.page-section.active');
+					if (activeSec) {
+						const activeId = activeSec.id.replace('s-', '');
+						showSection(activeId);
+					}
+				}
+			}
+
+			if (document.readyState === 'loading') {
+				window.addEventListener('DOMContentLoaded', initRouter);
+			} else {
+				initRouter();
+			}
+		</script>
+	</body>
+</html>
