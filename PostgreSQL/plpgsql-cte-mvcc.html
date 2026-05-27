@@ -247,58 +247,58 @@ hr.div{border:none;border-top:1px solid var(--border);margin:30px 0}
   </div>
 
   <div class="nav-sec"><div class="nav-sec-title">Tổng quan</div>
-    <button class="nav-btn active" onclick="S('intro')">🏠 Giới thiệu</button>
+    <button class="nav-btn active" data-target="intro" onclick="S('intro')">🏠 Giới thiệu</button>
   </div>
 
   <div class="nav-sec"><div class="nav-sec-title">01 — PL/pgSQL</div>
-    <button class="nav-btn" onclick="S('pl-intro')">Khái niệm &amp; Kiến trúc</button>
-    <button class="nav-btn" onclick="S('pl-basics')">Functions &amp; Procedures</button>
-    <button class="nav-btn" onclick="S('pl-control')">Control Flow &amp; Dynamic SQL</button>
-    <button class="nav-btn" onclick="S('pl-cursor')">Cursors &amp; Batch</button>
-    <button class="nav-btn" onclick="S('pl-exception')">Exception Handling</button>
-    <button class="nav-btn" onclick="S('pl-trigger')">Triggers nâng cao</button>
-    <button class="nav-btn" onclick="S('pl-expert')">Expert Patterns</button>
+    <button class="nav-btn" data-target="pl-intro" onclick="S('pl-intro')">Khái niệm &amp; Kiến trúc</button>
+    <button class="nav-btn" data-target="pl-basics" onclick="S('pl-basics')">Functions &amp; Procedures</button>
+    <button class="nav-btn" data-target="pl-control" onclick="S('pl-control')">Control Flow &amp; Dynamic SQL</button>
+    <button class="nav-btn" data-target="pl-cursor" onclick="S('pl-cursor')">Cursors &amp; Batch</button>
+    <button class="nav-btn" data-target="pl-exception" onclick="S('pl-exception')">Exception Handling</button>
+    <button class="nav-btn" data-target="pl-trigger" onclick="S('pl-trigger')">Triggers nâng cao</button>
+    <button class="nav-btn" data-target="pl-expert" onclick="S('pl-expert')">Expert Patterns</button>
   </div>
 
   <div class="nav-sec"><div class="nav-sec-title">02 — CTE Recursive Lateral</div>
-    <button class="nav-btn" onclick="S('cte-intro')">CTE — Khái niệm</button>
-    <button class="nav-btn" onclick="S('cte-recursive')">Recursive CTE</button>
-    <button class="nav-btn" onclick="S('lateral-intro')">LATERAL Join</button>
-    <button class="nav-btn" onclick="S('cte-expert')">Expert: Kết hợp nâng cao</button>
+    <button class="nav-btn" data-target="cte-intro" onclick="S('cte-intro')">CTE — Khái niệm</button>
+    <button class="nav-btn" data-target="cte-recursive" onclick="S('cte-recursive')">Recursive CTE</button>
+    <button class="nav-btn" data-target="lateral-intro" onclick="S('lateral-intro')">LATERAL Join</button>
+    <button class="nav-btn" data-target="cte-expert" onclick="S('cte-expert')">Expert: Kết hợp nâng cao</button>
   </div>
 
   <div class="nav-sec"><div class="nav-sec-title">03 — MVCC RLS Internals</div>
-    <button class="nav-btn" onclick="S('mvcc-intro')">MVCC — Khái niệm</button>
-    <button class="nav-btn" onclick="S('mvcc-internals')">MVCC Internals</button>
-    <button class="nav-btn" onclick="S('rls-intro')">Row-Level Security</button>
-    <button class="nav-btn" onclick="S('rls-adv')">RLS Patterns nâng cao</button>
-    <button class="nav-btn" onclick="S('vacuum')">VACUUM &amp; Autovacuum</button>
-    <button class="nav-btn" onclick="S('mvcc-expert')">Expert: Tuning &amp; Debug</button>
+    <button class="nav-btn" data-target="mvcc-intro" onclick="S('mvcc-intro')">MVCC — Khái niệm</button>
+    <button class="nav-btn" data-target="mvcc-internals" onclick="S('mvcc-internals')">MVCC Internals</button>
+    <button class="nav-btn" data-target="rls-intro" onclick="S('rls-intro')">Row-Level Security</button>
+    <button class="nav-btn" data-target="rls-adv" onclick="S('rls-adv')">RLS Patterns nâng cao</button>
+    <button class="nav-btn" data-target="vacuum" onclick="S('vacuum')">VACUUM &amp; Autovacuum</button>
+    <button class="nav-btn" data-target="mvcc-expert" onclick="S('mvcc-expert')">Expert: Tuning &amp; Debug</button>
   </div>
 
   <div class="nav-sec"><div class="nav-sec-title">Tham khảo</div>
-    <button class="nav-btn" onclick="S('refs')">📚 References</button>
+    <button class="nav-btn" data-target="refs" onclick="S('refs')">📚 References</button>
   </div>
 </nav>
 
 <!-- ══════════ TOP NAV ══════════ -->
 <nav id="tn">
-  <button class="tn-btn active" onclick="S('intro')">Intro</button>
-  <button class="tn-btn" onclick="S('pl-intro')">PL/pgSQL</button>
-  <button class="tn-btn" onclick="S('pl-basics')">Functions</button>
-  <button class="tn-btn" onclick="S('pl-trigger')">Triggers</button>
-  <button class="tn-btn" onclick="S('pl-expert')">PL Expert</button>
-  <button class="tn-btn" onclick="S('cte-intro')">CTE</button>
-  <button class="tn-btn" onclick="S('cte-recursive')">Recursive</button>
-  <button class="tn-btn" onclick="S('lateral-intro')">LATERAL</button>
-  <button class="tn-btn" onclick="S('cte-expert')">CTE Expert</button>
-  <button class="tn-btn" onclick="S('mvcc-intro')">MVCC</button>
-  <button class="tn-btn" onclick="S('mvcc-internals')">Internals</button>
-  <button class="tn-btn" onclick="S('rls-intro')">RLS</button>
-  <button class="tn-btn" onclick="S('rls-adv')">RLS Adv</button>
-  <button class="tn-btn" onclick="S('vacuum')">VACUUM</button>
-  <button class="tn-btn" onclick="S('mvcc-expert')">Expert</button>
-  <button class="tn-btn" onclick="S('refs')">Refs</button>
+  <button class="tn-btn active" data-target="intro" onclick="S('intro')">Intro</button>
+  <button class="tn-btn" data-target="pl-intro" onclick="S('pl-intro')">PL/pgSQL</button>
+  <button class="tn-btn" data-target="pl-basics" onclick="S('pl-basics')">Functions</button>
+  <button class="tn-btn" data-target="pl-trigger" onclick="S('pl-trigger')">Triggers</button>
+  <button class="tn-btn" data-target="pl-expert" onclick="S('pl-expert')">PL Expert</button>
+  <button class="tn-btn" data-target="cte-intro" onclick="S('cte-intro')">CTE</button>
+  <button class="tn-btn" data-target="cte-recursive" onclick="S('cte-recursive')">Recursive</button>
+  <button class="tn-btn" data-target="lateral-intro" onclick="S('lateral-intro')">LATERAL</button>
+  <button class="tn-btn" data-target="cte-expert" onclick="S('cte-expert')">CTE Expert</button>
+  <button class="tn-btn" data-target="mvcc-intro" onclick="S('mvcc-intro')">MVCC</button>
+  <button class="tn-btn" data-target="mvcc-internals" onclick="S('mvcc-internals')">Internals</button>
+  <button class="tn-btn" data-target="rls-intro" onclick="S('rls-intro')">RLS</button>
+  <button class="tn-btn" data-target="rls-adv" onclick="S('rls-adv')">RLS Adv</button>
+  <button class="tn-btn" data-target="vacuum" onclick="S('vacuum')">VACUUM</button>
+  <button class="tn-btn" data-target="mvcc-expert" onclick="S('mvcc-expert')">Expert</button>
+  <button class="tn-btn" data-target="refs" onclick="S('refs')">Refs</button>
 </nav>
 
 <main id="main"><div class="content">
@@ -325,15 +325,15 @@ hr.div{border:none;border-top:1px solid var(--border);margin:30px 0}
   </div>
 
   <div class="grid3">
-    <div class="card" style="cursor:pointer;border-color:rgba(0,212,255,.25)" onclick="S('pl-intro')">
+    <div class="card" style="cursor:pointer;border-color:rgba(0,212,255,.25)" data-target="pl-intro" onclick="S('pl-intro')">
       <div class="card-title">🔧 01 — PL/pgSQL</div>
       <p class="prose" style="margin:0;font-size:13px">Stored procedures, functions, triggers với ngôn ngữ thủ tục đầy đủ: biến, exception handling, cursors, dynamic SQL, retry logic.</p>
     </div>
-    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.25)" onclick="S('cte-intro')">
+    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.25)" data-target="cte-intro" onclick="S('cte-intro')">
       <div class="card-title">🌲 02 — CTE &amp; LATERAL</div>
       <p class="prose" style="margin:0;font-size:13px">Common Table Expressions đệ quy cho cấu trúc cây/đồ thị, LATERAL join cho correlated subqueries, kết hợp nâng cao trong BOM/graph problems.</p>
     </div>
-    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" onclick="S('mvcc-intro')">
+    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" data-target="mvcc-intro" onclick="S('mvcc-intro')">
       <div class="card-title">🔒 03 — MVCC &amp; RLS</div>
       <p class="prose" style="margin:0;font-size:13px">Multiversion Concurrency Control — xmin/xmax internals, Row-Level Security cho multi-tenant SaaS, VACUUM tuning và bloat management.</p>
     </div>
@@ -375,6 +375,11 @@ hr.div{border:none;border-top:1px solid var(--border);margin:30px 0}
     <div class="cbox-title">PL/pgSQL là gì?</div>
     <p class="prose"><strong>PL/pgSQL</strong> (Procedural Language/PostgreSQL) là ngôn ngữ lập trình thủ tục tích hợp sẵn trong PostgreSQL, lấy cảm hứng từ PL/SQL của Oracle. Nó mở rộng SQL thuần tuý bằng cách thêm biến, điều kiện, vòng lặp, exception handling và cursors. Điểm mấu chốt: mã PL/pgSQL được thực thi <strong>trực tiếp bên trong database engine</strong>, không qua network round-trip.</p>
     <p class="prose">Cấu trúc block cơ bản: <code>[ DECLARE ] BEGIN ... EXCEPTION ... END</code> — mỗi block có scope riêng cho biến và exception handler, có thể lồng nhau tùy ý.</p>
+  </div>
+
+  <div class="cimg-wrap">
+    <img src="../public/images/pg_plpgsql_architecture.png" alt="PostgreSQL PL/pgSQL Procedural Execution Engine Architecture" loading="lazy">
+    <div class="cimg-caption">Hình 1.1: Kiến trúc bộ máy thực thi thủ tục (PL/pgSQL Procedural Execution Engine) và SPI Manager trong PostgreSQL</div>
   </div>
 
   <!-- Diagram: SQL thuần vs PL/pgSQL -->
@@ -2448,7 +2453,7 @@ function showSection(name) {
 // Bind dynamic click events for sidebar, topnav, cards, and tags
 document.querySelectorAll('.nav-btn, .tn-btn, .card').forEach(el => {
   const oc = el.getAttribute('onclick');
-  const target = el.getAttribute('data-target') || oc?.match(/S\('([^']+)'\)/)?.[1];
+  const target = el.getAttribute('data-target') || oc?.match(/(?:S|show)\('([^']+)'\)/)?.[1];
   if (target) {
     // Save original click handler target in dataset to assist highlighting
     el.dataset.onclick = oc;

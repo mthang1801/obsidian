@@ -41,10 +41,10 @@
             "state": {
               "type": "html-file-view",
               "state": {
-                "file": "Go/Concurrency/02-buffered-unbuffered-channels.html"
+                "file": "LeetCode/advanced-ds-state-machine-dp.html"
               },
               "icon": "lucide-file",
-              "title": "02-buffered-unbuffered-channels"
+              "title": "advanced-ds-state-machine-dp"
             }
           }
         ],
@@ -121,7 +121,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Go/Concurrency/02-buffered-unbuffered-channels.html",
+                "file": "Go/Concurrency/03-race-conditions.html",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -131,7 +131,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 02-buffered-unbuffered-channels"
+              "title": "Backlinks for 03-race-conditions"
             }
           },
           {
@@ -223,33 +223,33 @@
   },
   "active": "8cbe7c10a5389a73",
   "lastOpenFiles": [
-    "Go/Concurrency/🎯 Overview Go Concurrency.md",
-    "Design Pattern/structural-patterns.html",
-    "Design Pattern/structural-design-patterns.html",
-    "Go/Concurrency/21-asynq.html",
-    "Go/Concurrency/20-bounded-parallelism-errgroup.html",
-    "Go/Concurrency/19-semaphore-guide.html",
-    "Go/Concurrency/18-rate-limiting-go.html",
-    "Go/Concurrency/17-resource-manager.html",
-    "Go/Concurrency/16-sync-pool.html",
-    "Go/Concurrency/15-errgroup-guide.html",
-    "Go/Concurrency/14-tee-channel-go-pattern.html",
-    "LeetCode/🎯 Overview LeetCode.md",
+    "LeetCode/core-ds-basic-algorithms.html",
+    "LeetCode/expert-algorithms-hard-patterns.html",
+    "Glosarry/system-design-guide.html",
+    "Glosarry/security-architecture-guide.html",
+    "public/images/pg_plpgsql_architecture.png",
+    "public/images/sys_design_s04_mesh_sharding_bff.png",
+    "public/images/sys_design_s03_microservice_resilience.png",
+    "public/images/sys_design_s02_cqrs_event_sourcing.png",
+    "public/images/sys_design_s01_idempotency_saga.png",
+    "Go/Fundamental/go-advanced-guide.html",
+    "Go/Fundamental/go-basics-guide.html",
+    "LeetCode/intermediate-algorithms-graphs.html",
+    "PostgreSQL/plpgsql-cte-mvcc.html",
+    "PostgreSQL/optimize-performance.html",
+    "PostgreSQL/indexes-partitioning-replication.html",
     "PostgreSQL/🎯 Overview PostgreSQL.md",
-    "public/images/pg_replication_ha.png",
-    "public/images/pg_query_optimization.png",
-    "public/images/pg_jsonb_fts.png",
-    "public/images/pg_partition_maintenance.png",
-    "public/images/pg_index_internals.png",
-    "public/images/pg_advanced_p2_hero.png",
-    "public/images/pg_perf_vacuum_wal.png",
-    "public/images/pg_perf_query_analysis.png",
-    "public/images/pg_perf_pagination_cost.png",
-    "public/images/pg_perf_deadlock_wait.png",
+    "public/images/go_basics_f05_math.png",
+    "public/images/go_basics_f04_fmt.png",
+    "public/images/go_basics_f03_strconv.png",
+    "public/images/go_basics_f02_strings.png",
+    "public/images/go_basics_f01_closures.png",
+    "Glosarry/AI glossary.md",
+    "Go/Concurrency/🎯 Overview Go Concurrency.md",
+    "DSA/🎯 Overview DSA.md",
+    "LeetCode/🎯 Overview LeetCode.md",
     "2026-05-25.md",
     "Design Pattern/🎯 Overview Design Pattern.md",
-    "Glosarry/AI glossary.md",
-    "DSA/🎯 Overview DSA.md",
     "Untitled.canvas",
     "Go/Basics/Untitled.md",
     "Diagram/Flowchart/Pattern 2 — Saga Compensation Flow (Advanced).md",

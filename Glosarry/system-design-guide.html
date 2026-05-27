@@ -628,52 +628,52 @@
 			</div>
 			<div class="nav-section">
 				<div class="nav-section-title">Foundations</div>
-				<button class="nav-item active" onclick="showSection('idempotency')">📝 01 Idempotency</button>
-				<button class="nav-item" onclick="showSection('eventual')">📝 02 Eventual Consistency</button>
-				<button class="nav-item" onclick="showSection('cap')">📝 03 CAP Theorem</button>
+				<button class="nav-item active" data-section="idempotency" onclick="showSection('idempotency')">📝 01 Idempotency</button>
+				<button class="nav-item" data-section="eventual" onclick="showSection('eventual')">📝 02 Eventual Consistency</button>
+				<button class="nav-item" data-section="cap" onclick="showSection('cap')">📝 03 CAP Theorem</button>
 			</div>
 			<div class="nav-section">
 				<div class="nav-section-title">Data Patterns</div>
-				<button class="nav-item" onclick="showSection('saga')">📝 04 Saga Pattern</button>
-				<button class="nav-item" onclick="showSection('cqrs')">📝 05 CQRS</button>
-				<button class="nav-item" onclick="showSection('eventsourcing')">📝 06 Event Sourcing</button>
-				<button class="nav-item" onclick="showSection('outbox')">📝 07 Outbox Pattern</button>
+				<button class="nav-item" data-section="saga" onclick="showSection('saga')">📝 04 Saga Pattern</button>
+				<button class="nav-item" data-section="cqrs" onclick="showSection('cqrs')">📝 05 CQRS</button>
+				<button class="nav-item" data-section="eventsourcing" onclick="showSection('eventsourcing')">📝 06 Event Sourcing</button>
+				<button class="nav-item" data-section="outbox" onclick="showSection('outbox')">📝 07 Outbox Pattern</button>
 			</div>
 			<div class="nav-section">
 				<div class="nav-section-title">Migration & Resilience</div>
-				<button class="nav-item" onclick="showSection('strangler')">📝 08 Strangler Fig</button>
-				<button class="nav-item" onclick="showSection('circuitbreaker')">📝 09 Circuit Breaker</button>
-				<button class="nav-item" onclick="showSection('bulkhead')">📝 10 Bulkhead Pattern</button>
+				<button class="nav-item" data-section="strangler" onclick="showSection('strangler')">📝 08 Strangler Fig</button>
+				<button class="nav-item" data-section="circuitbreaker" onclick="showSection('circuitbreaker')">📝 09 Circuit Breaker</button>
+				<button class="nav-item" data-section="bulkhead" onclick="showSection('bulkhead')">📝 10 Bulkhead Pattern</button>
 			</div>
 			<div class="nav-section">
 				<div class="nav-section-title">Infrastructure</div>
-				<button class="nav-item" onclick="showSection('sidecar')">📝 11 Sidecar Pattern</button>
-				<button class="nav-item" onclick="showSection('servicemesh')">📝 12 Service Mesh</button>
-				<button class="nav-item" onclick="showSection('apigateway')">📝 13 API Gateway</button>
-				<button class="nav-item" onclick="showSection('bff')">📝 14 Backend For Frontend</button>
+				<button class="nav-item" data-section="sidecar" onclick="showSection('sidecar')">📝 11 Sidecar Pattern</button>
+				<button class="nav-item" data-section="servicemesh" onclick="showSection('servicemesh')">📝 12 Service Mesh</button>
+				<button class="nav-item" data-section="apigateway" onclick="showSection('apigateway')">📝 13 API Gateway</button>
+				<button class="nav-item" data-section="bff" onclick="showSection('bff')">📝 14 Backend For Frontend</button>
 			</div>
 			<div class="nav-section">
 				<div class="nav-section-title">Appendix</div>
-				<button class="nav-item" onclick="showSection('refs')">📚 References</button>
+				<button class="nav-item" data-section="refs" onclick="showSection('refs')">📚 References</button>
 			</div>
 		</nav>
 		<!-- ===== TOP NAV ===== -->
 		<nav id="topnav">
-			<button class="topnav-item active" onclick="showSection('idempotency')">Idempotency</button>
-			<button class="topnav-item" onclick="showSection('eventual')">Eventual</button>
-			<button class="topnav-item" onclick="showSection('cap')">CAP</button>
-			<button class="topnav-item" onclick="showSection('saga')">Saga</button>
-			<button class="topnav-item" onclick="showSection('cqrs')">CQRS</button>
-			<button class="topnav-item" onclick="showSection('eventsourcing')">Event Src</button>
-			<button class="topnav-item" onclick="showSection('outbox')">Outbox</button>
-			<button class="topnav-item" onclick="showSection('strangler')">Strangler</button>
-			<button class="topnav-item" onclick="showSection('circuitbreaker')">Circuit Brk</button>
-			<button class="topnav-item" onclick="showSection('bulkhead')">Bulkhead</button>
-			<button class="topnav-item" onclick="showSection('sidecar')">Sidecar</button>
-			<button class="topnav-item" onclick="showSection('servicemesh')">Svc Mesh</button>
-			<button class="topnav-item" onclick="showSection('apigateway')">API GW</button>
-			<button class="topnav-item" onclick="showSection('bff')">BFF</button>
-			<button class="topnav-item" onclick="showSection('refs')">Refs</button>
+			<button class="topnav-item active" data-section="idempotency" onclick="showSection('idempotency')">Idempotency</button>
+			<button class="topnav-item" data-section="eventual" onclick="showSection('eventual')">Eventual</button>
+			<button class="topnav-item" data-section="cap" onclick="showSection('cap')">CAP</button>
+			<button class="topnav-item" data-section="saga" onclick="showSection('saga')">Saga</button>
+			<button class="topnav-item" data-section="cqrs" onclick="showSection('cqrs')">CQRS</button>
+			<button class="topnav-item" data-section="eventsourcing" onclick="showSection('eventsourcing')">Event Src</button>
+			<button class="topnav-item" data-section="outbox" onclick="showSection('outbox')">Outbox</button>
+			<button class="topnav-item" data-section="strangler" onclick="showSection('strangler')">Strangler</button>
+			<button class="topnav-item" data-section="circuitbreaker" onclick="showSection('circuitbreaker')">Circuit Brk</button>
+			<button class="topnav-item" data-section="bulkhead" onclick="showSection('bulkhead')">Bulkhead</button>
+			<button class="topnav-item" data-section="sidecar" onclick="showSection('sidecar')">Sidecar</button>
+			<button class="topnav-item" data-section="servicemesh" onclick="showSection('servicemesh')">Svc Mesh</button>
+			<button class="topnav-item" data-section="apigateway" onclick="showSection('apigateway')">API GW</button>
+			<button class="topnav-item" data-section="bff" onclick="showSection('bff')">BFF</button>
+			<button class="topnav-item" data-section="refs" onclick="showSection('refs')">Refs</button>
 		</nav>
 		<main id="main">
 			<div class="content-area">
@@ -688,7 +688,7 @@
 						<span class="badge badge-basic">FOUNDATION</span>
 					</div>
 
-					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/sys_design_hero.png" alt="System Design Hero" style="width: 100%; display: block; object-fit: cover; max-height: 380px;"></div>
+					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/sys_design_s01_idempotency_saga.png" alt="Distributed Systems Idempotency & Saga Pattern Transaction Flow" style="width: 100%; display: block; object-fit: cover;"></div>
 					<div class="concept-box">
 						<div class="label">💡 Định nghĩa</div>
 						<div class="title">Idempotency là gì?</div>
@@ -1452,6 +1452,7 @@
 						</div>
 						<span class="badge badge-advanced">ADVANCED</span>
 					</div>
+					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/sys_design_s02_cqrs_event_sourcing.png" alt="CQRS & Event Sourcing Patterns Flow" style="width: 100%; display: block; object-fit: cover;"></div>
 					<div class="concept-box">
 						<div class="label">💡 Định nghĩa</div>
 						<div class="title">CQRS là gì?</div>
@@ -2064,6 +2065,7 @@
 						</div>
 						<span class="badge badge-advanced">ADVANCED</span>
 					</div>
+					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/sys_design_s03_microservice_resilience.png" alt="Microservice Resilience (Circuit Breaker, Bulkhead, Sidecar) Patterns" style="width: 100%; display: block; object-fit: cover;"></div>
 					<div class="concept-box">
 						<div class="label">💡 Định nghĩa</div>
 						<div class="title">Circuit Breaker là gì?</div>
@@ -2444,6 +2446,7 @@
 						</div>
 						<span class="badge badge-expert">EXPERT</span>
 					</div>
+					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/sys_design_s04_mesh_sharding_bff.png" alt="Modern Microservices Architecture: Service Mesh, BFF, and Database Sharding" style="width: 100%; display: block; object-fit: cover;"></div>
 					<div class="concept-box">
 						<div class="label">💡 Định nghĩa</div>
 						<div class="title">Service Mesh là gì?</div>
@@ -3088,10 +3091,12 @@
 				document.querySelectorAll(".nav-item").forEach((n) => {
 					const onclick = n.getAttribute("onclick");
 					if (onclick && onclick.indexOf("'" + name + "'") !== -1) n.classList.add("active");
+					if (n.getAttribute('data-section') === name) n.classList.add('active');
 				});
 				document.querySelectorAll(".topnav-item").forEach((n) => {
 					const onclick = n.getAttribute("onclick");
 					if (onclick && onclick.indexOf("'" + name + "'") !== -1) n.classList.add("active");
+					if (n.getAttribute('data-section') === name) n.classList.add('active');
 				});
 				// Sync hash in URL
 				try {
@@ -3117,8 +3122,20 @@
 				}
 			});
 
+			// Bind click events programmatically to bypass Obsidian stripping inline onclick
+			function bindObsidianEvents() {
+				document.querySelectorAll('[data-section]').forEach(n => {
+					n.addEventListener('click', function(e) {
+						e.preventDefault();
+						const name = n.getAttribute('data-section');
+						if (name) showSection(name);
+					});
+				});
+			}
+
 			// On initial DOM load, automatically activate correct section if a hash is present
 			function initRouter() {
+				bindObsidianEvents();
 				const hash = window.location.hash;
 				if (hash.startsWith('#s-')) {
 					showSection(hash.replace('#s-', ''));

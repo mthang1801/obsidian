@@ -127,48 +127,48 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
   </div>
   <div class="nav-section">
     <div class="nav-section-title">Basics</div>
-    <button class="nav-item active" onclick="show('intro')">🏠 Tổng quan</button>
-    <button class="nav-item" onclick="show('syntax')">📝 01 Syntax &amp; Variables</button>
-    <button class="nav-item" onclick="show('control')">🔀 02 Control Flow &amp; Loops</button>
-    <button class="nav-item" onclick="show('defer')">⚡ 03 Defer, Panic, Recover</button>
-    <button class="nav-item" onclick="show('pointers')">🎯 04 Pointers &amp; Memory</button>
+    <button class="nav-item active" data-target="intro" onclick="show('intro')">🏠 Tổng quan</button>
+    <button class="nav-item" data-target="syntax" onclick="show('syntax')">📝 01 Syntax &amp; Variables</button>
+    <button class="nav-item" data-target="control" onclick="show('control')">🔀 02 Control Flow &amp; Loops</button>
+    <button class="nav-item" data-target="defer" onclick="show('defer')">⚡ 03 Defer, Panic, Recover</button>
+    <button class="nav-item" data-target="pointers" onclick="show('pointers')">🎯 04 Pointers &amp; Memory</button>
   </div>
   <div class="nav-section">
     <div class="nav-section-title">Errors</div>
-    <button class="nav-item" onclick="show('err-custom')">🔴 01 Wrapping &amp; Custom</button>
-    <button class="nav-item" onclick="show('err-sentinel')">🔗 02 Sentinel, Join</button>
+    <button class="nav-item" data-target="err-custom" onclick="show('err-custom')">🔴 01 Wrapping &amp; Custom</button>
+    <button class="nav-item" data-target="err-sentinel" onclick="show('err-sentinel')">🔗 02 Sentinel, Join</button>
   </div>
   <div class="nav-section">
     <div class="nav-section-title">Functions</div>
-    <button class="nav-item" onclick="show('closures')">🔒 01 Closures &amp; Methods</button>
-    <button class="nav-item" onclick="show('strings')">🔤 02 Strings</button>
-    <button class="nav-item" onclick="show('strconv')">🔁 03 Strconv</button>
-    <button class="nav-item" onclick="show('fmt')">🖨️ 04 Fmt</button>
-    <button class="nav-item" onclick="show('math')">🧮 05 Math</button>
-    <button class="nav-item" onclick="show('slicesmaps')">🗃️ 06 Slices &amp; Maps</button>
+    <button class="nav-item" data-target="closures" onclick="show('closures')">🔒 01 Closures &amp; Methods</button>
+    <button class="nav-item" data-target="strings" onclick="show('strings')">🔤 02 Strings</button>
+    <button class="nav-item" data-target="strconv" onclick="show('strconv')">🔁 03 Strconv</button>
+    <button class="nav-item" data-target="fmt" onclick="show('fmt')">🖨️ 04 Fmt</button>
+    <button class="nav-item" data-target="math" onclick="show('math')">🧮 05 Math</button>
+    <button class="nav-item" data-target="slicesmaps" onclick="show('slicesmaps')">🗃️ 06 Slices &amp; Maps</button>
   </div>
   <div class="nav-section">
     <div class="nav-section-title">Tài liệu</div>
-    <button class="nav-item" onclick="show('refs')">📚 References</button>
+    <button class="nav-item" data-target="refs" onclick="show('refs')">📚 References</button>
   </div>
 </nav>
 
 <!-- TOP NAV -->
 <nav id="topnav">
-  <button class="tnav active" onclick="show('intro')">Intro</button>
-  <button class="tnav" onclick="show('syntax')">Syntax</button>
-  <button class="tnav" onclick="show('control')">Control Flow</button>
-  <button class="tnav" onclick="show('defer')">Defer</button>
-  <button class="tnav" onclick="show('pointers')">Pointers</button>
-  <button class="tnav" onclick="show('err-custom')">Err Custom</button>
-  <button class="tnav" onclick="show('err-sentinel')">Err Sentinel</button>
-  <button class="tnav" onclick="show('closures')">Closures</button>
-  <button class="tnav" onclick="show('strings')">Strings</button>
-  <button class="tnav" onclick="show('strconv')">Strconv</button>
-  <button class="tnav" onclick="show('fmt')">Fmt</button>
-  <button class="tnav" onclick="show('math')">Math</button>
-  <button class="tnav" onclick="show('slicesmaps')">Slices/Maps</button>
-  <button class="tnav" onclick="show('refs')">Refs</button>
+  <button class="tnav active" data-target="intro" onclick="show('intro')">Intro</button>
+  <button class="tnav" data-target="syntax" onclick="show('syntax')">Syntax</button>
+  <button class="tnav" data-target="control" onclick="show('control')">Control Flow</button>
+  <button class="tnav" data-target="defer" onclick="show('defer')">Defer</button>
+  <button class="tnav" data-target="pointers" onclick="show('pointers')">Pointers</button>
+  <button class="tnav" data-target="err-custom" onclick="show('err-custom')">Err Custom</button>
+  <button class="tnav" data-target="err-sentinel" onclick="show('err-sentinel')">Err Sentinel</button>
+  <button class="tnav" data-target="closures" onclick="show('closures')">Closures</button>
+  <button class="tnav" data-target="strings" onclick="show('strings')">Strings</button>
+  <button class="tnav" data-target="strconv" onclick="show('strconv')">Strconv</button>
+  <button class="tnav" data-target="fmt" onclick="show('fmt')">Fmt</button>
+  <button class="tnav" data-target="math" onclick="show('math')">Math</button>
+  <button class="tnav" data-target="slicesmaps" onclick="show('slicesmaps')">Slices/Maps</button>
+  <button class="tnav" data-target="refs" onclick="show('refs')">Refs</button>
 </nav>
 
 <main id="main"><div class="content-area">
@@ -236,6 +236,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="label">📖 Định nghĩa</div>
     <div class="ctitle">Go Type System</div>
     <p class="prose">Go là ngôn ngữ <strong>statically typed</strong> — kiểu được kiểm tra lúc compile. Mọi biến có <strong>zero value</strong> mặc định (không cần khởi tạo thủ công). Go dùng <strong>type inference</strong> với <code>:=</code> để đơn giản code.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_s01_syntax.png" alt="Go Type System & Variables" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: Hệ thống kiểu dữ liệu tĩnh (Static Typing) và cơ chế khai báo biến tự động suy luận (Type Inference) trong Go</div>
   </div>
 
   <div class="diagram-box">
@@ -442,6 +446,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="ctitle">Go đơn giản hóa Control Flow</div>
     <p class="prose">Go <strong>không có</strong> <code>while</code>, <code>do-while</code>, ternary operator. Tất cả vòng lặp đều dùng <code>for</code>. <code>switch</code> không cần <code>break</code> (implicit break). <code>if</code> có thể có init statement.</p>
   </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_s02_control.png" alt="Go Control Flow" loading="lazy">
+    <div class="concept-img-caption">Hình 2.1: Các cấu trúc điều khiển luồng (Control Flow), vòng lặp hợp nhất qua từ khóa for và cấu trúc rẽ nhánh switch trong Go</div>
+  </div>
 
   <div class="diagram-box">
     <div class="diagram-title">Go Control Flow — Decision Tree</div>
@@ -590,6 +598,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="label">⚡ Định nghĩa</div>
     <div class="ctitle">Cơ chế cleanup của Go</div>
     <p class="prose"><strong><code>defer</code></strong> trì hoãn thực thi function đến khi function bao ngoài return. <strong><code>panic</code></strong> dừng goroutine bình thường, bắt đầu unwinding stack. <strong><code>recover</code></strong> bắt panic trong deferred function.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_s03_defer.png" alt="Go Defer Stack & Panic/Recover" loading="lazy">
+    <div class="concept-img-caption">Hình 3.1: Cơ chế ngăn xếp trì hoãn giải phóng tài nguyên (Defer Stack LIFO) và luồng xử lý phục hồi lỗi nghiêm trọng (Panic / Recover Flow)</div>
   </div>
 
   <div class="diagram-box">
@@ -1011,6 +1023,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div><div class="sec-title">Sentinel, Wrapping, Join</div><div class="sec-sub">Sentinel errors, errors.Is, errors.Join (Go 1.20), multi-error patterns</div></div>
     <span class="badge b-advanced">ERRORS</span>
   </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_e02_sentinel.png" alt="Go Sentinel Errors & Joining" loading="lazy">
+    <div class="concept-img-caption">Hình 5.2: Định danh lỗi tĩnh (Sentinel Errors) và kỹ thuật gộp nhiều lỗi (Error Joining) bằng errors.Join trong Go 1.20+</div>
+  </div>
   <div class="code-block">
     <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">errors_sentinel_join.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
     <pre><span class="kw">package</span> <span class="pkg">main</span>
@@ -1116,6 +1132,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="label">🔒 Định nghĩa</div>
     <div class="ctitle">Functions là first-class citizens trong Go</div>
     <p class="prose"><strong>Closure</strong> là function capture biến từ outer scope. <strong>Method</strong> là function gắn với type. Go hỗ trợ <strong>higher-order functions</strong>, <strong>function types</strong>, và <strong>method expressions</strong>. Đây là nền tảng của functional patterns trong Go.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_f01_closures.png" alt="Go Closures & Methods" loading="lazy">
+    <div class="concept-img-caption">Hình 6.1: Cơ chế đóng gói trạng thái biến ngoại vi (Go Closures) và các phương thức cấu trúc với bộ nhận con trỏ (Pointer Receivers)</div>
   </div>
 
   <div class="diagram-box">
@@ -1256,6 +1276,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="label">🔤 Định nghĩa</div>
     <div class="ctitle">string trong Go — immutable byte slice UTF-8</div>
     <p class="prose">Go string là <strong>immutable sequence of bytes</strong> được encode UTF-8. Package <code>strings</code> cung cấp đầy đủ các utilities để xử lý string. Dùng <code>strings.Builder</code> khi cần nối nhiều strings để tránh allocation.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_f02_strings.png" alt="Go Package Strings" loading="lazy">
+    <div class="concept-img-caption">Hình 6.2: Các cơ chế xử lý chuỗi và tối ưu hóa bộ nhớ với strings.Builder, chuyển đổi rune và UTF-8 trong Go</div>
   </div>
 
   <div class="diagram-box">
@@ -1417,6 +1441,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="ctitle">strconv — String Conversion Package</div>
     <p class="prose">Package <code>strconv</code> xử lý chuyển đổi giữa string và các kiểu cơ bản. Hàm <code>Parse*</code> trả về <code>(value, error)</code>. Hàm <code>Format*</code> trả về string. <code>Append*</code> variants giúp tránh allocation bằng cách ghi vào slice có sẵn.</p>
   </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_f03_strconv.png" alt="Go Package Strconv" loading="lazy">
+    <div class="concept-img-caption">Hình 6.3: Cơ chế phân tích (Parsing) và định dạng (Formatting) kiểu dữ liệu cơ bản thông qua package strconv trong Go</div>
+  </div>
   <div class="code-block">
     <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">strconv_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
     <pre><span class="kw">package</span> <span class="pkg">main</span>
@@ -1526,6 +1554,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="label">🖨️ Định nghĩa</div>
     <div class="ctitle">fmt — Formatted I/O</div>
     <p class="prose">Package <code>fmt</code> cung cấp formatted I/O theo kiểu C <code>printf</code> nhưng type-safe. <strong>Verbs</strong> (<code>%v</code>, <code>%d</code>, <code>%s</code>...) điều khiển format. Implement <code>Stringer</code> hoặc <code>GoStringer</code> để tùy chỉnh output.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_f04_fmt.png" alt="Go Package Fmt" loading="lazy">
+    <div class="concept-img-caption">Hình 6.4: Cơ chế định dạng dữ liệu đầu vào/ra (I/O Formatting) sử dụng package fmt trong Go</div>
   </div>
   <div class="code-block">
     <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">fmt_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
@@ -1649,6 +1681,10 @@ table.dtable td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);pad
     <div class="label">🧮 Định nghĩa</div>
     <div class="ctitle">math — Mathematical functions cho float64</div>
     <p class="prose">Package <code>math</code> chứa hàm toán học cho <code>float64</code>. <code>math/rand/v2</code> (Go 1.22+) cho random numbers. <code>math/big</code> cho arbitrary precision. Dùng <code>math.MaxInt</code>, <code>math.MinInt</code> để lấy giới hạn platform-dependent.</p>
+  </div>
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/go_basics_f05_math.png" alt="Go Package Math" loading="lazy">
+    <div class="concept-img-caption">Hình 6.5: Các tính năng toán học nâng cao, lượng giác, xử lý số lớn (math/big) và sinh số ngẫu nhiên trong Go</div>
   </div>
   <div class="code-block">
     <div class="code-hdr"><span class="code-lang">go</span><span class="code-file">math_full.go</span><button class="code-copy" onclick="cp(this)">Copy</button></div>
@@ -2156,8 +2192,8 @@ function showSection(name) {
   // Sync the navigation highlights
   document.querySelectorAll('.nav-item, .tnav').forEach(b => {
     b.classList.remove('active');
-    const oc = b.getAttribute('onclick') || b.dataset.onclick;
-    if (oc && oc.includes("'" + name + "'")) {
+    const target = b.getAttribute('data-target') || b.getAttribute('onclick')?.match(/show\('([^']+)'\)/)?.[1] || b.dataset.onclick?.match(/show\('([^']+)'\)/)?.[1];
+    if (target === name) {
       b.classList.add('active');
     }
   });

@@ -181,33 +181,33 @@ pre::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
 
   <div class="nav-group">
     <div class="nav-group-title">Tổng quan</div>
-    <button class="nav-item active" onclick="show('intro')"><span class="nav-num">00</span>Giới thiệu</button>
+    <button class="nav-item active" data-target="intro" onclick="show('intro')"><span class="nav-num">00</span>Giới thiệu</button>
   </div>
 
   <div class="nav-group">
     <div class="nav-group-title">Chủ đề chính</div>
-    <button class="nav-item" onclick="show('index')"><span class="nav-num">01</span>Index Deep Dive</button>
-    <button class="nav-item" onclick="show('lock')"><span class="nav-num">02</span>Deadlock &amp; Locking</button>
-    <button class="nav-item" onclick="show('pagination')"><span class="nav-num">03</span>Pagination Techniques</button>
-    <button class="nav-item" onclick="show('query')"><span class="nav-num">04</span>Query Analysis</button>
-    <button class="nav-item" onclick="show('vacuum')"><span class="nav-num">05</span>Vacuum · WAL · Checkpoint</button>
+    <button class="nav-item" data-target="index" onclick="show('index')"><span class="nav-num">01</span>Index Deep Dive</button>
+    <button class="nav-item" data-target="lock" onclick="show('lock')"><span class="nav-num">02</span>Deadlock &amp; Locking</button>
+    <button class="nav-item" data-target="pagination" onclick="show('pagination')"><span class="nav-num">03</span>Pagination Techniques</button>
+    <button class="nav-item" data-target="query" onclick="show('query')"><span class="nav-num">04</span>Query Analysis</button>
+    <button class="nav-item" data-target="vacuum" onclick="show('vacuum')"><span class="nav-num">05</span>Vacuum · WAL · Checkpoint</button>
   </div>
 
   <div class="nav-group">
     <div class="nav-group-title">Phụ lục</div>
-    <button class="nav-item" onclick="show('refs')"><span class="nav-num">★</span>References</button>
+    <button class="nav-item" data-target="refs" onclick="show('refs')"><span class="nav-num">★</span>References</button>
   </div>
 </nav>
 
 <!-- TOPNAV -->
 <nav id="topnav">
-  <button class="tnav active" onclick="show('intro')">Giới thiệu</button>
-  <button class="tnav" onclick="show('index')">01 Index</button>
-  <button class="tnav" onclick="show('lock')">02 Deadlock</button>
-  <button class="tnav" onclick="show('pagination')">03 Pagination</button>
-  <button class="tnav" onclick="show('query')">04 Query Analysis</button>
-  <button class="tnav" onclick="show('vacuum')">05 Vacuum WAL</button>
-  <button class="tnav" onclick="show('refs')">References</button>
+  <button class="tnav active" data-target="intro" onclick="show('intro')">Giới thiệu</button>
+  <button class="tnav" data-target="index" onclick="show('index')">01 Index</button>
+  <button class="tnav" data-target="lock" onclick="show('lock')">02 Deadlock</button>
+  <button class="tnav" data-target="pagination" onclick="show('pagination')">03 Pagination</button>
+  <button class="tnav" data-target="query" onclick="show('query')">04 Query Analysis</button>
+  <button class="tnav" data-target="vacuum" onclick="show('vacuum')">05 Vacuum WAL</button>
+  <button class="tnav" data-target="refs" onclick="show('refs')">References</button>
 </nav>
 
 <main id="main"><div class="content">

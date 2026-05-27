@@ -69,6 +69,8 @@ body{background:var(--bg);color:var(--t1);font-family:var(--sans);display:flex;m
 
 /* SECTIONS */
 .sec{display:none}.sec.active{display:block}
+.topic-banner{margin-bottom:24px;border-radius:12px;overflow:hidden;border:1px solid var(--bdr)}
+.topic-banner img{width:100%;display:block;object-fit:cover;max-height:380px}
 
 /* PROSE */
 .p{font-size:15px;line-height:1.8;color:var(--t2);margin-bottom:18px}
@@ -189,57 +191,57 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
   </div>
 
   <div class="ns"><div class="nt">Tổng quan</div>
-    <button class="nb active" onclick="S('intro')">🏠 Giới thiệu</button>
+    <button class="nb active" data-section="intro" onclick="S('intro')">🏠 Giới thiệu</button>
   </div>
   <div class="ns"><div class="nt">01 — mTLS</div>
-    <button class="nb" onclick="S('mtls-concept')">Khái niệm &amp; Hoạt động</button>
-    <button class="nb" onclick="S('mtls-cases')">Use Cases thực tế</button>
+    <button class="nb" data-section="mtls-concept" onclick="S('mtls-concept')">Khái niệm &amp; Hoạt động</button>
+    <button class="nb" data-section="mtls-cases" onclick="S('mtls-cases')">Use Cases thực tế</button>
   </div>
   <div class="ns"><div class="nt">02 — Zero Trust</div>
-    <button class="nb" onclick="S('zt-concept')">Nguyên tắc &amp; Kiến trúc</button>
-    <button class="nb" onclick="S('zt-cases')">Use Cases thực tế</button>
+    <button class="nb" data-section="zt-concept" onclick="S('zt-concept')">Nguyên tắc &amp; Kiến trúc</button>
+    <button class="nb" data-section="zt-cases" onclick="S('zt-cases')">Use Cases thực tế</button>
   </div>
   <div class="ns"><div class="nt">03 — RBAC</div>
-    <button class="nb" onclick="S('rbac-concept')">Khái niệm &amp; Mô hình</button>
-    <button class="nb" onclick="S('rbac-cases')">Use Cases thực tế</button>
+    <button class="nb" data-section="rbac-concept" onclick="S('rbac-concept')">Khái niệm &amp; Mô hình</button>
+    <button class="nb" data-section="rbac-cases" onclick="S('rbac-cases')">Use Cases thực tế</button>
   </div>
   <div class="ns"><div class="nt">04 — ABAC</div>
-    <button class="nb" onclick="S('abac-concept')">Khái niệm &amp; Policy Engine</button>
-    <button class="nb" onclick="S('abac-cases')">Use Cases thực tế</button>
+    <button class="nb" data-section="abac-concept" onclick="S('abac-concept')">Khái niệm &amp; Policy Engine</button>
+    <button class="nb" data-section="abac-cases" onclick="S('abac-cases')">Use Cases thực tế</button>
   </div>
   <div class="ns"><div class="nt">05 — OAuth 2.0 / OIDC</div>
-    <button class="nb" onclick="S('oauth-concept')">Flows &amp; Kiến trúc</button>
-    <button class="nb" onclick="S('oauth-cases')">Use Cases thực tế</button>
+    <button class="nb" data-section="oauth-concept" onclick="S('oauth-concept')">Flows &amp; Kiến trúc</button>
+    <button class="nb" data-section="oauth-cases" onclick="S('oauth-cases')">Use Cases thực tế</button>
   </div>
   <div class="ns"><div class="nt">06 — JWT</div>
-    <button class="nb" onclick="S('jwt-concept')">Cấu trúc &amp; Hoạt động</button>
-    <button class="nb" onclick="S('jwt-cases')">Use Cases &amp; Anti-patterns</button>
+    <button class="nb" data-section="jwt-concept" onclick="S('jwt-concept')">Cấu trúc &amp; Hoạt động</button>
+    <button class="nb" data-section="jwt-cases" onclick="S('jwt-cases')">Use Cases &amp; Anti-patterns</button>
   </div>
   <div class="ns"><div class="nt">07 — Secret Management</div>
-    <button class="nb" onclick="S('secret-concept')">Khái niệm &amp; Chiến lược</button>
-    <button class="nb" onclick="S('secret-cases')">Use Cases thực tế</button>
+    <button class="nb" data-section="secret-concept" onclick="S('secret-concept')">Khái niệm &amp; Chiến lược</button>
+    <button class="nb" data-section="secret-cases" onclick="S('secret-cases')">Use Cases thực tế</button>
   </div>
   <div class="ns"><div class="nt">08 — CORS</div>
-    <button class="nb" onclick="S('cors-concept')">Cơ chế &amp; Headers</button>
-    <button class="nb" onclick="S('cors-cases')">Use Cases &amp; Pitfalls</button>
+    <button class="nb" data-section="cors-concept" onclick="S('cors-concept')">Cơ chế &amp; Headers</button>
+    <button class="nb" data-section="cors-cases" onclick="S('cors-cases')">Use Cases &amp; Pitfalls</button>
   </div>
   <div class="ns"><div class="nt">Tham khảo</div>
-    <button class="nb" onclick="S('refs')">📚 References</button>
+    <button class="nb" data-section="refs" onclick="S('refs')">📚 References</button>
   </div>
 </nav>
 
 <!-- ══ TOP NAV ══ -->
 <nav id="tn">
-  <button class="tb active" onclick="S('intro')">Intro</button>
-  <button class="tb" onclick="S('mtls-concept')">mTLS</button>
-  <button class="tb" onclick="S('zt-concept')">Zero Trust</button>
-  <button class="tb" onclick="S('rbac-concept')">RBAC</button>
-  <button class="tb" onclick="S('abac-concept')">ABAC</button>
-  <button class="tb" onclick="S('oauth-concept')">OAuth2/OIDC</button>
-  <button class="tb" onclick="S('jwt-concept')">JWT</button>
-  <button class="tb" onclick="S('secret-concept')">Secrets</button>
-  <button class="tb" onclick="S('cors-concept')">CORS</button>
-  <button class="tb" onclick="S('refs')">Refs</button>
+  <button class="tb active" data-section="intro" onclick="S('intro')">Intro</button>
+  <button class="tb" data-section="mtls-concept" onclick="S('mtls-concept')">mTLS</button>
+  <button class="tb" data-section="zt-concept" onclick="S('zt-concept')">Zero Trust</button>
+  <button class="tb" data-section="rbac-concept" onclick="S('rbac-concept')">RBAC</button>
+  <button class="tb" data-section="abac-concept" onclick="S('abac-concept')">ABAC</button>
+  <button class="tb" data-section="oauth-concept" onclick="S('oauth-concept')">OAuth2/OIDC</button>
+  <button class="tb" data-section="jwt-concept" onclick="S('jwt-concept')">JWT</button>
+  <button class="tb" data-section="secret-concept" onclick="S('secret-concept')">Secrets</button>
+  <button class="tb" data-section="cors-concept" onclick="S('cors-concept')">CORS</button>
+  <button class="tb" data-section="refs" onclick="S('refs')">Refs</button>
 </nav>
 
 <main id="main"><div class="ct">
@@ -253,7 +255,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
     <span class="badge br">Modern Security</span>
   </div>
 
-  <div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);"><img src="../public/images/security_arch_hero.png" alt="Security Architecture Hero" style="width: 100%; display: block; object-fit: cover; max-height: 380px;"></div>
+  <div class="topic-banner"><img src="../public/images/security_arch_hero.png" alt="Security Architecture Hero"></div>
 
   <div class="cbox">
     <div class="cbox-l">🎯 Mục tiêu tài liệu</div>
@@ -309,6 +311,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
          <div class="ss">Xác thực hai chiều giữa client và server bằng certificate</div></div>
     <span class="badge br">IDENTITY</span>
   </div>
+  <div class="topic-banner"><img src="../public/images/sec_arch_s01_mtls.png" alt="mTLS Handshake Visual"></div>
 
   <div class="cbox">
     <div class="cbox-l">💡 Định nghĩa</div>
@@ -574,6 +577,7 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
          <div class="ss">"Never trust, always verify" — xác minh mọi request bất kể nguồn gốc</div></div>
     <span class="badge br">FRAMEWORK</span>
   </div>
+  <div class="topic-banner"><img src="../public/images/sec_arch_s02_zero_trust.png" alt="Zero Trust Architecture Visual"></div>
 
   <div class="cbox">
     <div class="cbox-l">💡 Định nghĩa</div>
@@ -2031,6 +2035,8 @@ function showSection(id) {
   document.querySelectorAll('.nb,.tb').forEach(b=>{
     if(b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'"))
       b.classList.add('active');
+    if(b.getAttribute('data-section') === id)
+      b.classList.add('active');
   });
   // Sync hash in URL
   try {
@@ -2056,8 +2062,20 @@ window.addEventListener('hashchange', () => {
   }
 });
 
+// Bind click events programmatically to bypass Obsidian stripping inline onclick
+function bindObsidianEvents() {
+  document.querySelectorAll('[data-section]').forEach(n => {
+    n.addEventListener('click', function(e) {
+      e.preventDefault();
+      const name = n.getAttribute('data-section');
+      if (name) showSection(name);
+    });
+  });
+}
+
 // On initial DOM load, automatically activate correct section if a hash is present
 function initRouter() {
+  bindObsidianEvents();
   const hash = window.location.hash;
   if (hash.startsWith('#s-')) {
     showSection(hash.replace('#s-', ''));

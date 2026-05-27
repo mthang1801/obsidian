@@ -171,68 +171,68 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
   </div>
 
   <div class="ns"><div class="nt">Tổng quan</div>
-    <button class="nb active" onclick="S('intro')">🏠 Giới thiệu Part 2</button>
+    <button class="nb active" data-target="intro" onclick="S('intro')">🏠 Giới thiệu Part 2</button>
   </div>
 
   <div class="ns"><div class="nt">04 — Indexing Strategies</div>
-    <button class="nb" onclick="S('idx-types')">Các loại Index</button>
-    <button class="nb" onclick="S('idx-partial')">Partial &amp; Expression Index</button>
-    <button class="nb" onclick="S('idx-cover')">Covering Index &amp; Index-Only Scan</button>
-    <button class="nb" onclick="S('idx-expert')">Expert: Index Internals &amp; Bloat</button>
+    <button class="nb" data-target="idx-types" onclick="S('idx-types')">Các loại Index</button>
+    <button class="nb" data-target="idx-partial" onclick="S('idx-partial')">Partial &amp; Expression Index</button>
+    <button class="nb" data-target="idx-cover" onclick="S('idx-cover')">Covering Index &amp; Index-Only Scan</button>
+    <button class="nb" data-target="idx-expert" onclick="S('idx-expert')">Expert: Index Internals &amp; Bloat</button>
   </div>
 
   <div class="ns"><div class="nt">05 — Table Partitioning</div>
-    <button class="nb" onclick="S('part-intro')">Khái niệm &amp; Strategies</button>
-    <button class="nb" onclick="S('part-range')">Range &amp; List Partitioning</button>
-    <button class="nb" onclick="S('part-hash')">Hash Partitioning</button>
-    <button class="nb" onclick="S('part-expert')">Expert: Partition Pruning &amp; Maintenance</button>
+    <button class="nb" data-target="part-intro" onclick="S('part-intro')">Khái niệm &amp; Strategies</button>
+    <button class="nb" data-target="part-range" onclick="S('part-range')">Range &amp; List Partitioning</button>
+    <button class="nb" data-target="part-hash" onclick="S('part-hash')">Hash Partitioning</button>
+    <button class="nb" data-target="part-expert" onclick="S('part-expert')">Expert: Partition Pruning &amp; Maintenance</button>
   </div>
 
   <div class="ns"><div class="nt">06 — JSONB &amp; Full-Text Search</div>
-    <button class="nb" onclick="S('json-intro')">JSONB Operators &amp; Functions</button>
-    <button class="nb" onclick="S('json-index')">GIN Index cho JSONB</button>
-    <button class="nb" onclick="S('fts-intro')">Full-Text Search</button>
-    <button class="nb" onclick="S('json-expert')">Expert: Schema-less Patterns</button>
+    <button class="nb" data-target="json-intro" onclick="S('json-intro')">JSONB Operators &amp; Functions</button>
+    <button class="nb" data-target="json-index" onclick="S('json-index')">GIN Index cho JSONB</button>
+    <button class="nb" data-target="fts-intro" onclick="S('fts-intro')">Full-Text Search</button>
+    <button class="nb" data-target="json-expert" onclick="S('json-expert')">Expert: Schema-less Patterns</button>
   </div>
 
   <div class="ns"><div class="nt">07 — Query Optimization</div>
-    <button class="nb" onclick="S('qopt-explain')">EXPLAIN ANALYZE đọc &amp; hiểu</button>
-    <button class="nb" onclick="S('qopt-stats')">Statistics &amp; Planner</button>
-    <button class="nb" onclick="S('qopt-expert')">Expert: Query Rewrites &amp; Hints</button>
+    <button class="nb" data-target="qopt-explain" onclick="S('qopt-explain')">EXPLAIN ANALYZE đọc &amp; hiểu</button>
+    <button class="nb" data-target="qopt-stats" onclick="S('qopt-stats')">Statistics &amp; Planner</button>
+    <button class="nb" data-target="qopt-expert" onclick="S('qopt-expert')">Expert: Query Rewrites &amp; Hints</button>
   </div>
 
   <div class="ns"><div class="nt">08 — Replication &amp; HA</div>
-    <button class="nb" onclick="S('repl-intro')">Streaming Replication</button>
-    <button class="nb" onclick="S('repl-logical')">Logical Replication</button>
-    <button class="nb" onclick="S('repl-expert')">Expert: Failover &amp; CDC</button>
+    <button class="nb" data-target="repl-intro" onclick="S('repl-intro')">Streaming Replication</button>
+    <button class="nb" data-target="repl-logical" onclick="S('repl-logical')">Logical Replication</button>
+    <button class="nb" data-target="repl-expert" onclick="S('repl-expert')">Expert: Failover &amp; CDC</button>
   </div>
 
   <div class="ns"><div class="nt">Tham khảo</div>
-    <button class="nb" onclick="S('refs')">📚 References Part 2</button>
+    <button class="nb" data-target="refs" onclick="S('refs')">📚 References Part 2</button>
   </div>
 </nav>
 
 <!-- ══ TOP NAV ══ -->
 <nav id="tn">
-  <button class="tb active" onclick="S('intro')">Intro</button>
-  <button class="tb" onclick="S('idx-types')">Index Types</button>
-  <button class="tb" onclick="S('idx-partial')">Partial Idx</button>
-  <button class="tb" onclick="S('idx-cover')">Covering</button>
-  <button class="tb" onclick="S('idx-expert')">Idx Expert</button>
-  <button class="tb" onclick="S('part-intro')">Partitioning</button>
-  <button class="tb" onclick="S('part-range')">Range/List</button>
-  <button class="tb" onclick="S('part-expert')">Part Expert</button>
-  <button class="tb" onclick="S('json-intro')">JSONB</button>
-  <button class="tb" onclick="S('json-index')">GIN Index</button>
-  <button class="tb" onclick="S('fts-intro')">FTS</button>
-  <button class="tb" onclick="S('json-expert')">JSON Expert</button>
-  <button class="tb" onclick="S('qopt-explain')">EXPLAIN</button>
-  <button class="tb" onclick="S('qopt-stats')">Stats</button>
-  <button class="tb" onclick="S('qopt-expert')">QOpt Expert</button>
-  <button class="tb" onclick="S('repl-intro')">Replication</button>
-  <button class="tb" onclick="S('repl-logical')">Logical</button>
-  <button class="tb" onclick="S('repl-expert')">Repl Expert</button>
-  <button class="tb" onclick="S('refs')">Refs</button>
+  <button class="tb active" data-target="intro" onclick="S('intro')">Intro</button>
+  <button class="tb" data-target="idx-types" onclick="S('idx-types')">Index Types</button>
+  <button class="tb" data-target="idx-partial" onclick="S('idx-partial')">Partial Idx</button>
+  <button class="tb" data-target="idx-cover" onclick="S('idx-cover')">Covering</button>
+  <button class="tb" data-target="idx-expert" onclick="S('idx-expert')">Idx Expert</button>
+  <button class="tb" data-target="part-intro" onclick="S('part-intro')">Partitioning</button>
+  <button class="tb" data-target="part-range" onclick="S('part-range')">Range/List</button>
+  <button class="tb" data-target="part-expert" onclick="S('part-expert')">Part Expert</button>
+  <button class="tb" data-target="json-intro" onclick="S('json-intro')">JSONB</button>
+  <button class="tb" data-target="json-index" onclick="S('json-index')">GIN Index</button>
+  <button class="tb" data-target="fts-intro" onclick="S('fts-intro')">FTS</button>
+  <button class="tb" data-target="json-expert" onclick="S('json-expert')">JSON Expert</button>
+  <button class="tb" data-target="qopt-explain" onclick="S('qopt-explain')">EXPLAIN</button>
+  <button class="tb" data-target="qopt-stats" onclick="S('qopt-stats')">Stats</button>
+  <button class="tb" data-target="qopt-expert" onclick="S('qopt-expert')">QOpt Expert</button>
+  <button class="tb" data-target="repl-intro" onclick="S('repl-intro')">Replication</button>
+  <button class="tb" data-target="repl-logical" onclick="S('repl-logical')">Logical</button>
+  <button class="tb" data-target="repl-expert" onclick="S('repl-expert')">Repl Expert</button>
+  <button class="tb" data-target="refs" onclick="S('refs')">Refs</button>
 </nav>
 
 <main id="main"><div class="ct">
@@ -259,23 +259,23 @@ hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
 
 
   <div class="g3">
-    <div class="card" style="cursor:pointer;border-color:rgba(45,212,191,.25)" onclick="S('idx-types')">
+    <div class="card" style="cursor:pointer;border-color:rgba(45,212,191,.25)" data-target="idx-types" onclick="S('idx-types')">
       <div class="ct2">🗂️ 04 — Indexing Strategies</div>
       <p class="p" style="margin:0;font-size:13px">B-Tree, Hash, GIN, GiST, BRIN, Bloom filter. Partial/expression index. Covering index và Index-Only Scan. Index bloat và maintenance.</p>
     </div>
-    <div class="card" style="cursor:pointer;border-color:rgba(245,158,11,.25)" onclick="S('part-intro')">
+    <div class="card" style="cursor:pointer;border-color:rgba(245,158,11,.25)" data-target="part-intro" onclick="S('part-intro')">
       <div class="ct2">📦 05 — Table Partitioning</div>
       <p class="p" style="margin:0;font-size:13px">Declarative partitioning: RANGE, LIST, HASH. Partition pruning, sub-partitioning, foreign key constraints, automatic maintenance với pg_partman.</p>
     </div>
-    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.25)" onclick="S('json-intro')">
+    <div class="card" style="cursor:pointer;border-color:rgba(168,85,247,.25)" data-target="json-intro" onclick="S('json-intro')">
       <div class="ct2">📄 06 — JSONB &amp; Full-Text Search</div>
       <p class="p" style="margin:0;font-size:13px">JSONB operators, GIN indexes, jsonpath, tsvector/tsquery, ranking functions, schema-less document patterns trong production.</p>
     </div>
-    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" onclick="S('qopt-explain')">
+    <div class="card" style="cursor:pointer;border-color:rgba(0,255,136,.2)" data-target="qopt-explain" onclick="S('qopt-explain')">
       <div class="ct2">⚡ 07 — Query Optimization</div>
       <p class="p" style="margin:0;font-size:13px">EXPLAIN ANALYZE đọc execution plan, statistics và planner configuration, query rewrites, parallel query, pg_hint_plan.</p>
     </div>
-    <div class="card" style="cursor:pointer;border-color:rgba(255,107,107,.2)" onclick="S('repl-intro')">
+    <div class="card" style="cursor:pointer;border-color:rgba(255,107,107,.2)" data-target="repl-intro" onclick="S('repl-intro')">
       <div class="ct2">🔄 08 — Replication &amp; HA</div>
       <p class="p" style="margin:0;font-size:13px">Streaming replication setup, logical replication với publications/subscriptions, CDC (Change Data Capture), failover automation.</p>
     </div>
@@ -2198,10 +2198,8 @@ function showSection(name) {
   // Sync the navigation highlights
   document.querySelectorAll('.nb, .tb').forEach(b => {
     b.classList.remove('active');
-    const oc = b.getAttribute('onclick') || b.dataset.onclick;
-    if (oc && oc.includes("'" + name + "'")) {
-      b.classList.add('active');
-    }
+    const target = b.getAttribute('data-target') || b.getAttribute('onclick')?.match(/(?:S|show)\('([^']+)'\)/)?.[1] || b.dataset.onclick?.match(/(?:S|show)\('([^']+)'\)/)?.[1];
+    if (target === name) { b.classList.add('active'); }
   });
 
   // Smooth scroll to top of page/main container
@@ -2211,7 +2209,7 @@ function showSection(name) {
 // Bind dynamic click events for sidebar, topnav, cards, and tags
 document.querySelectorAll('.nb, .tb, .card').forEach(el => {
   const oc = el.getAttribute('onclick');
-  const target = el.getAttribute('data-target') || oc?.match(/S\('([^']+)'\)/)?.[1];
+  const target = el.getAttribute('data-target') || oc?.match(/(?:S|show)\('([^']+)'\)/)?.[1];
   if (target) {
     // Save original click handler target in dataset to assist highlighting
     el.dataset.onclick = oc;
