@@ -52,6 +52,22 @@ Nâng tầm lập trình lên cấp độ kiến trúc sư phần mềm chuyên 
 
 ---
 
+#### **LEVEL 5: Go Optimization &amp; Runtime (Optimization Guide — Modules 1-9)**
+
+Chinh phục đỉnh cao hiệu năng, làm chủ hoàn toàn runtime và cơ chế tối ưu hóa hệ thống của Go:
+
+25. [**Tri-color Garbage Collector**](./go-optimization-guide.html#s-gc-concept) - Bản chất cơ chế GC Concurrent Tri-color Mark-Sweep, Dijkstra write barriers, GOGC và GOMEMLIMIT.
+26. [**Go Runtime Scheduler**](./go-optimization-guide.html#s-sched-concept) - Kiến trúc M:N Scheduler (GMP model), cơ chế Work Stealing và Cooperative / Non-cooperative Preemption.
+27. [**Go Memory Model**](./go-optimization-guide.html#s-mem-concept) - Hiểu rõ Happens-before guarantees để thiết kế mã nguồn đồng thời chính xác không bị data races.
+28. [**Go 1.24 Runtime Enhancements**](./go-optimization-guide.html#s-go124) - generic type aliases, weak pointers, runtime.AddCleanup và cải tiến map.
+29. [**pprof Profiling**](./go-optimization-guide.html#s-pprof-intro) - Đo đạc chuyên sâu CPU, Heap, Goroutines, Mutex và Block profiles xác định điểm nghẽn hiệu năng.
+30. [**Iterator &amp; Generator Patterns**](./go-optimization-guide.html#s-gen-concept) - Xây dựng lazy collection generators hiệu năng cực cao bằng `iter.Seq` range-over-func.
+31. [**Execution Tracer**](./go-optimization-guide.html#s-trace-concept) - Sử dụng `go tool trace` phân tích microsecond timeline của goroutines, scheduler latency và GC.
+32. [**Benchmark &amp; Benchstat**](./go-optimization-guide.html#s-bench-concept) - Viết benchmarks chuẩn xác, tránh loop optimization, và dùng thống kê `benchstat` so sánh hiệu năng.
+33. [**Goroutine Leak Detection**](./go-optimization-guide.html#s-leak-concept) - Nhận diện các leaks phổ biến (blocked channels, slow timer) và phát hiện bằng thư viện `goleak` của Uber.
+
+---
+
 ### 💡 So Sánh Cú Pháp Nền Tảng (JS/TS vs Go)
 
 | JS / TS | Go Equivalent | Giải thích kỹ thuật |
@@ -70,4 +86,5 @@ Nâng tầm lập trình lên cấp độ kiến trúc sư phần mềm chuyên 
 1. **Tuần 1 (Cơ bản tinh gọn)**: Nắm chắc Syntax, Pointers và cách vận hành mảng động Slices trong [Go Basics Guide](./go-basics-guide.html).
 2. **Tuần 2 (Xử lý chuỗi & Lỗi)**: Nâng cao kỹ năng thao tác thư viện `strings`, `strconv` và thực hành bọc lỗi / gộp đa lỗi an toàn.
 3. **Tuần 3 (Chuyển đổi dữ liệu nâng cao)**: Chuyển dịch từ JS sang Go các cấu trúc Map/Filter/Reduce thông qua [Go Advanced Guide](./go-advanced-guide.html).
-4. **Tuần 4 (Idiomatic Go)**: Thực hành lập trình không lớp học (OOP via Embedding & Interfaces), cài đặt Iterator của Go 1.23+ và áp dụng `Option[T]` để triệt tiêu bug runtime.
+4. **Tuần 4 (Idiomatic Go)**: Thực hành lập trình không lớp học (OOP via Embedding &amp; Interfaces), cài đặt Iterator của Go 1.23+ và áp dụng `Option[T]` để triệt tiêu bug runtime trong [Go Advanced Guide](./go-advanced-guide.html).
+5. **Tuần 5 (Tối ưu hóa &amp; Runtime)**: Tiến sâu vào hệ thống nội tại của Go Runtime trong [Go Optimization &amp; Runtime](./go-optimization-guide.html). Nắm vững Tri-color GC, GMP scheduler, đo đạc với `pprof` và `go tool trace`, thống kê đo lường bằng `benchstat`, và chặn rò rỉ goroutine bằng `goleak`.

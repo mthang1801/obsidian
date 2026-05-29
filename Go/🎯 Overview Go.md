@@ -23,6 +23,16 @@ Nằm trong thư mục [**`./Fundamental/`**](./Fundamental), tập trung giúp 
   * Ứng dụng tính năng lặp thế hệ mới **Iterator (Go 1.23 range-over-func)**.
   * Triển khai mẫu `Option[T]` triệt tiêu hoàn toàn lỗi con trỏ null.
   * Lập trình hướng đối tượng đặc sản Go (Embedding, Đa hình ngầm định, Builder & Decorator).
+* [**Go Optimization & Runtime**](./Fundamental/go-optimization-guide.html) - Hướng dẫn chuyên sâu hiệu năng và cấu trúc Runtime (9 chuyên đề nâng cao):
+  * Cơ chế dọn rác GC nâng cao (Tri-color, Write Barrier, GOGC, GOMEMLIMIT).
+  * Runtime Scheduler (GMP Model, Work Stealing, Preemption).
+  * Go Memory Model (Happens-before guarantees, safe data access).
+  * Cải tiến Go 1.24 (Generic type aliases, weak pointers, runtime.AddCleanup).
+  * Phân tích hiệu năng với `pprof` (CPU, Heap, Goroutine, Mutex, Block profiling).
+  * Iterator và Generator Pattern (iter.Seq, range-over-func lazy evaluation).
+  * Execution Tracer (`go tool trace` timeline, GC events).
+  * Chiến lược đo lường hiệu năng chuyên nghiệp (Benchmark, Sub-benchmarks, benchstat).
+  * Phát hiện rò rỉ goroutine bằng công cụ `goleak` của Uber.
 
 ---
 
@@ -59,4 +69,4 @@ Nằm trong thư mục [**`./Concurrency/`**](./Concurrency), tập trung vào v
 1. **Giai đoạn 1 (Chắc móng)**: Đọc kỹ tài liệu [Go Basics Guide](./Fundamental/go-basics-guide.html). Thực hành viết các chức năng xử lý lỗi an toàn và bọc lỗi bằng `%w`.
 2. **Giai đoạn 2 (Tư duy kiến trúc)**: Đọc tiếp [Go Advanced Patterns](./Fundamental/go-advanced-guide.html) để học cách tổ chức mã nguồn chuẩn idiomatic Go (không dùng class, dùng interface và struct embedding). Xây dựng cấu trúc dữ liệu Set và Option tùy chỉnh.
 3. **Giai đoạn 3 (Song song hóa)**: Đi sâu vào thế giới [Go Concurrency](./Concurrency). Bắt đầu với Goroutines, Channels cơ bản, sau đó nâng cấp lên mô hình pipeline dữ liệu phức tạp phối hợp cùng `context` và `errgroup`.
-4. **Giai đoạn 4 (Tinh chỉnh & Performance)**: Học cách phát hiện race condition bằng `-race`, phân tích hiệu năng bằng công cụ `pprof`, tối ưu hóa phân bổ bộ nhớ với `sync.Pool`.
+4. **Giai đoạn 4 (Tinh chỉnh & Performance)**: Đi sâu vào hiệu năng hệ thống qua tài liệu [Go Optimization &amp; Runtime](./Fundamental/go-optimization-guide.html). Học cách phân tích bộ nhớ và CPU với `pprof`, theo dõi timeline thực thi chi tiết với `go tool trace`, đo đạc chính xác với `benchstat`, và triệt tiêu rò rỉ bộ nhớ/goroutines bằng `goleak`.

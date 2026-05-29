@@ -1,0 +1,1998 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Advanced & Optimized Go — GC · Scheduler · Memory · pprof · Benchmark · Goroutine Leak</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d0f14;--bg2:#131720;--card:#1a1f2e;--code:#0f1319;
+  --cyan:#00d4ff;--green:#00ff88;--purple:#a855f7;--amber:#f59e0b;
+  --coral:#ff6b6b;--teal:#2dd4bf;--blue:#3b82f6;--indigo:#6366f1;
+  --t1:#e2e8f0;--t2:#94a3b8;--mu:#64748b;
+  --bdr:rgba(255,255,255,.07);
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t1);font-family:var(--sans);display:flex;min-height:100vh}
+
+#sb{width:272px;min-width:272px;background:var(--bg2);border-right:1px solid var(--bdr);
+    position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100}
+#sb::-webkit-scrollbar{width:4px}
+#sb::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.logo{padding:18px 18px 14px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:10px}
+.logo-i{width:36px;height:36px;background:linear-gradient(135deg,#00add8,#00ff88);
+         border-radius:8px;display:flex;align-items:center;justify-content:center;
+         font-size:13px;font-weight:700;color:#fff;font-family:var(--mono)}
+.logo-t{font-size:14px;font-weight:600;color:var(--t1);line-height:1.2}
+.logo-s{font-size:11px;color:var(--cyan);font-family:var(--mono)}
+.ns{padding:12px 12px 4px}
+.nt{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);padding:0 8px;margin-bottom:5px}
+.nb{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:6px;color:var(--t2);
+    font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left}
+.nb:hover{background:rgba(255,255,255,.05);color:var(--t1)}
+.nb.active{background:rgba(0,212,255,.1);color:var(--cyan);border-left:2px solid var(--cyan);padding-left:6px}
+
+#tn{position:fixed;top:0;left:272px;right:0;height:52px;background:var(--bg2);
+    border-bottom:1px solid var(--bdr);display:flex;align-items:center;
+    padding:0 24px;gap:5px;z-index:50;overflow-x:auto}
+#tn::-webkit-scrollbar{height:3px}
+.tb{padding:5px 11px;border-radius:6px;font-size:12px;font-weight:500;color:var(--t2);
+    cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
+.tb:hover{color:var(--t1);background:rgba(255,255,255,.05)}
+.tb.active{color:var(--cyan);background:rgba(0,212,255,.1)}
+
+#main{margin-left:272px;margin-top:52px;flex:1;max-width:calc(100% - 272px)}
+.ct{padding:44px 52px;max-width:980px}
+
+.sh{display:flex;align-items:center;gap:14px;margin-bottom:30px;padding-bottom:18px;border-bottom:1px solid var(--bdr)}
+.sn{width:36px;height:36px;border-radius:8px;
+    background:linear-gradient(135deg,var(--cyan),var(--green));
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--mono);font-size:14px;font-weight:700;color:#000;flex-shrink:0}
+.stl{font-size:24px;font-weight:700;color:var(--t1)}
+.ss{font-size:13px;color:var(--mu);margin-top:3px}
+
+.badge{padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;font-family:var(--mono)}
+.be{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.3)}
+.ba{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+.bb{background:rgba(0,212,255,.10);color:var(--cyan);border:1px solid rgba(0,212,255,.25)}
+.bg2{background:rgba(0,255,136,.10);color:var(--green);border:1px solid rgba(0,255,136,.25)}
+
+.sec{display:none}.sec.active{display:block}
+
+.p{font-size:15px;line-height:1.8;color:var(--t2);margin-bottom:18px}
+.p strong{color:var(--t1);font-weight:600}
+.p code{background:rgba(0,212,255,.08);color:var(--cyan);padding:2px 6px;border-radius:4px;font-family:var(--mono);font-size:13px}
+h3{font-size:17px;font-weight:600;color:var(--t1);margin:26px 0 11px}
+h4{font-size:14px;font-weight:600;color:var(--t2);margin:18px 0 7px}
+
+.card{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin-bottom:18px;transition:border-color .2s}
+.card:hover{border-color:rgba(0,212,255,.2)}
+.ct2{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:9px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;margin-bottom:22px}
+
+.cbox{background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(0,255,136,.05));
+      border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:22px;margin-bottom:26px}
+.cbox-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--cyan);margin-bottom:7px;font-family:var(--mono)}
+.cbox-t{font-size:19px;font-weight:700;color:var(--t1);margin-bottom:9px}
+
+.ex{background:var(--card);border:1px solid var(--bdr);border-radius:12px;overflow:hidden;margin-bottom:34px}
+.exh{display:flex;align-items:center;justify-content:space-between;padding:15px 22px;
+     border-bottom:1px solid var(--bdr);background:rgba(255,255,255,.02)}
+.ext{font-size:15px;font-weight:600;color:var(--t1)}
+.exb{padding:22px}
+
+.pb{background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-left:3px solid var(--amber);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.pl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--amber);margin-bottom:6px;font-family:var(--mono)}
+.sb2{background:rgba(0,255,136,.04);border:1px solid rgba(0,255,136,.18);border-left:3px solid var(--green);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:6px;font-family:var(--mono)}
+.vb{background:rgba(99,102,241,.05);border:1px solid rgba(99,102,241,.2);border-left:3px solid var(--indigo);border-radius:8px;padding:14px 17px;margin-bottom:18px}
+.vl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--indigo);margin-bottom:6px;font-family:var(--mono)}
+.nc{background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);border-left:3px solid var(--purple);border-radius:8px;padding:14px 17px;margin-top:18px}
+.nl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--purple);margin-bottom:6px;font-family:var(--mono)}
+
+.cw{background:var(--code);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:20px}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:9px 15px;border-bottom:1px solid var(--bdr);background:rgba(255,255,255,.02)}
+.cl{font-size:11px;font-weight:600;color:var(--cyan);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.cf{font-size:11px;color:var(--mu);font-family:var(--mono)}
+.cc{font-size:11px;cursor:pointer;background:none;border:1px solid var(--bdr);border-radius:4px;padding:3px 9px;color:var(--t2);transition:all .15s}
+.cc:hover{border-color:var(--cyan);color:var(--cyan)}
+pre{margin:0;padding:18px;overflow-x:auto;font-family:var(--mono);font-size:13px;line-height:1.7}
+pre::-webkit-scrollbar{height:4px}
+pre::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:2px}
+
+.kw{color:#c084fc}.fn{color:#38bdf8}.s{color:#86efac}
+.cm{color:#4b5563;font-style:italic}.n{color:#fb923c}.tp{color:#67e8f9}.op{color:#f472b6}
+
+.dia{background:var(--card);border:1px solid var(--bdr);border-radius:12px;padding:22px;margin:18px 0 24px;overflow:hidden}
+.dt{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mu);margin-bottom:18px;font-family:var(--mono);text-align:center}
+
+.tbl{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:14px}
+.tbl th{padding:9px 13px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--bdr);color:var(--mu);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.tbl td{padding:9px 13px;border-bottom:1px solid var(--bdr);color:var(--t2)}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+.tbl td code{background:rgba(0,212,255,.08);color:var(--cyan);padding:2px 5px;border-radius:4px;font-family:var(--mono);font-size:12px}
+
+.note{display:flex;gap:11px;padding:13px 15px;border-radius:8px;margin-bottom:18px;font-size:14px}
+.nw{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+.ni{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);color:var(--cyan)}
+.nd{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--coral)}
+.ng{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--green)}
+.nic{font-size:16px;flex-shrink:0;margin-top:1px}.note p{margin:0;line-height:1.6}
+
+.c2{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:22px}
+.cc2{background:var(--card);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.cch{padding:11px 15px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono)}
+.hc{background:rgba(0,212,255,.08);color:var(--cyan)}
+.hg{background:rgba(0,255,136,.07);color:var(--green)}
+.hr2{background:rgba(255,107,107,.08);color:var(--coral)}
+.hp{background:rgba(168,85,247,.08);color:var(--purple)}
+.ha{background:rgba(245,158,11,.08);color:var(--amber)}
+.ccb{padding:14px 15px;font-size:13px;color:var(--t2);line-height:1.7}
+
+.rf{background:var(--card);border:1px solid var(--bdr);border-radius:10px;padding:15px 19px;margin-bottom:11px;
+    display:flex;align-items:flex-start;gap:13px;text-decoration:none;transition:all .15s;cursor:pointer}
+.rf:hover{border-color:var(--cyan);transform:translateX(2px)}
+.ri{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.rb{flex:1;min-width:0}
+.rtl{font-size:13px;font-weight:600;color:var(--t1);margin-bottom:3px}
+.rd{font-size:12px;color:var(--mu);line-height:1.5}
+.ru{font-size:11px;color:var(--cyan);font-family:var(--mono);margin-top:3px;word-break:break-all}
+.rs{font-size:11px;color:var(--amber);margin-left:auto;white-space:nowrap;padding-left:10px}
+
+hr.div{border:none;border-top:1px solid var(--bdr);margin:30px 0}
+
+@media(max-width:900px){
+  #sb{width:220px;min-width:220px}#main{margin-left:220px}#tn{left:220px}
+  .ct{padding:28px 18px}.g2,.c2,.g3{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ══ SIDEBAR ══ -->
+<nav id="sb">
+  <div class="logo">
+    <div class="logo-i">Go</div>
+    <div><div class="logo-t">Advanced Go Guide</div><div class="logo-s">// runtime · perf · internals</div></div>
+  </div>
+  <div class="ns"><div class="nt">Tổng quan</div>
+    <button class="nb active" data-section="intro" onclick="S('intro')">🏠 Giới thiệu</button>
+  </div>
+  <div class="ns"><div class="nt">01 — Garbage Collector</div>
+    <button class="nb" data-section="gc-concept" onclick="S('gc-concept')">Khái niệm &amp; Thuật toán</button>
+    <button class="nb" data-section="gc-code" onclick="S('gc-code')">Tuning &amp; Code</button>
+  </div>
+  <div class="ns"><div class="nt">02 — Runtime Scheduler</div>
+    <button class="nb" data-section="sched-concept" onclick="S('sched-concept')">GMP Model</button>
+    <button class="nb" data-section="sched-code" onclick="S('sched-code')">Work Stealing &amp; Code</button>
+  </div>
+  <div class="ns"><div class="nt">03 — Memory Model</div>
+    <button class="nb" data-section="mem-concept" onclick="S('mem-concept')">Happens-Before</button>
+    <button class="nb" data-section="mem-code" onclick="S('mem-code')">Sync Primitives &amp; Code</button>
+  </div>
+  <div class="ns"><div class="nt">04 — Go 1.24 Features</div>
+    <button class="nb" data-section="go124" onclick="S('go124')">New Features</button>
+  </div>
+  <div class="ns"><div class="nt">05 — Performance pprof</div>
+    <button class="nb" data-section="pprof-intro" onclick="S('pprof-intro')">Profiling Types</button>
+    <button class="nb" data-section="pprof-code" onclick="S('pprof-code')">Practical pprof</button>
+  </div>
+  <div class="ns"><div class="nt">06 — Generator</div>
+    <button class="nb" data-section="gen-concept" onclick="S('gen-concept')">Iterator Pattern</button>
+    <button class="nb" data-section="gen-code" onclick="S('gen-code')">Code &amp; Use Cases</button>
+  </div>
+  <div class="ns"><div class="nt">07 — Deep pprof &amp; Trace</div>
+    <button class="nb" data-section="trace-concept" onclick="S('trace-concept')">Execution Tracer</button>
+    <button class="nb" data-section="trace-code" onclick="S('trace-code')">Workflow &amp; Analysis</button>
+  </div>
+  <div class="ns"><div class="nt">08 — Benchmark &amp; Benchstat</div>
+    <button class="nb" data-section="bench-concept" onclick="S('bench-concept')">Strategy</button>
+    <button class="nb" data-section="bench-code" onclick="S('bench-code')">Benchstat &amp; Code</button>
+  </div>
+  <div class="ns"><div class="nt">09 — Goroutine Leak</div>
+    <button class="nb" data-section="leak-concept" onclick="S('leak-concept')">Detection Patterns</button>
+    <button class="nb" data-section="leak-code" onclick="S('leak-code')">Tools &amp; Fixes</button>
+  </div>
+  <div class="ns"><div class="nt">Tham khảo</div>
+    <button class="nb" data-section="refs" onclick="S('refs')">📚 References</button>
+  </div>
+</nav>
+
+<!-- ══ TOP NAV ══ -->
+<nav id="tn">
+  <button class="tb active" data-section="intro" onclick="S('intro')">Intro</button>
+  <button class="tb" data-section="gc-concept" onclick="S('gc-concept')">GC</button>
+  <button class="tb" data-section="sched-concept" onclick="S('sched-concept')">Scheduler</button>
+  <button class="tb" data-section="mem-concept" onclick="S('mem-concept')">Memory</button>
+  <button class="tb" data-section="go124" onclick="S('go124')">Go 1.24</button>
+  <button class="tb" data-section="pprof-intro" onclick="S('pprof-intro')">pprof</button>
+  <button class="tb" data-section="gen-concept" onclick="S('gen-concept')">Generator</button>
+  <button class="tb" data-section="trace-concept" onclick="S('trace-concept')">Trace</button>
+  <button class="tb" data-section="bench-concept" onclick="S('bench-concept')">Benchmark</button>
+  <button class="tb" data-section="leak-concept" onclick="S('leak-concept')">Goroutine Leak</button>
+  <button class="tb" data-section="refs" onclick="S('refs')">Refs</button>
+</nav>
+
+<main id="main"><div class="ct">
+
+<!-- ═══════ INTRO ═══════ -->
+<section class="sec active" id="s-intro">
+  <div class="sh">
+    <div class="sn">Go</div>
+    <div><div class="stl">Advanced &amp; Optimized Go</div>
+         <div class="ss">Runtime internals · Performance profiling · Memory model · Concurrency patterns</div></div>
+    <span class="badge bg2">Go 1.24+</span>
+  </div>
+  <div class="cbox">
+    <div class="cbox-l">🎯 Mục tiêu</div>
+    <div class="cbox-t">Làm chủ Go ở cấp độ runtime và hiệu năng</div>
+    <p class="p">Tài liệu này đi sâu vào <strong>9 chủ đề nâng cao nhất</strong> của Go: từ cách Garbage Collector hoạt động bên trong, GMP scheduler model, Memory Model với happens-before guarantees, các tính năng mới trong Go 1.24, đến các kỹ thuật profiling và debugging hiệu năng production. Mỗi chủ đề có code samples cụ thể, diagram minh họa, và best practices từ thực tế.</p>
+  </div>
+  <div class="g3">
+    <div class="card" style="cursor:pointer" data-section="gc-concept" onclick="S('gc-concept')"><div class="ct2">🗑️ GC Internals</div><p class="p" style="font-size:13px;margin:0">Tri-color mark-sweep concurrent, GOGC tuning, GC pause analysis.</p></div>
+    <div class="card" style="cursor:pointer" data-section="sched-concept" onclick="S('sched-concept')"><div class="ct2">⚙️ Scheduler GMP</div><p class="p" style="font-size:13px;margin:0">Goroutine/Machine/Processor model, work stealing, preemption.</p></div>
+    <div class="card" style="cursor:pointer" data-section="mem-concept" onclick="S('mem-concept')"><div class="ct2">💾 Memory Model</div><p class="p" style="font-size:13px;margin:0">Happens-before, data races, sync primitives đúng cách.</p></div>
+    <div class="card" style="cursor:pointer" data-section="go124" onclick="S('go124')"><div class="ct2">🆕 Go 1.24</div><p class="p" style="font-size:13px;margin:0">Generic type aliases, weak pointers, finalizer cải tiến, tool directives.</p></div>
+    <div class="card" style="cursor:pointer" data-section="pprof-intro" onclick="S('pprof-intro')"><div class="ct2">📊 pprof</div><p class="p" style="font-size:13px;margin:0">CPU, heap, goroutine, mutex, block profiling với web UI.</p></div>
+    <div class="card" style="cursor:pointer" data-section="gen-concept" onclick="S('gen-concept')"><div class="ct2">🔄 Generator</div><p class="p" style="font-size:13px;margin:0">iter.Seq pattern, lazy evaluation, pipeline với range-over-func.</p></div>
+    <div class="card" style="cursor:pointer" data-section="trace-concept" onclick="S('trace-concept')"><div class="ct2">🔍 Trace</div><p class="p" style="font-size:13px;margin:0">go tool trace, goroutine timeline, GC events, network blocking.</p></div>
+    <div class="card" style="cursor:pointer" data-section="bench-concept" onclick="S('bench-concept')"><div class="ct2">⏱️ Benchmark</div><p class="p" style="font-size:13px;margin:0">Sub-benchmarks, benchstat statistical analysis, alloc reporting.</p></div>
+    <div class="card" style="cursor:pointer" data-section="leak-concept" onclick="S('leak-concept')"><div class="ct2">💧 Goroutine Leak</div><p class="p" style="font-size:13px;margin:0">goleak, runtime inspection, context cancellation patterns.</p></div>
+  </div>
+</section>
+
+<!-- ═══════ GC CONCEPT ═══════ -->
+<section class="sec" id="s-gc-concept">
+  <div class="sh">
+    <div class="sn">01</div>
+    <div><div class="stl">Garbage Collector — Internals</div>
+         <div class="ss">Tri-color concurrent mark-sweep, GOGC, GC pauses</div></div>
+    <span class="badge bb">INTERNALS</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">Go GC — Concurrent Tri-color Mark-Sweep</div>
+    <p class="p">Go sử dụng <strong>non-generational, non-compacting, concurrent tri-color mark-sweep GC</strong>. Từ Go 1.5+, GC chạy <em>đồng thời</em> với goroutines của ứng dụng — không phải stop-the-world hoàn toàn. GC chỉ dừng thế giới trong 2 giai đoạn ngắn: <strong>STW Mark Setup</strong> và <strong>STW Mark Termination</strong>.</p>
+    <p class="p">GC trigger khi heap size đạt <code>GOGC%</code> của live heap trước đó (mặc định 100% — tức là heap tăng gấp đôi). Từ Go 1.19, có thêm <code>GOMEMLIMIT</code> cho phép set hard limit tổng bộ nhớ.</p>
+  </div>
+
+  <h3>Tri-color Algorithm: Ba màu, ba trạng thái</h3>
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO GARBAGE COLLECTOR TRICOLOR MARK-SWEEP INTERNALS</div>
+    <img src="../../public/images/go_opt_s01_gc_internals.png" alt="Go Garbage Collector Internals" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+
+  <h3>Write Barrier — Bảo đảm invariant trong concurrent GC</h3>
+  <div class="p">Vì GC chạy đồng thời với mutator (application code), goroutines có thể <em>thay đổi pointers</em> trong khi GC đang mark. <strong>Write barrier</strong> (Dijkstra hybrid barrier trong Go 1.22+) là đoạn code nhỏ được inject vào mọi pointer write để GC không bỏ sót object live.</p>
+  <div class="c2">
+    <div class="cc2">
+      <div class="cch hc">Write Barrier — Shade Invariant</div>
+      <div class="ccb">
+        <p style="margin-bottom:8px">Khi goroutine ghi <code>*slot = ptr</code>:</p>
+        <p>→ Shade <code>*slot</code> (giá trị cũ) thành gray</p>
+        <p>→ Shade <code>ptr</code> (giá trị mới) thành gray</p>
+        <p style="margin-top:8px;color:var(--green)">✓ Đảm bảo: không có black object nào trỏ đến white object mà không qua gray</p>
+      </div>
+    </div>
+    <div class="cc2">
+      <div class="cch ha">GOGC &amp; GOMEMLIMIT</div>
+      <div class="ccb">
+        <p style="margin-bottom:8px"><code>GOGC=100</code> (default): GC khi heap tăng 100%</p>
+        <p><code>GOGC=off</code>: tắt GC hoàn toàn</p>
+        <p><code>GOGC=200</code>: GC ít hơn, heap lớn hơn</p>
+        <p style="margin-top:8px"><code>GOMEMLIMIT=512MiB</code>: hard limit — GC tích cực hơn khi gần limit (Go 1.19+)</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ GC CODE ═══════ -->
+<section class="sec" id="s-gc-code">
+  <div class="sh">
+    <div class="sn">01</div>
+    <div><div class="stl">GC Tuning &amp; Optimization</div>
+         <div class="ss">GOGC, GOMEMLIMIT, sync.Pool, allocation reduction</div></div>
+    <span class="badge ba">ADVANCED → EXPERT</span>
+  </div>
+
+  <!-- Example 1.1 -->
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 1.1 — GC pressure reduction với sync.Pool</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">HTTP server xử lý 50,000 req/s. Mỗi request allocate một <code>[]byte</code> buffer 4KB để đọc body, sau đó GC. Với throughput cao như vậy, GC phải chạy liên tục để thu dọn short-lived allocations, gây CPU spike và latency tail. <code>GOGC</code> default 100 không đủ để giảm frequency.</p>
+      </div>
+      <div class="sb2"><div class="sl">✅ Solution — sync.Pool để tái sử dụng buffer</div></div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">buffer_pool.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"net/http"</span>
+    <span class="s">"sync"</span>
+    <span class="s">"runtime/debug"</span>
+    <span class="s">"time"</span>
+)
+
+<span class="cm">// Pool tái sử dụng buffer 4KB thay vì allocate mới mỗi request</span>
+<span class="kw">var</span> bufPool = &sync.Pool{
+    New: <span class="kw">func</span>() any {
+        buf := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">4096</span>)
+        <span class="kw">return</span> &buf  <span class="cm">// trả về pointer để tránh interface boxing copy</span>
+    },
+}
+
+<span class="kw">func</span> <span class="fn">handleRequest</span>(w http.ResponseWriter, r *http.Request) {
+    <span class="cm">// Lấy buffer từ pool — KHÔNG allocate heap</span>
+    bufPtr := bufPool.<span class="fn">Get</span>().(*[]<span class="tp">byte</span>)
+    buf := *bufPtr
+    <span class="kw">defer func</span>() {
+        <span class="cm">// Clear sensitive data trước khi trả lại pool</span>
+        <span class="kw">for</span> i := <span class="kw">range</span> buf { buf[i] = <span class="n">0</span> }
+        *bufPtr = buf[:<span class="n">4096</span>]  <span class="cm">// reset len về full capacity</span>
+        bufPool.<span class="fn">Put</span>(bufPtr)
+    }()
+
+    n, _ := r.Body.<span class="fn">Read</span>(buf)
+    <span class="cm">// xử lý buf[:n]</span>
+    _ = n
+}
+
+<span class="cm">// SetGCPercent cho latency-sensitive services</span>
+<span class="kw">func</span> <span class="fn">configureGC</span>() {
+    <span class="cm">// Giảm GC frequency: chấp nhận heap lớn hơn đổi lấy ít pause hơn</span>
+    debug.<span class="fn">SetGCPercent</span>(<span class="n">200</span>)
+
+    <span class="cm">// Hard limit: GC sẽ tích cực hơn khi gần limit thay vì OOM</span>
+    debug.<span class="fn">SetMemoryLimit</span>(<span class="n">512</span> * <span class="n">1024</span> * <span class="n">1024</span>) <span class="cm">// 512 MiB</span>
+
+    <span class="cm">// Manual GC khi idle (ví dụ: sau một batch job)</span>
+    <span class="kw">go func</span>() {
+        ticker := time.<span class="fn">NewTicker</span>(<span class="n">30</span> * time.Second)
+        <span class="kw">for range</span> ticker.C {
+            runtime.<span class="fn">GC</span>()  <span class="cm">// force GC khi idle</span>
+        }
+    }()
+}
+
+<span class="cm">// ReadStats đọc GC stats để monitor</span>
+<span class="kw">func</span> <span class="fn">printGCStats</span>() {
+    <span class="kw">var</span> stats debug.GCStats
+    debug.<span class="fn">ReadGCStats</span>(&stats)
+
+    <span class="cm">// stats.NumGC: tổng số GC runs
+    // stats.PauseTotal: tổng thời gian STW
+    // stats.Pause: slice của từng pause duration</span>
+    _ = stats
+}</pre>
+      </div>
+      <div class="vb"><div class="vl">📊 Visual — GC Pressure Before/After Pool</div>
+        <div class="dia" style="margin:0;border:none;padding:0;background:transparent">
+          <svg width="100%" viewBox="0 0 800 160" xmlns="http://www.w3.org/2000/svg">
+            <text x="190" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">Without Pool — GC mỗi ~200ms</text>
+            <text x="590" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Inter" font-weight="600">With sync.Pool — GC mỗi ~2s</text>
+            <!-- Without pool: many allocs, frequent GC -->
+            <rect x="10" y="28" width="360" height="120" rx="6" fill="rgba(255,107,107,.03)" stroke="rgba(255,107,107,.2)" stroke-dasharray="3,3"/>
+            <rect x="20" y="40" width="8" height="60" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="34" y="55" width="8" height="45" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="48" y="40" width="8" height="60" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="62" y="48" width="8" height="52" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="76" y="40" width="8" height="60" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="90" y="52" width="8" height="48" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="104" y="40" width="8" height="60" rx="2" fill="rgba(255,107,107,.6)"/>
+            <rect x="118" y="45" width="8" height="55" rx="2" fill="rgba(255,107,107,.6)"/>
+            <!-- GC pause bars -->
+            <rect x="97" y="35" width="4" height="80" rx="1" fill="rgba(255,255,0,.8)"/>
+            <rect x="195" y="35" width="4" height="80" rx="1" fill="rgba(255,255,0,.8)"/>
+            <rect x="293" y="35" width="4" height="80" rx="1" fill="rgba(255,255,0,.8)"/>
+            <text x="190" y="130" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Inter">Allocations cao → GC frequent → latency spikes (yellow)</text>
+            <text x="190" y="144" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">GC CPU: ~30% | P99 latency: 20ms</text>
+            <!-- With pool -->
+            <rect x="410" y="28" width="380" height="120" rx="6" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)" stroke-dasharray="3,3"/>
+            <rect x="420" y="80" width="8" height="20" rx="2" fill="rgba(0,255,136,.5)"/>
+            <rect x="434" y="75" width="8" height="25" rx="2" fill="rgba(0,255,136,.5)"/>
+            <rect x="448" y="82" width="8" height="18" rx="2" fill="rgba(0,255,136,.5)"/>
+            <rect x="462" y="78" width="8" height="22" rx="2" fill="rgba(0,255,136,.5)"/>
+            <rect x="476" y="80" width="8" height="20" rx="2" fill="rgba(0,255,136,.5)"/>
+            <rect x="490" y="77" width="8" height="23" rx="2" fill="rgba(0,255,136,.5)"/>
+            <!-- Only 1 GC pause in long period -->
+            <rect x="700" y="35" width="4" height="80" rx="1" fill="rgba(255,255,0,.5)"/>
+            <text x="590" y="130" text-anchor="middle" font-size="9" fill="#00ff88" font-family="Inter">Allocations gần bằng 0 (reuse) → GC hiếm → no spikes</text>
+            <text x="590" y="144" text-anchor="middle" font-size="9" fill="#64748b" font-family="Inter">GC CPU: ~3% | P99 latency: 2ms</text>
+          </svg>
+        </div>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>sync.Pool</strong> phù hợp nhất cho short-lived objects cùng kích thước, được tạo và hủy nhanh. Pool được reset khi GC chạy — không dùng Pool để lưu state quan trọng. <strong>QUAN TRỌNG</strong>: Store pointer (<code>&buf</code>) trong Pool, không phải slice header, để tránh escape to heap qua interface. Kết hợp <code>GOMEMLIMIT</code> thay thế hoàn toàn <code>GOGC</code> trong Go 1.19+ để tránh OOM trong môi trường container.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example 1.2 -->
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 1.2 — Escape Analysis: giữ allocation trên stack</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Function hot path allocate struct nhỏ và truyền pointer ra ngoài — Go escape analysis buộc phải đưa lên heap, tạo GC pressure. Cần hiểu khi nào allocation "escapes to heap" và cách tránh.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">escape_analysis.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="cm">// Chạy: go build -gcflags="-m -m" để xem escape analysis output</span>
+
+<span class="kw">type</span> <span class="tp">Point</span> <span class="kw">struct</span> { X, Y <span class="tp">float64</span> }
+
+<span class="cm">// ❌ ESCAPES to heap: pointer trả về ngoài function scope</span>
+<span class="kw">func</span> <span class="fn">newPointHeap</span>(x, y <span class="tp">float64</span>) *<span class="tp">Point</span> {
+    p := &<span class="tp">Point</span>{X: x, Y: y}  <span class="cm">// → "p escapes to heap"</span>
+    <span class="kw">return</span> p
+}
+
+<span class="cm">// ✅ STAYS on stack: trả về value, không phải pointer</span>
+<span class="kw">func</span> <span class="fn">newPointStack</span>(x, y <span class="tp">float64</span>) <span class="tp">Point</span> {
+    <span class="kw">return</span> <span class="tp">Point</span>{X: x, Y: y}   <span class="cm">// stack allocated</span>
+}
+
+<span class="cm">// ❌ Interface boxing gây escape</span>
+<span class="kw">func</span> <span class="fn">badPattern</span>(vals []<span class="tp">int</span>) {
+    <span class="kw">for</span> _, v := <span class="kw">range</span> vals {
+        fmt.<span class="fn">Println</span>(v)  <span class="cm">// v escapes: fmt.Println takes interface{}</span>
+    }
+}
+
+<span class="cm">// ✅ Avoid interface boxing</span>
+<span class="kw">func</span> <span class="fn">goodPattern</span>(vals []<span class="tp">int</span>) {
+    <span class="kw">for</span> _, v := <span class="kw">range</span> vals {
+        fmt.<span class="fn">Printf</span>(<span class="s">"%d\n"</span>, v)  <span class="cm">// v: int không escape</span>
+    }
+}
+
+<span class="cm">// ❌ Slice grow gây realloc + copy</span>
+<span class="kw">func</span> <span class="fn">withoutPrealloc</span>(n <span class="tp">int</span>) []<span class="tp">int</span> {
+    <span class="kw">var</span> result []<span class="tp">int</span>
+    <span class="kw">for</span> i := <span class="n">0</span>; i < n; i++ {
+        result = <span class="fn">append</span>(result, i)  <span class="cm">// nhiều realloc</span>
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// ✅ Pre-allocate với known capacity</span>
+<span class="kw">func</span> <span class="fn">withPrealloc</span>(n <span class="tp">int</span>) []<span class="tp">int</span> {
+    result := <span class="fn">make</span>([]<span class="tp">int</span>, <span class="n">0</span>, n)  <span class="cm">// 1 allocation, no realloc</span>
+    <span class="kw">for</span> i := <span class="n">0</span>; i < n; i++ {
+        result = <span class="fn">append</span>(result, i)
+    }
+    <span class="kw">return</span> result
+}
+
+<span class="cm">// ❌ Map với interface{} values: boxing + GC scan</span>
+<span class="kw">var</span> badMap = <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="kw">interface</span>{})
+
+<span class="cm">// ✅ Typed map: no boxing, GC scan faster</span>
+<span class="kw">var</span> goodMap = <span class="fn">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">int64</span>)</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Escape analysis</strong>: <code>go build -gcflags="-m"</code> hiển thị allocation decisions. <code>-m -m</code> cho thêm chi tiết về lý do escape. Các nguyên nhân phổ biến gây escape: return pointer to local var, store vào interface, store vào global var, closure capture, send qua channel. <strong>Không phải lúc nào cũng tốt khi tránh escape</strong> — stack size per goroutine có limit và sẽ grow/shrink có overhead. Với large structs (>~100 bytes), heap có thể hiệu quả hơn.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ SCHEDULER CONCEPT ═══════ -->
+<section class="sec" id="s-sched-concept">
+  <div class="sh">
+    <div class="sn">02</div>
+    <div><div class="stl">Runtime Scheduler — GMP Model</div>
+         <div class="ss">Goroutine · Machine · Processor · Work Stealing</div></div>
+    <span class="badge bb">INTERNALS</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">GMP: Ba thành phần cốt lõi của Go runtime scheduler</div>
+    <p class="p">Go scheduler là <strong>M:N scheduler</strong> — multiplexes M goroutines lên N OS threads. Ba thành phần: <strong>G (Goroutine)</strong> — đơn vị thực thi lightweight (~2KB stack, grow dynamically); <strong>M (Machine)</strong> — OS thread thực sự; <strong>P (Processor)</strong> — logical processor, queue goroutines và cung cấp ngữ cảnh thực thi cho M. Số P = <code>GOMAXPROCS</code> (default = số CPU cores).</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO SCHEDULER GMP MODEL & WORK STEALING ENGINE</div>
+    <img src="../../public/images/go_opt_s02_scheduler_gmp.png" alt="Go Runtime Scheduler GMP model" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+
+  <h3>Goroutine States</h3>
+  <table class="tbl">
+    <thead><tr><th>State</th><th>Mô tả</th><th>Khi nào</th></tr></thead>
+    <tbody>
+      <tr><td><code>Grunnable</code></td><td>Đang chờ được lên P</td><td>Vừa tạo hoặc unblocked</td></tr>
+      <tr><td><code>Grunning</code></td><td>Đang chạy trên M/P</td><td>Được scheduler chọn</td></tr>
+      <tr><td><code>Gwaiting</code></td><td>Bị block, không trên run queue</td><td>chan recv/send, sync.Mutex, select, time.Sleep</td></tr>
+      <tr><td><code>Gdead</code></td><td>Đã kết thúc</td><td>Function return, panic, runtime.Goexit</td></tr>
+      <tr><td><code>Gcopystack</code></td><td>Stack đang được copy/grow</td><td>Stack overflow detection</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ═══════ SCHEDULER CODE ═══════ -->
+<section class="sec" id="s-sched-code">
+  <div class="sh">
+    <div class="sn">02</div>
+    <div><div class="stl">Scheduler Tuning &amp; Patterns</div>
+         <div class="ss">GOMAXPROCS, goroutine pinning, work distribution</div></div>
+    <span class="badge ba">ADVANCED</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 2.1 — CPU-bound work: optimal goroutine count &amp; GOMAXPROCS</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Một image processing service cần chạy song song nhiều task CPU-intensive. Developer tạo 10,000 goroutines cho 10,000 images — thực ra làm chậm hơn vì context switching overhead. Cần tìm số goroutine tối ưu cho CPU-bound workload.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">worker_pool.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"runtime"</span>
+    <span class="s">"sync"</span>
+    <span class="s">"golang.org/x/sys/cpu"</span>
+)
+
+<span class="kw">type</span> <span class="tp">WorkerPool</span>[T, R <span class="kw">any</span>] <span class="kw">struct</span> {
+    workers <span class="tp">int</span>
+    jobs    <span class="kw">chan</span> T
+    results <span class="kw">chan</span> R
+}
+
+<span class="cm">// CPU-bound: workers = GOMAXPROCS (không hơn)
+// I/O-bound: workers có thể 10x-100x GOMAXPROCS</span>
+<span class="kw">func</span> <span class="fn">NewWorkerPool</span>[T, R <span class="kw">any</span>](fn <span class="kw">func</span>(T) R) *<span class="tp">WorkerPool</span>[T, R] {
+    numCPU := runtime.<span class="fn">GOMAXPROCS</span>(<span class="n">0</span>)  <span class="cm">// đọc giá trị hiện tại</span>
+
+    <span class="cm">// Với CPU-bound: workers = numCPU để tránh context switch overhead
+    // Để lại 1 CPU cho GC và runtime nếu latency-sensitive</span>
+    workers := numCPU
+    <span class="kw">if</span> workers > <span class="n">1</span> { workers-- }
+
+    pool := &<span class="tp">WorkerPool</span>[T, R]{
+        workers: workers,
+        jobs:    <span class="fn">make</span>(<span class="kw">chan</span> T, workers*<span class="n">2</span>),   <span class="cm">// buffer = 2x workers</span>
+        results: <span class="fn">make</span>(<span class="kw">chan</span> R, workers*<span class="n">2</span>),
+    }
+
+    <span class="kw">var</span> wg sync.WaitGroup
+    <span class="kw">for</span> i := <span class="n">0</span>; i < workers; i++ {
+        wg.<span class="fn">Add</span>(<span class="n">1</span>)
+        <span class="kw">go func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            <span class="kw">for</span> job := <span class="kw">range</span> pool.jobs {
+                pool.results <- <span class="fn">fn</span>(job)
+            }
+        }()
+    }
+
+    <span class="kw">go func</span>() {
+        wg.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(pool.results)
+    }()
+    <span class="kw">return</span> pool
+}
+
+<span class="cm">// runtime/pprof để kiểm tra scheduler latency</span>
+<span class="kw">import</span> <span class="s">"runtime/trace"</span>
+
+<span class="kw">func</span> <span class="fn">diagnoseScheduler</span>() {
+    <span class="cm">// Xem scheduler events trong trace:
+    // go tool trace trace.out → "Goroutine analysis"
+    // Look for: scheduler latency, goroutines in "runnable" state lâu</span>
+
+    <span class="cm">// GODEBUG=schedtrace=1000: print scheduler stats mỗi 1000ms
+    // GOMAXPROCS=N để pin process lên N CPUs</span>
+
+    <span class="cm">// Check CPU cache effects: group related data</span>
+    <span class="kw">type</span> <span class="tp">CacheLinePadded</span> <span class="kw">struct</span> {
+        Value <span class="tp">int64</span>
+        _     [<span class="n">56</span>]<span class="tp">byte</span>  <span class="cm">// pad to 64-byte cache line</span>
+    }
+
+    <span class="cm">// Tránh false sharing: mỗi goroutine có counter riêng trên cache line riêng</span>
+    counters := <span class="fn">make</span>([]<span class="tp">CacheLinePadded</span>, runtime.<span class="fn">GOMAXPROCS</span>(<span class="n">0</span>))
+    _ = counters
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>CPU-bound tasks</strong>: workers = GOMAXPROCS. Thêm goroutine không giúp ích vì M sẽ context switch trên cùng N CPU cores. <strong>I/O-bound tasks</strong>: goroutines nhiều hơn OK vì khi I/O block, G park và CPU space free cho G khác. <strong>False sharing</strong>: khi nhiều goroutines ghi vào các trường gần nhau trong struct, CPU phải sync cache lines giữa cores — pad struct đến 64 bytes để tránh. <code>GODEBUG=asyncpreemptoff=1</code>: tắt asynchronous preemption (Go 1.14+) nếu cần debug scheduler behavior.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ MEMORY MODEL ═══════ -->
+<section class="sec" id="s-mem-concept">
+  <div class="sh">
+    <div class="sn">03</div>
+    <div><div class="stl">Go Memory Model</div>
+         <div class="ss">Happens-before, data races, memory ordering</div></div>
+    <span class="badge bb">CONCURRENCY</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">Go Memory Model — "Don't be clever"</div>
+    <p class="p">Go Memory Model (được updated 2022) định nghĩa điều kiện để <strong>read của một goroutine đọc đúng value write bởi goroutine khác</strong>. Nguyên tắc cốt lõi: nếu không có <em>synchronization</em> rõ ràng, compiler và CPU có thể reorder instructions — behavior là <strong>undefined</strong>. Go khuyến cáo: <em>"If you must read a variable written by another goroutine, use a synchronization mechanism."</em></p>
+    <p class="p"><strong>Happens-before (HB)</strong>: Event A happens-before Event B nếu có chain of synchronization events kết nối A và B. Nếu <code>write W</code> HB <code>read R</code>, R guaranteed đọc value của W.</p>
+  </div>
+
+  <h3>Happens-Before Guarantees trong Go</h3>
+  <table class="tbl">
+    <thead><tr><th>Synchronization Event</th><th>Happens-Before Guarantee</th></tr></thead>
+    <tbody>
+      <tr><td><code>go statement</code></td><td>go statement HB start của goroutine mới</td></tr>
+      <tr><td><code>channel send</code></td><td>Send HB completion của receive (unbuffered); Nth send HB (N-C)th receive (buffered C)</td></tr>
+      <tr><td><code>sync.Mutex Lock/Unlock</code></td><td>Nth Unlock HB (N+1)th Lock của cùng mutex</td></tr>
+      <tr><td><code>sync.Once</code></td><td>f() trong Do HB return từ bất kỳ Do call nào</td></tr>
+      <tr><td><code>sync/atomic</code></td><td>Store HB Load nếu observe giá trị được store</td></tr>
+      <tr><td><code>sync.WaitGroup</code></td><td>Done HB return từ Wait (khi counter = 0)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO MEMORY MODEL HAPPENS-BEFORE RELATIONSHIPS</div>
+    <img src="../../public/images/go_opt_s03_memory_model.png" alt="Memory Model Happens-Before relationships" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+</section>
+
+<!-- ═══════ MEMORY CODE ═══════ -->
+<section class="sec" id="s-mem-code">
+  <div class="sh">
+    <div class="sn">03</div>
+    <div><div class="stl">Memory Model — Sync Patterns</div>
+         <div class="ss">atomic, sync.Once, channel patterns, race detector</div></div>
+    <span class="badge ba">ADVANCED</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 3.1 — sync/atomic cho lock-free counter và lazy initialization</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Metrics collector cần đếm requests từ hàng nghìn goroutines đồng thời. Dùng mutex sẽ gây contention. Cần lock-free counter. Đồng thời cần lazy initialization của expensive resource chỉ một lần.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">atomic_patterns.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"sync"</span>
+    <span class="s">"sync/atomic"</span>
+)
+
+<span class="cm">// ── Lock-free counter với atomic ────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">Counter</span> <span class="kw">struct</span> {
+    value atomic.<span class="tp">Int64</span>  <span class="cm">// Go 1.19+: typed atomic (alignment guaranteed)</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">Counter</span>) <span class="fn">Inc</span>()        { c.value.<span class="fn">Add</span>(<span class="n">1</span>) }
+<span class="kw">func</span> (c *<span class="tp">Counter</span>) <span class="fn">Add</span>(n <span class="tp">int64</span>) { c.value.<span class="fn">Add</span>(n) }
+<span class="kw">func</span> (c *<span class="tp">Counter</span>) <span class="fn">Load</span>() <span class="tp">int64</span> { <span class="kw">return</span> c.value.<span class="fn">Load</span>() }
+<span class="kw">func</span> (c *<span class="tp">Counter</span>) <span class="fn">Reset</span>()       { c.value.<span class="fn">Store</span>(<span class="n">0</span>) }
+
+<span class="cm">// ── Sharded counter: giảm cache contention với nhiều CPU ────────────────</span>
+<span class="kw">type</span> <span class="tp">ShardedCounter</span> <span class="kw">struct</span> {
+    shards [<span class="n">64</span>]<span class="kw">struct</span> {
+        atomic.<span class="tp">Int64</span>
+        _ [<span class="n">56</span>]<span class="tp">byte</span>  <span class="cm">// pad đến 64 bytes (cache line size)</span>
+    }
+}
+
+<span class="kw">func</span> (c *<span class="tp">ShardedCounter</span>) <span class="fn">Inc</span>(goroutineID <span class="tp">int</span>) {
+    c.shards[goroutineID%<span class="n">64</span>].Int64.<span class="fn">Add</span>(<span class="n">1</span>)
+}
+
+<span class="kw">func</span> (c *<span class="tp">ShardedCounter</span>) <span class="fn">Total</span>() <span class="tp">int64</span> {
+    <span class="kw">var</span> total <span class="tp">int64</span>
+    <span class="kw">for</span> i := <span class="kw">range</span> c.shards {
+        total += c.shards[i].Int64.<span class="fn">Load</span>()
+    }
+    <span class="kw">return</span> total
+}
+
+<span class="cm">// ── sync.Once: lazy initialization (thread-safe singleton) ──────────────</span>
+<span class="kw">type</span> <span class="tp">ExpensiveResource</span> <span class="kw">struct</span> { data []<span class="tp">byte</span> }
+
+<span class="kw">var</span> (
+    resourceOnce sync.<span class="tp">Once</span>
+    resource     *<span class="tp">ExpensiveResource</span>
+)
+
+<span class="kw">func</span> <span class="fn">GetResource</span>() *<span class="tp">ExpensiveResource</span> {
+    resourceOnce.<span class="fn">Do</span>(<span class="kw">func</span>() {
+        resource = &<span class="tp">ExpensiveResource</span>{data: <span class="fn">loadData</span>()}
+    })
+    <span class="kw">return</span> resource
+    <span class="cm">// HB: Do's func() HB return từ any Do call
+    // → mọi goroutine call GetResource() sau đều thấy initialized resource</span>
+}
+
+<span class="cm">// ── atomic.Pointer: lock-free pointer swap (Go 1.19+) ───────────────────</span>
+<span class="kw">type</span> <span class="tp">Config</span> <span class="kw">struct</span> { MaxConn <span class="tp">int</span>; Timeout <span class="tp">int</span> }
+
+<span class="kw">type</span> <span class="tp">AtomicConfig</span> <span class="kw">struct</span> {
+    ptr atomic.<span class="tp">Pointer</span>[<span class="tp">Config</span>]
+}
+
+<span class="kw">func</span> (ac *<span class="tp">AtomicConfig</span>) <span class="fn">Load</span>() *<span class="tp">Config</span>     { <span class="kw">return</span> ac.ptr.<span class="fn">Load</span>() }
+<span class="kw">func</span> (ac *<span class="tp">AtomicConfig</span>) <span class="fn">Store</span>(c *<span class="tp">Config</span>)    { ac.ptr.<span class="fn">Store</span>(c) }
+<span class="kw">func</span> (ac *<span class="tp">AtomicConfig</span>) <span class="fn">Swap</span>(c *<span class="tp">Config</span>) *<span class="tp">Config</span> {
+    <span class="kw">return</span> ac.ptr.<span class="fn">Swap</span>(c)  <span class="cm">// atomic: trả về old, lưu new</span>
+}
+
+<span class="cm">// Hot reload config không cần lock — zero downtime update:
+// newCfg := &Config{MaxConn: 200}
+// globalConfig.Store(newCfg)  // atomic: readers thấy ngay</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Go 1.19 typed atomics</strong> (<code>atomic.Int64</code>, <code>atomic.Pointer</code>) tốt hơn <code>atomic.LoadInt64(&v)</code>: alignment được đảm bảo, API rõ ràng, không cần unsafe. <strong>Sharded counter</strong>: hiệu quả hơn khi có nhiều writers trên nhiều CPU cores (giảm false sharing). <strong>Luôn chạy race detector</strong> trong CI: <code>go test -race ./...</code> — overhead ~5-10x nhưng detect races statically. <strong>sync.Once vs init()</strong>: Once cho lazy initialization cần parameters hoặc error handling.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ GO 1.24 ═══════ -->
+<section class="sec" id="s-go124">
+  <div class="sh">
+    <div class="sn">04</div>
+    <div><div class="stl">Go 1.24 — New Features</div>
+         <div class="ss">Generic type aliases, weak pointers, finalizer, tool directives</div></div>
+    <span class="badge bg2">Go 1.24</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">🆕 Released Feb 2025</div>
+    <div class="cbox-t">Go 1.24 — Major features và cải tiến</div>
+    <p class="p">Go 1.24 mang lại nhiều tính năng quan trọng: <strong>generic type aliases</strong> (hoàn thiện generic ecosystem), <strong>weak pointers</strong> (cho cache use cases không giữ object alive), cải tiến <strong>finalizer</strong> với <code>runtime.AddCleanup</code>, <strong>tool directive</strong> trong go.mod, và nhiều stdlib improvements. Performance: GC 40% ít overhead hơn, map lookups nhanh hơn (~40%), CPU throughput improvements.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO 1.24 GENERIC TYPE ALIASES &amp; WEAK POINTERS</div>
+    <img src="../../public/images/go_opt_s04_go124_features.png" alt="Go 1.24 Generic Type Aliases, Weak Pointers, New Iterators" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 4.1 — Generic Type Aliases (Go 1.24)</span><span class="badge bg2">NEW</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Trước Go 1.24, không thể tạo generic type alias (chỉ concrete type). Điều này hạn chế khả năng tạo type shortcuts cho generic types, gây verbose code khi làm việc với generic collections. Go 1.24 giải quyết điều này với full generic type alias support.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">go124_features.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"runtime"</span>
+    <span class="s">"weak"</span>   <span class="cm">// Go 1.24: new package</span>
+)
+
+<span class="cm">// ── 1. Generic Type Aliases (Go 1.24) ──────────────────────────────────</span>
+<span class="cm">// Trước 1.24: type Set[T] = map[T]struct{} → ERROR</span>
+<span class="cm">// Go 1.24: fully supported!</span>
+<span class="kw">type</span> <span class="tp">Set</span>[T <span class="kw">comparable</span>] = <span class="kw">map</span>[T]<span class="kw">struct</span>{}
+<span class="kw">type</span> <span class="tp">Pair</span>[A, B <span class="kw">any</span>] = <span class="kw">struct</span>{ First A; Second B }
+<span class="kw">type</span> <span class="tp">Result</span>[T <span class="kw">any</span>] = <span class="kw">struct</span>{ Value T; Err <span class="tp">error</span> }
+
+<span class="kw">func</span> <span class="fn">useGenericAlias</span>() {
+    s := <span class="fn">make</span>(<span class="tp">Set</span>[<span class="tp">string</span>])
+    s[<span class="s">"hello"</span>] = <span class="kw">struct</span>{}{}
+    s[<span class="s">"world"</span>] = <span class="kw">struct</span>{}{}
+
+    p := <span class="tp">Pair</span>[<span class="tp">string</span>, <span class="tp">int</span>]{First: <span class="s">"age"</span>, Second: <span class="n">25</span>}
+    _ = p
+}
+
+<span class="cm">// ── 2. weak.Pointer — Cache không giữ object alive ──────────────────────</span>
+<span class="kw">type</span> <span class="tp">Cache</span>[K <span class="kw">comparable</span>, V <span class="kw">any</span>] <span class="kw">struct</span> {
+    mu    sync.<span class="tp">RWMutex</span>
+    items <span class="kw">map</span>[K]weak.<span class="tp">Pointer</span>[V]
+}
+
+<span class="kw">func</span> (c *<span class="tp">Cache</span>[K, V]) <span class="fn">Get</span>(key K) (*V, <span class="tp">bool</span>) {
+    c.mu.<span class="fn">RLock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">RUnlock</span>()
+
+    wp, ok := c.items[key]
+    <span class="kw">if</span> !ok { <span class="kw">return</span> <span class="kw">nil</span>, <span class="kw">false</span> }
+
+    <span class="cm">// weak.Pointer.Value() returns nil nếu object đã bị GC</span>
+    v := wp.<span class="fn">Value</span>()
+    <span class="kw">return</span> v, v != <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">Cache</span>[K, V]) <span class="fn">Set</span>(key K, val *V) {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.items[key] = weak.<span class="fn">Make</span>(val)
+    <span class="cm">// val vẫn live miễn là caller giữ reference
+    // Cache không giữ val alive → GC có thể thu hồi</span>
+}
+
+<span class="cm">// ── 3. runtime.AddCleanup (thay thế SetFinalizer) ──────────────────────</span>
+<span class="kw">type</span> <span class="tp">ManagedResource</span> <span class="kw">struct</span> {
+    fd <span class="tp">int</span>  <span class="cm">// file descriptor</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewManagedResource</span>(fd <span class="tp">int</span>) *<span class="tp">ManagedResource</span> {
+    r := &<span class="tp">ManagedResource</span>{fd: fd}
+
+    <span class="cm">// AddCleanup: chạy khi r unreachable, KHÔNG block GC
+    // Khác SetFinalizer: cleanup có thể chạy sớm hơn, multiple cleanups OK</span>
+    runtime.<span class="fn">AddCleanup</span>(r, <span class="kw">func</span>(fd <span class="tp">int</span>) {
+        <span class="fn">syscall</span>.<span class="fn">Close</span>(fd)  <span class="cm">// cleanup nhận value, không phải pointer</span>
+    }, r.fd)
+
+    <span class="kw">return</span> r
+}
+
+<span class="cm">// ── 4. go.mod tool directive ─────────────────────────────────────────────
+// go.mod:
+// require golang.org/x/tools v0.x.x
+// tool (
+//     golang.org/x/tools/cmd/stringer
+//     github.com/golangci/golangci-lint/cmd/golangci-lint
+// )
+//
+// Usage: go tool stringer -type=Weekday
+//        go tool golangci-lint run
+// → tools versioned cùng module, không cần separate Makefile</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Generic type aliases</strong>: giúp viết type abbreviations cho complex generic types, cải thiện readability. <strong>weak.Pointer</strong>: perfect cho implementating caches mà không muốn cache giữ objects alive (memory-sensitive caches). Khác <code>runtime.SetFinalizer</code>: <code>AddCleanup</code> có thể có multiple cleanups per object, chạy concurrent. <strong>tool directive</strong>: giải quyết "tools.go hack" pattern trước đây — tools giờ là first-class citizen trong go.mod.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PPROF INTRO ═══════ -->
+<section class="sec" id="s-pprof-intro">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">Performance Profiling — pprof</div>
+         <div class="ss">CPU · Heap · Goroutine · Mutex · Block profiling</div></div>
+    <span class="badge bb">PROFILING</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">pprof — Go's built-in profiler</div>
+    <p class="p"><strong>pprof</strong> là profiling tool tích hợp trong Go runtime. Có thể collect profiles theo nhiều cách: HTTP endpoint (<code>net/http/pprof</code>), programmatic API (<code>runtime/pprof</code>), hoặc test flag (<code>go test -cpuprofile</code>). Profile có thể analyze qua CLI (<code>go tool pprof</code>) hoặc web UI với flame graphs.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO PPROF CPU &amp; HEAP PROFILING WORKFLOW</div>
+    <img src="../../public/images/go_opt_s05_pprof_profiling.png" alt="pprof CPU/Heap profiling workflow & Call Graph" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+
+  <h3>5 loại Profile quan trọng</h3>
+  <table class="tbl">
+    <thead><tr><th>Profile Type</th><th>Thu thập gì</th><th>Dùng khi</th><th>Overhead</th></tr></thead>
+    <tbody>
+      <tr><td><code>cpu</code></td><td>Sampling stack traces mỗi 10ms</td><td>CPU usage cao, slow functions</td><td>~5-10%</td></tr>
+      <tr><td><code>heap</code></td><td>Allocation và live objects</td><td>Memory leak, GC pressure</td><td>Rất thấp</td></tr>
+      <tr><td><code>goroutine</code></td><td>Stack của tất cả goroutines</td><td>Goroutine leak, deadlock</td><td>STW ngắn</td></tr>
+      <tr><td><code>mutex</code></td><td>Contention trên sync.Mutex</td><td>Lock contention, slow mutex</td><td>~5-10%</td></tr>
+      <tr><td><code>block</code></td><td>Blocking trên chan/mutex/cond</td><td>Goroutines bị block lâu</td><td>Cao (~30%)</td></tr>
+    </tbody>
+  </table>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 5.1 — Production pprof HTTP endpoint setup</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">pprof_setup.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"context"</span>
+    <span class="s">"net/http"</span>
+    _ <span class="s">"net/http/pprof"</span>  <span class="cm">// import side effect: register /debug/pprof/ handlers</span>
+    <span class="s">"runtime"</span>
+    <span class="s">"runtime/pprof"</span>
+    <span class="s">"os"</span>
+    <span class="s">"os/signal"</span>
+    <span class="s">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">startDebugServer</span>() {
+    <span class="cm">// SECURITY: chỉ expose trên internal network, không ra public internet!</span>
+    <span class="kw">go func</span>() {
+        <span class="cm">// Available endpoints:
+        // GET /debug/pprof/             — index
+        // GET /debug/pprof/profile?seconds=30 — CPU profile 30s
+        // GET /debug/pprof/heap         — heap snapshot
+        // GET /debug/pprof/goroutine    — all goroutines
+        // GET /debug/pprof/mutex        — mutex contention
+        // GET /debug/pprof/block        — blocking events
+        // GET /debug/pprof/trace?seconds=5 — execution trace</span>
+
+        <span class="cm">// Enable mutex and block profiling (disabled by default)</span>
+        runtime.<span class="fn">SetMutexProfileFraction</span>(<span class="n">5</span>)   <span class="cm">// 1/5 mutex events sampled</span>
+        runtime.<span class="fn">SetBlockProfileRate</span>(<span class="n">1000000</span>)  <span class="cm">// events > 1ms sampled</span>
+
+        srv := &http.<span class="tp">Server</span>{
+            Addr:         <span class="s">":6060"</span>,
+            ReadTimeout:  <span class="n">30</span> * time.Second,
+            WriteTimeout: <span class="n">120</span> * time.Second, <span class="cm">// CPU profile cần thời gian</span>
+        }
+        srv.<span class="fn">ListenAndServe</span>()
+    }()
+}
+
+<span class="cm">// Programmatic profile: dùng khi cần profile specific code path</span>
+<span class="kw">func</span> <span class="fn">profileCPU</span>(duration time.Duration) <span class="tp">error</span> {
+    f, err := os.<span class="fn">Create</span>(<span class="s">"cpu.pprof"</span>)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="kw">defer</span> f.<span class="fn">Close</span>()
+
+    <span class="kw">if</span> err := pprof.<span class="fn">StartCPUProfile</span>(f); err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+    <span class="kw">defer</span> pprof.<span class="fn">StopCPUProfile</span>()
+
+    time.<span class="fn">Sleep</span>(duration)  <span class="cm">// hoặc chạy workload cần profile</span>
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// Signal-triggered profile: capture khi nhận SIGUSR1</span>
+<span class="kw">func</span> <span class="fn">watchSignals</span>(ctx context.Context) {
+    ch := <span class="fn">make</span>(<span class="kw">chan</span> os.Signal, <span class="n">1</span>)
+    signal.<span class="fn">Notify</span>(ch, syscall.SIGUSR1)
+    <span class="kw">defer</span> signal.<span class="fn">Stop</span>(ch)
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">case</span> <-ch:
+            <span class="fn">profileCPU</span>(<span class="n">30</span> * time.Second)
+            <span class="cm">// kill -USR1 &lt;pid&gt; → trigger 30s CPU profile</span>
+        }
+    }
+}
+
+<span class="cm">// Analysis commands:
+// go tool pprof http://localhost:6060/debug/pprof/profile?seconds=30
+// go tool pprof -http=:8080 cpu.pprof  → opens web UI with flame graph
+// go tool pprof -alloc_space http://localhost:6060/debug/pprof/heap</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Production safety</strong>: pprof HTTP endpoint phải được protect (internal network only, hoặc behind auth middleware). Overhead của CPU profiling (~5-10%) là chấp nhận được trong production khi cần diagnose. <strong>Flame graph</strong> là cách đọc pprof hiệu quả nhất: trục X là CPU time, trục Y là call stack depth. <strong>Differential profile</strong>: <code>pprof -diff_base=before.pprof after.pprof</code> so sánh hai profiles — rất hữu ích khi optimize. Block profile overhead cao — chỉ enable khi investigate blocking issues.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PPROF CODE ═══════ -->
+<section class="sec" id="s-pprof-code">
+  <div class="sh">
+    <div class="sn">05</div>
+    <div><div class="stl">pprof — Reading &amp; Optimizing</div>
+         <div class="ss">Flame graph interpretation, memory leak detection</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 5.2 — Phát hiện memory leak qua heap profile</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Service bắt đầu với 100MB, sau 24h lên 2GB và OOM. Cần tìm root cause. Heap profile là tool đầu tiên cần dùng.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">bash</span><span class="cf">heap_analysis.sh</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm"># 1. Capture heap profile lúc bình thường (baseline)</span>
+curl -s http://localhost:6060/debug/pprof/heap > baseline.pprof
+
+<span class="cm"># 2. Wait hoặc reproduce issue</span>
+sleep 3600  <span class="cm"># hoặc simulate load</span>
+
+<span class="cm"># 3. Capture heap profile khi memory cao</span>
+curl -s http://localhost:6060/debug/pprof/heap > after.pprof
+
+<span class="cm"># 4. Xem top allocators (inuse_space: memory currently held)</span>
+go tool pprof -inuse_space after.pprof
+<span class="cm"># (pprof) top 20
+# → lists functions holding most memory</span>
+
+<span class="cm"># 5. Xem allocation path (alloc_space: total allocated, including freed)</span>
+go tool pprof -alloc_space after.pprof
+<span class="cm"># (pprof) top 20
+# → nếu function xuất hiện nhiều ở alloc nhưng ít ở inuse → nhiều short-lived alloc</span>
+
+<span class="cm"># 6. Web UI với flame graph (tốt nhất cho visualization)</span>
+go tool pprof -http=:8080 after.pprof
+
+<span class="cm"># 7. Diff: so sánh để thấy delta</span>
+go tool pprof -diff_base=baseline.pprof -http=:8080 after.pprof
+<span class="cm"># → màu đỏ = tăng, màu xanh = giảm</span>
+
+<span class="cm"># 8. Tìm goroutine leaks (goroutines tăng theo thời gian)</span>
+curl -s http://localhost:6060/debug/pprof/goroutine?debug=1 | head -50
+
+<span class="cm"># 9. allocs: real-time allocation rate (không phải live heap)</span>
+curl -s "http://localhost:6060/debug/pprof/allocs" > allocs.pprof</pre>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">memory_leak_patterns.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="cm">// ── Common Memory Leak Patterns ────────────────────────────────────────</span>
+
+<span class="cm">// ❌ Leak 1: goroutine block mãi mãi → heap không được GC</span>
+<span class="kw">func</span> <span class="fn">goroutineLeak</span>() {
+    ch := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">int</span>)
+    <span class="kw">go func</span>() {
+        data := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">1024</span>*<span class="n">1024</span>) <span class="cm">// 1MB trapped</span>
+        <-ch  <span class="cm">// blocked forever nếu không ai gửi vào ch</span>
+        _ = data
+    }()
+    <span class="cm">// ch không được close → goroutine leak + 1MB memory leak</span>
+}
+
+<span class="cm">// ✅ Fix: context + timeout</span>
+<span class="kw">func</span> <span class="fn">noLeak</span>(ctx context.Context) {
+    ch := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">int</span>, <span class="n">1</span>)
+    <span class="kw">go func</span>() {
+        data := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">1024</span>*<span class="n">1024</span>)
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ch:
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():  <span class="cm">// always exit when context cancelled</span>
+        }
+        _ = data
+    }()
+}
+
+<span class="cm">// ❌ Leak 2: string converter giữ underlying array lớn</span>
+<span class="kw">func</span> <span class="fn">stringLeak</span>(largeData []<span class="tp">byte</span>) <span class="tp">string</span> {
+    <span class="kw">return</span> string(largeData[<span class="n">10</span>:<span class="n">20</span>])  <span class="cm">// safe, Go copies</span>
+}
+
+<span class="cm">// ❌ Leak 3: sub-slice giữ large underlying array</span>
+<span class="kw">func</span> <span class="fn">sliceLeak</span>(large []<span class="tp">byte</span>) []<span class="tp">byte</span> {
+    <span class="kw">return</span> large[<span class="n">100</span>:<span class="n">110</span>]  <span class="cm">// sub-slice → large vẫn không bị GC!</span>
+}
+
+<span class="cm">// ✅ Fix: copy needed data</span>
+<span class="kw">func</span> <span class="fn">noSliceLeak</span>(large []<span class="tp">byte</span>) []<span class="tp">byte</span> {
+    result := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">10</span>)
+    <span class="fn">copy</span>(result, large[<span class="n">100</span>:<span class="n">110</span>])
+    <span class="kw">return</span> result  <span class="cm">// large có thể bị GC</span>
+}
+
+<span class="cm">// ❌ Leak 4: time.Ticker không được Stop</span>
+<span class="kw">func</span> <span class="fn">tickerLeak</span>() {
+    <span class="kw">for</span> {
+        ticker := time.<span class="fn">NewTicker</span>(time.Second)  <span class="cm">// goroutine bên trong ticker!</span>
+        <-ticker.C
+        <span class="cm">// ticker.Stop() không bao giờ được gọi → goroutine leak</span>
+    }
+}
+
+<span class="cm">// ✅ Fix</span>
+<span class="kw">func</span> <span class="fn">noTickerLeak</span>(ctx context.Context) {
+    ticker := time.<span class="fn">NewTicker</span>(time.Second)
+    <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ticker.C: <span class="cm">// do work</span>
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>(): <span class="kw">return</span>
+        }
+    }
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Workflow chuẩn</strong>: baseline → load → capture → diff. Dùng <code>-inuse_space</code> cho memory đang bị giữ; <code>-alloc_space</code> cho total allocations (bao gồm đã freed). <strong>Sub-slice leak</strong> là một trong những bug tinh vi nhất — slice nhỏ giữ underlying array lớn alive. Rule: nếu giữ small portion của large slice, hãy copy. <strong>strings.Builder vs bytes.Buffer</strong>: Builder zero-copy, không escape; Buffer có thể grow nhiều lần. Prefer Builder cho string building trong hot paths.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ GENERATOR CONCEPT ═══════ -->
+<section class="sec" id="s-gen-concept">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">Generator Pattern — iter.Seq</div>
+         <div class="ss">Lazy evaluation, range-over-func (Go 1.22+), pipeline</div></div>
+    <span class="badge bg2">Go 1.22+</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">range-over-func: Generators first-class trong Go 1.22</div>
+    <p class="p">Go 1.22 giới thiệu <strong>range-over-func</strong> — cho phép dùng <code>for range</code> với function có signature <code>func(yield func(K, V) bool)</code>. Package <code>iter</code> (Go 1.23) chuẩn hóa với <code>iter.Seq[V]</code> và <code>iter.Seq2[K, V]</code>. Generators cho phép <strong>lazy evaluation</strong> — chỉ compute khi cần — và <strong>infinite sequences</strong> mà không tốn memory.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO ITERATORS &amp; GENERATORS RANGE-OVER-FUNC PIPELINE</div>
+    <img src="../../public/images/go_opt_s06_generator_iterator.png" alt="Go Iterators & Generators iter.Seq pattern" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+</section>
+
+<!-- ═══════ GENERATOR CODE ═══════ -->
+<section class="sec" id="s-gen-code">
+  <div class="sh">
+    <div class="sn">06</div>
+    <div><div class="stl">Generator — Code &amp; Use Cases</div>
+         <div class="ss">iter.Seq, pipeline composition, database cursor</div></div>
+    <span class="badge ba">ADVANCED</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 6.1 — Lazy pipeline với iter.Seq và range-over-func</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Query database trả về 1 triệu records. Nếu load tất cả vào slice trước rồi process, cần hàng GB memory. Cần streaming pipeline: đọc từng batch nhỏ, filter, transform, và consume mà không cần load toàn bộ vào memory.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">generator_pipeline.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"context"</span>
+    <span class="s">"database/sql"</span>
+    <span class="s">"iter"</span>   <span class="cm">// Go 1.23</span>
+)
+
+<span class="cm">// iter.Seq[V] = func(yield func(V) bool)
+// yield returns false → generator must stop (break from range)</span>
+
+<span class="cm">// ── Source: database rows as lazy sequence ──────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">QueryRows</span>[T <span class="kw">any</span>](
+    ctx context.Context,
+    db *sql.DB,
+    query <span class="tp">string</span>,
+    scan <span class="kw">func</span>(*sql.Rows) (T, <span class="tp">error</span>),
+) iter.<span class="tp">Seq2</span>[T, <span class="tp">error</span>] {
+    <span class="kw">return func</span>(yield <span class="kw">func</span>(T, <span class="tp">error</span>) <span class="tp">bool</span>) {
+        rows, err := db.<span class="fn">QueryContext</span>(ctx, query)
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            <span class="kw">var</span> zero T
+            yield(zero, err)
+            <span class="kw">return</span>
+        }
+        <span class="kw">defer</span> rows.<span class="fn">Close</span>()
+
+        <span class="kw">for</span> rows.<span class="fn">Next</span>() {
+            val, err := <span class="fn">scan</span>(rows)
+            <span class="kw">if</span> !<span class="fn">yield</span>(val, err) {  <span class="cm">// yield trả false → consumer broke</span>
+                <span class="kw">return</span>
+            }
+        }
+        <span class="kw">if</span> err := rows.<span class="fn">Err</span>(); err != <span class="kw">nil</span> {
+            <span class="kw">var</span> zero T
+            yield(zero, err)
+        }
+    }
+}
+
+<span class="cm">// ── Filter combinator ────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">Filter</span>[V <span class="kw">any</span>](seq iter.<span class="tp">Seq</span>[V], pred <span class="kw">func</span>(V) <span class="tp">bool</span>) iter.<span class="tp">Seq</span>[V] {
+    <span class="kw">return func</span>(yield <span class="kw">func</span>(V) <span class="tp">bool</span>) {
+        <span class="kw">for</span> v := <span class="kw">range</span> seq {
+            <span class="kw">if</span> <span class="fn">pred</span>(v) && !<span class="fn">yield</span>(v) {
+                <span class="kw">return</span>
+            }
+        }
+    }
+}
+
+<span class="cm">// ── Map combinator ───────────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">Map</span>[V, R <span class="kw">any</span>](seq iter.<span class="tp">Seq</span>[V], f <span class="kw">func</span>(V) R) iter.<span class="tp">Seq</span>[R] {
+    <span class="kw">return func</span>(yield <span class="kw">func</span>(R) <span class="tp">bool</span>) {
+        <span class="kw">for</span> v := <span class="kw">range</span> seq {
+            <span class="kw">if</span> !<span class="fn">yield</span>(<span class="fn">f</span>(v)) {
+                <span class="kw">return</span>
+            }
+        }
+    }
+}
+
+<span class="cm">// ── Take: first N elements ───────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">Take</span>[V <span class="kw">any</span>](seq iter.<span class="tp">Seq</span>[V], n <span class="tp">int</span>) iter.<span class="tp">Seq</span>[V] {
+    <span class="kw">return func</span>(yield <span class="kw">func</span>(V) <span class="tp">bool</span>) {
+        count := <span class="n">0</span>
+        <span class="kw">for</span> v := <span class="kw">range</span> seq {
+            <span class="kw">if</span> !<span class="fn">yield</span>(v) || count+<span class="n">1</span> >= n {
+                <span class="kw">return</span>
+            }
+            count++
+        }
+    }
+}
+
+<span class="cm">// ── Batch: nhóm thành chunks ─────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">Batch</span>[V <span class="kw">any</span>](seq iter.<span class="tp">Seq</span>[V], size <span class="tp">int</span>) iter.<span class="tp">Seq</span>[[]V] {
+    <span class="kw">return func</span>(yield <span class="kw">func</span>([]V) <span class="tp">bool</span>) {
+        batch := <span class="fn">make</span>([]V, <span class="n">0</span>, size)
+        <span class="kw">for</span> v := <span class="kw">range</span> seq {
+            batch = <span class="fn">append</span>(batch, v)
+            <span class="kw">if</span> <span class="fn">len</span>(batch) == size {
+                <span class="kw">if</span> !<span class="fn">yield</span>(batch) { <span class="kw">return</span> }
+                batch = batch[:<span class="n">0</span>]  <span class="cm">// reuse backing array</span>
+            }
+        }
+        <span class="kw">if</span> <span class="fn">len</span>(batch) > <span class="n">0</span> { <span class="fn">yield</span>(batch) }
+    }
+}
+
+<span class="cm">// ── Usage: streaming DB pipeline ─────────────────────────────────────────</span>
+<span class="kw">type</span> <span class="tp">User</span> <span class="kw">struct</span> { ID <span class="tp">int64</span>; Email <span class="tp">string</span>; Active <span class="tp">bool</span> }
+
+<span class="kw">func</span> <span class="fn">processUsers</span>(ctx context.Context, db *sql.DB) <span class="tp">error</span> {
+    <span class="cm">// 1. Source: lazy DB query</span>
+    users := <span class="fn">QueryRows</span>(ctx, db, <span class="s">"SELECT id, email, active FROM users"</span>,
+        <span class="kw">func</span>(r *sql.Rows) (<span class="tp">User</span>, <span class="tp">error</span>) {
+            <span class="kw">var</span> u <span class="tp">User</span>
+            <span class="kw">return</span> u, r.<span class="fn">Scan</span>(&u.ID, &u.Email, &u.Active)
+        })
+
+    <span class="cm">// 2. Pipeline: không allocate slice trung gian</span>
+    activeUsers := <span class="fn">Filter</span>(users, <span class="kw">func</span>(u <span class="tp">User</span>) <span class="tp">bool</span> { <span class="kw">return</span> u.Active })
+    emails := <span class="fn">Map</span>(activeUsers, <span class="kw">func</span>(u <span class="tp">User</span>) <span class="tp">string</span> { <span class="kw">return</span> u.Email })
+    batches := <span class="fn">Batch</span>(emails, <span class="n">100</span>)  <span class="cm">// nhóm 100 email mỗi batch</span>
+
+    <span class="cm">// 3. Consume: range-over-func</span>
+    <span class="kw">for</span> batch := <span class="kw">range</span> batches {
+        <span class="kw">if</span> err := <span class="fn">sendEmailBatch</span>(ctx, batch); err != <span class="kw">nil</span> {
+            <span class="kw">return</span> err
+        }
+    }
+    <span class="kw">return</span> <span class="kw">nil</span>
+    <span class="cm">// Memory: chỉ 1 batch (100 emails) trong memory tại một thời điểm!</span>
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Generator pattern</strong>: không cần goroutine hay channel — chỉ là function composition. Hiệu quả hơn channel-based pipeline vì không có synchronization overhead. <strong>Break semantic</strong>: khi <code>range</code> break hoặc <code>return</code>, yield returns false → generator phải clean up và return. Đảm bảo resource cleanup (defer rows.Close()) vẫn được gọi. <strong>slices.Collect</strong> (Go 1.23): <code>slices.Collect(seq)</code> materializes iterator thành slice khi cần toàn bộ data.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ TRACE CONCEPT ═══════ -->
+<section class="sec" id="s-trace-concept">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Deep pprof &amp; Execution Trace</div>
+         <div class="ss">go tool trace, goroutine timeline, GC events, network</div></div>
+    <span class="badge bb">ADVANCED</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 pprof vs trace</div>
+    <div class="cbox-t">pprof = "What" | trace = "Why and When"</div>
+    <p class="p"><strong>pprof</strong> cho biết <em>function nào</em> dùng nhiều CPU/memory (aggregated over time). <strong>Execution tracer</strong> ghi lại <em>timeline</em> của mọi event: goroutine state changes, GC phases, network block, system calls — theo microsecond precision. Tracer tốt để diagnose: scheduler latency, GC impact, goroutine starvation, network I/O waiting.</p>
+    <p class="p">Go 1.22 rework execution tracer hoàn toàn: regions thay thế spans, tasks hierarchy, và trace format mới hiệu quả hơn nhiều.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO EXECUTION TRACER CPU TIMELINE &amp; SCHEDULER EVENTS</div>
+    <img src="../../public/images/go_opt_s07_execution_tracer.png" alt="Go Execution Tracer CPU core timelines & GC events" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+</section>
+
+<!-- ═══════ TRACE CODE ═══════ -->
+<section class="sec" id="s-trace-code">
+  <div class="sh">
+    <div class="sn">07</div>
+    <div><div class="stl">Trace Workflow &amp; Custom Regions</div>
+         <div class="ss">runtime/trace, user tasks, regions, goroutine analysis</div></div>
+    <span class="badge ba">ADVANCED</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 7.1 — Custom trace regions cho business logic analysis</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Service xử lý orders chậm hơn expected. pprof cho thấy không có hot function, nhưng latency P99 vẫn cao. Cần biết mỗi bước trong order pipeline tốn bao nhiêu thời gian và goroutine nào đang chờ gì.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">trace_workflow.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"context"</span>
+    <span class="s">"os"</span>
+    <span class="s">"runtime/trace"</span>
+    <span class="s">"time"</span>
+)
+
+<span class="cm">// ── Setup: thu thập trace ────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">collectTrace</span>(duration time.Duration) {
+    f, _ := os.<span class="fn">Create</span>(<span class="s">"trace.out"</span>)
+    <span class="kw">defer</span> f.<span class="fn">Close</span>()
+    trace.<span class="fn">Start</span>(f)
+    <span class="kw">defer</span> trace.<span class="fn">Stop</span>()
+    time.<span class="fn">Sleep</span>(duration)
+    <span class="cm">// go tool trace trace.out → opens browser</span>
+}
+
+<span class="cm">// ── User tasks: trace business transactions ──────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">processOrder</span>(ctx context.Context, orderID <span class="tp">string</span>) <span class="tp">error</span> {
+    <span class="cm">// Task: group related events trong trace viewer</span>
+    ctx, task := trace.<span class="fn">NewTask</span>(ctx, <span class="s">"processOrder"</span>)
+    <span class="kw">defer</span> task.<span class="fn">End</span>()
+
+    trace.<span class="fn">Logf</span>(ctx, <span class="s">"order"</span>, <span class="s">"starting order %s"</span>, orderID)
+
+    <span class="cm">// Region: measure specific sub-operation</span>
+    trace.<span class="fn">WithRegion</span>(ctx, <span class="s">"validateOrder"</span>, <span class="kw">func</span>() {
+        <span class="cm">// validation logic — visible trong trace timeline</span>
+        time.<span class="fn">Sleep</span>(<span class="n">5</span> * time.Millisecond)
+    })
+
+    <span class="kw">var</span> paymentResult <span class="tp">string</span>
+    trace.<span class="fn">WithRegion</span>(ctx, <span class="s">"chargePayment"</span>, <span class="kw">func</span>() {
+        <span class="cm">// payment API call — nếu chậm sẽ thấy rõ trong trace</span>
+        paymentResult = <span class="fn">callPaymentAPI</span>(ctx)
+    })
+
+    trace.<span class="fn">WithRegion</span>(ctx, <span class="s">"updateDatabase"</span>, <span class="kw">func</span>() {
+        <span class="cm">// DB write — có thể thấy lock contention</span>
+        <span class="fn">writeToDatabase</span>(ctx, orderID, paymentResult)
+    })
+
+    trace.<span class="fn">Logf</span>(ctx, <span class="s">"order"</span>, <span class="s">"completed order %s"</span>, orderID)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}
+
+<span class="cm">// ── Goroutine analysis từ trace ──────────────────────────────────────────
+// go tool trace trace.out
+// Tabs quan trọng:
+//
+// 1. "Goroutine analysis": xem tất cả goroutines,
+//    thời gian spent trong: running, runnable, blocked(net), blocked(sync), sleep
+//    → Goroutines blocked(sync) nhiều → lock contention
+//    → Goroutines runnable lâu → scheduler latency
+//
+// 2. "Network blocking profile":
+//    → Show thời gian goroutines chờ network I/O
+//
+// 3. "Sync blocking profile":
+//    → Show mutex, channel blocking
+//
+// 4. "View trace" → timeline của tất cả P/G/M
+//    → Zoom vào GC events để xem STW duration</span>
+
+<span class="cm">// ── Continuous trace với ring buffer (Go 1.22+) ──────────────────────────</span>
+<span class="kw">func</span> <span class="fn">continuousTrace</span>(ctx context.Context) {
+    <span class="cm">// Go 1.22: trace.FlightRecorder — ring buffer của recent events
+    // Khi detect anomaly, dump trace từ last N seconds</span>
+    fr := trace.<span class="fn">NewFlightRecorder</span>()
+    fr.<span class="fn">SetPeriod</span>(<span class="n">10</span> * time.Second)  <span class="cm">// giữ 10s gần nhất</span>
+    fr.<span class="fn">Start</span>()
+    <span class="kw">defer</span> fr.<span class="fn">Stop</span>()
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">default</span>:
+            <span class="kw">if</span> <span class="fn">detectHighLatency</span>() {
+                <span class="cm">// Dump trace khi phát hiện anomaly</span>
+                f, _ := os.<span class="fn">Create</span>(<span class="s">"incident.trace"</span>)
+                fr.<span class="fn">WriteTo</span>(f)
+                f.<span class="fn">Close</span>()
+            }
+            time.<span class="fn">Sleep</span>(time.Second)
+        }
+    }
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>trace.WithRegion</strong> là cách tốt nhất để annotate business operations trong trace timeline — giúp correlate code với runtime behavior. <strong>FlightRecorder</strong> (Go 1.22): production-safe continuous tracing với fixed memory overhead — dump khi phát hiện vấn đề, không cần plan trước. <strong>Khi nào dùng trace vs pprof</strong>: trace khi cần biết "tại sao latency cao", "goroutine nào chờ gì", "GC pause ảnh hưởng thế nào"; pprof khi cần biết "function nào chậm nhất", "code path nào allocate nhiều nhất".</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ BENCHMARK CONCEPT ═══════ -->
+<section class="sec" id="s-bench-concept">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">Benchmark Strategy</div>
+         <div class="ss">Reliable benchmarks, sub-benchmarks, allocs reporting</div></div>
+    <span class="badge bb">TESTING</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Nguyên tắc</div>
+    <div class="cbox-t">Benchmark đúng cách — tránh các pitfalls phổ biến</div>
+    <p class="p">Benchmark trong Go dùng package <code>testing.B</code>. Để kết quả đáng tin cậy, cần tránh: compiler optimization (dead code elimination), benchmark noise, GC interference, và CPU frequency scaling. Dùng <strong>benchstat</strong> để so sánh thống kê giữa các versions thay vì chỉ nhìn số tuyệt đối.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GO BENCHMARK &amp; BENCHSTAT STATISTICAL ANALYSIS</div>
+    <img src="../../public/images/go_opt_s08_benchmark_benchstat.png" alt="Go Benchmark & Benchstat performance distribution curves" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 8.1 — Production-quality benchmark với sub-benchmarks và reporting</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">benchmark_test.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"testing"</span>
+    <span class="s">"math/rand"</span>
+)
+
+<span class="cm">// ── Basic benchmark: nguyên tắc cơ bản ──────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BenchmarkJsonMarshal</span>(b *testing.B) {
+    data := &<span class="tp">MyStruct</span>{Name: <span class="s">"test"</span>, Value: <span class="n">42</span>}
+
+    b.<span class="fn">ResetTimer</span>()   <span class="cm">// exclude setup time</span>
+    b.<span class="fn">ReportAllocs</span>() <span class="cm">// show allocations per op</span>
+
+    <span class="kw">for</span> i := <span class="n">0</span>; i < b.N; i++ {
+        result, err := json.<span class="fn">Marshal</span>(data)
+        <span class="kw">if</span> err != <span class="kw">nil</span> {
+            b.<span class="fn">Fatal</span>(err)
+        }
+        _ = result  <span class="cm">// prevent dead code elimination</span>
+    }
+}
+
+<span class="cm">// ── Prevent compiler optimization với sink ──────────────────────────────</span>
+<span class="kw">var</span> globalSink <span class="kw">interface</span>{}  <span class="cm">// package-level var prevents optimization</span>
+
+<span class="kw">func</span> <span class="fn">BenchmarkWithSink</span>(b *testing.B) {
+    <span class="kw">for</span> i := <span class="n">0</span>; i < b.N; i++ {
+        result := <span class="fn">expensiveComputation</span>(i)
+        globalSink = result  <span class="cm">// MUST escape to prevent elimination</span>
+    }
+}
+
+<span class="cm">// ── Sub-benchmarks: test nhiều inputs ─────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BenchmarkSort</span>(b *testing.B) {
+    sizes := []<span class="tp">int</span>{<span class="n">10</span>, <span class="n">100</span>, <span class="n">1000</span>, <span class="n">10000</span>, <span class="n">100000</span>}
+
+    <span class="kw">for</span> _, size := <span class="kw">range</span> sizes {
+        b.<span class="fn">Run</span>(fmt.<span class="fn">Sprintf</span>(<span class="s">"size=%d"</span>, size), <span class="kw">func</span>(b *testing.B) {
+            <span class="cm">// Setup: tạo data NGOÀI loop</span>
+            data := <span class="fn">make</span>([]<span class="tp">int</span>, size)
+            <span class="kw">for</span> i := <span class="kw">range</span> data { data[i] = rand.<span class="fn">Intn</span>(<span class="n">10000</span>) }
+
+            b.<span class="fn">ResetTimer</span>()
+            <span class="kw">for</span> i := <span class="n">0</span>; i < b.N; i++ {
+                <span class="cm">// Copy để giữ data consistent mỗi iteration</span>
+                tmp := <span class="fn">make</span>([]<span class="tp">int</span>, size)
+                <span class="fn">copy</span>(tmp, data)
+                sort.<span class="fn">Ints</span>(tmp)
+            }
+        })
+    }
+}
+
+<span class="cm">// ── Parallel benchmark ─────────────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BenchmarkConcurrentMap</span>(b *testing.B) {
+    m := sync.<span class="tp">Map</span>{}
+    b.<span class="fn">RunParallel</span>(<span class="kw">func</span>(pb *testing.PB) {
+        i := <span class="n">0</span>
+        <span class="kw">for</span> pb.<span class="fn">Next</span>() {
+            m.<span class="fn">Store</span>(i%<span class="n">1000</span>, i)
+            m.<span class="fn">Load</span>(i%<span class="n">1000</span>)
+            i++
+        }
+    })
+}
+
+<span class="cm">// ── Custom metric với b.ReportMetric ────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BenchmarkThroughput</span>(b *testing.B) {
+    totalBytes := <span class="n">0</span>
+    b.<span class="fn">ResetTimer</span>()
+
+    <span class="kw">for</span> i := <span class="n">0</span>; i < b.N; i++ {
+        data := <span class="fn">generateData</span>(<span class="n">1024</span>)
+        totalBytes += <span class="fn">len</span>(data)
+        <span class="fn">processData</span>(data)
+    }
+
+    <span class="cm">// Report custom metric</span>
+    b.<span class="fn">ReportMetric</span>(float64(totalBytes)/float64(b.N), <span class="s">"bytes/op"</span>)
+    b.<span class="fn">SetBytes</span>(int64(totalBytes) / int64(b.N))  <span class="cm">// MB/s calculation</span>
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>Benchmark flags quan trọng</strong>: <code>-benchmem</code> (allocs/op, B/op), <code>-benchtime=5s</code> (longer = more stable), <code>-count=10</code> (multiple runs cho benchstat). <strong>-cpuprofile/-memprofile</strong>: profile trong benchmark run: <code>go test -bench=BenchmarkFoo -cpuprofile=cpu.pprof</code>. <strong>Pitfalls</strong>: đừng allocate trong benchmark setup, đừng forget ResetTimer sau setup, đừng bỏ qua -count khi so sánh. <strong>CPU frequency scaling</strong>: tắt frequency scaling (<code>cpupower frequency-set -g performance</code>) trên Linux để giảm noise.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ BENCHMARK CODE ═══════ -->
+<section class="sec" id="s-bench-code">
+  <div class="sh">
+    <div class="sn">08</div>
+    <div><div class="stl">Benchstat — Statistical Analysis</div>
+         <div class="ss">Reliable comparison, noise detection, regression testing</div></div>
+    <span class="badge be">EXPERT</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 8.2 — benchstat workflow: so sánh before/after optimization</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Sau khi optimize một function, benchmark chạy một lần cho kết quả: before=1.2ms, after=0.9ms — 25% improvement. Nhưng kết quả này có đủ statistical significance không? Có thể là noise từ CPU throttling, GC, background processes. Cần phương pháp đánh giá đáng tin cậy.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">bash</span><span class="cf">benchstat_workflow.sh</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm"># 1. Install benchstat (Go 1.23+: built into go toolchain)</span>
+go install golang.org/x/perf/cmd/benchstat@latest
+
+<span class="cm"># 2. Chạy benchmark trên code CŨ với -count=10 (10 iterations)</span>
+git stash  <span class="cm"># hoặc checkout old branch</span>
+go test -bench=BenchmarkSort -benchmem -count=10 ./... > old.txt
+
+<span class="cm"># 3. Chạy benchmark trên code MỚI</span>
+git stash pop  <span class="cm"># hoặc checkout new branch</span>
+go test -bench=BenchmarkSort -benchmem -count=10 ./... > new.txt
+
+<span class="cm"># 4. So sánh với benchstat</span>
+benchstat old.txt new.txt
+
+<span class="cm"># Output ví dụ:
+# goos: linux
+# goarch: amd64
+# pkg: myapp/sort
+#                    │   old.txt   │              new.txt              │
+#                    │   sec/op    │   sec/op     vs base              │
+# Sort/size=100      │  1.23µs ± 3%│  0.891µs ± 2%  -27.56% (p=0.000)│
+# Sort/size=1000     │  14.5µs ± 2%│  9.82µs  ± 1%  -32.28% (p=0.000)│
+# Sort/size=10000    │  185µs  ± 1%│  142µs   ± 2%  -23.24% (p=0.000)│
+#
+#                    │   B/op      │   B/op       vs base              │
+# Sort/size=100      │  480 ± 0%   │  160 ± 0%    -66.67% (p=0.000)   │
+#
+# p=0.000 → statistically significant (p < 0.05 = significant)
+# ± 3% → noise level (thấp là tốt)</span>
+
+<span class="cm"># 5. Với metrics mới (Go 1.21 benchstat format)</span>
+benchstat -col /size old.txt new.txt  <span class="cm"># pivot theo sub-benchmark</span>
+
+<span class="cm"># 6. Detect regression trong CI</span>
+<span class="cm"># Nếu p > 0.05 hoặc change dương (tăng thời gian) → fail CI</span>
+benchstat old.txt new.txt | grep -E "\+[0-9]" && exit 1 || exit 0</pre>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">benchmark_advanced.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="cm">// ── Benchmark with testscript for reproducibility ──────────────────────</span>
+
+<span class="cm">// testing.B.Loop() — Go 1.24 feature: cleaner loop without b.N</span>
+<span class="kw">func</span> <span class="fn">BenchmarkWithLoop</span>(b *testing.B) {
+    data := <span class="fn">makeData</span>(<span class="n">1000</span>)
+    <span class="kw">for</span> b.<span class="fn">Loop</span>() {  <span class="cm">// Go 1.24: b.Loop() replaces b.N pattern</span>
+        _ = <span class="fn">process</span>(data)
+    }
+    <span class="cm">// b.Loop() handles: timer reset, N iterations, cleanup automatically</span>
+}
+
+<span class="cm">// ── Table-driven benchmark với generate ───────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">BenchmarkEncoding</span>(b *testing.B) {
+    <span class="kw">type</span> <span class="tp">benchCase</span> <span class="kw">struct</span> {
+        name    <span class="tp">string</span>
+        encoder <span class="kw">func</span>([]<span class="tp">byte</span>) <span class="tp">string</span>
+        input   []<span class="tp">byte</span>
+    }
+
+    inputs := [][]<span class="tp">byte</span>{
+        <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">64</span>),
+        <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">1024</span>),
+        <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">65536</span>),
+    }
+
+    <span class="kw">for</span> _, input := <span class="kw">range</span> inputs {
+        rand.<span class="fn">Read</span>(input)  <span class="cm">// random data</span>
+
+        b.<span class="fn">Run</span>(fmt.<span class="fn">Sprintf</span>(<span class="s">"hex/size=%d"</span>, <span class="fn">len</span>(input)), <span class="kw">func</span>(b *testing.B) {
+            b.<span class="fn">SetBytes</span>(int64(<span class="fn">len</span>(input)))
+            <span class="kw">for</span> b.<span class="fn">Loop</span>() {
+                globalSink = hex.<span class="fn">EncodeToString</span>(input)
+            }
+        })
+
+        b.<span class="fn">Run</span>(fmt.<span class="fn">Sprintf</span>(<span class="s">"base64/size=%d"</span>, <span class="fn">len</span>(input)), <span class="kw">func</span>(b *testing.B) {
+            b.<span class="fn">SetBytes</span>(int64(<span class="fn">len</span>(input)))
+            <span class="kw">for</span> b.<span class="fn">Loop</span>() {
+                globalSink = base64.<span class="fn">StdEncoding</span>.<span class="fn">EncodeToString</span>(input)
+            }
+        })
+    }
+}
+
+<span class="cm">// ── Avoid common benchmark mistakes ─────────────────────────────────────
+
+// ❌ WRONG: timer includes setup
+func BenchmarkWrong(b *testing.B) {
+    for i := 0; i < b.N; i++ {
+        data := makeData(1000)  // setup INSIDE loop: measured!
+        process(data)
+    }
+}
+
+// ✅ CORRECT: setup outside, reset timer
+func BenchmarkCorrect(b *testing.B) {
+    data := makeData(1000)  // setup OUTSIDE
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        process(data)
+    }
+}</span></pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>benchstat p-value</strong>: p &lt; 0.05 = statistically significant. p &gt; 0.05 = có thể là noise, cần chạy thêm (-count=20). <strong>Noise sources</strong>: GC runs (dùng GOGC=off trong benchmark nếu test pure CPU), CPU throttling (cpupower), background processes, cache effects. <strong>Go 1.24 b.Loop()</strong>: thay thế pattern <code>for i := 0; i < b.N; i++</code> — cleaner, handles timer và cleanup correctly. <strong>Benchmark in CI</strong>: lưu results và alert khi regression &gt; 5% (p &lt; 0.05). Dùng benchstat trong pre-merge checks.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ GOROUTINE LEAK CONCEPT ═══════ -->
+<section class="sec" id="s-leak-concept">
+  <div class="sh">
+    <div class="sn">09</div>
+    <div><div class="stl">Goroutine Leak Detection</div>
+         <div class="ss">goleak, runtime inspection, common patterns</div></div>
+    <span class="badge bb">DEBUGGING</span>
+  </div>
+
+  <div class="cbox">
+    <div class="cbox-l">💡 Định nghĩa</div>
+    <div class="cbox-t">Goroutine leak — silent memory và resource killer</div>
+    <p class="p"><strong>Goroutine leak</strong> xảy ra khi goroutine được tạo nhưng không bao giờ kết thúc. Mỗi goroutine tốn ít nhất ~2KB stack (có thể grow đến GB). Không giống memory leak, goroutine leak còn giữ tất cả resources goroutine đang hold: connections, locks, channels. Với hàng nghìn goroutines bị leak, service sẽ chậm dần và eventually OOM.</p>
+    <p class="p">Nguyên nhân phổ biến: goroutine block trên channel receive mà không ai send; goroutine chờ timer mà không bao giờ fire; goroutine trong infinite loop không có exit condition; goroutine block trên mutex mà holder bị panic.</p>
+  </div>
+
+  <div class="dia">
+    <div class="dt">SƠ ĐỒ MINH HỌA — GOROUTINE LEAKS DETECTION &amp; PREVENTION PATTERNS</div>
+    <img src="../../public/images/go_opt_s09_goroutine_leaks.png" alt="Goroutine Leak mechanics & goleak detection" style="display:block;width:100%;height:auto;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.35);border:1px solid rgba(0,212,255,0.25)">
+  </div>
+</section>
+
+<!-- ═══════ GOROUTINE LEAK CODE ═══════ -->
+<section class="sec" id="s-leak-code">
+  <div class="sh">
+    <div class="sn">09</div>
+    <div><div class="stl">Goroutine Leak — Tools &amp; Fixes</div>
+         <div class="ss">goleak testing, runtime inspection, prevention patterns</div></div>
+    <span class="badge ba">ADVANCED</span>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 9.1 — goleak trong test suite và runtime detection</span><span class="badge ba">ADVANCED</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">Service gặp memory tăng dần sau mỗi request. Nghi ngờ goroutine leak nhưng không biết test có goroutine leak mà không monitor production. Cần automated testing và runtime detection.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">goroutine_leak_test.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="kw">import</span> (
+    <span class="s">"context"</span>
+    <span class="s">"runtime"</span>
+    <span class="s">"testing"</span>
+    <span class="s">"time"</span>
+    <span class="s">"go.uber.org/goleak"</span>
+)
+
+<span class="cm">// ── goleak: detect goroutine leaks in tests ─────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">TestMain</span>(m *testing.M) {
+    <span class="cm">// Kiểm tra leaked goroutines sau tất cả tests</span>
+    goleak.<span class="fn">VerifyTestMain</span>(m)
+    <span class="cm">// Nếu có leak → test fail với stack trace của leaked goroutines</span>
+}
+
+<span class="kw">func</span> <span class="fn">TestNoLeaks</span>(t *testing.T) {
+    <span class="cm">// Kiểm tra leak per-test</span>
+    <span class="kw">defer</span> goleak.<span class="fn">VerifyNone</span>(t)
+
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="n">5</span>*time.Second)
+    <span class="kw">defer</span> cancel()
+
+    <span class="cm">// Chạy code được test</span>
+    err := <span class="fn">doSomeWork</span>(ctx)
+    <span class="kw">if</span> err != <span class="kw">nil</span> { t.<span class="fn">Fatal</span>(err) }
+    <span class="cm">// goleak.VerifyNone sẽ check sau defer cancel()</span>
+}
+
+<span class="cm">// Ignore specific goroutines (known third-party goroutines)</span>
+<span class="kw">func</span> <span class="fn">TestWithIgnore</span>(t *testing.T) {
+    <span class="kw">defer</span> goleak.<span class="fn">VerifyNone</span>(t,
+        goleak.<span class="fn">IgnoreTopFunction</span>(<span class="s">"database/sql.(*Tx).awaitDone"</span>),
+        goleak.<span class="fn">IgnoreTopFunction</span>(<span class="s">"github.com/lib/pq.(*conn).processNotices"</span>),
+    )
+    <span class="cm">// test body</span>
+}
+
+<span class="cm">// ── Runtime goroutine inspection ────────────────────────────────────────</span>
+<span class="kw">func</span> <span class="fn">monitorGoroutines</span>(ctx context.Context) {
+    ticker := time.<span class="fn">NewTicker</span>(<span class="n">30</span> * time.Second)
+    <span class="kw">defer</span> ticker.<span class="fn">Stop</span>()
+
+    baseline := runtime.<span class="fn">NumGoroutine</span>()
+    log.<span class="fn">Printf</span>(<span class="s">"goroutine baseline: %d"</span>, baseline)
+
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+            <span class="kw">return</span>
+        <span class="kw">case</span> <-ticker.C:
+            current := runtime.<span class="fn">NumGoroutine</span>()
+            <span class="kw">if</span> current > baseline*<span class="n">2</span> {
+                log.<span class="fn">Printf</span>(<span class="s">"WARNING: goroutine count: %d (baseline: %d)"</span>,
+                    current, baseline)
+                <span class="cm">// Dump stacks để tìm leak</span>
+                buf := <span class="fn">make</span>([]<span class="tp">byte</span>, <span class="n">1</span><<<span class="n">20</span>)
+                n := runtime.<span class="fn">Stack</span>(buf, <span class="kw">true</span>)
+                log.<span class="fn">Printf</span>(<span class="s">"goroutine stacks:\n%s"</span>, buf[:n])
+            }
+        }
+    }
+}
+
+<span class="cm">// ── Prevention patterns ─────────────────────────────────────────────────</span>
+
+<span class="cm">// Pattern 1: Always use errgroup với context</span>
+<span class="kw">func</span> <span class="fn">safeWorkers</span>(ctx context.Context, jobs []<span class="tp">Job</span>) <span class="tp">error</span> {
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)  <span class="cm">// cancel all on first error</span>
+
+    <span class="kw">for</span> _, job := <span class="kw">range</span> jobs {
+        job := job  <span class="cm">// capture for closure (pre-1.22)</span>
+        g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="tp">error</span> {
+            <span class="kw">return</span> job.<span class="fn">Process</span>(ctx)  <span class="cm">// ctx propagation</span>
+        })
+    }
+    <span class="kw">return</span> g.<span class="fn">Wait</span>()  <span class="cm">// waits for ALL goroutines</span>
+}
+
+<span class="cm">// Pattern 2: Timeout cho goroutine launch</span>
+<span class="kw">func</span> <span class="fn">withTimeout</span>[T <span class="kw">any</span>](ctx context.Context, fn <span class="kw">func</span>() (T, <span class="tp">error</span>)) (T, <span class="tp">error</span>) {
+    ch := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{ val T; err <span class="tp">error</span> }, <span class="n">1</span>) <span class="cm">// buffered! goroutine won't leak</span>
+    <span class="kw">go func</span>() {
+        val, err := <span class="fn">fn</span>()
+        ch <- <span class="kw">struct</span>{ val T; err <span class="tp">error</span> }{val, err}
+    }()
+    <span class="kw">select</span> {
+    <span class="kw">case</span> result := <-ch:
+        <span class="kw">return</span> result.val, result.err
+    <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+        <span class="kw">var</span> zero T
+        <span class="kw">return</span> zero, ctx.<span class="fn">Err</span>()
+        <span class="cm">// goroutine vẫn chạy nhưng send vào buffered channel → không block</span>
+        <span class="cm">// goroutine sẽ kết thúc sau khi fn() xong</span>
+    }
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>goleak</strong> là tool bắt buộc trong test suite — phát hiện leaks tự động, không cần manual inspection. <strong>Buffered channel trong timeout pattern</strong>: CRITICAL — nếu channel unbuffered, goroutine sẽ leak khi context cancel (goroutine blocked mãi mãi trên send). Buffer size 1 cho phép goroutine send và exit dù caller đã timeout. <strong>runtime.NumGoroutine() monitoring</strong>: expose qua metrics (Prometheus), alert khi tăng bất thường. <strong>errgroup</strong>: không dùng raw WaitGroup nếu cần error propagation — errgroup cancel context của tất cả goroutines khi một goroutine fail.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="ex">
+    <div class="exh"><span class="ext">Ví dụ 9.2 — HTTP handler goroutine leak: request context propagation</span><span class="badge be">EXPERT</span></div>
+    <div class="exb">
+      <div class="pb"><div class="pl">📌 Problem Statement</div>
+        <p class="p" style="margin:0;font-size:14px">HTTP handler spawn goroutines để xử lý parallel tasks. Khi client disconnect (context cancelled), background goroutines vẫn tiếp tục chạy — waste resources và có thể cause inconsistent state.</p>
+      </div>
+      <div class="cw">
+        <div class="ch"><span class="cl">go</span><span class="cf">http_leak_fix.go</span><button class="cc" onclick="cp(this)">Copy</button></div>
+        <pre><span class="kw">package</span> main
+
+<span class="cm">// ❌ Leak: goroutines không biết request đã cancel</span>
+<span class="kw">func</span> <span class="fn">badHandler</span>(w http.ResponseWriter, r *http.Request) {
+    results := <span class="fn">make</span>(<span class="kw">chan</span> <span class="tp">string</span>, <span class="n">3</span>)
+
+    <span class="kw">go</span> <span class="fn">fetchUserData</span>(results)   <span class="cm">// no ctx → runs forever</span>
+    <span class="kw">go</span> <span class="fn">fetchOrders</span>(results)     <span class="cm">// no ctx → runs forever</span>
+    <span class="kw">go</span> <span class="fn">fetchPayments</span>(results)   <span class="cm">// no ctx → runs forever</span>
+
+    <span class="kw">for</span> i := <span class="n">0</span>; i < <span class="n">3</span>; i++ {
+        fmt.<span class="fn">Fprintln</span>(w, <-results)
+    }
+    <span class="cm">// Client disconnect → handler returns, but goroutines keep running!</span>
+}
+
+<span class="cm">// ✅ Fix: propagate request context</span>
+<span class="kw">func</span> <span class="fn">goodHandler</span>(w http.ResponseWriter, r *http.Request) {
+    ctx := r.<span class="fn">Context</span>()  <span class="cm">// cancelled when client disconnects</span>
+    g, ctx := errgroup.<span class="fn">WithContext</span>(ctx)
+
+    <span class="kw">type</span> <span class="tp">result</span> <span class="kw">struct</span> { user, orders, payments <span class="tp">string</span> }
+    var res <span class="tp">result</span>
+
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="tp">error</span> {
+        data, err := <span class="fn">fetchUserData</span>(ctx)  <span class="cm">// ctx-aware</span>
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+        res.user = data
+        <span class="kw">return</span> <span class="kw">nil</span>
+    })
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="tp">error</span> {
+        data, err := <span class="fn">fetchOrders</span>(ctx)
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+        res.orders = data
+        <span class="kw">return</span> <span class="kw">nil</span>
+    })
+    g.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="tp">error</span> {
+        data, err := <span class="fn">fetchPayments</span>(ctx)
+        <span class="kw">if</span> err != <span class="kw">nil</span> { <span class="kw">return</span> err }
+        res.payments = data
+        <span class="kw">return</span> <span class="kw">nil</span>
+    })
+
+    <span class="kw">if</span> err := g.<span class="fn">Wait</span>(); err != <span class="kw">nil</span> {
+        <span class="kw">if</span> ctx.<span class="fn">Err</span>() != <span class="kw">nil</span> {
+            <span class="cm">// Client disconnected: goroutines cancelled via ctx</span>
+            <span class="kw">return</span>
+        }
+        http.<span class="fn">Error</span>(w, err.<span class="fn">Error</span>(), http.StatusInternalServerError)
+        <span class="kw">return</span>
+    }
+
+    <span class="cm">// Check if client still connected before writing response</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <-ctx.<span class="fn">Done</span>():
+        <span class="kw">return</span>  <span class="cm">// client gone</span>
+    <span class="kw">default</span>:
+        fmt.<span class="fn">Fprintf</span>(w, <span class="s">"%s\n%s\n%s"</span>, res.user, res.orders, res.payments)
+    }
+}</pre>
+      </div>
+      <div class="nc"><div class="nl">📝 Note &amp; Conclusion</div>
+        <p class="p" style="font-size:13px;margin:0"><strong>r.Context()</strong>: HTTP handler's context bị cancel khi client disconnect, response written, hoặc server shutdown. Luôn propagate đến tất cả downstream calls. <strong>errgroup pattern</strong>: cancel tất cả goroutines khi bất kỳ goroutine nào fail — phù hợp nhất cho parallel fetch pattern. <strong>3 rules để tránh goroutine leak</strong>: (1) mọi goroutine phải có exit condition rõ ràng; (2) luôn propagate context; (3) channel phải được close hoặc goroutine phải có select với ctx.Done(). Test với goleak để verify.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ REFERENCES ═══════ -->
+<section class="sec" id="s-refs">
+  <div class="sh">
+    <div class="sn">REF</div>
+    <div><div class="stl">References &amp; Tài liệu tham khảo</div>
+         <div class="ss">Nguồn chất lượng cao nhất cho Advanced Go</div></div>
+  </div>
+
+  <h3>📚 Tài liệu chính thức</h3>
+  <a class="rf" href="https://go.dev/ref/mem" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">📖</div>
+    <div class="rb"><div class="rtl">Go Memory Model (Official)</div>
+      <div class="rd">Tài liệu chính thức về happens-before guarantees, synchronization primitives. Updated 2022 với clarifications quan trọng. Bắt buộc đọc cho concurrent Go.</div>
+      <div class="ru">go.dev/ref/mem</div></div>
+    <div class="rs">⭐ Official</div>
+  </a>
+  <a class="rf" href="https://go.dev/blog/ismmkeynote" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">📖</div>
+    <div class="rb"><div class="rtl">Getting to Go: The Journey of Go's Garbage Collector</div>
+      <div class="rd">Blog post của Go team về lịch sử và thiết kế GC. Giải thích tại sao Go chọn concurrent tricolor mark-sweep, trade-offs, và future directions.</div>
+      <div class="ru">go.dev/blog/ismmkeynote</div></div>
+    <div class="rs">⭐ Must Read</div>
+  </a>
+  <a class="rf" href="https://tip.golang.org/doc/go1.24" target="_blank">
+    <div class="ri" style="background:rgba(0,255,136,.1)">🆕</div>
+    <div class="rb"><div class="rtl">Go 1.24 Release Notes</div>
+      <div class="rd">Tài liệu chính thức về tất cả tính năng Go 1.24: generic type aliases, weak pointers, runtime.AddCleanup, tool directive, performance improvements.</div>
+      <div class="ru">tip.golang.org/doc/go1.24</div></div>
+    <div class="rs">⭐ Official</div>
+  </a>
+
+  <h3>🔧 Tools</h3>
+  <a class="rf" href="https://github.com/uber-go/goleak" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">🔍</div>
+    <div class="rb"><div class="rtl">uber-go/goleak — Goroutine Leak Detector</div>
+      <div class="rd">Production-ready goroutine leak detector cho Go tests. VerifyNone, VerifyTestMain, custom ignore options. Được dùng rộng rãi trong industry.</div>
+      <div class="ru">github.com/uber-go/goleak</div></div>
+    <div class="rs">⭐ 4.8k★</div>
+  </a>
+  <a class="rf" href="https://pkg.go.dev/golang.org/x/perf/cmd/benchstat" target="_blank">
+    <div class="ri" style="background:rgba(168,85,247,.1)">📊</div>
+    <div class="rb"><div class="rtl">benchstat — Statistical Benchmark Comparison</div>
+      <div class="rd">Official Go tool cho statistical analysis của benchmark results. So sánh A/B với p-values, effect sizes. Tích hợp vào CI cho regression detection.</div>
+      <div class="ru">pkg.go.dev/golang.org/x/perf/cmd/benchstat</div></div>
+    <div class="rs">⭐ Official</div>
+  </a>
+
+  <h3>📝 Blog &amp; Talks</h3>
+  <a class="rf" href="https://go.dev/blog/pprof" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">📝</div>
+    <div class="rb"><div class="rtl">Profiling Go Programs (Go Blog)</div>
+      <div class="rd">Official guide về sử dụng pprof: CPU profiling, memory profiling, flame graphs. Ví dụ thực tế từ Go team với benchmark improvements.</div>
+      <div class="ru">go.dev/blog/pprof</div></div>
+    <div class="rs">⭐ Go Blog</div>
+  </a>
+  <a class="rf" href="https://www.ardanlabs.com/blog/2018/08/scheduling-in-go-part1.html" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">📝</div>
+    <div class="rb"><div class="rtl">Scheduling In Go (Ardan Labs, 3-part series)</div>
+      <div class="rd">Bài viết chi tiết nhất về GMP scheduler: OS scheduler, Go scheduler, concurrency patterns. William Kennedy's best work. Parts 1, 2, 3.</div>
+      <div class="ru">ardanlabs.com/blog/2018/08/scheduling-in-go-part1.html</div></div>
+    <div class="rs">⭐ Best Article</div>
+  </a>
+  <a class="rf" href="https://github.com/golang/go/blob/master/src/runtime/mgc.go" target="_blank">
+    <div class="ri" style="background:rgba(0,255,136,.1)">🐙</div>
+    <div class="rb"><div class="rtl">Go Runtime Source — mgc.go</div>
+      <div class="rd">Source code của GC runtime với extensive comments. Đọc để hiểu implementation chi tiết: GC phases, write barriers, finalization.</div>
+      <div class="ru">github.com/golang/go/blob/master/src/runtime/mgc.go</div></div>
+    <div class="rs">⭐ Source</div>
+  </a>
+  <a class="rf" href="https://github.com/golang/proposal/blob/master/design/43651-type-parameters.md" target="_blank">
+    <div class="ri" style="background:rgba(168,85,247,.1)">📝</div>
+    <div class="rb"><div class="rtl">Go Generics Design Document</div>
+      <div class="rd">Design document gốc cho generics trong Go, giải thích constraints, type inference, và future directions bao gồm generic type aliases.</div>
+      <div class="ru">github.com/golang/proposal — generics</div></div>
+    <div class="rs">⭐ Design Doc</div>
+  </a>
+  <a class="rf" href="https://go101.org/article/memory-model.html" target="_blank">
+    <div class="ri" style="background:rgba(0,212,255,.1)">📝</div>
+    <div class="rb"><div class="rtl">Go 101 — Memory Model</div>
+      <div class="rd">Practical explanation của Go memory model với nhiều ví dụ concrete về data races và cách fix. Supplement tốt cho official docs.</div>
+      <div class="ru">go101.org/article/memory-model.html</div></div>
+    <div class="rs">⭐ Practical</div>
+  </a>
+
+  <h3>🎓 Books</h3>
+  <a class="rf" href="https://www.oreilly.com/library/view/learning-go/9781492077206/" target="_blank">
+    <div class="ri" style="background:rgba(245,158,11,.1)">📚</div>
+    <div class="rb"><div class="rtl">Learning Go — Jon Bodner (O'Reilly)</div>
+      <div class="rd">Best Go book hiện tại, 2nd edition cover Go 1.21. Chapters về goroutines, context, testing, và performance optimization đặc biệt xuất sắc.</div>
+      <div class="ru">oreilly.com/library/view/learning-go</div></div>
+    <div class="rs">⭐ Best Book</div>
+  </a>
+
+  <hr class="div">
+
+  <div class="note ng"><div class="nic">✅</div>
+    <p><strong>Lộ trình học Advanced Go:</strong><br>
+    <strong>Foundation:</strong> Memory Model → GC Internals → Scheduler GMP (hiểu runtime trước)<br>
+    <strong>Practice:</strong> pprof basics → Benchmark với benchstat → Goroutine leak detection<br>
+    <strong>Deep dive:</strong> Execution Tracer → Generator patterns → Go 1.24 features<br><br>
+    Với mỗi topic: đọc docs → chạy experiments → profile thực tế → benchmark change → verify với goleak. Performance optimization không phải là đoán — luôn <strong>measure first</strong>.</p>
+  </div>
+</section>
+
+</div></main>
+
+<script>
+function S(id){
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nb,.tb').forEach(b=>b.classList.remove('active'));
+  const s=document.getElementById('s-'+id);
+  if(s) s.classList.add('active');
+  document.querySelectorAll('.nb,.tb,.card').forEach(b=>{
+    if(b.getAttribute('data-section') === id || (b.getAttribute('onclick')&&b.getAttribute('onclick').includes("'"+id+"'")))
+      b.classList.add('active');
+  });
+  window.scrollTo(0,0);
+}
+function cp(btn){
+  const pre=btn.closest('.cw').querySelector('pre');
+  navigator.clipboard.writeText(pre.innerText).then(()=>{
+    btn.textContent='Copied!';btn.style.color='#00ff88';
+    setTimeout(()=>{btn.textContent='Copy';btn.style.color='';},2000);
+  });
+}
+
+function bindObsidianEvents() {
+  document.querySelectorAll('[data-section]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      const sec = el.getAttribute('data-section');
+      if (sec) {
+        S(sec);
+      }
+    });
+  });
+}
+bindObsidianEvents();
+document.addEventListener('DOMContentLoaded', bindObsidianEvents);
+</script>
+</body>
+</html>

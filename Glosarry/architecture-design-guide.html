@@ -1,0 +1,2132 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture & Design Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg-primary:#0d0f14;--bg-secondary:#131720;--bg-card:#1a1f2e;--bg-code:#0f1319;--accent-cyan:#00d4ff;--accent-green:#00ff88;--accent-purple:#a855f7;--accent-amber:#f59e0b;--accent-coral:#ff6b6b;--accent-blue:#3b82f6;--text-primary:#e2e8f0;--text-secondary:#94a3b8;--text-muted:#64748b;--border:rgba(255,255,255,0.07);--border-accent:rgba(0,212,255,0.3);--font-mono:'JetBrains Mono',monospace;--font-sans:'Inter',sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:var(--font-sans);display:flex;min-height:100vh}
+#sidebar{width:270px;min-width:270px;background:var(--bg-secondary);border-right:1px solid var(--border);position:fixed;top:0;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+#sidebar::-webkit-scrollbar{width:4px}
+#sidebar::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
+.sidebar-logo{padding:20px 20px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:white;font-family:var(--font-mono)}
+.logo-text{font-size:14px;font-weight:600;color:var(--text-primary);line-height:1.2}
+.logo-sub{font-size:11px;color:var(--accent-cyan);font-family:var(--font-mono)}
+.nav-section{padding:14px 12px 6px}
+.nav-section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-muted);padding:0 8px;margin-bottom:5px}
+.nav-item{display:flex;align-items:center;padding:7px 8px;border-radius:6px;color:var(--text-secondary);font-size:13px;cursor:pointer;transition:all .15s;border:none;background:none;width:100%;text-align:left;text-decoration:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:var(--text-primary)}
+.nav-item.active{background:rgba(0,212,255,.1);color:var(--accent-cyan);border-left:2px solid var(--accent-cyan);padding-left:6px}
+#topnav{position:fixed;top:0;left:270px;right:0;height:52px;background:var(--bg-secondary);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:6px;z-index:50;overflow-x:auto}
+.topnav-item{padding:5px 12px;border-radius:6px;font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;white-space:nowrap;transition:all .15s;border:none;background:none}
+.topnav-item:hover{color:var(--text-primary);background:rgba(255,255,255,.05)}
+.topnav-item.active{color:var(--accent-cyan);background:rgba(0,212,255,.1)}
+#main{margin-left:270px;margin-top:52px;flex:1;max-width:calc(100% - 270px)}
+.content-area{padding:44px 52px;max-width:960px}
+.section-header{display:flex;align-items:center;gap:14px;margin-bottom:30px;padding-bottom:20px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.section-number{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:13px;font-weight:700;color:white;flex-shrink:0}
+.section-title{font-size:24px;font-weight:700;color:var(--text-primary)}
+.section-subtitle{font-size:13px;color:var(--text-muted);margin-top:3px}
+.badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.05em;font-family:var(--font-mono)}
+.badge-expert{background:rgba(168,85,247,.15);color:var(--accent-purple);border:1px solid rgba(168,85,247,.3)}
+.badge-advanced{background:rgba(245,158,11,.12);color:var(--accent-amber);border:1px solid rgba(245,158,11,.3)}
+.badge-basic{background:rgba(0,212,255,.1);color:var(--accent-cyan);border:1px solid rgba(0,212,255,.25)}
+.page-section{display:none}
+.page-section.active{display:block}
+.prose{font-size:15px;line-height:1.8;color:var(--text-secondary);margin-bottom:18px}
+.prose strong{color:var(--text-primary);font-weight:600}
+.prose code{background:rgba(0,212,255,.08);color:var(--accent-cyan);padding:2px 6px;border-radius:4px;font-family:var(--font-mono);font-size:13px}
+h3{font-size:17px;font-weight:600;color:var(--text-primary);margin:26px 0 11px}
+h4{font-size:14px;font-weight:600;color:var(--text-secondary);margin:18px 0 7px}
+.card{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px;transition:border-color .2s}
+.card:hover{border-color:var(--border-accent)}
+.card-title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:9px}
+.card-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+.card-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:22px}
+.concept-box{background:linear-gradient(135deg,rgba(0,212,255,.05),rgba(168,85,247,.05));border:1px solid rgba(0,212,255,.2);border-radius:12px;padding:22px;margin-bottom:26px}
+.concept-box .label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent-cyan);margin-bottom:7px;font-family:var(--font-mono)}
+.concept-box .title{font-size:19px;font-weight:700;color:var(--text-primary);margin-bottom:9px}
+.diagram-container{background:var(--bg-card);border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:26px;overflow:hidden}
+.diagram-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-muted);margin-bottom:18px;font-family:var(--font-mono);text-align:center}
+.data-table{width:100%;border-collapse:collapse;margin-bottom:22px;font-size:13px}
+.data-table th{padding:9px 13px;text-align:left;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);color:var(--text-muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.data-table td{padding:9px 13px;border-bottom:1px solid var(--border);color:var(--text-secondary);vertical-align:top;line-height:1.6}
+.data-table tr:hover td{background:rgba(255,255,255,.02)}
+.data-table td code{background:rgba(0,212,255,.08);color:var(--accent-cyan);padding:2px 5px;border-radius:4px;font-family:var(--font-mono);font-size:11px}
+.note{display:flex;gap:12px;padding:13px 15px;border-radius:8px;margin-bottom:18px;font-size:13px}
+.note-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:#fcd34d}
+.note-info{background:rgba(0,212,255,.06);border:1px solid rgba(0,212,255,.2);color:var(--accent-cyan)}
+.note-danger{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.2);color:var(--accent-coral)}
+.note-success{background:rgba(0,255,136,.06);border:1px solid rgba(0,255,136,.2);color:var(--accent-green)}
+.note-icon{font-size:15px;flex-shrink:0;margin-top:1px}
+.note p{margin:0;line-height:1.6}
+.ref-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;padding:15px 18px;margin-bottom:11px;display:flex;align-items:flex-start;gap:13px;text-decoration:none;transition:all .15s;cursor:pointer}
+.ref-card:hover{border-color:var(--accent-cyan);transform:translateX(2px)}
+.ref-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ref-body{flex:1;min-width:0}
+.ref-title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.ref-desc{font-size:12px;color:var(--text-muted);line-height:1.5}
+.ref-url{font-size:11px;color:var(--accent-cyan);font-family:var(--font-mono);margin-top:3px;word-break:break-all}
+.ref-stars{font-size:11px;color:var(--accent-amber);margin-left:auto;white-space:nowrap;padding-left:10px}
+.compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px}
+.compare-card{background:var(--bg-card);border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.compare-head{padding:11px 15px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;font-family:var(--font-mono);border-bottom:1px solid var(--border)}
+.compare-head.cyan{background:rgba(0,212,255,.08);color:var(--accent-cyan)}
+.compare-head.purple{background:rgba(168,85,247,.08);color:var(--accent-purple)}
+.compare-head.green{background:rgba(0,255,136,.08);color:var(--accent-green)}
+.compare-head.amber{background:rgba(245,158,11,.08);color:var(--accent-amber)}
+.compare-body{padding:15px}
+.case-block{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:30px}
+.case-header{padding:14px 22px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+.case-level{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-family:var(--font-mono);padding:3px 10px;border-radius:20px}
+.level-basic{background:rgba(0,212,255,.1);color:var(--accent-cyan);border:1px solid rgba(0,212,255,.3)}
+.level-advanced{background:rgba(245,158,11,.1);color:var(--accent-amber);border:1px solid rgba(245,158,11,.3)}
+.level-expert{background:rgba(168,85,247,.1);color:var(--accent-purple);border:1px solid rgba(168,85,247,.3)}
+.case-title{font-size:15px;font-weight:600;color:var(--text-primary)}
+.case-body{padding:22px}
+.case-section{margin-bottom:18px}
+.case-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-family:var(--font-mono);margin-bottom:8px}
+.label-problem{color:var(--accent-coral)}
+.label-solution{color:var(--accent-green)}
+.label-visual{color:var(--accent-amber)}
+.label-note{color:var(--accent-purple)}
+.glossary-item{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:14px}
+.glossary-item:last-child{border-bottom:none}
+.glossary-term{font-family:var(--font-mono);font-size:12px;font-weight:600;color:var(--accent-cyan);min-width:200px;flex-shrink:0;padding-top:2px}
+.glossary-def{font-size:13px;color:var(--text-secondary);line-height:1.7}
+.tag{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:5px;font-size:11px;font-family:var(--font-mono);margin:3px}
+.tag-good{background:rgba(0,255,136,.08);color:var(--accent-green);border:1px solid rgba(0,255,136,.2)}
+.tag-bad{background:rgba(255,107,107,.08);color:var(--accent-coral);border:1px solid rgba(255,107,107,.2)}
+.tag-neutral{background:rgba(148,163,184,.08);color:var(--text-secondary);border:1px solid var(--border)}
+.divider{border:none;border-top:1px solid var(--border);margin:32px 0}
+.step-list{list-style:none}
+.step-item{display:flex;gap:14px;margin-bottom:16px;align-items:flex-start}
+.step-num{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,var(--accent-cyan),var(--accent-purple));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:white;font-family:var(--font-mono);flex-shrink:0;margin-top:2px}
+.step-body .step-title{font-size:14px;font-weight:600;color:var(--text-primary);margin-bottom:3px}
+.step-body .step-desc{font-size:13px;color:var(--text-secondary);line-height:1.7}
+@media(max-width:900px){#sidebar{display:none}#topnav{left:0}#main{margin-left:0;max-width:100%}.content-area{padding:22px 18px}.card-grid,.compare-grid,.card-grid-3{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">AD</div>
+    <div><div class="logo-text">Architecture & Design</div><div class="logo-sub">Technical Guide v1.0</div></div>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Giới thiệu</div>
+    <button class="nav-item active" data-section="intro" onclick="showSection('intro')">🏠 Tổng quan</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Chủ đề chính</div>
+    <button class="nav-item" data-section="adr" onclick="showSection('adr')">📝 ADR</button>
+    <button class="nav-item" data-section="ddd" onclick="showSection('ddd')">🧩 DDD</button>
+    <button class="nav-item" data-section="erd" onclick="showSection('erd')">🗄️ ERD</button>
+    <button class="nav-item" data-section="hld" onclick="showSection('hld')">🏗️ High-Level Design</button>
+    <button class="nav-item" data-section="lld" onclick="showSection('lld')">🔧 Low-Level Design</button>
+    <button class="nav-item" data-section="uml" onclick="showSection('uml')">📐 UML</button>
+  </div>
+  <div class="nav-section">
+    <div class="nav-section-title">Tra cứu</div>
+    <button class="nav-item" data-section="glossary" onclick="showSection('glossary')">📖 Glossary</button>
+    <button class="nav-item" data-section="compare" onclick="showSection('compare')">⚖️ So sánh & Khi nào dùng</button>
+    <button class="nav-item" data-section="refs" onclick="showSection('refs')">📚 References</button>
+  </div>
+</nav>
+<nav id="topnav">
+  <button class="topnav-item active" data-section="intro" onclick="showSection('intro')">Tổng quan</button>
+  <button class="topnav-item" data-section="adr" onclick="showSection('adr')">ADR</button>
+  <button class="topnav-item" data-section="ddd" onclick="showSection('ddd')">DDD</button>
+  <button class="topnav-item" data-section="erd" onclick="showSection('erd')">ERD</button>
+  <button class="topnav-item" data-section="hld" onclick="showSection('hld')">HLD</button>
+  <button class="topnav-item" data-section="lld" onclick="showSection('lld')">LLD</button>
+  <button class="topnav-item" data-section="uml" onclick="showSection('uml')">UML</button>
+  <button class="topnav-item" data-section="glossary" onclick="showSection('glossary')">Glossary</button>
+  <button class="topnav-item" data-section="compare" onclick="showSection('compare')">So sánh</button>
+  <button class="topnav-item" data-section="refs" onclick="showSection('refs')">References</button>
+</nav>
+<main id="main"><div class="content-area">
+<!-- INTRO -->
+<section class="page-section active" id="s-intro">
+<div class="section-header">
+  <div class="section-number">00</div>
+  <div><div class="section-title">Architecture & Design Guide</div><div class="section-subtitle">Hướng dẫn toàn diện 6 công cụ thiết kế hệ thống phần mềm — từ cơ bản đến expert</div></div>
+  <span class="badge badge-basic">v1.0</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Mục tiêu tài liệu</div>
+  <div class="title">Từ ý tưởng đến kiến trúc rõ ràng</div>
+  <p class="prose">Tài liệu này cung cấp hướng dẫn thực tiễn về <strong>6 công cụ thiết kế kiến trúc</strong> quan trọng nhất trong vòng đời phát triển phần mềm. Mỗi chủ đề được giải thích từ định nghĩa cốt lõi đến các case study thực tế ở 3 cấp độ — Cơ bản, Nâng cao và Expert.</p>
+  <p class="prose">Mỗi case study có cấu trúc nhất quán: <strong>Đặt vấn đề → Giải pháp → Sơ đồ minh họa → Nhận xét &amp; Kết luận</strong>, giúp bạn học nhanh và áp dụng ngay.</p>
+</div>
+<div class="card-grid">
+  <div class="card"><div class="card-title">📝 ADR — Architecture Decision Record</div><p class="prose" style="margin:0;font-size:13px">Ghi lại quyết định kiến trúc quan trọng: lý do, bối cảnh, hậu quả. Xây dựng "bộ nhớ tổ chức" lâu dài.</p></div>
+  <div class="card"><div class="card-title">🧩 DDD — Domain-Driven Design</div><p class="prose" style="margin:0;font-size:13px">Mô hình hóa phần mềm theo ngôn ngữ và logic nghiệp vụ, gắn kết code với business thực sự.</p></div>
+  <div class="card"><div class="card-title">🗄️ ERD — Entity Relationship Diagram</div><p class="prose" style="margin:0;font-size:13px">Biểu diễn cấu trúc dữ liệu và mối quan hệ giữa các thực thể trong database một cách trực quan.</p></div>
+  <div class="card"><div class="card-title">🏗️ HLD — High-Level Design</div><p class="prose" style="margin:0;font-size:13px">Bức tranh toàn cảnh về kiến trúc hệ thống: các thành phần, luồng dữ liệu, giao thức kết nối.</p></div>
+  <div class="card"><div class="card-title">🔧 LLD — Low-Level Design</div><p class="prose" style="margin:0;font-size:13px">Chi tiết hóa từng module, class, API — mức thiết kế đủ để developer implement trực tiếp.</p></div>
+  <div class="card"><div class="card-title">📐 UML — Unified Modeling Language</div><p class="prose" style="margin:0;font-size:13px">Ngôn ngữ mô hình hóa chuẩn quốc tế cho cả cấu trúc tĩnh lẫn hành vi động của hệ thống.</p></div>
+</div>
+<h3>Quan hệ giữa 6 công cụ</h3>
+<div class="diagram-container">
+  <div class="diagram-title">Workflow — từ quyết định kiến trúc đến triển khai</div>
+  <svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <defs><marker id="a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+    <!-- Phases -->
+    <rect x="10" y="40" width="140" height="130" rx="10" fill="rgba(0,212,255,.04)" stroke="rgba(0,212,255,.2)" stroke-width="1"/>
+    <text x="80" y="62" text-anchor="middle" font-size="10" fill="#00d4ff" font-weight="700">QUYẾT ĐỊNH</text>
+    <rect x="22" y="74" width="116" height="38" rx="7" fill="rgba(0,212,255,.09)" stroke="rgba(0,212,255,.35)" stroke-width="1.5"/>
+    <text x="80" y="90" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">ADR</text>
+    <text x="80" y="106" text-anchor="middle" font-size="9" fill="#64748b">Ghi lại quyết định</text>
+    <rect x="22" y="122" width="116" height="38" rx="7" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.3)" stroke-width="1.5"/>
+    <text x="80" y="138" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="700">DDD</text>
+    <text x="80" y="154" text-anchor="middle" font-size="9" fill="#64748b">Mô hình nghiệp vụ</text>
+
+    <rect x="180" y="40" width="140" height="130" rx="10" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)" stroke-width="1"/>
+    <text x="250" y="62" text-anchor="middle" font-size="10" fill="#00ff88" font-weight="700">THIẾT KẾ TỔNG THỂ</text>
+    <rect x="192" y="74" width="116" height="38" rx="7" fill="rgba(0,255,136,.09)" stroke="rgba(0,255,136,.35)" stroke-width="1.5"/>
+    <text x="250" y="90" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="700">HLD</text>
+    <text x="250" y="106" text-anchor="middle" font-size="9" fill="#64748b">Kiến trúc toàn cảnh</text>
+    <rect x="192" y="122" width="116" height="38" rx="7" fill="rgba(251,146,60,.08)" stroke="rgba(251,146,60,.3)" stroke-width="1.5"/>
+    <text x="250" y="138" text-anchor="middle" font-size="12" fill="#fb923c" font-weight="700">UML</text>
+    <text x="250" y="154" text-anchor="middle" font-size="9" fill="#64748b">Chuẩn mô hình hóa</text>
+
+    <rect x="350" y="40" width="140" height="130" rx="10" fill="rgba(245,158,11,.03)" stroke="rgba(245,158,11,.2)" stroke-width="1"/>
+    <text x="420" y="62" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="700">THIẾT KẾ CHI TIẾT</text>
+    <rect x="362" y="74" width="116" height="38" rx="7" fill="rgba(245,158,11,.09)" stroke="rgba(245,158,11,.35)" stroke-width="1.5"/>
+    <text x="420" y="90" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="700">LLD</text>
+    <text x="420" y="106" text-anchor="middle" font-size="9" fill="#64748b">Chi tiết module/class</text>
+    <rect x="362" y="122" width="116" height="38" rx="7" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.3)" stroke-width="1.5"/>
+    <text x="420" y="138" text-anchor="middle" font-size="12" fill="#60a5fa" font-weight="700">ERD</text>
+    <text x="420" y="154" text-anchor="middle" font-size="9" fill="#64748b">Cấu trúc dữ liệu</text>
+
+    <rect x="520" y="40" width="140" height="130" rx="10" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.08)" stroke-width="1" stroke-dasharray="5,4"/>
+    <text x="590" y="62" text-anchor="middle" font-size="10" fill="#64748b" font-weight="700">TRIỂN KHAI</text>
+    <rect x="532" y="80" width="116" height="70" rx="7" fill="rgba(255,255,255,.03)" stroke="rgba(255,255,255,.1)" stroke-width="1"/>
+    <text x="590" y="107" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="600">Code</text>
+    <text x="590" y="125" text-anchor="middle" font-size="10" fill="#64748b">Database</text>
+    <text x="590" y="141" text-anchor="middle" font-size="10" fill="#64748b">Infrastructure</text>
+
+    <line x1="150" y1="105" x2="180" y2="105" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a0)"/>
+    <line x1="320" y1="105" x2="350" y2="105" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a0)"/>
+    <line x1="490" y1="105" x2="520" y2="115" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a0)"/>
+
+    <text x="720" y="80" text-anchor="middle" font-size="10" fill="#64748b">Cả 6 công cụ</text>
+    <text x="720" y="96" text-anchor="middle" font-size="10" fill="#64748b">hỗ trợ lẫn nhau</text>
+    <text x="720" y="112" text-anchor="middle" font-size="10" fill="#64748b">— không tách rời</text>
+  </svg>
+</div>
+<div class="note note-info">
+  <div class="note-icon">📌</div>
+  <p><strong>Cách đọc:</strong> Mỗi chủ đề có phần khái niệm nền, glossary chuyên ngành, và 2-3 case study. Mỗi case study: <strong>Đặt vấn đề → Giải pháp → Sơ đồ → Nhận xét</strong>. Phần cuối có bảng <em>So sánh &amp; Khi nào dùng</em> và <em>References</em> chất lượng cao.</p>
+</div>
+</section>
+<!-- ADR SECTION -->
+<section class="page-section" id="s-adr">
+<div class="section-header">
+  <div class="section-number">01</div>
+  <div><div class="section-title">Architecture Decision Record (ADR)</div><div class="section-subtitle">Xây dựng "bộ nhớ tổ chức" — ghi lại mọi quyết định kiến trúc quan trọng</div></div>
+  <span class="badge badge-basic">CƠ BẢN → EXPERT</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Định nghĩa</div>
+  <div class="title">ADR là gì?</div>
+  <p class="prose"><strong>Architecture Decision Record (ADR)</strong> là tài liệu ngắn gọn ghi lại một <strong>quyết định kiến trúc quan trọng</strong> — bao gồm bối cảnh dẫn đến quyết định, các phương án đã cân nhắc, lựa chọn cuối cùng và hệ quả của nó. ADR do Michael Nygard đề xuất và đã trở thành thực hành tiêu chuẩn trong các dự án phần mềm lớn.</p>
+  <p class="prose">ADR trả lời câu hỏi: <strong>"Tại sao chúng ta xây dựng hệ thống theo cách này?"</strong> — điều mà code không thể tự giải thích được. Không có ADR, 6 tháng sau không ai nhớ tại sao quyết định quan trọng lại được đưa ra.</p>
+</div>
+<h3>Cấu trúc ADR chuẩn</h3>
+<table class="data-table">
+  <thead><tr><th>Mục</th><th>Nội dung</th><th>Ví dụ</th></tr></thead>
+  <tbody>
+    <tr><td><code>Title</code></td><td>Tên ngắn gọn, rõ ràng về quyết định</td><td>ADR-001: Chọn PostgreSQL làm primary database</td></tr>
+    <tr><td><code>Status</code></td><td>Trạng thái hiện tại của quyết định</td><td>Proposed / Accepted / Deprecated / Superseded</td></tr>
+    <tr><td><code>Context</code></td><td>Bối cảnh, vấn đề buộc phải đưa ra quyết định</td><td>Hệ thống cần xử lý 1M+ records với complex queries</td></tr>
+    <tr><td><code>Decision</code></td><td>Quyết định đã chọn và lý do tại sao</td><td>Chọn PostgreSQL vì ACID, JSON support, mature ecosystem</td></tr>
+    <tr><td><code>Consequences</code></td><td>Hệ quả tích cực và tiêu cực</td><td>(+) Reliability cao; (-) Horizontal scale phức tạp hơn NoSQL</td></tr>
+    <tr><td><code>Alternatives</code></td><td>Các phương án đã cân nhắc nhưng không chọn</td><td>MySQL, MongoDB, DynamoDB — kèm lý do từ chối</td></tr>
+  </tbody>
+</table>
+<h3>Vòng đời trạng thái ADR</h3>
+<div class="diagram-container">
+  <div class="diagram-title">ADR Lifecycle — Các trạng thái và chuyển đổi</div>
+  <svg width="100%" viewBox="0 0 820 160" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <defs><marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker>
+    <marker id="a1r" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+    <rect x="20" y="55" width="120" height="48" rx="9" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+    <text x="80" y="76" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="600">Proposed</text>
+    <text x="80" y="93" text-anchor="middle" font-size="10" fill="#64748b">Đề xuất ban đầu</text>
+    <rect x="210" y="55" width="120" height="48" rx="9" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+    <text x="270" y="76" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="600">Accepted</text>
+    <text x="270" y="93" text-anchor="middle" font-size="10" fill="#64748b">Đã chấp thuận</text>
+    <rect x="400" y="20" width="120" height="48" rx="9" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.4)" stroke-width="1.5"/>
+    <text x="460" y="41" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="600">Deprecated</text>
+    <text x="460" y="58" text-anchor="middle" font-size="10" fill="#64748b">Lỗi thời</text>
+    <rect x="400" y="90" width="120" height="48" rx="9" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+    <text x="460" y="111" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="600">Superseded</text>
+    <text x="460" y="128" text-anchor="middle" font-size="10" fill="#64748b">Thay thế bởi ADR mới</text>
+    <rect x="600" y="55" width="120" height="48" rx="9" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.4)" stroke-width="1.5"/>
+    <text x="660" y="76" text-anchor="middle" font-size="12" fill="#ff6b6b" font-weight="600">Rejected</text>
+    <text x="660" y="93" text-anchor="middle" font-size="10" fill="#64748b">Bị từ chối</text>
+    <line x1="140" y1="79" x2="210" y2="79" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#a1)"/>
+    <line x1="330" y1="68" x2="400" y2="44" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#a1)"/>
+    <line x1="330" y1="90" x2="400" y2="114" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#a1)"/>
+    <line x1="140" y1="92" x2="600" y2="89" stroke="#ff6b6b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#a1r)"/>
+    <text x="370" y="107" font-size="9" fill="#ff6b6b">rejected</text>
+  </svg>
+</div>
+
+<!-- CASE 1 ADR -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-basic">Cơ bản</span><span class="case-title">Case 1 — Lựa chọn Database cho ứng dụng E-commerce</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Team đang xây dựng nền tảng e-commerce với 50.000 SKU sản phẩm, cần xử lý đơn hàng thời gian thực và lưu trữ lịch sử giao dịch. Mỗi developer lại muốn một database khác nhau: người thích MongoDB vì schema flexible, người thích PostgreSQL vì ACID, người muốn DynamoDB vì scale. Nếu không có ADR, 3 tháng sau khi đã code xong, không ai nhớ tại sao lại chọn database hiện tại — và liệu có nên migrate không.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — ADR-001: Chọn PostgreSQL</div>
+      <p class="prose">Viết ADR-001 ghi lại rõ bối cảnh (transaction integrity bắt buộc cho đơn hàng), quyết định (PostgreSQL 15), lý do (ACID, JSONB cho catalog linh hoạt, team đã quen) và hệ quả cả tích cực lẫn tiêu cực. Lưu trong <code>docs/decisions/ADR-001.md</code> và commit vào Git.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Quy trình ra quyết định ADR</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Quy trình viết và duyệt ADR</div>
+        <svg width="100%" viewBox="0 0 820 140" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs><marker id="ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <rect x="10" y="44" width="130" height="52" rx="8" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.3)" stroke-width="1"/>
+          <text x="75" y="67" text-anchor="middle" font-size="11" fill="#ff6b6b" font-weight="600">Vấn đề nảy sinh</text>
+          <text x="75" y="84" text-anchor="middle" font-size="10" fill="#64748b">Cần chọn database</text>
+          <rect x="170" y="44" width="130" height="52" rx="8" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+          <text x="235" y="67" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="600">Liệt kê Options</text>
+          <text x="235" y="84" text-anchor="middle" font-size="10" fill="#64748b">PG / Mongo / Dynamo</text>
+          <rect x="330" y="44" width="130" height="52" rx="8" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.3)" stroke-width="1"/>
+          <text x="395" y="67" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="600">Đánh giá tiêu chí</text>
+          <text x="395" y="84" text-anchor="middle" font-size="10" fill="#64748b">ACID, scale, team skill</text>
+          <rect x="490" y="44" width="130" height="52" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+          <text x="555" y="67" text-anchor="middle" font-size="11" fill="#00d4ff" font-weight="600">Viết ADR</text>
+          <text x="555" y="84" text-anchor="middle" font-size="10" fill="#64748b">Context + Decision</text>
+          <rect x="650" y="44" width="130" height="52" rx="8" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.35)" stroke-width="1.5"/>
+          <text x="715" y="67" text-anchor="middle" font-size="11" fill="#00ff88" font-weight="600">Accepted ✓</text>
+          <text x="715" y="84" text-anchor="middle" font-size="10" fill="#64748b">Commit vào Git</text>
+          <line x1="140" y1="70" x2="170" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ap)"/>
+          <line x1="300" y1="70" x2="330" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ap)"/>
+          <line x1="460" y1="70" x2="490" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ap)"/>
+          <line x1="620" y1="70" x2="650" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ap)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:8px"><div class="note-icon">✅</div><p><strong>Giá trị cốt lõi:</strong> Developer mới onboard đọc ADR-001 sẽ hiểu ngay tại sao dùng PostgreSQL — không cần hỏi lại từ đầu. ADR biến quyết định "ngầm hiểu" thành tài liệu chính thức có thể search và reference.</p></div>
+      <div class="note note-warn" style="margin-bottom:0"><div class="note-icon">⚠️</div><p><strong>Khi nào KHÔNG nên viết ADR:</strong> Quyết định nhỏ, dễ đổi, không ảnh hưởng nhiều team. ADR dành cho quyết định có <em>trade-off rõ ràng</em> và <em>chi phí thay đổi cao</em> về sau.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- CASE 2 ADR -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-advanced">Nâng cao</span><span class="case-title">Case 2 — ADR cho chuyển đổi Monolith → Microservices</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Công ty fintech 5 năm tuổi, hệ thống monolith 800K dòng code. Mỗi deploy toàn bộ mất 3 giờ test, 12 team cùng làm trong 1 repo gây 40% thời gian xử lý merge conflict. Một module lỗi làm sập toàn hệ thống. CTO đề xuất chuyển sang microservices — quyết định 2-3 năm, rủi ro cao. Không có ADR, team mới sẽ không bao giờ hiểu "tại sao chúng ta lại làm phức tạp vậy."</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — ADR-047: Strangler Fig Migration Strategy</div>
+      <p class="prose">ADR-047 supersede ADR-003 (Monolith-first). Ghi lại quyết định dùng <strong>Strangler Fig Pattern</strong> — migrate dần dần thay vì Big Bang. Xác định thứ tự tách service: Payment → User → Catalog → Order. Ghi rõ lý do từng bước và acceptance criteria.</p>
+      <table class="data-table">
+        <thead><tr><th>Phase</th><th>Service</th><th>Lý do ưu tiên</th><th>Risk</th></tr></thead>
+        <tbody>
+          <tr><td>Phase 1</td><td>Payment Service</td><td>Fault isolation quan trọng nhất — P0 outage</td><td>HIGH — nhiều tích hợp ngoài</td></tr>
+          <tr><td>Phase 2</td><td>User/Auth Service</td><td>Cross-cutting concern, tất cả service cần</td><td>MEDIUM</td></tr>
+          <tr><td>Phase 3</td><td>Product Catalog</td><td>Read-heavy, dễ cache, ít coupled</td><td>LOW</td></tr>
+          <tr><td>Phase 4</td><td>Order Service</td><td>Most coupled — để cuối cùng</td><td>HIGH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Strangler Fig Migration</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Strangler Fig — Before / During / After</div>
+        <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <text x="120" y="18" text-anchor="middle" font-size="10" fill="#64748b">BEFORE</text>
+          <rect x="20" y="28" width="200" height="150" rx="9" fill="rgba(255,107,107,.05)" stroke="rgba(255,107,107,.3)" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="120" y="50" text-anchor="middle" font-size="11" fill="#ff6b6b">Monolith</text>
+          <rect x="36" y="60" width="168" height="28" rx="5" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.2)"/>
+          <text x="120" y="79" text-anchor="middle" font-size="10" fill="#ff6b6b">Payment + User</text>
+          <rect x="36" y="98" width="168" height="28" rx="5" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.2)"/>
+          <text x="120" y="117" text-anchor="middle" font-size="10" fill="#ff6b6b">Catalog + Order</text>
+          <rect x="36" y="136" width="168" height="28" rx="5" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.2)"/>
+          <text x="120" y="155" text-anchor="middle" font-size="10" fill="#ff6b6b">Notification + Report</text>
+
+          <text x="290" y="105" text-anchor="middle" font-size="20" fill="#64748b">→</text>
+
+          <text x="430" y="18" text-anchor="middle" font-size="10" fill="#64748b">DURING (Strangler Fig)</text>
+          <rect x="320" y="28" width="220" height="150" rx="9" fill="rgba(245,158,11,.04)" stroke="rgba(245,158,11,.25)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="340" y="46" font-size="9" fill="#00d4ff">API Gateway</text>
+          <rect x="330" y="55" width="75" height="110" rx="7" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.25)" stroke-width="1"/>
+          <text x="367" y="74" text-anchor="middle" font-size="9" fill="#f59e0b">Legacy</text>
+          <rect x="340" y="82" width="56" height="24" rx="4" fill="rgba(245,158,11,.1)"/><text x="368" y="98" text-anchor="middle" font-size="9" fill="#f59e0b">Catalog</text>
+          <rect x="340" y="112" width="56" height="24" rx="4" fill="rgba(245,158,11,.1)"/><text x="368" y="128" text-anchor="middle" font-size="9" fill="#f59e0b">Order</text>
+          <rect x="418" y="55" width="112" height="50" rx="7" fill="rgba(0,255,136,.09)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <text x="474" y="74" text-anchor="middle" font-size="10" fill="#00ff88" font-weight="600">Payment ✓</text>
+          <text x="474" y="90" text-anchor="middle" font-size="9" fill="#64748b">Service tách xong</text>
+          <rect x="418" y="115" width="112" height="50" rx="7" fill="rgba(0,255,136,.09)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <text x="474" y="134" text-anchor="middle" font-size="10" fill="#00ff88" font-weight="600">User ✓</text>
+          <text x="474" y="150" text-anchor="middle" font-size="9" fill="#64748b">Service tách xong</text>
+
+          <text x="624" y="105" text-anchor="middle" font-size="20" fill="#64748b">→</text>
+
+          <text x="730" y="18" text-anchor="middle" font-size="10" fill="#64748b">AFTER</text>
+          <rect x="660" y="28" width="150" height="150" rx="9" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)" stroke-width="1"/>
+          <rect x="670" y="44" width="130" height="24" rx="5" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)"/><text x="735" y="61" text-anchor="middle" font-size="9" fill="#00ff88">Payment Svc</text>
+          <rect x="670" y="76" width="130" height="24" rx="5" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)"/><text x="735" y="93" text-anchor="middle" font-size="9" fill="#00ff88">User Svc</text>
+          <rect x="670" y="108" width="130" height="24" rx="5" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)"/><text x="735" y="125" text-anchor="middle" font-size="9" fill="#00ff88">Catalog Svc</text>
+          <rect x="670" y="140" width="130" height="24" rx="5" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)"/><text x="735" y="157" text-anchor="middle" font-size="9" fill="#00ff88">Order Svc</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:0"><div class="note-icon">✅</div><p><strong>Audit trail kiến trúc:</strong> ADR-047 supersede ADR-003 tạo ra lịch sử quyết định rõ ràng. Bất kỳ ai sau này đọc sẽ thấy: ban đầu chọn monolith (và tại sao), sau 5 năm phải đổi (và tại sao), tại sao chọn Strangler Fig thay vì Big Bang migration. Đây là "bộ nhớ tổ chức" không thể thiếu.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- CASE 3 ADR EXPERT -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-expert">Expert</span><span class="case-title">Case 3 — MADR + ADR-as-Code cho team 50+ engineers</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Công ty 50 engineers, 8 feature teams. ADR viết tự do: có cái dài 10 trang, có cái chỉ 3 dòng. Không ai biết ADR nào đang active, cái nào deprecated. Không có review process — ADR được tạo nhưng không ai biết. Cần chuẩn hóa với <strong>MADR (Markdown Any Decision Records)</strong> và tích hợp vào Git workflow.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — MADR + CI/CD + ADR Index</div>
+      <p class="prose">Áp dụng MADR format chuẩn, lưu trong <code>docs/decisions/</code>, review qua Pull Request như code. CI pipeline tự động lint và cập nhật ADR Index. Slack notification khi ADR mới được merge.</p>
+      <table class="data-table">
+        <thead><tr><th>Thực hành</th><th>Mô tả</th><th>Công cụ</th></tr></thead>
+        <tbody>
+          <tr><td><strong>ADR-as-Code</strong></td><td>Lưu ADR trong Git, review qua PR như code thường</td><td>GitHub/GitLab, adr-tools CLI</td></tr>
+          <tr><td><strong>ADR Template</strong></td><td>Template chuẩn MADR, bắt buộc dùng khi tạo mới</td><td>MADR v3, cookiecutter</td></tr>
+          <tr><td><strong>ADR Index</strong></td><td>README.md tự động liệt kê tất cả ADR và status</td><td>CI script, log4brains</td></tr>
+          <tr><td><strong>CODEOWNERS</strong></td><td>Architect team bắt buộc review trước khi merge ADR</td><td>GitHub CODEOWNERS</td></tr>
+          <tr><td><strong>Slack Alert</strong></td><td>Notification khi ADR mới được tạo hoặc superseded</td><td>GitHub Actions webhook</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — ADR Governance Flow</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">ADR Governance trong tổ chức 50+ engineers</div>
+        <svg width="100%" viewBox="0 0 820 130" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <rect x="10" y="40" width="115" height="50" rx="8" fill="rgba(0,255,136,.07)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+          <text x="67" y="62" text-anchor="middle" font-size="10" fill="#00ff88" font-weight="600">Engineer viết</text>
+          <text x="67" y="78" text-anchor="middle" font-size="9" fill="#64748b">MADR format</text>
+          <rect x="155" y="40" width="115" height="50" rx="8" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+          <text x="212" y="62" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="600">Pull Request</text>
+          <text x="212" y="78" text-anchor="middle" font-size="9" fill="#64748b">CI lint format</text>
+          <rect x="300" y="40" width="115" height="50" rx="8" fill="rgba(168,85,247,.07)" stroke="rgba(168,85,247,.3)" stroke-width="1"/>
+          <text x="357" y="62" text-anchor="middle" font-size="10" fill="#a855f7" font-weight="600">Architect Review</text>
+          <text x="357" y="78" text-anchor="middle" font-size="9" fill="#64748b">Approve / Changes</text>
+          <rect x="445" y="40" width="115" height="50" rx="8" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+          <text x="502" y="62" text-anchor="middle" font-size="10" fill="#00d4ff" font-weight="600">Merge to main</text>
+          <text x="502" y="78" text-anchor="middle" font-size="9" fill="#64748b">Status: Accepted</text>
+          <rect x="590" y="22" width="115" height="40" rx="7" fill="rgba(0,255,136,.05)" stroke="rgba(0,255,136,.2)" stroke-width="1"/>
+          <text x="647" y="38" text-anchor="middle" font-size="9" fill="#00ff88" font-weight="600">Update ADR Index</text>
+          <text x="647" y="53" text-anchor="middle" font-size="9" fill="#64748b">docs/decisions/</text>
+          <rect x="590" y="70" width="115" height="40" rx="7" fill="rgba(96,165,250,.05)" stroke="rgba(96,165,250,.2)" stroke-width="1"/>
+          <text x="647" y="86" text-anchor="middle" font-size="9" fill="#60a5fa" font-weight="600">Slack Notify</text>
+          <text x="647" y="101" text-anchor="middle" font-size="9" fill="#64748b">#architecture</text>
+          <line x1="125" y1="65" x2="155" y2="65" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ag)"/>
+          <line x1="270" y1="65" x2="300" y2="65" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ag)"/>
+          <line x1="415" y1="65" x2="445" y2="65" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ag)"/>
+          <line x1="560" y1="55" x2="590" y2="42" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ag)"/>
+          <line x1="560" y1="75" x2="590" y2="88" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#ag)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:0"><div class="note-icon">✅</div><p><strong>Expert insight:</strong> Dùng <code>log4brains</code> hoặc <code>adr-tools</code> để tự động generate HTML site từ ADR files. Khi onboard engineer mới, họ chỉ cần đọc ADR index để hiểu toàn bộ lịch sử quyết định kiến trúc — tiết kiệm hàng tuần học hỏi. ADR-as-Code là best practice cho bất kỳ team nào có hơn 5 developers.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- DDD SECTION -->
+<section class="page-section" id="s-ddd">
+<div class="section-header">
+  <div class="section-number">02</div>
+  <div><div class="section-title">Domain-Driven Design (DDD)</div><div class="section-subtitle">Mô hình hóa phần mềm theo ngôn ngữ và logic nghiệp vụ thực sự</div></div>
+  <span class="badge badge-advanced">ADVANCED</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Định nghĩa</div>
+  <div class="title">DDD là gì?</div>
+  <p class="prose"><strong>Domain-Driven Design (DDD)</strong> là phương pháp thiết kế phần mềm do <strong>Eric Evans</strong> đề xuất (2003). DDD đặt <strong>domain (nghiệp vụ)</strong> làm trung tâm — code phải phản ánh chính xác ngôn ngữ và logic của domain, không phải ngược lại.</p>
+  <p class="prose">DDD gồm 2 tầng: <strong>Strategic DDD</strong> (macro: Bounded Context, Context Map, Ubiquitous Language) và <strong>Tactical DDD</strong> (micro: Entity, Value Object, Aggregate, Repository, Domain Event).</p>
+</div>
+<h3>Các khái niệm cốt lõi của DDD</h3>
+<div class="card-grid">
+  <div class="card"><div class="card-title">🗣️ Ubiquitous Language</div><p class="prose" style="margin:0;font-size:13px">Ngôn ngữ chung giữa developer và domain expert. Dùng đúng thuật ngữ nghiệp vụ trong code, tài liệu, hội thoại — không dịch qua lại.</p></div>
+  <div class="card"><div class="card-title">🏝️ Bounded Context</div><p class="prose" style="margin:0;font-size:13px">Ranh giới rõ ràng trong đó một model có nghĩa nhất định. "Order" trong Billing khác "Order" trong Shipping.</p></div>
+  <div class="card"><div class="card-title">👤 Entity</div><p class="prose" style="margin:0;font-size:13px">Object có identity duy nhất tồn tại theo thời gian. Hai User cùng tên nhưng khác ID là hai Entity khác nhau.</p></div>
+  <div class="card"><div class="card-title">💎 Value Object</div><p class="prose" style="margin:0;font-size:13px">Object định nghĩa bởi giá trị, không có identity riêng. Immutable. Hai <code>Money(100, USD)</code> là bằng nhau.</p></div>
+  <div class="card"><div class="card-title">🌳 Aggregate</div><p class="prose" style="margin:0;font-size:13px">Cụm Entity + Value Object xử lý như một đơn vị nhất quán. Mọi thay đổi đi qua Aggregate Root duy nhất.</p></div>
+  <div class="card"><div class="card-title">📢 Domain Event</div><p class="prose" style="margin:0;font-size:13px">Sự kiện quan trọng đã xảy ra trong domain. "OrderPlaced", "PaymentConfirmed" — dùng để giao tiếp giữa Bounded Contexts.</p></div>
+</div>
+<h3>DDD Layered Architecture</h3>
+<div class="diagram-container">
+  <div class="diagram-title">4 tầng chuẩn trong DDD — hướng dependency</div>
+  <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <rect x="60" y="10" width="700" height="48" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+    <text x="410" y="32" text-anchor="middle" font-size="13" fill="#00d4ff" font-weight="600">Presentation / Interface Layer</text>
+    <text x="410" y="50" text-anchor="middle" font-size="10" fill="#64748b">REST API, GraphQL, gRPC, CLI — Chỉ điều phối, không chứa business logic</text>
+    <rect x="60" y="68" width="700" height="48" rx="8" fill="rgba(0,255,136,.07)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+    <text x="410" y="90" text-anchor="middle" font-size="13" fill="#00ff88" font-weight="600">Application Layer</text>
+    <text x="410" y="108" text-anchor="middle" font-size="10" fill="#64748b">Use Cases / Application Services — Orchestrate domain objects, handle transactions</text>
+    <rect x="60" y="126" width="700" height="58" rx="8" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.5)" stroke-width="2"/>
+    <text x="410" y="152" text-anchor="middle" font-size="14" fill="#a855f7" font-weight="700">Domain Layer ← TIM CỦA DDD</text>
+    <text x="410" y="170" text-anchor="middle" font-size="10" fill="#94a3b8">Entity, Value Object, Aggregate, Domain Service, Domain Event, Repository Interface</text>
+    <text x="410" y="184" text-anchor="middle" font-size="9" fill="#64748b">Không phụ thuộc vào bất kỳ tầng nào khác — thuần business logic</text>
+    <rect x="60" y="194" width="700" height="38" rx="8" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.3)" stroke-width="1.5"/>
+    <text x="410" y="210" text-anchor="middle" font-size="13" fill="#f59e0b" font-weight="600">Infrastructure Layer</text>
+    <text x="410" y="226" text-anchor="middle" font-size="10" fill="#64748b">Database, Email, Queue, External APIs — Implement Repository interfaces từ Domain Layer</text>
+    <text x="18" y="155" font-size="9" fill="#64748b" transform="rotate(-90,18,155)">DEPENDENCY ↓</text>
+  </svg>
+</div>
+
+<!-- DDD CASE 1 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-basic">Cơ bản</span><span class="case-title">Case 1 — Aggregate design cho hệ thống đặt vé rạp chiếu phim</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Xây dựng hệ thống đặt vé: một Booking có nhiều Seat, không thể chọn quá ghế của phòng, tất cả Seat trong Booking phải cùng Showtime. Nếu thiết kế không đúng Aggregate, bạn sẽ gặp race condition: 2 người cùng đặt ghế A1 vì check và save không atomic — dẫn đến overbooking.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Booking Aggregate</div>
+      <p class="prose"><code>Booking</code> là Aggregate Root chứa danh sách <code>BookingSeat</code> (Entity) và <code>Money</code> (Value Object). Mọi thay đổi ghế phải đi qua <code>Booking.reserveSeat()</code> — nơi enforce toàn bộ business rules. Repository chỉ lưu/tải toàn bộ Aggregate, đảm bảo tính nhất quán.</p>
+      <table class="data-table">
+        <thead><tr><th>Object</th><th>Loại DDD</th><th>Identity</th><th>Mutable</th><th>Vai trò</th></tr></thead>
+        <tbody>
+          <tr><td><code>Booking</code></td><td>Aggregate Root (Entity)</td><td>BookingId</td><td>Yes</td><td>Entry point cho mọi thao tác</td></tr>
+          <tr><td><code>BookingSeat</code></td><td>Entity</td><td>SeatId</td><td>Yes</td><td>Chỉ modify qua Booking</td></tr>
+          <tr><td><code>Money</code></td><td>Value Object</td><td>Không có</td><td>No (Immutable)</td><td>So sánh theo giá trị</td></tr>
+          <tr><td><code>ShowtimeId</code></td><td>Value Object</td><td>Không có</td><td>No</td><td>Reference đến Showtime Aggregate</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Booking Aggregate Boundary</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Booking Aggregate — ranh giới, thành phần và quan hệ</div>
+        <svg width="100%" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <rect x="100" y="14" width="440" height="200" rx="12" fill="rgba(168,85,247,.03)" stroke="rgba(168,85,247,.35)" stroke-width="2" stroke-dasharray="6,4"/>
+          <text x="122" y="36" font-size="10" fill="#a855f7" font-weight="700">Booking Aggregate</text>
+          <rect x="180" y="48" width="280" height="62" rx="8" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.5)" stroke-width="2"/>
+          <text x="320" y="72" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="700">Booking (Aggregate Root)</text>
+          <text x="320" y="90" text-anchor="middle" font-size="10" fill="#94a3b8">bookingId, customerId, showtimeId, status</text>
+          <text x="320" y="104" text-anchor="middle" font-size="10" fill="#94a3b8">totalPrice: Money</text>
+          <rect x="130" y="150" width="130" height="52" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+          <text x="195" y="172" text-anchor="middle" font-size="11" fill="#00d4ff" font-weight="600">BookingSeat</text>
+          <text x="195" y="188" text-anchor="middle" font-size="9" fill="#64748b">seatId, row, number</text>
+          <text x="195" y="200" text-anchor="middle" font-size="9" fill="#64748b">price: Money</text>
+          <rect x="380" y="150" width="130" height="52" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+          <text x="445" y="172" text-anchor="middle" font-size="11" fill="#00d4ff" font-weight="600">BookingSeat</text>
+          <text x="445" y="188" text-anchor="middle" font-size="9" fill="#64748b">seatId, row, number</text>
+          <text x="445" y="200" text-anchor="middle" font-size="9" fill="#64748b">price: Money</text>
+          <line x1="280" y1="110" x2="210" y2="150" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <line x1="360" y1="110" x2="430" y2="150" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <rect x="600" y="80" width="130" height="48" rx="8" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+          <text x="665" y="100" text-anchor="middle" font-size="11" fill="#00ff88" font-weight="600">Money (VO)</text>
+          <text x="665" y="118" text-anchor="middle" font-size="9" fill="#64748b">amount, currency</text>
+          <rect x="600" y="148" width="130" height="48" rx="8" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.25)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="665" y="168" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="600">Customer</text>
+          <text x="665" y="186" text-anchor="middle" font-size="9" fill="#64748b">external — ref by ID only</text>
+          <line x1="540" y1="95" x2="600" y2="100" stroke="rgba(0,255,136,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+          <line x1="540" y1="115" x2="600" y2="168" stroke="rgba(245,158,11,.25)" stroke-width="1" stroke-dasharray="3,3"/>
+          <rect x="10" y="90" width="76" height="50" rx="7" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.3)" stroke-width="1"/>
+          <text x="48" y="112" text-anchor="middle" font-size="10" fill="#60a5fa" font-weight="600">Booking</text>
+          <text x="48" y="126" text-anchor="middle" font-size="10" fill="#60a5fa">Repository</text>
+          <line x1="86" y1="115" x2="100" y2="115" stroke="#60a5fa" stroke-width="1.5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:8px"><div class="note-icon">✅</div><p><strong>Quy tắc vàng Aggregate:</strong> Mỗi transaction chỉ nên modify <strong>1 Aggregate</strong>. Nếu cần thay đổi 2 Aggregate trong 1 transaction, đó là dấu hiệu thiết kế sai — hãy dùng Domain Event để giao tiếp bất đồng bộ.</p></div>
+      <div class="note note-info" style="margin-bottom:0"><div class="note-icon">💡</div><p><strong>Giữ Aggregate nhỏ:</strong> Aggregate quá lớn gây lock contention cao trong database. Hỏi: "Thành phần này có thực sự cần consistency cùng Aggregate Root không?" Nếu không — hãy tách ra.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- DDD CASE 2 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-advanced">Nâng cao</span><span class="case-title">Case 2 — Bounded Context và Context Map cho hệ thống ngân hàng</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Hệ thống ngân hàng có nhiều subdomain: Core Banking, Loan Management, Fraud Detection, Customer Management. Từ "Account" có nghĩa khác nhau ở từng nơi. Nếu dùng chung một model, code sẽ đầy <code>if/else</code> kiểm tra loại tài khoản, data pollution, và các team cản nhau mỗi khi thay đổi.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Strategic DDD với Context Map</div>
+      <p class="prose">Xác định 4 Bounded Context riêng biệt, mỗi cái có model và Ubiquitous Language riêng. Context Map định nghĩa quan hệ: upstream/downstream, Shared Kernel, Anti-Corruption Layer giữa các context.</p>
+      <table class="data-table">
+        <thead><tr><th>Bounded Context</th><th>"Account" nghĩa là</th><th>Relationship</th></tr></thead>
+        <tbody>
+          <tr><td><code>Core Banking</code></td><td>Deposit account, balance, transactions</td><td>Upstream — các context khác conform</td></tr>
+          <tr><td><code>Loan Management</code></td><td>Loan account, repayment schedule, interest</td><td>Downstream với ACL từ Core Banking</td></tr>
+          <tr><td><code>Fraud Detection</code></td><td>Transaction pattern, risk score</td><td>Event Subscriber từ Core Banking</td></tr>
+          <tr><td><code>Customer Mgmt</code></td><td>Customer profile, KYC, relationships</td><td>Shared Kernel với Core Banking</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Context Map</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Banking System Context Map — 4 Bounded Contexts</div>
+        <svg width="100%" viewBox="0 0 820 270" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs><marker id="cm1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <!-- Core Banking -->
+          <rect x="290" y="90" width="240" height="80" rx="12" fill="rgba(0,212,255,.1)" stroke="rgba(0,212,255,.5)" stroke-width="2"/>
+          <text x="410" y="118" text-anchor="middle" font-size="13" fill="#00d4ff" font-weight="700">Core Banking</text>
+          <text x="410" y="136" text-anchor="middle" font-size="10" fill="#94a3b8">Account, Transaction, Balance</text>
+          <text x="410" y="152" text-anchor="middle" font-size="10" fill="#94a3b8">Transfer, Interest Rate</text>
+          <text x="296" y="166" font-size="9" fill="#00d4ff">[UPSTREAM]</text>
+          <!-- Loan -->
+          <rect x="20" y="90" width="200" height="80" rx="12" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <text x="120" y="118" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="600">Loan Management</text>
+          <text x="120" y="136" text-anchor="middle" font-size="10" fill="#94a3b8">LoanAccount, Schedule</text>
+          <text x="120" y="152" text-anchor="middle" font-size="10" fill="#94a3b8">Installment, Interest</text>
+          <text x="26" y="166" font-size="9" fill="#a855f7">[D] ACL</text>
+          <!-- Fraud -->
+          <rect x="600" y="90" width="200" height="80" rx="12" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.4)" stroke-width="1.5"/>
+          <text x="700" y="118" text-anchor="middle" font-size="12" fill="#ff6b6b" font-weight="600">Fraud Detection</text>
+          <text x="700" y="136" text-anchor="middle" font-size="10" fill="#94a3b8">RiskScore, Pattern</text>
+          <text x="700" y="152" text-anchor="middle" font-size="10" fill="#94a3b8">Alert, Threshold</text>
+          <text x="606" y="166" font-size="9" fill="#ff6b6b">[D] Event Sub</text>
+          <!-- Customer -->
+          <rect x="290" y="215" width="240" height="45" rx="12" fill="rgba(0,255,136,.07)" stroke="rgba(0,255,136,.35)" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <text x="410" y="236" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="600">Customer Management</text>
+          <text x="410" y="252" text-anchor="middle" font-size="10" fill="#94a3b8">Shared Kernel: CustomerProfile, KYC</text>
+          <!-- Arrows -->
+          <line x1="290" y1="130" x2="220" y2="130" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#cm1)"/>
+          <text x="252" y="122" font-size="9" fill="#a855f7">ACL</text>
+          <line x1="530" y1="130" x2="600" y2="130" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#cm1)"/>
+          <text x="558" y="122" font-size="9" fill="#ff6b6b">Events</text>
+          <line x1="410" y1="170" x2="410" y2="215" stroke="#00ff88" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="420" y="196" font-size="9" fill="#00ff88">Shared Kernel</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-warn" style="margin-bottom:0"><div class="note-icon">⚠️</div><p><strong>Anti-pattern "Big Ball of Mud":</strong> Tất cả domain objects dùng chung nhau không có ranh giới. Context Map giúp nhận diện sớm nơi cần Anti-Corruption Layer (ACL) để ngăn model của context này "nhiễm" vào context kia — lỗi phổ biến nhất khi áp dụng DDD.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- DDD CASE 3 EXPERT -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-expert">Expert</span><span class="case-title">Case 3 — Event Sourcing + CQRS kết hợp DDD cho hệ thống kho hàng</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Hệ thống quản lý kho cần: audit log đầy đủ mọi thay đổi tồn kho, khả năng "time travel" — xem tồn kho tại bất kỳ thời điểm nào trong quá khứ, và hiệu năng cao cho read (dashboard) và write (nhập/xuất kho) riêng biệt. CRUD truyền thống không đáp ứng được yêu cầu audit và time travel.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Event Sourcing + CQRS</div>
+      <p class="prose"><strong>Event Sourcing:</strong> Lưu chuỗi Domain Events thay vì state hiện tại. State = replay tất cả events. <strong>CQRS:</strong> Tách Command side (write, Event Store) và Query side (read, denormalized Read Model).</p>
+      <table class="data-table">
+        <thead><tr><th>Thành phần</th><th>Trách nhiệm</th><th>Storage</th></tr></thead>
+        <tbody>
+          <tr><td><code>InventoryAggregate</code></td><td>Xử lý commands, emit Domain Events</td><td>Event Store (append-only)</td></tr>
+          <tr><td><code>InventoryAdjusted</code></td><td>Domain Event ghi lại mọi thay đổi</td><td>Events table (immutable)</td></tr>
+          <tr><td><code>InventoryReadModel</code></td><td>Denormalized view cho dashboard</td><td>Read DB (PostgreSQL/Redis)</td></tr>
+          <tr><td><code>Projection</code></td><td>Rebuild Read Model từ Events</td><td>Background worker</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — CQRS + Event Sourcing Flow</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">CQRS + Event Sourcing — Command/Query Separation</div>
+        <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs><marker id="cq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <!-- Command side -->
+          <rect x="10" y="15" width="380" height="200" rx="10" fill="rgba(255,107,107,.03)" stroke="rgba(255,107,107,.2)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="200" y="36" text-anchor="middle" font-size="10" fill="#ff6b6b">COMMAND SIDE (Write)</text>
+          <rect x="22" y="50" width="110" height="40" rx="7" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.35)" stroke-width="1"/>
+          <text x="77" y="66" text-anchor="middle" font-size="10" fill="#ff6b6b" font-weight="600">Command</text>
+          <text x="77" y="82" text-anchor="middle" font-size="9" fill="#64748b">AdjustInventory</text>
+          <rect x="162" y="50" width="110" height="40" rx="7" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.35)" stroke-width="1"/>
+          <text x="217" y="66" text-anchor="middle" font-size="10" fill="#a855f7" font-weight="600">Aggregate</text>
+          <text x="217" y="82" text-anchor="middle" font-size="9" fill="#64748b">InventoryAggregate</text>
+          <rect x="162" y="120" width="110" height="40" rx="7" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.35)" stroke-width="1"/>
+          <text x="217" y="136" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="600">Domain Event</text>
+          <text x="217" y="152" text-anchor="middle" font-size="9" fill="#64748b">InventoryAdjusted</text>
+          <rect x="22" y="120" width="110" height="75" rx="7" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.35)" stroke-width="1"/>
+          <text x="77" y="142" text-anchor="middle" font-size="10" fill="#00d4ff" font-weight="600">Event Store</text>
+          <text x="77" y="158" text-anchor="middle" font-size="9" fill="#64748b">Append-only log</text>
+          <text x="77" y="173" text-anchor="middle" font-size="9" fill="#64748b">v1: Stock+100</text>
+          <text x="77" y="188" text-anchor="middle" font-size="9" fill="#64748b">v2: Stock-30</text>
+          <!-- Query side -->
+          <rect x="430" y="15" width="380" height="200" rx="10" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="620" y="36" text-anchor="middle" font-size="10" fill="#00ff88">QUERY SIDE (Read)</text>
+          <rect x="442" y="50" width="110" height="40" rx="7" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+          <text x="497" y="66" text-anchor="middle" font-size="10" fill="#00ff88" font-weight="600">Projection</text>
+          <text x="497" y="82" text-anchor="middle" font-size="9" fill="#64748b">Event Handler</text>
+          <rect x="582" y="50" width="110" height="40" rx="7" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.3)" stroke-width="1"/>
+          <text x="637" y="66" text-anchor="middle" font-size="10" fill="#60a5fa" font-weight="600">Read Model</text>
+          <text x="637" y="82" text-anchor="middle" font-size="9" fill="#64748b">InventoryView</text>
+          <rect x="700" y="50" width="100" height="40" rx="7" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+          <text x="750" y="66" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="600">Query</text>
+          <text x="750" y="82" text-anchor="middle" font-size="9" fill="#64748b">GetStock</text>
+          <!-- Arrows -->
+          <line x1="132" y1="70" x2="162" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#cq1)"/>
+          <line x1="217" y1="90" x2="217" y2="120" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#cq1)"/>
+          <line x1="162" y1="142" x2="132" y2="158" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#cq1)"/>
+          <line x1="395" y1="140" x2="442" y2="70" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#cq1)"/>
+          <text x="408" y="115" font-size="9" fill="#f59e0b">publishes</text>
+          <line x1="552" y1="70" x2="582" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#cq1)"/>
+          <line x1="692" y1="70" x2="700" y2="70" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#cq1)"/>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-warn" style="margin-bottom:8px"><div class="note-icon">⚠️</div><p><strong>Cảnh báo:</strong> Event Sourcing + CQRS tăng độ phức tạp đáng kể. Chỉ áp dụng khi có yêu cầu rõ ràng về audit trail, time travel, hoặc cần scale đọc/ghi độc lập. Với CRUD đơn giản: KHÔNG cần.</p></div>
+      <div class="note note-success" style="margin-bottom:0"><div class="note-icon">✅</div><p><strong>Khi nào phù hợp:</strong> Financial systems (audit bắt buộc), collaborative editing (conflict resolution), high-throughput systems cần tách read/write scale độc lập, hoặc hệ thống cần "undo" operation.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- ERD SECTION -->
+<section class="page-section" id="s-erd">
+<div class="section-header">
+  <div class="section-number">03</div>
+  <div><div class="section-title">Entity Relationship Diagram (ERD)</div><div class="section-subtitle">Thiết kế cơ sở dữ liệu trước khi viết một dòng SQL</div></div>
+  <span class="badge badge-basic">CƠ BẢN → EXPERT</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Định nghĩa</div>
+  <div class="title">ERD là gì?</div>
+  <p class="prose"><strong>Entity Relationship Diagram (ERD)</strong> là sơ đồ cấu trúc dùng để mô tả <strong>thực thể (entity)</strong>, <strong>thuộc tính (attribute)</strong> và <strong>mối quan hệ (relationship)</strong> giữa các thực thể trong hệ thống cơ sở dữ liệu. ERD do Peter Chen phát triển năm 1976.</p>
+  <p class="prose">Có 3 loại ERD theo mức độ trừu tượng: <strong>Conceptual ERD</strong> (mức nghiệp vụ, không kỹ thuật), <strong>Logical ERD</strong> (attributes, relationships, keys), <strong>Physical ERD</strong> (data types, indexes, constraints — sát với database thực tế nhất).</p>
+</div>
+<h3>Ký hiệu Crow's Foot Notation</h3>
+<div class="diagram-container">
+  <div class="diagram-title">Crow's Foot Notation — Chuẩn ký hiệu ERD hiện đại</div>
+  <svg width="100%" viewBox="0 0 820 180" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <text x="100" y="20" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600">One-to-One (1:1)</text>
+    <line x1="30" y1="50" x2="170" y2="50" stroke="#00d4ff" stroke-width="2"/>
+    <line x1="30" y1="43" x2="30" y2="57" stroke="#00d4ff" stroke-width="2"/>
+    <line x1="38" y1="43" x2="38" y2="57" stroke="#00d4ff" stroke-width="2"/>
+    <line x1="162" y1="43" x2="162" y2="57" stroke="#00d4ff" stroke-width="2"/>
+    <line x1="170" y1="43" x2="170" y2="57" stroke="#00d4ff" stroke-width="2"/>
+    <text x="100" y="74" text-anchor="middle" font-size="10" fill="#64748b">User — Profile</text>
+    <text x="100" y="100" text-anchor="middle" font-size="9" fill="#64748b">Mỗi User có đúng</text>
+    <text x="100" y="114" text-anchor="middle" font-size="9" fill="#64748b">1 Profile và ngược lại</text>
+
+    <text x="300" y="20" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600">One-to-Many (1:N)</text>
+    <line x1="230" y1="50" x2="370" y2="50" stroke="#00ff88" stroke-width="2"/>
+    <line x1="230" y1="43" x2="230" y2="57" stroke="#00ff88" stroke-width="2"/>
+    <line x1="238" y1="43" x2="238" y2="57" stroke="#00ff88" stroke-width="2"/>
+    <line x1="360" y1="50" x2="348" y2="42" stroke="#00ff88" stroke-width="2"/>
+    <line x1="360" y1="50" x2="348" y2="58" stroke="#00ff88" stroke-width="2"/>
+    <line x1="363" y1="43" x2="363" y2="57" stroke="#00ff88" stroke-width="2"/>
+    <text x="300" y="74" text-anchor="middle" font-size="10" fill="#64748b">Customer — Orders</text>
+    <text x="300" y="100" text-anchor="middle" font-size="9" fill="#64748b">1 Customer có nhiều</text>
+    <text x="300" y="114" text-anchor="middle" font-size="9" fill="#64748b">Orders (không giới hạn)</text>
+
+    <text x="510" y="20" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600">Many-to-Many (M:N)</text>
+    <line x1="430" y1="50" x2="590" y2="50" stroke="#a855f7" stroke-width="2"/>
+    <line x1="440" y1="50" x2="430" y2="42" stroke="#a855f7" stroke-width="2"/>
+    <line x1="440" y1="50" x2="430" y2="58" stroke="#a855f7" stroke-width="2"/>
+    <line x1="437" y1="43" x2="437" y2="57" stroke="#a855f7" stroke-width="2"/>
+    <line x1="580" y1="50" x2="590" y2="42" stroke="#a855f7" stroke-width="2"/>
+    <line x1="580" y1="50" x2="590" y2="58" stroke="#a855f7" stroke-width="2"/>
+    <line x1="583" y1="43" x2="583" y2="57" stroke="#a855f7" stroke-width="2"/>
+    <text x="510" y="74" text-anchor="middle" font-size="10" fill="#64748b">Students — Courses</text>
+    <text x="510" y="100" text-anchor="middle" font-size="9" fill="#64748b">Cần bảng junction</text>
+    <text x="510" y="114" text-anchor="middle" font-size="9" fill="#64748b">để giải quyết M:N</text>
+
+    <text x="710" y="20" text-anchor="middle" font-size="11" fill="#94a3b8" font-weight="600">Optional vs Mandatory</text>
+    <line x1="650" y1="50" x2="770" y2="50" stroke="#f59e0b" stroke-width="2"/>
+    <circle cx="660" cy="50" r="6" fill="none" stroke="#f59e0b" stroke-width="2"/>
+    <line x1="762" y1="43" x2="762" y2="57" stroke="#f59e0b" stroke-width="2"/>
+    <text x="710" y="74" text-anchor="middle" font-size="10" fill="#64748b">○ = optional (0 hoặc nhiều)</text>
+    <text x="710" y="90" text-anchor="middle" font-size="10" fill="#64748b">| = mandatory (bắt buộc có)</text>
+
+    <rect x="10" y="130" width="800" height="40" rx="7" fill="rgba(255,255,255,.02)" stroke="var(--border)" stroke-width="1"/>
+    <text x="410" y="147" text-anchor="middle" font-size="10" fill="#64748b" font-weight="600">Quy ước đọc ERD: Customer ——&lt; Order = "Một Customer có thể có NHIỀU Order" | "Mỗi Order thuộc về ĐÚNG MỘT Customer"</text>
+    <text x="410" y="163" text-anchor="middle" font-size="10" fill="#64748b">PK = Primary Key | FK = Foreign Key | NN = Not Null | UQ = Unique | IDX = Index | DEF = Default value</text>
+  </svg>
+</div>
+
+<!-- ERD CASE 1 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-basic">Cơ bản</span><span class="case-title">Case 1 — ERD cho hệ thống Blog Platform</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Xây dựng database cho blog platform: User viết nhiều Post, mỗi Post thuộc nhiều Category, độc giả để Comment. Nếu thiết kế sai — xóa User mất hết Post (thiếu ON DELETE), không query Post theo Category hiệu quả (thiếu junction table + index), Comment không biết thuộc User nào (thiếu FK).</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Physical ERD với đầy đủ constraints</div>
+      <p class="prose">5 bảng: <code>users</code>, <code>posts</code>, <code>categories</code>, <code>post_categories</code> (junction table cho M:N), <code>comments</code>. Xác định rõ FK với ON DELETE behavior, unique constraints và indexes cho query phổ biến.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 ERD — Blog System Physical Level</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Blog Platform ERD — Physical Level với keys và constraints</div>
+        <svg width="100%" viewBox="0 0 820 360" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <!-- users -->
+          <rect x="10" y="70" width="170" height="175" rx="8" fill="var(--bg-card)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+          <rect x="10" y="70" width="170" height="30" rx="8" fill="rgba(0,212,255,.12)"/>
+          <rect x="10" y="91" width="170" height="9" fill="rgba(0,212,255,.12)"/>
+          <text x="95" y="89" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">users</text>
+          <text x="20" y="118" font-size="10" fill="#f59e0b">🔑 id</text><text x="172" y="118" text-anchor="end" font-size="9" fill="#64748b">BIGSERIAL PK</text>
+          <text x="20" y="136" font-size="10" fill="#94a3b8">  email</text><text x="172" y="136" text-anchor="end" font-size="9" fill="#64748b">VARCHAR UQ NN</text>
+          <text x="20" y="154" font-size="10" fill="#94a3b8">  username</text><text x="172" y="154" text-anchor="end" font-size="9" fill="#64748b">VARCHAR NN</text>
+          <text x="20" y="172" font-size="10" fill="#94a3b8">  password_hash</text><text x="172" y="172" text-anchor="end" font-size="9" fill="#64748b">TEXT NN</text>
+          <text x="20" y="190" font-size="10" fill="#94a3b8">  created_at</text><text x="172" y="190" text-anchor="end" font-size="9" fill="#64748b">TIMESTAMPTZ</text>
+          <text x="20" y="208" font-size="10" fill="#94a3b8">  is_active</text><text x="172" y="208" text-anchor="end" font-size="9" fill="#64748b">BOOL DEF true</text>
+          <text x="14" y="236" font-size="9" fill="#64748b">IDX: email, username</text>
+          <!-- posts -->
+          <rect x="300" y="20" width="210" height="200" rx="8" fill="var(--bg-card)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <rect x="300" y="20" width="210" height="30" rx="8" fill="rgba(0,255,136,.12)"/>
+          <rect x="300" y="41" width="210" height="9" fill="rgba(0,255,136,.12)"/>
+          <text x="405" y="39" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="700">posts</text>
+          <text x="310" y="70" font-size="10" fill="#f59e0b">🔑 id</text><text x="502" y="70" text-anchor="end" font-size="9" fill="#64748b">BIGSERIAL PK</text>
+          <text x="310" y="88" font-size="10" fill="#60a5fa">🔗 user_id</text><text x="502" y="88" text-anchor="end" font-size="9" fill="#64748b">BIGINT FK NN</text>
+          <text x="310" y="106" font-size="10" fill="#94a3b8">  title</text><text x="502" y="106" text-anchor="end" font-size="9" fill="#64748b">VARCHAR(255) NN</text>
+          <text x="310" y="124" font-size="10" fill="#94a3b8">  slug</text><text x="502" y="124" text-anchor="end" font-size="9" fill="#64748b">VARCHAR UQ NN</text>
+          <text x="310" y="142" font-size="10" fill="#94a3b8">  content</text><text x="502" y="142" text-anchor="end" font-size="9" fill="#64748b">TEXT NN</text>
+          <text x="310" y="160" font-size="10" fill="#94a3b8">  status</text><text x="502" y="160" text-anchor="end" font-size="9" fill="#64748b">ENUM(draft,pub)</text>
+          <text x="310" y="178" font-size="10" fill="#94a3b8">  published_at</text><text x="502" y="178" text-anchor="end" font-size="9" fill="#64748b">TIMESTAMPTZ</text>
+          <text x="310" y="196" font-size="10" fill="#94a3b8">  created_at</text><text x="502" y="196" text-anchor="end" font-size="9" fill="#64748b">TIMESTAMPTZ</text>
+          <text x="304" y="214" font-size="9" fill="#64748b">FK: user_id → users.id ON DELETE CASCADE</text>
+          <!-- categories -->
+          <rect x="590" y="20" width="200" height="115" rx="8" fill="var(--bg-card)" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <rect x="590" y="20" width="200" height="30" rx="8" fill="rgba(168,85,247,.12)"/>
+          <rect x="590" y="41" width="200" height="9" fill="rgba(168,85,247,.12)"/>
+          <text x="690" y="39" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="700">categories</text>
+          <text x="600" y="68" font-size="10" fill="#f59e0b">🔑 id</text><text x="782" y="68" text-anchor="end" font-size="9" fill="#64748b">SERIAL PK</text>
+          <text x="600" y="86" font-size="10" fill="#94a3b8">  name</text><text x="782" y="86" text-anchor="end" font-size="9" fill="#64748b">VARCHAR UQ NN</text>
+          <text x="600" y="104" font-size="10" fill="#94a3b8">  slug</text><text x="782" y="104" text-anchor="end" font-size="9" fill="#64748b">VARCHAR UQ NN</text>
+          <text x="600" y="122" font-size="10" fill="#94a3b8">  description</text><text x="782" y="122" text-anchor="end" font-size="9" fill="#64748b">TEXT</text>
+          <!-- post_categories junction -->
+          <rect x="590" y="180" width="200" height="90" rx="8" fill="var(--bg-card)" stroke="rgba(245,158,11,.4)" stroke-width="1.5" stroke-dasharray="5,3"/>
+          <rect x="590" y="180" width="200" height="30" rx="8" fill="rgba(245,158,11,.1)"/>
+          <rect x="590" y="201" width="200" height="9" fill="rgba(245,158,11,.1)"/>
+          <text x="690" y="199" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="700">post_categories</text>
+          <text x="600" y="228" font-size="10" fill="#60a5fa">🔗 post_id</text><text x="782" y="228" text-anchor="end" font-size="9" fill="#64748b">BIGINT FK PK</text>
+          <text x="600" y="246" font-size="10" fill="#60a5fa">🔗 category_id</text><text x="782" y="246" text-anchor="end" font-size="9" fill="#64748b">INT FK PK</text>
+          <text x="594" y="263" font-size="9" fill="#64748b">PK(post_id, category_id)</text>
+          <!-- comments -->
+          <rect x="300" y="280" width="210" height="75" rx="8" fill="var(--bg-card)" stroke="rgba(96,165,250,.4)" stroke-width="1.5"/>
+          <rect x="300" y="280" width="210" height="30" rx="8" fill="rgba(96,165,250,.12)"/>
+          <rect x="300" y="301" width="210" height="9" fill="rgba(96,165,250,.12)"/>
+          <text x="405" y="299" text-anchor="middle" font-size="12" fill="#60a5fa" font-weight="700">comments</text>
+          <text x="310" y="328" font-size="10" fill="#f59e0b">🔑 id</text><text x="502" y="328" text-anchor="end" font-size="9" fill="#64748b">BIGSERIAL PK</text>
+          <text x="310" y="346" font-size="10" fill="#60a5fa">🔗 post_id, user_id</text><text x="502" y="346" text-anchor="end" font-size="9" fill="#64748b">FK NN</text>
+          <!-- Relationship lines -->
+          <line x1="180" y1="118" x2="300" y2="88" stroke="#64748b" stroke-width="1.5"/>
+          <line x1="180" y1="111" x2="180" y2="125" stroke="#64748b" stroke-width="1.5"/>
+          <line x1="188" y1="111" x2="188" y2="125" stroke="#64748b" stroke-width="1.5"/>
+          <text x="240" y="96" text-anchor="middle" font-size="9" fill="#64748b">1:N</text>
+          <line x1="510" y1="88" x2="590" y2="225" stroke="#f59e0b" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="510" y1="88" x2="590" y2="68" stroke="#64748b" stroke-width="1.5"/>
+          <text x="552" y="60" text-anchor="middle" font-size="9" fill="#64748b">M:N</text>
+          <line x1="405" y1="220" x2="405" y2="280" stroke="#60a5fa" stroke-width="1.5"/>
+          <text x="416" y="255" font-size="9" fill="#64748b">1:N</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-info" style="margin-bottom:0"><div class="note-icon">💡</div><p><strong>4 quy tắc vàng ERD:</strong> (1) Mỗi bảng đại diện đúng một thực thể. (2) M:N luôn cần junction table. (3) Xác định rõ ON DELETE: <code>CASCADE</code> / <code>SET NULL</code> / <code>RESTRICT</code>. (4) Index tất cả FK columns và các cột query thường xuyên.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- ERD CASE 2 EXPERT -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-expert">Expert</span><span class="case-title">Case 2 — ERD cho Multi-Tenant SaaS Platform</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Xây dựng SaaS phục vụ nhiều công ty (tenant). Mỗi tenant có users, projects, data riêng. Thách thức lớn: cách ly dữ liệu giữa các tenant (data leak = thảm họa), performance khi scale, và linh hoạt cho từng tenant cấu hình riêng biệt.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Shared Schema với tenant_id + Row Level Security</div>
+      <p class="prose">Dùng <strong>Shared DB / Shared Schema</strong> với <code>tenant_id</code> trên tất cả bảng tenant data. Kết hợp <strong>Row Level Security (RLS)</strong> của PostgreSQL để enforce isolation ở tầng database. Composite index bắt đầu bằng <code>tenant_id</code> cho mọi bảng.</p>
+      <table class="data-table">
+        <thead><tr><th>Lớp</th><th>Bảng</th><th>tenant_id</th><th>Ghi chú</th></tr></thead>
+        <tbody>
+          <tr><td><strong>System</strong></td><td>tenants, plans, subscriptions</td><td>❌ Không cần</td><td>Global data, shared across all tenants</td></tr>
+          <tr><td><strong>Tenant</strong></td><td>users, projects, tasks, comments</td><td>✅ Bắt buộc</td><td>Mỗi row thuộc đúng 1 tenant</td></tr>
+          <tr><td><strong>Audit</strong></td><td>audit_logs, activity_events</td><td>✅ Bắt buộc</td><td>Compliance, immutable via trigger</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Multi-Tenant ERD (2 lớp)</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Multi-Tenant SaaS ERD — System Layer & Tenant Layer</div>
+        <svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <rect x="10" y="10" width="390" height="110" rx="10" fill="rgba(0,212,255,.03)" stroke="rgba(0,212,255,.25)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="205" y="28" text-anchor="middle" font-size="10" fill="#00d4ff">SYSTEM LAYER (Global, no tenant_id)</text>
+          <rect x="20" y="36" width="165" height="75" rx="7" fill="var(--bg-card)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+          <rect x="20" y="36" width="165" height="26" rx="7" fill="rgba(0,212,255,.12)"/>
+          <rect x="20" y="53" width="165" height="9" fill="rgba(0,212,255,.12)"/>
+          <text x="102" y="51" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">tenants</text>
+          <text x="28" y="76" font-size="10" fill="#f59e0b">🔑 id (UUID PK)</text>
+          <text x="28" y="93" font-size="10" fill="#94a3b8">  name, slug, plan_id</text>
+          <text x="28" y="107" font-size="10" fill="#94a3b8">  settings JSONB</text>
+          <rect x="215" y="36" width="175" height="75" rx="7" fill="var(--bg-card)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+          <rect x="215" y="36" width="175" height="26" rx="7" fill="rgba(0,212,255,.12)"/>
+          <rect x="215" y="53" width="175" height="9" fill="rgba(0,212,255,.12)"/>
+          <text x="302" y="51" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">plans</text>
+          <text x="223" y="76" font-size="10" fill="#f59e0b">🔑 id (SERIAL PK)</text>
+          <text x="223" y="93" font-size="10" fill="#94a3b8">  name, max_users</text>
+          <text x="223" y="107" font-size="10" fill="#94a3b8">  price, features JSONB</text>
+          <!-- Tenant layer -->
+          <rect x="10" y="145" width="800" height="140" rx="10" fill="rgba(168,85,247,.02)" stroke="rgba(168,85,247,.2)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="410" y="163" text-anchor="middle" font-size="10" fill="#a855f7">TENANT LAYER — tất cả bảng đều có tenant_id UUID FK NN + Composite Index(tenant_id, ...)</text>
+          <rect x="20" y="175" width="180" height="100" rx="7" fill="var(--bg-card)" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <rect x="20" y="175" width="180" height="26" rx="7" fill="rgba(168,85,247,.1)"/>
+          <rect x="20" y="192" width="180" height="9" fill="rgba(168,85,247,.1)"/>
+          <text x="110" y="190" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="700">users</text>
+          <text x="28" y="215" font-size="10" fill="#f59e0b">🔑 id (UUID PK)</text>
+          <text x="28" y="231" font-size="10" fill="#60a5fa">🔗 tenant_id FK NN</text>
+          <text x="28" y="247" font-size="10" fill="#94a3b8">  email, role, name</text>
+          <text x="28" y="263" font-size="9" fill="#64748b">IDX(tenant_id, email)</text>
+          <rect x="225" y="175" width="180" height="100" rx="7" fill="var(--bg-card)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <rect x="225" y="175" width="180" height="26" rx="7" fill="rgba(0,255,136,.1)"/>
+          <rect x="225" y="192" width="180" height="9" fill="rgba(0,255,136,.1)"/>
+          <text x="315" y="190" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="700">projects</text>
+          <text x="233" y="215" font-size="10" fill="#f59e0b">🔑 id (UUID PK)</text>
+          <text x="233" y="231" font-size="10" fill="#60a5fa">🔗 tenant_id, owner_id</text>
+          <text x="233" y="247" font-size="10" fill="#94a3b8">  name, status, desc</text>
+          <text x="233" y="263" font-size="9" fill="#64748b">IDX(tenant_id)</text>
+          <rect x="430" y="175" width="180" height="100" rx="7" fill="var(--bg-card)" stroke="rgba(245,158,11,.4)" stroke-width="1.5"/>
+          <rect x="430" y="175" width="180" height="26" rx="7" fill="rgba(245,158,11,.1)"/>
+          <rect x="430" y="192" width="180" height="9" fill="rgba(245,158,11,.1)"/>
+          <text x="520" y="190" text-anchor="middle" font-size="12" fill="#f59e0b" font-weight="700">tasks</text>
+          <text x="438" y="215" font-size="10" fill="#f59e0b">🔑 id (UUID PK)</text>
+          <text x="438" y="231" font-size="10" fill="#60a5fa">🔗 tenant_id, project_id</text>
+          <text x="438" y="247" font-size="10" fill="#94a3b8">  title, status, assignee</text>
+          <text x="438" y="263" font-size="9" fill="#64748b">IDX(tenant_id, project_id)</text>
+          <rect x="635" y="175" width="170" height="100" rx="7" fill="var(--bg-card)" stroke="rgba(255,107,107,.4)" stroke-width="1.5"/>
+          <rect x="635" y="175" width="170" height="26" rx="7" fill="rgba(255,107,107,.08)"/>
+          <rect x="635" y="192" width="170" height="9" fill="rgba(255,107,107,.08)"/>
+          <text x="720" y="190" text-anchor="middle" font-size="12" fill="#ff6b6b" font-weight="700">audit_logs</text>
+          <text x="643" y="215" font-size="10" fill="#60a5fa">🔗 tenant_id</text>
+          <text x="643" y="231" font-size="10" fill="#94a3b8">  table_name, action</text>
+          <text x="643" y="247" font-size="10" fill="#94a3b8">  old_data, new_data JSONB</text>
+          <text x="643" y="263" font-size="9" fill="#64748b">Immutable via RLS</text>
+          <!-- Arrows -->
+          <line x1="110" y1="111" x2="110" y2="175" stroke="rgba(168,85,247,.3)" stroke-width="1" stroke-dasharray="4,3"/>
+          <line x1="200" y1="111" x2="300" y2="175" stroke="rgba(168,85,247,.3)" stroke-width="1" stroke-dasharray="4,3"/>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:8px"><div class="note-icon">✅</div><p><strong>PostgreSQL RLS cho Multi-Tenant:</strong> <code>CREATE POLICY tenant_isolation ON users USING (tenant_id = current_setting('app.tenant_id')::UUID)</code> — enforce isolation tại tầng DB, không phụ thuộc vào application code.</p></div>
+      <div class="note note-danger" style="margin-bottom:0"><div class="note-icon">🚨</div><p><strong>Cạm bẫy nghiêm trọng:</strong> Quên thêm <code>tenant_id</code> vào một bảng = data leak giữa các tenant. Dùng migration linting và CI checks để enforce rule này. Đây là lỗi không thể tha thứ trong SaaS.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- HLD SECTION -->
+<section class="page-section" id="s-hld">
+<div class="section-header">
+  <div class="section-number">04</div>
+  <div><div class="section-title">High-Level Design (HLD)</div><div class="section-subtitle">Bức tranh toàn cảnh trước khi đi vào bất kỳ chi tiết nào</div></div>
+  <span class="badge badge-advanced">ADVANCED</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Định nghĩa</div>
+  <div class="title">HLD là gì?</div>
+  <p class="prose"><strong>High-Level Design (HLD)</strong> mô tả kiến trúc tổng thể của hệ thống — xác định <strong>các thành phần chính</strong>, <strong>cách chúng giao tiếp</strong> và <strong>luồng dữ liệu</strong> giữa chúng. HLD không đi vào chi tiết implement mà tập trung vào <em>cái gì</em> và <em>tại sao</em>.</p>
+  <p class="prose">Đối tượng đọc HLD: <strong>Stakeholders, Product Managers, Architect team</strong>. HLD được tạo sau khi có requirement rõ ràng và trước khi bắt đầu LLD. Mục tiêu là đảm bảo mọi bên đồng thuận trước khi đầu tư chi tiết.</p>
+</div>
+<h3>HLD bao gồm những gì?</h3>
+<table class="data-table">
+  <thead><tr><th>Thành phần</th><th>Mô tả</th><th>Mức chi tiết</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Architecture Diagram</strong></td><td>Sơ đồ tất cả components và kết nối</td><td>Cao — 1 diagram mô tả toàn hệ thống</td></tr>
+    <tr><td><strong>Component List</strong></td><td>Liệt kê các service, layer, database với mục đích</td><td>Cao — tên và vai trò rõ ràng</td></tr>
+    <tr><td><strong>Data Flow</strong></td><td>Data đi từ đâu → đâu, qua các bước nào</td><td>Trung bình — không cần schema chi tiết</td></tr>
+    <tr><td><strong>Integration Points</strong></td><td>External APIs, third-party services, giao thức</td><td>Cao — protocol và auth method</td></tr>
+    <tr><td><strong>Non-Functional Requirements</strong></td><td>Scale target, availability SLA, latency budget</td><td>Cao — số liệu cụ thể, không chung chung</td></tr>
+    <tr><td><strong>Technology Choices</strong></td><td>Ngôn ngữ, framework, cloud provider kèm lý do</td><td>Cao — tên cụ thể + trade-off</td></tr>
+  </tbody>
+</table>
+
+<!-- HLD CASE 1 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-basic">Cơ bản</span><span class="case-title">Case 1 — HLD cho URL Shortener (quy mô 100M links)</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Thiết kế hệ thống URL shortener xử lý: 100M links tổng, 10K writes/day, 100M reads/day, custom alias, expiry, click analytics, availability 99.99%. Trước khi code bất cứ thứ gì, cần HLD để team đồng thuận về kiến trúc, xác định bottleneck và đặt NFR cụ thể.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — HLD với các thành phần và NFR rõ ràng</div>
+      <p class="prose">Kiến trúc gồm: <strong>CDN</strong> (edge redirect), <strong>API Gateway</strong> (rate limiting, auth), <strong>URL Service</strong> (shorten/redirect, horizontal scale), <strong>ID Generator</strong> (Snowflake + Base62), <strong>Redis Cache</strong> (hot links, TTL 1h), <strong>PostgreSQL</strong> (primary + replica, partitioned), <strong>Analytics Service</strong> (Kafka + ClickHouse, async).</p>
+      <table class="data-table">
+        <thead><tr><th>NFR</th><th>Target</th><th>Giải pháp</th></tr></thead>
+        <tbody>
+          <tr><td>Availability</td><td>99.99% (~52 min downtime/year)</td><td>Multi-AZ, Load Balancer, DB replica</td></tr>
+          <tr><td>Redirect Latency</td><td>p99 &lt; 50ms</td><td>CDN edge + Redis cache hit rate &gt; 95%</td></tr>
+          <tr><td>Read Throughput</td><td>100M reads/day (~1,160 RPS avg)</td><td>Redis cache + CDN, scale-out URL Service</td></tr>
+          <tr><td>Storage</td><td>~300GB/year (100M links × ~3KB)</td><td>PostgreSQL partitioned by ID range</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — URL Shortener HLD</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">URL Shortener — High-Level Architecture</div>
+        <svg width="100%" viewBox="0 0 820 310" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs><marker id="h1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker></defs>
+          <!-- Client -->
+          <rect x="10" y="130" width="90" height="46" rx="8" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.12)" stroke-width="1"/>
+          <text x="55" y="151" text-anchor="middle" font-size="11" fill="#94a3b8">🌐 Client</text>
+          <text x="55" y="168" text-anchor="middle" font-size="9" fill="#64748b">Browser/App</text>
+          <!-- CDN -->
+          <rect x="130" y="70" width="110" height="46" rx="8" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+          <text x="185" y="92" text-anchor="middle" font-size="11" fill="#00d4ff">🌍 CDN</text>
+          <text x="185" y="108" text-anchor="middle" font-size="9" fill="#64748b">Edge Redirect</text>
+          <!-- API Gateway -->
+          <rect x="270" y="130" width="130" height="55" rx="8" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <text x="335" y="154" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="600">API Gateway</text>
+          <text x="335" y="170" text-anchor="middle" font-size="9" fill="#64748b">Rate Limit + Auth</text>
+          <text x="335" y="181" text-anchor="middle" font-size="9" fill="#64748b">10K req/s</text>
+          <!-- URL Service -->
+          <rect x="440" y="70" width="140" height="55" rx="8" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.35)" stroke-width="1.5"/>
+          <text x="510" y="92" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="600">URL Service</text>
+          <text x="510" y="108" text-anchor="middle" font-size="9" fill="#64748b">Shorten + Redirect</text>
+          <text x="510" y="119" text-anchor="middle" font-size="9" fill="#64748b">Horizontal scale</text>
+          <!-- ID Generator -->
+          <rect x="440" y="165" width="140" height="46" rx="8" fill="rgba(245,158,11,.07)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+          <text x="510" y="186" text-anchor="middle" font-size="11" fill="#f59e0b">🔢 ID Generator</text>
+          <text x="510" y="203" text-anchor="middle" font-size="9" fill="#64748b">Snowflake + Base62</text>
+          <!-- Redis -->
+          <rect x="626" y="50" width="160" height="46" rx="8" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.3)" stroke-width="1"/>
+          <text x="706" y="71" text-anchor="middle" font-size="11" fill="#ff6b6b">⚡ Redis Cache</text>
+          <text x="706" y="88" text-anchor="middle" font-size="9" fill="#64748b">Hot links · TTL 1h · hit&gt;95%</text>
+          <!-- DB -->
+          <rect x="626" y="130" width="160" height="55" rx="8" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.3)" stroke-width="1.5"/>
+          <text x="706" y="152" text-anchor="middle" font-size="12" fill="#60a5fa" font-weight="600">🗄️ PostgreSQL</text>
+          <text x="706" y="168" text-anchor="middle" font-size="9" fill="#64748b">Primary + Replica</text>
+          <text x="706" y="180" text-anchor="middle" font-size="9" fill="#64748b">Partitioned by ID</text>
+          <!-- Analytics -->
+          <rect x="626" y="220" width="160" height="46" rx="8" fill="rgba(168,85,247,.06)" stroke="rgba(168,85,247,.25)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="706" y="241" text-anchor="middle" font-size="11" fill="#a855f7">📊 Analytics</text>
+          <text x="706" y="258" text-anchor="middle" font-size="9" fill="#64748b">Kafka + ClickHouse (async)</text>
+          <!-- Arrows -->
+          <line x1="100" y1="153" x2="130" y2="100" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#h1)"/>
+          <line x1="100" y1="153" x2="270" y2="157" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#h1)"/>
+          <line x1="240" y1="100" x2="440" y2="97" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#h1)"/>
+          <text x="340" y="90" text-anchor="middle" font-size="9" fill="#64748b">cache miss</text>
+          <line x1="400" y1="157" x2="440" y2="97" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#h1)"/>
+          <line x1="400" y1="157" x2="440" y2="188" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#h1)"/>
+          <line x1="580" y1="97" x2="626" y2="73" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#h1)"/>
+          <line x1="580" y1="115" x2="626" y2="155" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#h1)"/>
+          <line x1="580" y1="130" x2="626" y2="240" stroke="#a855f7" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#h1)"/>
+          <!-- NFR bar -->
+          <rect x="10" y="278" width="800" height="24" rx="5" fill="rgba(255,255,255,.02)" stroke="var(--border)" stroke-width="1"/>
+          <text x="410" y="294" text-anchor="middle" font-size="10" fill="#64748b">NFR: 99.99% availability · p99 redirect &lt;50ms · 100M reads/day · Cache hit &gt;95% · ~300GB storage/year</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:0"><div class="note-icon">✅</div><p><strong>HLD Checklist:</strong> (1) Mọi component có tên và chức năng rõ. (2) Mọi kết nối có giao thức (HTTP/gRPC/Queue). (3) NFR được số hóa cụ thể — không nói "fast" hay "scalable". (4) Single points of failure được nhận diện và có plan dự phòng. (5) Tech choices có lý do rõ ràng.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- HLD CASE 2 EXPERT -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-expert">Expert</span><span class="case-title">Case 2 — HLD cho Payment Gateway (PCI-DSS compliant)</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Thiết kế payment gateway xử lý thẻ tín dụng: PCI-DSS compliance bắt buộc, fraud detection real-time, idempotency (không charge 2 lần), multi-provider (Visa, Mastercard, Amex), 99.999% availability (dưới 5 phút downtime/năm). Đây là hệ thống mission-critical — mỗi sai sót là mất tiền thật.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Defense-in-depth Layered Architecture</div>
+      <p class="prose">Kiến trúc phân 5 lớp bảo mật rõ ràng: <strong>DMZ Layer</strong> (WAF, DDoS), <strong>API Layer</strong> (TLS 1.3, rate limit, idempotency), <strong>Processing Layer</strong> (Payment Orchestrator với Saga, Fraud Engine ML, PAN Vault HSM), <strong>Storage Layer</strong> (PostgreSQL ACID, Redis, Kafka, S3 audit), <strong>External Layer</strong> (Card Networks).</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Payment Gateway Layered Architecture</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Payment Gateway — Defense-in-Depth Architecture (5 Layers)</div>
+        <svg width="100%" viewBox="0 0 820 310" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <rect x="10" y="8" width="800" height="48" rx="8" fill="rgba(255,107,107,.06)" stroke="rgba(255,107,107,.3)" stroke-width="1"/>
+          <text x="22" y="25" font-size="10" fill="#ff6b6b" font-weight="700">DMZ LAYER</text>
+          <rect x="50" y="26" width="130" height="22" rx="5" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.25)"/>
+          <text x="115" y="41" text-anchor="middle" font-size="10" fill="#ff6b6b">WAF + DDoS Protection</text>
+          <rect x="200" y="26" width="130" height="22" rx="5" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.25)"/>
+          <text x="265" y="41" text-anchor="middle" font-size="10" fill="#ff6b6b">Load Balancer (HA Pair)</text>
+          <rect x="350" y="26" width="130" height="22" rx="5" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.25)"/>
+          <text x="415" y="41" text-anchor="middle" font-size="10" fill="#ff6b6b">TLS 1.3 Termination</text>
+
+          <rect x="10" y="66" width="800" height="48" rx="8" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.25)" stroke-width="1"/>
+          <text x="22" y="83" font-size="10" fill="#a855f7" font-weight="700">API LAYER</text>
+          <rect x="50" y="82" width="128" height="22" rx="5" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.2)"/>
+          <text x="114" y="97" text-anchor="middle" font-size="10" fill="#a855f7">Auth (OAuth2/mTLS)</text>
+          <rect x="196" y="82" width="128" height="22" rx="5" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.2)"/>
+          <text x="260" y="97" text-anchor="middle" font-size="10" fill="#a855f7">Rate Limiter</text>
+          <rect x="342" y="82" width="162" height="22" rx="5" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.2)"/>
+          <text x="423" y="97" text-anchor="middle" font-size="10" fill="#a855f7">Idempotency Key Store</text>
+
+          <rect x="10" y="124" width="800" height="56" rx="8" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.25)" stroke-width="1.5"/>
+          <text x="22" y="142" font-size="10" fill="#00ff88" font-weight="700">PROCESSING LAYER (Saga Pattern)</text>
+          <rect x="50" y="142" width="118" height="30" rx="5" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)"/>
+          <text x="109" y="155" text-anchor="middle" font-size="9" fill="#00ff88">Payment Orchestrator</text>
+          <text x="109" y="168" text-anchor="middle" font-size="8" fill="#64748b">Saga + compensation</text>
+          <rect x="185" y="142" width="118" height="30" rx="5" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)"/>
+          <text x="244" y="155" text-anchor="middle" font-size="9" fill="#00ff88">Fraud Engine</text>
+          <text x="244" y="168" text-anchor="middle" font-size="8" fill="#64748b">ML real-time &lt;100ms</text>
+          <rect x="320" y="142" width="118" height="30" rx="5" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)"/>
+          <text x="379" y="155" text-anchor="middle" font-size="9" fill="#00ff88">PAN Vault (HSM)</text>
+          <text x="379" y="168" text-anchor="middle" font-size="8" fill="#64748b">Tokenization only</text>
+          <rect x="455" y="142" width="130" height="30" rx="5" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.3)"/>
+          <text x="520" y="155" text-anchor="middle" font-size="9" fill="#00ff88">Card Network Router</text>
+          <text x="520" y="168" text-anchor="middle" font-size="8" fill="#64748b">Visa / MC / Amex</text>
+
+          <rect x="10" y="190" width="800" height="48" rx="8" fill="rgba(0,212,255,.04)" stroke="rgba(0,212,255,.2)" stroke-width="1"/>
+          <text x="22" y="207" font-size="10" fill="#00d4ff" font-weight="700">STORAGE LAYER</text>
+          <rect x="50" y="207" width="148" height="22" rx="5" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.2)"/>
+          <text x="124" y="222" text-anchor="middle" font-size="10" fill="#00d4ff">PostgreSQL (ACID)</text>
+          <rect x="216" y="207" width="148" height="22" rx="5" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.2)"/>
+          <text x="290" y="222" text-anchor="middle" font-size="10" fill="#00d4ff">Redis (Idempotency)</text>
+          <rect x="382" y="207" width="148" height="22" rx="5" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.2)"/>
+          <text x="456" y="222" text-anchor="middle" font-size="10" fill="#00d4ff">Kafka (Event Stream)</text>
+          <rect x="548" y="207" width="148" height="22" rx="5" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.2)"/>
+          <text x="622" y="222" text-anchor="middle" font-size="10" fill="#00d4ff">S3 (Audit Logs)</text>
+
+          <rect x="10" y="248" width="800" height="48" rx="8" fill="rgba(245,158,11,.03)" stroke="rgba(245,158,11,.2)" stroke-width="1" stroke-dasharray="5,4"/>
+          <text x="22" y="265" font-size="10" fill="#f59e0b" font-weight="700">EXTERNAL NETWORKS (3rd Party)</text>
+          <rect x="120" y="264" width="108" height="22" rx="5" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.2)"/>
+          <text x="174" y="279" text-anchor="middle" font-size="10" fill="#f59e0b">Visa Network</text>
+          <rect x="246" y="264" width="108" height="22" rx="5" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.2)"/>
+          <text x="300" y="279" text-anchor="middle" font-size="10" fill="#f59e0b">Mastercard</text>
+          <rect x="372" y="264" width="108" height="22" rx="5" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.2)"/>
+          <text x="426" y="279" text-anchor="middle" font-size="10" fill="#f59e0b">Amex</text>
+          <rect x="498" y="264" width="148" height="22" rx="5" fill="rgba(245,158,11,.06)" stroke="rgba(245,158,11,.2)"/>
+          <text x="572" y="279" text-anchor="middle" font-size="10" fill="#f59e0b">Issuing Banks</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-danger" style="margin-bottom:8px"><div class="note-icon">🚨</div><p><strong>PCI-DSS HLD bắt buộc:</strong> Network segmentation phải thể hiện rõ trên sơ đồ. PAN không bao giờ lưu plaintext. Tất cả internal communication dùng mTLS. Audit log immutable, encrypted và retained tối thiểu 12 tháng.</p></div>
+      <div class="note note-info" style="margin-bottom:0"><div class="note-icon">💡</div><p><strong>Idempotency là bắt buộc, không phải optional:</strong> Client gửi idempotency key (UUID) → Redis lưu TTL 24h → duplicate request nhận cùng response mà không charge lại. Thiếu cái này = double charge khách hàng.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- LLD SECTION -->
+<section class="page-section" id="s-lld">
+<div class="section-header">
+  <div class="section-number">05</div>
+  <div><div class="section-title">Low-Level Design (LLD)</div><div class="section-subtitle">Chi tiết đủ để developer implement ngay — không cần phỏng đoán</div></div>
+  <span class="badge badge-expert">EXPERT</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Định nghĩa</div>
+  <div class="title">LLD là gì?</div>
+  <p class="prose"><strong>Low-Level Design (LLD)</strong> là tài liệu thiết kế chi tiết từng <strong>module, class, interface, API endpoint</strong> và <strong>thuật toán</strong>. LLD là bước chuyển từ HLD xuống mức implement — developer đọc LLD và viết code trực tiếp mà không cần phán đoán thêm bất cứ điều gì.</p>
+  <p class="prose">LLD bao gồm: class diagrams, sequence diagrams, API spec, database schema, error handling strategy, caching strategy và các design patterns áp dụng.</p>
+</div>
+<h3>Phân biệt HLD và LLD</h3>
+<div class="compare-grid">
+  <div class="compare-card">
+    <div class="compare-head cyan">High-Level Design (HLD)</div>
+    <div class="compare-body">
+      <ul class="step-list">
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Mô tả các thành phần và quan hệ macro</div></div></li>
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Tech stack: "dùng Redis" — không nói key format</div></div></li>
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Đối tượng: Architect, PM, Stakeholders</div></div></li>
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Câu hỏi: "Hệ thống gồm gì và tại sao?"</div></div></li>
+      </ul>
+    </div>
+  </div>
+  <div class="compare-card">
+    <div class="compare-head purple">Low-Level Design (LLD)</div>
+    <div class="compare-body">
+      <ul class="step-list">
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Class, method, interface, algorithm cụ thể</div></div></li>
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Chi tiết: Redis key <code>rl:{clientId}</code>, TTL 3600s</div></div></li>
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Đối tượng: Senior/Mid Developer, Code Reviewer</div></div></li>
+        <li class="step-item"><div class="step-num">•</div><div class="step-body"><div class="step-desc">Câu hỏi: "Implement cụ thể như thế nào?"</div></div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- LLD CASE 1 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-basic">Cơ bản</span><span class="case-title">Case 1 — LLD cho Rate Limiter (Token Bucket Algorithm)</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">HLD đã xác định "cần Rate Limiter với Token Bucket". LLD phải trả lời: Interface trông như thế nào? Data structure lưu bucket state? Thuật toán Token Bucket implement ra sao? Distributed environment xử lý thế nào? Error response format? Response headers? — Không có câu trả lời mơ hồ nào được chấp nhận.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — LLD đầy đủ cho Token Bucket + Redis</div>
+      <table class="data-table">
+        <thead><tr><th>Thành phần</th><th>Chi tiết thiết kế LLD</th></tr></thead>
+        <tbody>
+          <tr><td><code>RateLimiter</code> interface</td><td><code>Allow(key string) (allowed bool, remaining int, resetAt time.Time, err error)</code></td></tr>
+          <tr><td>Redis key format</td><td><code>rl:{clientId}:{window}</code> — Hash với fields: <code>tokens FLOAT, lastRefill INT64</code></td></tr>
+          <tr><td>Algorithm params</td><td>capacity=100 tokens, refillRate=10 tokens/s, atomic via Lua script (check+decrement)</td></tr>
+          <tr><td>Response headers</td><td><code>X-RateLimit-Limit: 100, X-RateLimit-Remaining: N, X-RateLimit-Reset: epoch</code></td></tr>
+          <tr><td>Error 429 body</td><td><code>{"error":"rate_limit_exceeded","retryAfter":seconds,"limit":100}</code></td></tr>
+          <tr><td>Distributed safety</td><td>Redis EVAL Lua script đảm bảo check + decrement là atomic — không race condition</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Token Bucket Flow và State Transitions</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Token Bucket Rate Limiter — Algorithm Flow &amp; State</div>
+        <svg width="100%" viewBox="0 0 820 270" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs>
+            <marker id="l1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker>
+            <marker id="l2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round"/></marker>
+            <marker id="l3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/></marker>
+          </defs>
+          <rect x="10" y="120" width="90" height="38" rx="7" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.3)" stroke-width="1"/>
+          <text x="55" y="136" text-anchor="middle" font-size="10" fill="#00d4ff">Request</text>
+          <text x="55" y="150" text-anchor="middle" font-size="9" fill="#64748b">clientId</text>
+          <rect x="135" y="110" width="130" height="55" rx="7" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.35)" stroke-width="1.5"/>
+          <text x="200" y="130" text-anchor="middle" font-size="10" fill="#a855f7" font-weight="600">Redis HGET</text>
+          <text x="200" y="146" text-anchor="middle" font-size="9" fill="#64748b">rl:{clientId}</text>
+          <text x="200" y="159" text-anchor="middle" font-size="9" fill="#64748b">{tokens, lastRefill}</text>
+          <rect x="300" y="110" width="140" height="55" rx="7" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.35)" stroke-width="1.5"/>
+          <text x="370" y="128" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="600">Calculate Refill</text>
+          <text x="370" y="144" text-anchor="middle" font-size="9" fill="#64748b">elapsed=now-lastRefill</text>
+          <text x="370" y="158" text-anchor="middle" font-size="9" fill="#64748b">tokens+=elapsed×rate</text>
+          <polygon points="500,140 550,112 600,140 550,168" fill="rgba(0,255,136,.06)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <text x="550" y="136" text-anchor="middle" font-size="10" fill="#00ff88">tokens</text>
+          <text x="550" y="150" text-anchor="middle" font-size="10" fill="#00ff88">≥ 1?</text>
+          <rect x="660" y="80" width="130" height="45" rx="7" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.35)" stroke-width="1.5"/>
+          <text x="725" y="99" text-anchor="middle" font-size="11" fill="#00ff88" font-weight="600">✅ Allow</text>
+          <text x="725" y="116" text-anchor="middle" font-size="9" fill="#64748b">tokens-=1, HSET, 200</text>
+          <rect x="660" y="170" width="130" height="45" rx="7" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.35)" stroke-width="1.5"/>
+          <text x="725" y="189" text-anchor="middle" font-size="11" fill="#ff6b6b" font-weight="600">🚫 429 Deny</text>
+          <text x="725" y="206" text-anchor="middle" font-size="9" fill="#64748b">retryAfter, headers</text>
+          <!-- Bucket viz -->
+          <rect x="80" y="210" width="180" height="52" rx="8" fill="rgba(0,212,255,.04)" stroke="rgba(0,212,255,.2)" stroke-width="1"/>
+          <text x="170" y="228" text-anchor="middle" font-size="10" fill="#00d4ff" font-weight="600">Token Bucket Config</text>
+          <text x="170" y="244" text-anchor="middle" font-size="9" fill="#64748b">capacity: 100 tokens</text>
+          <text x="170" y="257" text-anchor="middle" font-size="9" fill="#64748b">refillRate: 10 tokens/s</text>
+          <rect x="310" y="210" width="200" height="52" rx="8" fill="rgba(245,158,11,.04)" stroke="rgba(245,158,11,.2)" stroke-width="1"/>
+          <text x="410" y="228" text-anchor="middle" font-size="10" fill="#f59e0b" font-weight="600">Lua Script (Atomic)</text>
+          <text x="410" y="244" text-anchor="middle" font-size="9" fill="#64748b">HGET → compute → HSET</text>
+          <text x="410" y="257" text-anchor="middle" font-size="9" fill="#64748b">single round-trip, no race</text>
+          <!-- arrows -->
+          <line x1="100" y1="139" x2="135" y2="139" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#l1)"/>
+          <line x1="265" y1="137" x2="300" y2="137" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#l1)"/>
+          <line x1="440" y1="137" x2="500" y2="140" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#l1)"/>
+          <line x1="600" y1="124" x2="660" y2="103" stroke="#00ff88" stroke-width="1.5" marker-end="url(#l3)"/>
+          <text x="628" y="115" font-size="9" fill="#00ff88">YES</text>
+          <line x1="600" y1="156" x2="660" y2="185" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#l2)"/>
+          <text x="622" y="175" font-size="9" fill="#ff6b6b">NO</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:8px"><div class="note-icon">✅</div><p><strong>LLD tốt phải trả lời được:</strong> Tên function cụ thể? Parameter types? Error handling? Edge cases? Redis key format chính xác? Không có câu trả lời "tùy developer" — đó là dấu hiệu LLD chưa đủ chất lượng.</p></div>
+      <div class="note note-warn" style="margin-bottom:0"><div class="note-icon">⚠️</div><p><strong>Distributed Rate Limiting:</strong> Multiple instances phải share state qua Redis. Dùng Lua script để đảm bảo check + decrement là atomic — không race condition. Sai ở đây = rate limit bypass được = security bug nghiêm trọng.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- LLD CASE 2 EXPERT -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-expert">Expert</span><span class="case-title">Case 2 — LLD cho Distributed Cache với Consistent Hashing</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">HLD xác định "dùng distributed cache cluster 5 nodes". LLD phải giải quyết: thêm/bớt node minimize cache misses thế nào? Distribute keys giữa nodes theo thuật toán gì? Virtual nodes chống data skew ra sao? Replication factor? Failure detection và failover strategy cụ thể?</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — Consistent Hashing với Virtual Nodes</div>
+      <table class="data-table">
+        <thead><tr><th>Quyết định</th><th>Chi tiết LLD</th><th>Lý do</th></tr></thead>
+        <tbody>
+          <tr><td>Hash ring</td><td>2³² space, MD5(key) → uint32 position</td><td>Uniform distribution, deterministic</td></tr>
+          <tr><td>Virtual nodes</td><td>150 vnodes/physical node</td><td>Giảm hotspot, even load distribution</td></tr>
+          <tr><td>Node lookup</td><td>Binary search trên sorted array O(log n)</td><td>Fast O(log n) vs O(n) linear scan</td></tr>
+          <tr><td>Replication</td><td>Factor=3, next N nodes clockwise (skip same physical)</td><td>Fault tolerance, no single point</td></tr>
+          <tr><td>Consistency</td><td>Quorum: W=2, R=2 (W+R &gt; N=3)</td><td>Configurable consistency level</td></tr>
+          <tr><td>Failure detect</td><td>Heartbeat mỗi 1s, timeout 3s → node marked down</td><td>Fast failover &lt;5s detection</td></tr>
+          <tr><td>Node add/remove</td><td>Chỉ keys trong range của node mới/cũ migrate</td><td>~1/N keys affected (consistent hashing advantage)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sơ đồ — Consistent Hashing Ring</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Consistent Hashing Ring — 4 Physical Nodes + Virtual Nodes</div>
+        <svg width="100%" viewBox="0 0 820 270" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <circle cx="290" cy="140" r="105" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="2"/>
+          <circle cx="290" cy="140" r="107" fill="none" stroke="rgba(0,212,255,.12)" stroke-width="1" stroke-dasharray="4,4"/>
+          <!-- Physical nodes on ring -->
+          <circle cx="290" cy="35" r="20" fill="rgba(0,255,136,.12)" stroke="rgba(0,255,136,.5)" stroke-width="2"/>
+          <text x="290" y="32" text-anchor="middle" font-size="11" fill="#00ff88" font-weight="700">N1</text>
+          <text x="290" y="47" text-anchor="middle" font-size="8" fill="#64748b">node-1</text>
+          <circle cx="395" cy="140" r="20" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.5)" stroke-width="2"/>
+          <text x="395" y="137" text-anchor="middle" font-size="11" fill="#00d4ff" font-weight="700">N2</text>
+          <text x="395" y="152" text-anchor="middle" font-size="8" fill="#64748b">node-2</text>
+          <circle cx="290" cy="245" r="20" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.5)" stroke-width="2"/>
+          <text x="290" y="242" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="700">N3</text>
+          <text x="290" y="258" text-anchor="middle" font-size="8" fill="#64748b">node-3</text>
+          <circle cx="185" cy="140" r="20" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.5)" stroke-width="2"/>
+          <text x="185" y="137" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="700">N4</text>
+          <text x="185" y="152" text-anchor="middle" font-size="8" fill="#64748b">node-4</text>
+          <!-- Virtual nodes (dots) -->
+          <circle cx="325" cy="38" r="5" fill="#00ff88" opacity=".6"/>
+          <circle cx="255" cy="38" r="5" fill="#00ff88" opacity=".6"/>
+          <circle cx="378" cy="72" r="5" fill="#00ff88" opacity=".4"/>
+          <circle cx="388" cy="95" r="5" fill="#00d4ff" opacity=".6"/>
+          <circle cx="385" cy="190" r="5" fill="#00d4ff" opacity=".4"/>
+          <circle cx="335" cy="240" r="5" fill="#a855f7" opacity=".6"/>
+          <circle cx="235" cy="240" r="5" fill="#a855f7" opacity=".4"/>
+          <circle cx="196" cy="95" r="5" fill="#f59e0b" opacity=".6"/>
+          <circle cx="192" cy="190" r="5" fill="#f59e0b" opacity=".4"/>
+          <!-- Key placement example -->
+          <circle cx="360" cy="50" r="6" fill="rgba(255,107,107,.3)" stroke="rgba(255,107,107,.8)" stroke-width="1.5"/>
+          <text x="374" y="46" font-size="9" fill="#ff6b6b">key="user:42"</text>
+          <text x="374" y="58" font-size="9" fill="#64748b">→ hash → N1 range</text>
+          <!-- Right panel -->
+          <rect x="500" y="15" width="305" height="240" rx="10" fill="rgba(255,255,255,.02)" stroke="var(--border)" stroke-width="1"/>
+          <text x="652" y="36" text-anchor="middle" font-size="12" fill="#94a3b8" font-weight="600">LLD Details</text>
+          <text x="514" y="58" font-size="10" fill="#00ff88" font-weight="600">Node Lookup Algorithm:</text>
+          <text x="514" y="74" font-size="10" fill="#64748b">1. hash(key) → position uint32</text>
+          <text x="514" y="90" font-size="10" fill="#64748b">2. BinarySearch(vnodes, position)</text>
+          <text x="514" y="106" font-size="10" fill="#64748b">3. vnodeMap[vnode] → physicalNode</text>
+          <text x="514" y="130" font-size="10" fill="#00d4ff" font-weight="600">Add Node N5 (migration):</text>
+          <text x="514" y="146" font-size="10" fill="#64748b">Only keys in N5's vnode ranges move</text>
+          <text x="514" y="162" font-size="10" fill="#64748b">≈1/N total keys affected (not all)</text>
+          <text x="514" y="186" font-size="10" fill="#a855f7" font-weight="600">Replication (factor=3):</text>
+          <text x="514" y="202" font-size="10" fill="#64748b">Write: primary + next 2 nodes clockwise</text>
+          <text x="514" y="218" font-size="10" fill="#64748b">Read quorum: R=2 out of 3 replicas</text>
+          <text x="514" y="242" font-size="10" fill="#f59e0b">150 vnodes/node = even distribution</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:0"><div class="note-icon">✅</div><p><strong>LLD phân biệt Senior vs Junior:</strong> Junior viết "dùng consistent hashing". Senior viết: "150 vnodes/node, MD5 hash → uint32, clockwise lookup bằng sorted array + binary search O(log n), replication đến 2 next nodes bỏ qua cùng physical node, quorum W=2 R=2 với N=3". LLD là nơi kỹ thuật thực sự được thể hiện.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- UML SECTION -->
+<section class="page-section" id="s-uml">
+<div class="section-header">
+  <div class="section-number">06</div>
+  <div><div class="section-title">UML — Unified Modeling Language</div><div class="section-subtitle">Ngôn ngữ mô hình hóa chuẩn quốc tế cho cấu trúc và hành vi hệ thống</div></div>
+  <span class="badge badge-advanced">ADVANCED</span>
+</div>
+<div class="concept-box">
+  <div class="label">💡 Định nghĩa</div>
+  <div class="title">UML là gì?</div>
+  <p class="prose"><strong>UML (Unified Modeling Language)</strong> là ngôn ngữ mô hình hóa đồ họa chuẩn do Grady Booch, Ivar Jacobson và James Rumbaugh phát triển, được OMG chuẩn hóa từ 1997. UML cung cấp ký hiệu chuẩn để mô tả cả <strong>cấu trúc tĩnh</strong> lẫn <strong>hành vi động</strong> của hệ thống.</p>
+  <p class="prose">UML 2.x có <strong>14 loại diagram</strong> chia 2 nhóm. Trong thực tế, <strong>4 diagram</strong> đáp ứng 80% nhu cầu: <em>Class, Sequence, Use Case, State Machine</em>.</p>
+</div>
+<h3>14 loại UML Diagram</h3>
+<div class="diagram-container">
+  <div class="diagram-title">UML 2.x — Phân loại đầy đủ (★ = thường dùng nhất)</div>
+  <svg width="100%" viewBox="0 0 820 240" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <rect x="10" y="8" width="390" height="222" rx="10" fill="rgba(0,212,255,.03)" stroke="rgba(0,212,255,.25)" stroke-width="1.5"/>
+    <text x="205" y="28" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">STRUCTURAL DIAGRAMS</text>
+    <rect x="22" y="38" width="170" height="28" rx="6" fill="rgba(0,212,255,.1)" stroke="rgba(0,212,255,.3)"/>
+    <text x="107" y="56" text-anchor="middle" font-size="11" fill="#00d4ff">Class Diagram ★</text>
+    <rect x="210" y="38" width="180" height="28" rx="6" fill="rgba(0,212,255,.1)" stroke="rgba(0,212,255,.3)"/>
+    <text x="300" y="56" text-anchor="middle" font-size="11" fill="#00d4ff">Component Diagram ★</text>
+    <rect x="22" y="76" width="170" height="28" rx="6" fill="rgba(0,212,255,.05)" stroke="rgba(0,212,255,.15)"/>
+    <text x="107" y="94" text-anchor="middle" font-size="11" fill="#94a3b8">Object Diagram</text>
+    <rect x="210" y="76" width="180" height="28" rx="6" fill="rgba(0,212,255,.07)" stroke="rgba(0,212,255,.2)"/>
+    <text x="300" y="94" text-anchor="middle" font-size="11" fill="#94a3b8">Deployment Diagram ★</text>
+    <rect x="22" y="114" width="170" height="28" rx="6" fill="rgba(0,212,255,.05)" stroke="rgba(0,212,255,.15)"/>
+    <text x="107" y="132" text-anchor="middle" font-size="11" fill="#94a3b8">Package Diagram</text>
+    <rect x="210" y="114" width="180" height="28" rx="6" fill="rgba(0,212,255,.05)" stroke="rgba(0,212,255,.15)"/>
+    <text x="300" y="132" text-anchor="middle" font-size="11" fill="#94a3b8">Profile Diagram</text>
+    <rect x="22" y="152" width="170" height="28" rx="6" fill="rgba(0,212,255,.05)" stroke="rgba(0,212,255,.15)"/>
+    <text x="107" y="170" text-anchor="middle" font-size="11" fill="#94a3b8">Composite Structure</text>
+    <text x="205" y="210" text-anchor="middle" font-size="10" fill="#64748b">Mô tả cấu trúc tĩnh của hệ thống</text>
+    <text x="205" y="224" text-anchor="middle" font-size="10" fill="#64748b">Classes, Components, Deployment</text>
+
+    <rect x="420" y="8" width="390" height="222" rx="10" fill="rgba(168,85,247,.03)" stroke="rgba(168,85,247,.25)" stroke-width="1.5"/>
+    <text x="615" y="28" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="700">BEHAVIORAL DIAGRAMS</text>
+    <rect x="432" y="38" width="168" height="28" rx="6" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.35)"/>
+    <text x="516" y="56" text-anchor="middle" font-size="11" fill="#a855f7">Sequence Diagram ★</text>
+    <rect x="616" y="38" width="182" height="28" rx="6" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.35)"/>
+    <text x="707" y="56" text-anchor="middle" font-size="11" fill="#a855f7">Use Case Diagram ★</text>
+    <rect x="432" y="76" width="168" height="28" rx="6" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.25)"/>
+    <text x="516" y="94" text-anchor="middle" font-size="11" fill="#a855f7">State Machine ★</text>
+    <rect x="616" y="76" width="182" height="28" rx="6" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.15)"/>
+    <text x="707" y="94" text-anchor="middle" font-size="11" fill="#94a3b8">Activity Diagram</text>
+    <rect x="432" y="114" width="168" height="28" rx="6" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.15)"/>
+    <text x="516" y="132" text-anchor="middle" font-size="11" fill="#94a3b8">Communication</text>
+    <rect x="616" y="114" width="182" height="28" rx="6" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.15)"/>
+    <text x="707" y="132" text-anchor="middle" font-size="11" fill="#94a3b8">Interaction Overview</text>
+    <rect x="432" y="152" width="168" height="28" rx="6" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.15)"/>
+    <text x="516" y="170" text-anchor="middle" font-size="11" fill="#94a3b8">Timing Diagram</text>
+    <text x="615" y="210" text-anchor="middle" font-size="10" fill="#64748b">Mô tả hành vi động của hệ thống</text>
+    <text x="615" y="224" text-anchor="middle" font-size="10" fill="#f59e0b">★ Class+Sequence+UseCase+State = 80% nhu cầu</text>
+  </svg>
+</div>
+
+<!-- UML CASE 1 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-basic">Cơ bản</span><span class="case-title">Case 1 — Sequence Diagram cho OAuth2 Authorization Code Flow</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Team cần document luồng OAuth2 Authentication để developer mới implement đúng và security team review. Text description dài, khó theo dõi thứ tự. Sequence Diagram UML thể hiện rõ 4 actors: User, Client App, Authorization Server, Resource Server — và thứ tự tương tác chính xác theo thời gian.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — UML Sequence Diagram với 10 bước</div>
+      <p class="prose">Sequence Diagram dùng <strong>lifelines</strong> (đường dọc) cho mỗi participant, <strong>activation boxes</strong> thể hiện khi nào participant đang active, <strong>solid arrows</strong> cho request và <strong>dashed arrows</strong> cho response. Số thứ tự trên mỗi message.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 Sequence Diagram — OAuth2 Authorization Code Flow</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">OAuth2 Authorization Code Flow — UML Sequence Diagram (10 steps)</div>
+        <svg width="100%" viewBox="0 0 820 460" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs>
+            <marker id="sq1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round"/></marker>
+            <marker id="sq2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/></marker>
+          </defs>
+          <!-- Participants -->
+          <rect x="10" y="10" width="90" height="34" rx="6" fill="rgba(0,212,255,.1)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+          <text x="55" y="32" text-anchor="middle" font-size="11" fill="#00d4ff" font-weight="600">User</text>
+          <rect x="185" y="10" width="110" height="34" rx="6" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.4)" stroke-width="1.5"/>
+          <text x="240" y="32" text-anchor="middle" font-size="11" fill="#00ff88" font-weight="600">Client App</text>
+          <rect x="385" y="10" width="140" height="34" rx="6" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.4)" stroke-width="1.5"/>
+          <text x="455" y="32" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="600">Auth Server</text>
+          <rect x="620" y="10" width="140" height="34" rx="6" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.4)" stroke-width="1.5"/>
+          <text x="690" y="32" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="600">Resource Server</text>
+          <!-- Lifelines -->
+          <line x1="55" y1="44" x2="55" y2="450" stroke="rgba(0,212,255,.2)" stroke-width="1.5" stroke-dasharray="5,5"/>
+          <line x1="240" y1="44" x2="240" y2="450" stroke="rgba(0,255,136,.2)" stroke-width="1.5" stroke-dasharray="5,5"/>
+          <line x1="455" y1="44" x2="455" y2="450" stroke="rgba(168,85,247,.2)" stroke-width="1.5" stroke-dasharray="5,5"/>
+          <line x1="690" y1="44" x2="690" y2="450" stroke="rgba(245,158,11,.2)" stroke-width="1.5" stroke-dasharray="5,5"/>
+          <!-- Step 1 -->
+          <line x1="55" y1="78" x2="240" y2="78" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#sq1)"/>
+          <text x="148" y="70" text-anchor="middle" font-size="10" fill="#00d4ff">1. Click "Login with Google"</text>
+          <!-- Step 2 -->
+          <line x1="240" y1="105" x2="455" y2="105" stroke="#00ff88" stroke-width="1.5" marker-end="url(#sq1)"/>
+          <text x="347" y="97" text-anchor="middle" font-size="10" fill="#00ff88">2. Redirect /authorize?client_id&amp;scope&amp;state</text>
+          <!-- Step 3 -->
+          <line x1="455" y1="132" x2="55" y2="132" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#sq2)"/>
+          <text x="256" y="124" text-anchor="middle" font-size="10" fill="#64748b">3. Show Login Page (HTML)</text>
+          <!-- Step 4 -->
+          <line x1="55" y1="165" x2="455" y2="165" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#sq1)"/>
+          <text x="256" y="157" text-anchor="middle" font-size="10" fill="#00d4ff">4. User enters credentials</text>
+          <!-- Auth box -->
+          <rect x="428" y="178" width="56" height="46" rx="4" fill="rgba(168,85,247,.15)" stroke="rgba(168,85,247,.4)" stroke-width="1"/>
+          <text x="456" y="198" text-anchor="middle" font-size="9" fill="#a855f7">Verify</text>
+          <text x="456" y="212" text-anchor="middle" font-size="9" fill="#a855f7">credentials</text>
+          <!-- Step 5 -->
+          <line x1="455" y1="234" x2="240" y2="234" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#sq2)"/>
+          <text x="347" y="226" text-anchor="middle" font-size="10" fill="#64748b">5. Redirect with authorization_code</text>
+          <!-- Step 6 -->
+          <line x1="240" y1="263" x2="455" y2="263" stroke="#00ff88" stroke-width="1.5" marker-end="url(#sq1)"/>
+          <text x="347" y="255" text-anchor="middle" font-size="10" fill="#00ff88">6. POST /token (code + client_secret)</text>
+          <!-- Step 7 -->
+          <line x1="455" y1="292" x2="240" y2="292" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#sq2)"/>
+          <text x="347" y="284" text-anchor="middle" font-size="10" fill="#64748b">7. access_token + refresh_token (JSON)</text>
+          <!-- Step 8 -->
+          <line x1="240" y1="325" x2="690" y2="325" stroke="#00ff88" stroke-width="1.5" marker-end="url(#sq1)"/>
+          <text x="465" y="317" text-anchor="middle" font-size="10" fill="#00ff88">8. GET /api/resource — Authorization: Bearer token</text>
+          <!-- Validate box -->
+          <rect x="664" y="338" width="56" height="32" rx="4" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.3)" stroke-width="1"/>
+          <text x="692" y="352" text-anchor="middle" font-size="9" fill="#f59e0b">Validate</text>
+          <text x="692" y="364" text-anchor="middle" font-size="9" fill="#f59e0b">JWT</text>
+          <!-- Step 9 -->
+          <line x1="690" y1="380" x2="240" y2="380" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#sq2)"/>
+          <text x="465" y="372" text-anchor="middle" font-size="10" fill="#64748b">9. 200 OK + protected resource data</text>
+          <!-- Step 10 -->
+          <line x1="240" y1="412" x2="55" y2="412" stroke="#64748b" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#sq2)"/>
+          <text x="148" y="404" text-anchor="middle" font-size="10" fill="#64748b">10. Render data to user</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-info" style="margin-bottom:0"><div class="note-icon">💡</div><p><strong>Sequence Diagram là công cụ số 1</strong> để document API flows, auth protocols, và microservice interactions. Best practices: (1) Luôn đánh số thứ tự. (2) Dùng solid line cho request, dashed line cho response. (3) Activation box cho thấy khi nào object đang xử lý. (4) Giữ tối đa 6-8 participants để dễ đọc.</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- UML CASE 2 -->
+<div class="case-block">
+  <div class="case-header"><span class="case-level level-advanced">Nâng cao</span><span class="case-title">Case 2 — Class Diagram cho Observer Pattern trong Notification System</span></div>
+  <div class="case-body">
+    <div class="case-section">
+      <div class="case-section-label label-problem">🔴 Đặt vấn đề</div>
+      <p class="prose">Hệ thống notification cần gửi thông báo qua Email, SMS, Push khi có sự kiện (OrderPlaced, PaymentFailed). Class Diagram UML thể hiện cấu trúc Observer Pattern với đầy đủ methods, fields, relationships — đủ rõ để developer implement ngay.</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-solution">🟢 Giải pháp — UML Class Diagram với ký hiệu chuẩn</div>
+      <p class="prose">Class Diagram dùng UML notation chuẩn: <code>+</code> public, <code>-</code> private, <code>#</code> protected. Interface dùng stereotype <code>&lt;&lt;interface&gt;&gt;</code>. Relationships: <em>realization</em> (interface implement), <em>association</em> (has-a với cardinality).</p>
+    </div>
+    <div class="case-section">
+      <div class="case-section-label label-visual">🟡 UML Class Diagram — Observer Pattern</div>
+      <div class="diagram-container" style="margin-bottom:0">
+        <div class="diagram-title">Observer Pattern — UML Class Diagram cho Notification System</div>
+        <svg width="100%" viewBox="0 0 820 370" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+          <defs>
+            <marker id="real" viewBox="0 0 12 12" refX="11" refY="6" markerWidth="10" markerHeight="10" orient="auto"><polygon points="1,1 11,6 1,11" fill="var(--bg-card)" stroke="#00d4ff" stroke-width="1.5"/></marker>
+            <marker id="assoc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M1 1L9 5L1 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round"/></marker>
+          </defs>
+          <!-- EventPublisher interface -->
+          <rect x="270" y="15" width="270" height="100" rx="6" fill="var(--bg-card)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+          <rect x="270" y="15" width="270" height="24" rx="6" fill="rgba(0,212,255,.12)"/>
+          <rect x="270" y="30" width="270" height="9" fill="rgba(0,212,255,.12)"/>
+          <text x="405" y="30" text-anchor="middle" font-size="10" fill="#64748b">«interface»</text>
+          <text x="405" y="46" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">EventPublisher</text>
+          <line x1="270" y1="53" x2="540" y2="53" stroke="rgba(0,212,255,.2)" stroke-width="1"/>
+          <text x="282" y="71" font-size="11" fill="#94a3b8">+ subscribe(observer: EventObserver)</text>
+          <text x="282" y="88" font-size="11" fill="#94a3b8">+ unsubscribe(observer: EventObserver)</text>
+          <text x="282" y="105" font-size="11" fill="#94a3b8">+ publish(event: DomainEvent)</text>
+          <!-- EventObserver interface -->
+          <rect x="270" y="150" width="270" height="70" rx="6" fill="var(--bg-card)" stroke="rgba(0,212,255,.4)" stroke-width="1.5"/>
+          <rect x="270" y="150" width="270" height="24" rx="6" fill="rgba(0,212,255,.12)"/>
+          <rect x="270" y="165" width="270" height="9" fill="rgba(0,212,255,.12)"/>
+          <text x="405" y="165" text-anchor="middle" font-size="10" fill="#64748b">«interface»</text>
+          <text x="405" y="181" text-anchor="middle" font-size="12" fill="#00d4ff" font-weight="700">EventObserver</text>
+          <line x1="270" y1="188" x2="540" y2="188" stroke="rgba(0,212,255,.2)" stroke-width="1"/>
+          <text x="282" y="208" font-size="11" fill="#94a3b8">+ onEvent(event: DomainEvent): void</text>
+          <!-- OrderEventBus concrete -->
+          <rect x="14" y="150" width="230" height="105" rx="6" fill="var(--bg-card)" stroke="rgba(0,255,136,.35)" stroke-width="1.5"/>
+          <rect x="14" y="150" width="230" height="24" rx="6" fill="rgba(0,255,136,.1)"/>
+          <rect x="14" y="165" width="230" height="9" fill="rgba(0,255,136,.1)"/>
+          <text x="129" y="163" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="700">OrderEventBus</text>
+          <line x1="14" y1="172" x2="244" y2="172" stroke="rgba(0,255,136,.15)" stroke-width="1"/>
+          <text x="26" y="190" font-size="10" fill="#94a3b8">- observers: List&lt;EventObserver&gt;</text>
+          <line x1="14" y1="198" x2="244" y2="198" stroke="rgba(0,255,136,.1)" stroke-width="1"/>
+          <text x="26" y="216" font-size="10" fill="#94a3b8">+ subscribe(observer)</text>
+          <text x="26" y="232" font-size="10" fill="#94a3b8">+ unsubscribe(observer)</text>
+          <text x="26" y="248" font-size="10" fill="#94a3b8">+ publish(event)</text>
+          <!-- EmailObserver -->
+          <rect x="14" y="295" width="210" height="68" rx="6" fill="var(--bg-card)" stroke="rgba(168,85,247,.35)" stroke-width="1.5"/>
+          <rect x="14" y="295" width="210" height="22" rx="6" fill="rgba(168,85,247,.1)"/>
+          <rect x="14" y="308" width="210" height="9" fill="rgba(168,85,247,.1)"/>
+          <text x="119" y="306" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="700">EmailNotificationObserver</text>
+          <line x1="14" y1="315" x2="224" y2="315" stroke="rgba(168,85,247,.1)" stroke-width="1"/>
+          <text x="26" y="333" font-size="10" fill="#94a3b8">- smtpService: SmtpService</text>
+          <text x="26" y="350" font-size="10" fill="#94a3b8">+ onEvent(event: DomainEvent)</text>
+          <!-- SmsObserver -->
+          <rect x="302" y="295" width="200" height="68" rx="6" fill="var(--bg-card)" stroke="rgba(168,85,247,.35)" stroke-width="1.5"/>
+          <rect x="302" y="295" width="200" height="22" rx="6" fill="rgba(168,85,247,.1)"/>
+          <rect x="302" y="308" width="200" height="9" fill="rgba(168,85,247,.1)"/>
+          <text x="402" y="306" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="700">SmsNotificationObserver</text>
+          <line x1="302" y1="315" x2="502" y2="315" stroke="rgba(168,85,247,.1)" stroke-width="1"/>
+          <text x="314" y="333" font-size="10" fill="#94a3b8">- twilioClient: TwilioClient</text>
+          <text x="314" y="350" font-size="10" fill="#94a3b8">+ onEvent(event: DomainEvent)</text>
+          <!-- PushObserver -->
+          <rect x="590" y="295" width="210" height="68" rx="6" fill="var(--bg-card)" stroke="rgba(168,85,247,.35)" stroke-width="1.5"/>
+          <rect x="590" y="295" width="210" height="22" rx="6" fill="rgba(168,85,247,.1)"/>
+          <rect x="590" y="308" width="210" height="9" fill="rgba(168,85,247,.1)"/>
+          <text x="695" y="306" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="700">PushNotificationObserver</text>
+          <line x1="590" y1="315" x2="800" y2="315" stroke="rgba(168,85,247,.1)" stroke-width="1"/>
+          <text x="602" y="333" font-size="10" fill="#94a3b8">- fcmClient: FcmClient</text>
+          <text x="602" y="350" font-size="10" fill="#94a3b8">+ onEvent(event: DomainEvent)</text>
+          <!-- Relationships -->
+          <line x1="244" y1="195" x2="270" y2="80" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#real)"/>
+          <text x="255" y="130" font-size="9" fill="#00d4ff">«realizes»</text>
+          <line x1="119" y1="295" x2="310" y2="220" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#real)"/>
+          <line x1="402" y1="295" x2="402" y2="220" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#real)"/>
+          <line x1="695" y1="295" x2="510" y2="220" stroke="#00d4ff" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#real)"/>
+          <line x1="129" y1="255" x2="310" y2="193" stroke="#a855f7" stroke-width="1.5" marker-end="url(#assoc)"/>
+          <text x="195" y="243" font-size="9" fill="#a855f7">observers *</text>
+        </svg>
+      </div>
+    </div>
+    <div class="case-section" style="margin-bottom:0">
+      <div class="case-section-label label-note">🟣 Nhận xét &amp; Kết luận</div>
+      <div class="note note-success" style="margin-bottom:8px"><div class="note-icon">✅</div><p><strong>Class Diagram best practices:</strong> (1) Interface dùng <code>«interface»</code> stereotype. (2) Chỉ vẽ public methods quan trọng, không list getter/setter. (3) Thể hiện rõ cardinality: <code>1</code>, <code>0..1</code>, <code>*</code>, <code>1..*</code>. (4) Dashed arrow cho realization (implements), solid arrow cho association (has-a).</p></div>
+      <div class="note note-info" style="margin-bottom:0"><div class="note-icon">💡</div><p><strong>Chọn đúng diagram:</strong> Luồng request/response → Sequence. Cấu trúc class → Class Diagram. Trạng thái object → State Machine. Quy trình business → Activity. Use case overview → Use Case Diagram.</p></div>
+    </div>
+  </div>
+</div>
+</section>
+<!-- GLOSSARY SECTION -->
+<section class="page-section" id="s-glossary">
+<div class="section-header">
+  <div class="section-number">07</div>
+  <div><div class="section-title">Glossary — Bảng thuật ngữ chuyên môn</div><div class="section-subtitle">Tra cứu nhanh 60+ thuật ngữ Architecture &amp; Design</div></div>
+</div>
+
+<h3>ADR Glossary</h3>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="glossary-item"><span class="glossary-term">ADR</span><span class="glossary-def">Architecture Decision Record — Tài liệu ghi lại một quyết định kiến trúc quan trọng kèm bối cảnh, lý do và hệ quả.</span></div>
+  <div class="glossary-item"><span class="glossary-term">MADR</span><span class="glossary-def">Markdown Any Decision Records — Định dạng ADR chuẩn hóa dùng Markdown, lưu trong Git repository.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Architectural Runway</span><span class="glossary-def">Cơ sở hạ tầng kiến trúc đã sẵn sàng để support business features tiếp theo mà không cần rework lớn.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Technical Debt</span><span class="glossary-def">Chi phí tương lai phát sinh từ quyết định thiết kế ngắn hạn không tối ưu. ADR giúp track và document technical debt có chủ ý.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Superseded</span><span class="glossary-def">Trạng thái ADR bị thay thế bởi ADR mới hơn. Luôn giữ ADR cũ để maintain audit trail — không xóa.</span></div>
+  <div class="glossary-item"><span class="glossary-term">RFC (Request for Comments)</span><span class="glossary-def">Tài liệu đề xuất thay đổi để thu thập phản hồi trước khi ra ADR chính thức. Thường dùng ở Google, Stripe, Notion.</span></div>
+</div>
+
+<h3>DDD Glossary</h3>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="glossary-item"><span class="glossary-term">Domain</span><span class="glossary-def">Lĩnh vực nghiệp vụ mà phần mềm giải quyết. Ví dụ: Banking, E-commerce, Healthcare.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Ubiquitous Language</span><span class="glossary-def">Ngôn ngữ chung được dùng nhất quán bởi developer lẫn domain expert trong cùng một Bounded Context. Code dùng đúng ngôn ngữ này.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Bounded Context</span><span class="glossary-def">Ranh giới ngữ nghĩa trong đó một model cụ thể và nhất quán. Cùng khái niệm có thể có nghĩa khác nhau giữa các context.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Aggregate Root</span><span class="glossary-def">Entity đứng đầu một Aggregate, là điểm vào duy nhất để tương tác với toàn bộ Aggregate. Đảm bảo business invariants.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Value Object</span><span class="glossary-def">Object định nghĩa bởi thuộc tính, không có identity riêng. Immutable. Equality theo giá trị. Ví dụ: Money, Address, DateRange.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Domain Event</span><span class="glossary-def">Sự kiện đã xảy ra trong domain, biểu diễn một fact về quá khứ. Immutable. Ví dụ: OrderPlaced, PaymentReceived.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Anti-Corruption Layer</span><span class="glossary-def">Lớp dịch thuật giữa hai Bounded Context, ngăn model của context này "nhiễm" vào model của context kia. Thường implement bằng Adapter/Facade.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Context Map</span><span class="glossary-def">Sơ đồ thể hiện tất cả Bounded Contexts và quan hệ giữa chúng: Upstream/Downstream, Shared Kernel, ACL, Conformist.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Saga Pattern</span><span class="glossary-def">Chuỗi transactions cục bộ, mỗi bước emit event để trigger bước tiếp theo. Xử lý distributed transactions trong microservices không dùng 2PC.</span></div>
+  <div class="glossary-item"><span class="glossary-term">CQRS</span><span class="glossary-def">Command Query Responsibility Segregation — Tách model đọc (Query) và model ghi (Command) để scale và optimize độc lập.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Event Sourcing</span><span class="glossary-def">Lưu state application dưới dạng chuỗi events append-only thay vì state hiện tại. Cho phép time travel và full audit trail.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Domain Service</span><span class="glossary-def">Business logic không thuộc về Entity hay Value Object nào. Stateless, thao tác trên nhiều Aggregate. Ví dụ: TransferService, PricingService.</span></div>
+</div>
+
+<h3>ERD Glossary</h3>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="glossary-item"><span class="glossary-term">Entity</span><span class="glossary-def">Thực thể có thể lưu trong database. Mỗi entity có tập thuộc tính mô tả nó. Ví dụ: User, Product, Order.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Primary Key (PK)</span><span class="glossary-def">Cột hoặc tổ hợp cột định danh duy nhất mỗi row. Not Null, Unique. Có thể là Natural Key (email) hoặc Surrogate Key (UUID, BIGSERIAL).</span></div>
+  <div class="glossary-item"><span class="glossary-term">Foreign Key (FK)</span><span class="glossary-def">Cột reference đến PK của bảng khác để biểu diễn quan hệ. ON DELETE behavior: CASCADE / SET NULL / RESTRICT / SET DEFAULT.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Cardinality</span><span class="glossary-def">Số lượng tối thiểu và tối đa trong quan hệ: 1:1 (One-to-One), 1:N (One-to-Many), M:N (Many-to-Many).</span></div>
+  <div class="glossary-item"><span class="glossary-term">Junction Table</span><span class="glossary-def">Bảng trung gian giải quyết quan hệ M:N bằng cách chứa FK của cả hai bảng. Có thể thêm attributes của chính quan hệ đó.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Normalization</span><span class="glossary-def">Tổ chức database để giảm data redundancy và tránh update anomalies. 1NF → 2NF → 3NF → BCNF — mỗi form thêm ràng buộc.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Denormalization</span><span class="glossary-def">Có chủ ý vi phạm normalization để tối ưu performance đọc. Phổ biến trong CQRS Read Models, data warehouses, analytics.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Index</span><span class="glossary-def">Cấu trúc dữ liệu tăng tốc query. B-tree index cho equality/range, Hash index cho equality only, GIN/GiST cho JSONB/full-text (PostgreSQL).</span></div>
+</div>
+
+<h3>HLD / LLD Glossary</h3>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="glossary-item"><span class="glossary-term">CAP Theorem</span><span class="glossary-def">Hệ thống phân tán chỉ đảm bảo được 2 trong 3: Consistency, Availability, Partition Tolerance. Không thể có cả 3 cùng lúc.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Idempotency</span><span class="glossary-def">Tính chất: thực hiện operation nhiều lần cho cùng kết quả như một lần. Bắt buộc cho payment APIs và distributed systems.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Consistent Hashing</span><span class="glossary-def">Thuật toán phân phối data trong distributed systems. Khi thêm/bớt node, chỉ ~1/N keys cần migrate thay vì tất cả.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Circuit Breaker</span><span class="glossary-def">Pattern ngăn cascading failures. States: CLOSED (normal) → OPEN (blocking) → HALF-OPEN (testing). Tự động recover sau timeout.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Sharding</span><span class="glossary-def">Chia data ra nhiều database nodes. Mỗi shard chứa một subset. Shard key quyết định data nằm ở shard nào.</span></div>
+  <div class="glossary-item"><span class="glossary-term">API Gateway</span><span class="glossary-def">Điểm vào duy nhất cho client requests. Xử lý routing, rate limiting, auth, SSL termination, request/response transformation.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Strangler Fig</span><span class="glossary-def">Pattern migrate từ monolith sang microservices dần dần. Bọc monolith sau API Gateway, tách từng service theo thứ tự ưu tiên.</span></div>
+  <div class="glossary-item"><span class="glossary-term">SLA / SLO / SLI</span><span class="glossary-def">SLI = metric đo lường (error rate). SLO = target (error rate &lt; 0.1%). SLA = contractual agreement với hệ quả nếu vi phạm.</span></div>
+  <div class="glossary-item"><span class="glossary-term">NFR</span><span class="glossary-def">Non-Functional Requirements — Yêu cầu về chất lượng hệ thống: performance, availability, security, scalability, maintainability.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Quorum</span><span class="glossary-def">Số minimum nodes phải đồng ý trước khi operation thành công. W + R &gt; N đảm bảo ít nhất 1 node overlap giữa write và read set.</span></div>
+</div>
+
+<h3>UML Glossary</h3>
+<div class="card" style="padding:0;overflow:hidden">
+  <div class="glossary-item"><span class="glossary-term">Stereotype</span><span class="glossary-def">Ký hiệu mở rộng UML dùng «» để chỉ vai trò đặc biệt: «interface», «abstract», «service», «repository», «entity».</span></div>
+  <div class="glossary-item"><span class="glossary-term">Lifeline</span><span class="glossary-def">Đường dọc trong Sequence Diagram biểu diễn một participant và toàn bộ vòng đời của nó trong interaction.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Realization</span><span class="glossary-def">Quan hệ class implement interface. Biểu diễn bằng dashed line với open triangle arrowhead hướng về interface.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Generalization</span><span class="glossary-def">Quan hệ kế thừa (inheritance). Solid line với open triangle arrowhead hướng về parent class/interface.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Association</span><span class="glossary-def">Quan hệ "has-a" giữa hai class. Biểu diễn bằng solid line với cardinality (1, *, 0..1, 1..*) ở hai đầu.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Composition</span><span class="glossary-def">Association mạnh: child không tồn tại nếu không có parent. Biểu diễn bằng solid diamond (filled) ở phía parent.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Aggregation</span><span class="glossary-def">Association yếu: child có thể tồn tại độc lập. Biểu diễn bằng open diamond ở phía parent.</span></div>
+  <div class="glossary-item"><span class="glossary-term">Activation Box</span><span class="glossary-def">Hình chữ nhật hẹp trên lifeline trong Sequence Diagram, biểu diễn khoảng thời gian participant đang thực hiện xử lý.</span></div>
+</div>
+</section>
+<!-- COMPARE SECTION -->
+<section class="page-section" id="s-compare">
+<div class="section-header">
+  <div class="section-number">08</div>
+  <div><div class="section-title">So sánh &amp; Khi nào dùng</div><div class="section-subtitle">Bảng quyết định và ma trận chọn đúng công cụ</div></div>
+</div>
+
+<h3>Bảng so sánh tổng hợp 6 công cụ</h3>
+<table class="data-table">
+  <thead><tr><th>Công cụ</th><th>Vấn đề giải quyết</th><th>Khi nào dùng</th><th>Không dùng khi</th><th>Output chính</th></tr></thead>
+  <tbody>
+    <tr><td><strong>ADR</strong></td><td>Mất trí nhớ tổ chức về quyết định kiến trúc</td><td>Quyết định có trade-off rõ ràng, tốn công lớn nếu đổi</td><td>Quyết định nhỏ, dễ đảo ngược</td><td>Markdown file trong Git</td></tr>
+    <tr><td><strong>DDD</strong></td><td>Code không phản ánh được logic nghiệp vụ phức tạp</td><td>Domain phức tạp, team lớn, microservices</td><td>CRUD đơn giản, domain ít phức tạp</td><td>Domain model, Context Map, Aggregate design</td></tr>
+    <tr><td><strong>ERD</strong></td><td>Database schema không rõ ràng, thiếu consistency</td><td>Trước khi viết SQL, khi thiết kế DB mới</td><td>NoSQL schema-less (dùng document model thay)</td><td>Sơ đồ entity-relationship, Physical schema</td></tr>
+    <tr><td><strong>HLD</strong></td><td>Team không đồng thuận về kiến trúc tổng thể</td><td>Bắt đầu project mới, đề xuất cho stakeholder</td><td>Cần chi tiết implementation — dùng LLD</td><td>Architecture diagram, NFR, tech choices</td></tr>
+    <tr><td><strong>LLD</strong></td><td>Developer không biết implement chi tiết như thế nào</td><td>Sau HLD approved, trước sprint coding</td><td>Prototype/PoC, tính năng nhỏ không phức tạp</td><td>Class diagram, API spec, algorithm design</td></tr>
+    <tr><td><strong>UML</strong></td><td>Thiếu ngôn ngữ chung để communicate về thiết kế</td><td>Document flows, class structure, state machines</td><td>Diagram quá chi tiết đến mức maintenance burden</td><td>Class/Sequence/State/UseCase diagrams</td></tr>
+  </tbody>
+</table>
+
+<h3>Ma trận: Công cụ nào cho giai đoạn nào?</h3>
+<div class="diagram-container">
+  <div class="diagram-title">Software Development Lifecycle — Công cụ phù hợp theo giai đoạn</div>
+  <svg width="100%" viewBox="0 0 820 260" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <!-- Phase headers -->
+    <rect x="10" y="10" width="150" height="36" rx="7" fill="rgba(0,212,255,.1)" stroke="rgba(0,212,255,.3)" stroke-width="1.5"/>
+    <text x="85" y="33" text-anchor="middle" font-size="11" fill="#00d4ff" font-weight="600">Requirements</text>
+    <rect x="175" y="10" width="150" height="36" rx="7" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.3)" stroke-width="1.5"/>
+    <text x="250" y="33" text-anchor="middle" font-size="11" fill="#a855f7" font-weight="600">Architecture</text>
+    <rect x="340" y="10" width="150" height="36" rx="7" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)" stroke-width="1.5"/>
+    <text x="415" y="33" text-anchor="middle" font-size="11" fill="#00ff88" font-weight="600">Design</text>
+    <rect x="505" y="10" width="150" height="36" rx="7" fill="rgba(245,158,11,.1)" stroke="rgba(245,158,11,.3)" stroke-width="1.5"/>
+    <text x="580" y="33" text-anchor="middle" font-size="11" fill="#f59e0b" font-weight="600">Implementation</text>
+    <rect x="670" y="10" width="140" height="36" rx="7" fill="rgba(255,107,107,.1)" stroke="rgba(255,107,107,.3)" stroke-width="1.5"/>
+    <text x="740" y="33" text-anchor="middle" font-size="11" fill="#ff6b6b" font-weight="600">Maintenance</text>
+
+    <!-- Tool rows -->
+    <!-- ADR -->
+    <text x="8" y="75" font-size="10" fill="#00d4ff" font-weight="600">ADR</text>
+    <rect x="10" y="60" width="148" height="28" rx="5" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)"/>
+    <text x="84" y="78" text-anchor="middle" font-size="9" fill="#00d4ff">✓ Ghi lại decisions</text>
+    <rect x="175" y="60" width="148" height="28" rx="5" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)"/>
+    <text x="249" y="78" text-anchor="middle" font-size="9" fill="#00d4ff">✓ ADR cho tech stack</text>
+    <rect x="340" y="60" width="148" height="28" rx="5" fill="rgba(0,212,255,.08)" stroke="rgba(0,212,255,.15)"/>
+    <text x="414" y="78" text-anchor="middle" font-size="9" fill="#64748b">~ Design decisions</text>
+    <rect x="505" y="60" width="148" height="28" rx="5" fill="rgba(0,212,255,.04)" stroke="rgba(0,212,255,.1)"/>
+    <text x="579" y="78" text-anchor="middle" font-size="9" fill="#64748b">~ Nếu có thay đổi</text>
+    <rect x="670" y="60" width="138" height="28" rx="5" fill="rgba(0,212,255,.12)" stroke="rgba(0,212,255,.25)"/>
+    <text x="739" y="78" text-anchor="middle" font-size="9" fill="#00d4ff">✓ Review &amp; update</text>
+
+    <!-- DDD -->
+    <text x="8" y="115" font-size="10" fill="#a855f7" font-weight="600">DDD</text>
+    <rect x="10" y="100" width="148" height="28" rx="5" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.25)"/>
+    <text x="84" y="118" text-anchor="middle" font-size="9" fill="#a855f7">✓ Domain modeling</text>
+    <rect x="175" y="100" width="148" height="28" rx="5" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.25)"/>
+    <text x="249" y="118" text-anchor="middle" font-size="9" fill="#a855f7">✓ Bounded Contexts</text>
+    <rect x="340" y="100" width="148" height="28" rx="5" fill="rgba(168,85,247,.12)" stroke="rgba(168,85,247,.25)"/>
+    <text x="414" y="118" text-anchor="middle" font-size="9" fill="#a855f7">✓ Aggregate design</text>
+    <rect x="505" y="100" width="148" height="28" rx="5" fill="rgba(168,85,247,.1)" stroke="rgba(168,85,247,.2)"/>
+    <text x="579" y="118" text-anchor="middle" font-size="9" fill="#a855f7">✓ Code theo model</text>
+    <rect x="670" y="100" width="138" height="28" rx="5" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.15)"/>
+    <text x="739" y="118" text-anchor="middle" font-size="9" fill="#64748b">~ Refine model</text>
+
+    <!-- ERD -->
+    <text x="8" y="155" font-size="10" fill="#60a5fa" font-weight="600">ERD</text>
+    <rect x="10" y="140" width="148" height="28" rx="5" fill="rgba(96,165,250,.04)" stroke="rgba(96,165,250,.1)"/>
+    <text x="84" y="158" text-anchor="middle" font-size="9" fill="#64748b">~ Data requirements</text>
+    <rect x="175" y="140" width="148" height="28" rx="5" fill="rgba(96,165,250,.12)" stroke="rgba(96,165,250,.25)"/>
+    <text x="249" y="158" text-anchor="middle" font-size="9" fill="#60a5fa">✓ Conceptual ERD</text>
+    <rect x="340" y="140" width="148" height="28" rx="5" fill="rgba(96,165,250,.12)" stroke="rgba(96,165,250,.25)"/>
+    <text x="414" y="158" text-anchor="middle" font-size="9" fill="#60a5fa">✓ Physical ERD</text>
+    <rect x="505" y="140" width="148" height="28" rx="5" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.15)"/>
+    <text x="579" y="158" text-anchor="middle" font-size="9" fill="#64748b">~ Schema migration</text>
+    <rect x="670" y="140" width="138" height="28" rx="5" fill="rgba(96,165,250,.08)" stroke="rgba(96,165,250,.15)"/>
+    <text x="739" y="158" text-anchor="middle" font-size="9" fill="#64748b">~ Schema changes</text>
+
+    <!-- HLD/LLD/UML -->
+    <text x="8" y="195" font-size="10" fill="#00ff88" font-weight="600">HLD</text>
+    <rect x="175" y="180" width="148" height="28" rx="5" fill="rgba(0,255,136,.12)" stroke="rgba(0,255,136,.25)"/>
+    <text x="249" y="198" text-anchor="middle" font-size="9" fill="#00ff88">✓ System overview</text>
+    <rect x="340" y="180" width="148" height="28" rx="5" fill="rgba(0,255,136,.08)" stroke="rgba(0,255,136,.15)"/>
+    <text x="414" y="198" text-anchor="middle" font-size="9" fill="#64748b">~ Refine</text>
+
+    <text x="8" y="235" font-size="10" fill="#f59e0b" font-weight="600">LLD / UML</text>
+    <rect x="340" y="220" width="148" height="28" rx="5" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.25)"/>
+    <text x="414" y="238" text-anchor="middle" font-size="9" fill="#f59e0b">✓ Detail design</text>
+    <rect x="505" y="220" width="148" height="28" rx="5" fill="rgba(245,158,11,.12)" stroke="rgba(245,158,11,.25)"/>
+    <text x="579" y="238" text-anchor="middle" font-size="9" fill="#f59e0b">✓ Reference</text>
+    <rect x="670" y="220" width="138" height="28" rx="5" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.15)"/>
+    <text x="739" y="238" text-anchor="middle" font-size="9" fill="#64748b">~ Update docs</text>
+  </svg>
+</div>
+
+<h3>ADR vs RFC — Khi nào dùng cái nào?</h3>
+<div class="compare-grid">
+  <div class="compare-card">
+    <div class="compare-head cyan">ADR (Architecture Decision Record)</div>
+    <div class="compare-body">
+      <ul class="step-list">
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Quyết định đã được đưa ra và đang được ghi nhận</div></div></li>
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Ảnh hưởng đến kiến trúc hệ thống dài hạn</div></div></li>
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Format ngắn gọn: 1 trang, context + decision + consequences</div></div></li>
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Lưu trong Git cùng source code</div></div></li>
+      </ul>
+    </div>
+  </div>
+  <div class="compare-card">
+    <div class="compare-head purple">RFC (Request for Comments)</div>
+    <div class="compare-body">
+      <ul class="step-list">
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Thu thập phản hồi trước khi ra quyết định</div></div></li>
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Thay đổi lớn cần nhiều bên review và đồng thuận</div></div></li>
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">Format chi tiết hơn: problem, proposal, alternatives, open questions</div></div></li>
+        <li class="step-item"><div class="step-num">✓</div><div class="step-body"><div class="step-desc">RFC được duyệt → trở thành ADR chính thức</div></div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<h3>HLD vs LLD — Ranh giới rõ ràng</h3>
+<div class="diagram-container">
+  <div class="diagram-title">Ví dụ cụ thể: Rate Limiter — HLD nói gì vs LLD nói gì</div>
+  <svg width="100%" viewBox="0 0 820 200" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+    <rect x="10" y="10" width="390" height="180" rx="10" fill="rgba(0,255,136,.03)" stroke="rgba(0,255,136,.2)" stroke-width="1.5"/>
+    <text x="205" y="30" text-anchor="middle" font-size="12" fill="#00ff88" font-weight="700">HLD nói: (Mức cao, không chi tiết)</text>
+    <text x="22" y="55" font-size="11" fill="#94a3b8">• "Sử dụng Rate Limiter để bảo vệ API"</text>
+    <text x="22" y="75" font-size="11" fill="#94a3b8">• "Token Bucket algorithm"</text>
+    <text x="22" y="95" font-size="11" fill="#94a3b8">• "State lưu trong Redis"</text>
+    <text x="22" y="115" font-size="11" fill="#94a3b8">• "Limit: 100 requests/second per client"</text>
+    <text x="22" y="135" font-size="11" fill="#94a3b8">• "Trả về 429 Too Many Requests khi vượt"</text>
+    <text x="22" y="165" font-size="9" fill="#64748b">→ Stakeholder và PM có thể đọc và hiểu được</text>
+
+    <rect x="420" y="10" width="390" height="180" rx="10" fill="rgba(168,85,247,.03)" stroke="rgba(168,85,247,.2)" stroke-width="1.5"/>
+    <text x="615" y="30" text-anchor="middle" font-size="12" fill="#a855f7" font-weight="700">LLD nói: (Chi tiết, implement được)</text>
+    <text x="432" y="55" font-size="11" fill="#94a3b8">• Interface: <tspan font-family="JetBrains Mono,monospace" font-size="10" fill="#00d4ff">Allow(key) (bool, int, time, error)</tspan></text>
+    <text x="432" y="75" font-size="11" fill="#94a3b8">• Redis key: <tspan font-family="JetBrains Mono,monospace" font-size="10" fill="#00d4ff">rl:{clientId}</tspan> — Hash type</text>
+    <text x="432" y="95" font-size="11" fill="#94a3b8">• Fields: <tspan font-family="JetBrains Mono,monospace" font-size="10" fill="#00d4ff">tokens FLOAT, lastRefill INT64</tspan></text>
+    <text x="432" y="115" font-size="11" fill="#94a3b8">• Lua script atomic: HGET → compute → HSET</text>
+    <text x="432" y="135" font-size="11" fill="#94a3b8">• Headers: <tspan font-family="JetBrains Mono,monospace" font-size="10" fill="#00d4ff">X-RateLimit-Remaining</tspan></text>
+    <text x="432" y="165" font-size="9" fill="#64748b">→ Developer đọc xong có thể code ngay</text>
+  </svg>
+</div>
+
+<h3>Câu hỏi quyết định — Chọn diagram UML nào?</h3>
+<table class="data-table">
+  <thead><tr><th>Câu hỏi cần trả lời</th><th>Diagram phù hợp</th><th>Ví dụ</th></tr></thead>
+  <tbody>
+    <tr><td>"Request đi qua các service theo thứ tự nào?"</td><td><strong>Sequence Diagram</strong></td><td>OAuth flow, checkout process, microservice call chain</td></tr>
+    <tr><td>"Class nào có relationship gì với class nào?"</td><td><strong>Class Diagram</strong></td><td>Repository pattern, Observer, Strategy, Factory</td></tr>
+    <tr><td>"Object này có thể ở trạng thái nào và chuyển đổi ra sao?"</td><td><strong>State Machine</strong></td><td>Order status, Payment lifecycle, Connection state</td></tr>
+    <tr><td>"Actor nào làm được gì trong hệ thống?"</td><td><strong>Use Case Diagram</strong></td><td>System requirements overview, role-based features</td></tr>
+    <tr><td>"Hệ thống triển khai trên infrastructure nào?"</td><td><strong>Deployment Diagram</strong></td><td>Kubernetes cluster, AWS architecture, on-premise setup</td></tr>
+    <tr><td>"Quy trình business gồm những bước nào, điều kiện gì?"</td><td><strong>Activity Diagram</strong></td><td>Approval workflow, data processing pipeline</td></tr>
+    <tr><td>"Các module/package phụ thuộc nhau thế nào?"</td><td><strong>Component Diagram</strong></td><td>Microservices dependencies, module structure</td></tr>
+  </tbody>
+</table>
+
+<div class="note note-success">
+  <div class="note-icon">✅</div>
+  <p><strong>Nguyên tắc vàng:</strong> Không có công cụ nào "tốt nhất" — chỉ có công cụ phù hợp nhất cho <em>ngữ cảnh cụ thể</em>. ADR + DDD + HLD + LLD + ERD + UML không phải là danh sách để tick hết — mà là bộ công cụ để chọn đúng khi cần. Dùng ít công cụ nhất mà vẫn communicate được ý tưởng rõ ràng.</p>
+</div>
+</section>
+<!-- REFERENCES SECTION -->
+<section class="page-section" id="s-refs">
+<div class="section-header">
+  <div class="section-number">09</div>
+  <div><div class="section-title">References &amp; Tài liệu tham khảo</div><div class="section-subtitle">Nguồn uy tín nhất được cộng đồng kỹ thuật đánh giá cao</div></div>
+</div>
+
+<h3>📝 Architecture Decision Records</h3>
+<a class="ref-card" href="https://github.com/joelparkerhenderson/architecture-decision-record" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,212,255,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">joelparkerhenderson/architecture-decision-record</div>
+    <div class="ref-desc">Bộ sưu tập ADR templates lớn nhất GitHub: MADR, Nygard, Planguage, Y-Statements. Có hướng dẫn chi tiết và ví dụ thực tế cho từng format.</div>
+    <div class="ref-url">github.com/joelparkerhenderson/architecture-decision-record</div>
+  </div>
+  <div class="ref-stars">⭐ 10.2k★</div>
+</a>
+<a class="ref-card" href="https://github.com/adr/madr" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,212,255,.1)">📄</div>
+  <div class="ref-body">
+    <div class="ref-title">adr/madr — Markdown Any Decision Records</div>
+    <div class="ref-desc">MADR format chính thức — định dạng ADR chuẩn nhất hiện nay. Template sạch, có schema validation, được dùng bởi nhiều enterprise team.</div>
+    <div class="ref-url">github.com/adr/madr</div>
+  </div>
+  <div class="ref-stars">⭐ 2.1k★</div>
+</a>
+<a class="ref-card" href="https://github.com/npryce/adr-tools" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,.1)">🔧</div>
+  <div class="ref-body">
+    <div class="ref-title">npryce/adr-tools — CLI for ADR</div>
+    <div class="ref-desc">Command-line tool để tạo, list và supersede ADRs. Tích hợp dễ dàng vào Git workflow. Hỗ trợ multiple formats và custom templates.</div>
+    <div class="ref-url">github.com/npryce/adr-tools</div>
+  </div>
+  <div class="ref-stars">⭐ 4.3k★</div>
+</a>
+<a class="ref-card" href="https://cognitect.com/blog/2011/11/15/documenting-architecture-decisions" target="_blank">
+  <div class="ref-icon" style="background:rgba(245,158,11,.1)">📝</div>
+  <div class="ref-body">
+    <div class="ref-title">Michael Nygard — Documenting Architecture Decisions (2011)</div>
+    <div class="ref-desc">Bài blog gốc khởi nguồn ADR. Michael Nygard giải thích tại sao cần ADR và format đề xuất ban đầu. Đọc bài này trước khi bắt đầu dùng ADR.</div>
+    <div class="ref-url">cognitect.com/blog/2011/11/15/documenting-architecture-decisions</div>
+  </div>
+  <div class="ref-stars">⭐ Must-Read</div>
+</a>
+
+<h3>🧩 Domain-Driven Design</h3>
+<a class="ref-card" href="https://github.com/ddd-crew/ddd-starter-modelling-process" target="_blank">
+  <div class="ref-icon" style="background:rgba(168,85,247,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">ddd-crew/ddd-starter-modelling-process</div>
+    <div class="ref-desc">Quy trình step-by-step để bắt đầu DDD: từ domain discovery, Bounded Context design đến Aggregate modeling. Có workshop templates và examples thực tế.</div>
+    <div class="ref-url">github.com/ddd-crew/ddd-starter-modelling-process</div>
+  </div>
+  <div class="ref-stars">⭐ 3.8k★</div>
+</a>
+<a class="ref-card" href="https://github.com/ddd-crew/bounded-context-canvas" target="_blank">
+  <div class="ref-icon" style="background:rgba(168,85,247,.1)">🗺️</div>
+  <div class="ref-body">
+    <div class="ref-title">ddd-crew/bounded-context-canvas</div>
+    <div class="ref-desc">Canvas template để design và document Bounded Contexts. Hữu ích cho workshop với domain experts. Có Miro board template miễn phí.</div>
+    <div class="ref-url">github.com/ddd-crew/bounded-context-canvas</div>
+  </div>
+  <div class="ref-stars">⭐ 2.4k★</div>
+</a>
+<a class="ref-card" href="https://www.domainlanguage.com/ddd/blue-book/" target="_blank">
+  <div class="ref-icon" style="background:rgba(168,85,247,.1)">📗</div>
+  <div class="ref-body">
+    <div class="ref-title">Eric Evans — Domain-Driven Design (Blue Book)</div>
+    <div class="ref-desc">Cuốn sách gốc định nghĩa DDD (2003). Bắt buộc đọc cho bất kỳ ai muốn hiểu sâu DDD. Có bản tóm tắt miễn phí trên domainlanguage.com.</div>
+    <div class="ref-url">domainlanguage.com/ddd/blue-book</div>
+  </div>
+  <div class="ref-stars">⭐ Classic</div>
+</a>
+<a class="ref-card" href="https://martinfowler.com/tags/domain%20driven%20design.html" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,.1)">🌐</div>
+  <div class="ref-body">
+    <div class="ref-title">Martin Fowler — DDD Articles Collection</div>
+    <div class="ref-desc">Bộ sưu tập bài viết về DDD của Martin Fowler: Bounded Context, Aggregate, CQRS, Event Sourcing. Giải thích rõ ràng, nhiều ví dụ thực tế.</div>
+    <div class="ref-url">martinfowler.com/tags/domain-driven-design.html</div>
+  </div>
+  <div class="ref-stars">⭐ High Quality</div>
+</a>
+
+<h3>🗄️ Entity Relationship Diagram</h3>
+<a class="ref-card" href="https://drawio-app.com/blog/entity-relationship-diagrams-with-draw-io" target="_blank">
+  <div class="ref-icon" style="background:rgba(96,165,250,.1)">🎨</div>
+  <div class="ref-body">
+    <div class="ref-title">draw.io — ERD Guide &amp; Templates</div>
+    <div class="ref-desc">Hướng dẫn tạo ERD với draw.io (công cụ miễn phí phổ biến nhất). Có sẵn shape library chuẩn Crow's Foot, Chen notation và IE notation.</div>
+    <div class="ref-url">drawio-app.com/blog/entity-relationship-diagrams</div>
+  </div>
+  <div class="ref-stars">⭐ Free Tool</div>
+</a>
+<a class="ref-card" href="https://www.lucidchart.com/pages/er-diagrams" target="_blank">
+  <div class="ref-icon" style="background:rgba(96,165,250,.1)">📊</div>
+  <div class="ref-body">
+    <div class="ref-title">Lucidchart — ER Diagram Tutorial</div>
+    <div class="ref-desc">Tutorial ERD toàn diện từ cơ bản đến nâng cao. Giải thích rõ các ký hiệu, cardinality, normalization với ví dụ minh họa từng bước.</div>
+    <div class="ref-url">lucidchart.com/pages/er-diagrams</div>
+  </div>
+  <div class="ref-stars">⭐ Recommended</div>
+</a>
+<a class="ref-card" href="https://github.com/mermaid-js/mermaid" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">mermaid-js/mermaid — ERD as Code</div>
+    <div class="ref-desc">Tạo ERD, Sequence Diagram, Flowchart bằng code Markdown. Hỗ trợ native trong GitHub, GitLab, Notion. Lý tưởng cho "diagram as code" workflow.</div>
+    <div class="ref-url">github.com/mermaid-js/mermaid</div>
+  </div>
+  <div class="ref-stars">⭐ 73k★</div>
+</a>
+
+<h3>🏗️ High-Level Design &amp; System Design</h3>
+<a class="ref-card" href="https://github.com/donnemartin/system-design-primer" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">donnemartin/system-design-primer</div>
+    <div class="ref-desc">Tài liệu HLD toàn diện nhất GitHub. Bao gồm: scalability, availability, consistency, CAP theorem, load balancing, caching, sharding. Có HLD cho hàng chục hệ thống thực tế.</div>
+    <div class="ref-url">github.com/donnemartin/system-design-primer</div>
+  </div>
+  <div class="ref-stars">⭐ 280k★</div>
+</a>
+<a class="ref-card" href="https://github.com/ByteByteGoHq/system-design-101" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">ByteByteGoHq/system-design-101</div>
+    <div class="ref-desc">Giải thích complex systems bằng visual diagrams đẹp. Cover REST vs GraphQL, CI/CD, Kafka, Kubernetes, OAuth, JWT và nhiều HLD patterns thực tế.</div>
+    <div class="ref-url">github.com/ByteByteGoHq/system-design-101</div>
+  </div>
+  <div class="ref-stars">⭐ 68k★</div>
+</a>
+<a class="ref-card" href="https://github.com/karanpratapsingh/system-design" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,212,255,.1)">📐</div>
+  <div class="ref-body">
+    <div class="ref-title">karanpratapsingh/system-design</div>
+    <div class="ref-desc">System design guide đầy đủ với HLD cho URL shortener, Twitter, Netflix, Uber, WhatsApp. Mỗi design có NFR, components, data flow và trade-offs rõ ràng.</div>
+    <div class="ref-url">github.com/karanpratapsingh/system-design</div>
+  </div>
+  <div class="ref-stars">⭐ 33k★</div>
+</a>
+
+<h3>🔧 Low-Level Design</h3>
+<a class="ref-card" href="https://github.com/ashishps1/awesome-low-level-design" target="_blank">
+  <div class="ref-icon" style="background:rgba(245,158,11,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">ashishps1/awesome-low-level-design</div>
+    <div class="ref-desc">Bộ sưu tập LLD problems và solutions: Parking Lot, Library Management, Hotel Booking, ATM, Chess Game. Mỗi bài có class diagram và code implementation.</div>
+    <div class="ref-url">github.com/ashishps1/awesome-low-level-design</div>
+  </div>
+  <div class="ref-stars">⭐ 9.4k★</div>
+</a>
+<a class="ref-card" href="https://refactoring.guru/design-patterns" target="_blank">
+  <div class="ref-icon" style="background:rgba(245,158,11,.1)">🌐</div>
+  <div class="ref-body">
+    <div class="ref-title">refactoring.guru — Design Patterns</div>
+    <div class="ref-desc">Giải thích 23 GoF Design Patterns với diagrams cực đẹp, code examples đa ngôn ngữ và real-world use cases. Bắt buộc cho LLD interview và implementation.</div>
+    <div class="ref-url">refactoring.guru/design-patterns</div>
+  </div>
+  <div class="ref-stars">⭐ Must-Read</div>
+</a>
+<a class="ref-card" href="https://github.com/prasadgujar/low-level-design-primer" target="_blank">
+  <div class="ref-icon" style="background:rgba(245,158,11,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">prasadgujar/low-level-design-primer</div>
+    <div class="ref-desc">LLD primer tập trung vào OOP principles, SOLID, design patterns áp dụng thực tế. Có interview questions và LLD problems với step-by-step solutions.</div>
+    <div class="ref-url">github.com/prasadgujar/low-level-design-primer</div>
+  </div>
+  <div class="ref-stars">⭐ 5.2k★</div>
+</a>
+
+<h3>📐 UML</h3>
+<a class="ref-card" href="https://plantuml.com" target="_blank">
+  <div class="ref-icon" style="background:rgba(96,165,250,.1)">🌐</div>
+  <div class="ref-body">
+    <div class="ref-title">PlantUML — UML as Code</div>
+    <div class="ref-desc">Tạo tất cả 14 loại UML diagram bằng text syntax. Tích hợp với IntelliJ, VS Code, Confluence, GitLab CI. Lý tưởng cho "diagram as code" và version control.</div>
+    <div class="ref-url">plantuml.com</div>
+  </div>
+  <div class="ref-stars">⭐ Standard Tool</div>
+</a>
+<a class="ref-card" href="https://www.omg.org/spec/UML/" target="_blank">
+  <div class="ref-icon" style="background:rgba(96,165,250,.1)">📋</div>
+  <div class="ref-body">
+    <div class="ref-title">OMG — UML 2.5 Official Specification</div>
+    <div class="ref-desc">Đặc tả UML chính thức từ Object Management Group. Reference cuối cùng khi cần tra cứu ký hiệu chính xác, notation rules và semantic definitions.</div>
+    <div class="ref-url">omg.org/spec/UML</div>
+  </div>
+  <div class="ref-stars">⭐ Official Spec</div>
+</a>
+<a class="ref-card" href="https://github.com/mermaid-js/mermaid" target="_blank">
+  <div class="ref-icon" style="background:rgba(0,255,136,.1)">🐙</div>
+  <div class="ref-body">
+    <div class="ref-title">Mermaid.js — Diagrams as Code trong Markdown</div>
+    <div class="ref-desc">Sequence, Class, State, Flowchart, ERD trong Markdown. Native support trên GitHub, GitLab, Notion, Obsidian. Best choice cho documentation-first teams.</div>
+    <div class="ref-url">github.com/mermaid-js/mermaid</div>
+  </div>
+  <div class="ref-stars">⭐ 73k★</div>
+</a>
+
+<h3>🛠️ Tools &amp; Platforms tổng hợp</h3>
+<div class="card-grid">
+  <div class="card">
+    <div class="card-title">🎨 Diagram Tools</div>
+    <p class="prose" style="margin:0;font-size:13px;line-height:1.8">
+      <strong>draw.io</strong> — Free, offline, đa năng<br>
+      <strong>Lucidchart</strong> — Professional, team collaboration<br>
+      <strong>Excalidraw</strong> — Sketch-style, real-time collab<br>
+      <strong>Miro</strong> — Workshop, Event Storming<br>
+      <strong>PlantUML / Mermaid</strong> — Diagram as Code
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title">📚 Learning Resources</div>
+    <p class="prose" style="margin:0;font-size:13px;line-height:1.8">
+      <strong>bytebytego.com</strong> — System design newsletter<br>
+      <strong>martinfowler.com</strong> — Architecture patterns<br>
+      <strong>architectelevator.com</strong> — Gregor Hohpe's blog<br>
+      <strong>highscalability.com</strong> — Real-world architectures<br>
+      <strong>infoq.com</strong> — Architecture articles &amp; talks
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title">🎥 Video &amp; Courses</div>
+    <p class="prose" style="margin:0;font-size:13px;line-height:1.8">
+      <strong>ByteByteGo YouTube</strong> — System design visuals<br>
+      <strong>Gaurav Sen YouTube</strong> — System design deep dives<br>
+      <strong>GOTO Conferences</strong> — Architecture talks<br>
+      <strong>DDD Europe YouTube</strong> — DDD talks &amp; workshops<br>
+      <strong>AWS Architecture Blog</strong> — Cloud patterns
+    </p>
+  </div>
+  <div class="card">
+    <div class="card-title">📖 Books bắt buộc đọc</div>
+    <p class="prose" style="margin:0;font-size:13px;line-height:1.8">
+      <strong>Designing Data-Intensive Apps</strong> — Kleppmann<br>
+      <strong>Clean Architecture</strong> — Robert Martin<br>
+      <strong>Building Microservices</strong> — Sam Newman<br>
+      <strong>DDD Distilled</strong> — Vaughn Vernon<br>
+      <strong>Fundamentals of Software Architecture</strong> — Richards
+    </p>
+  </div>
+</div>
+
+<div class="note note-success" style="margin-top:24px">
+  <div class="note-icon">🎯</div>
+  <p><strong>Lộ trình học đề xuất:</strong> Bắt đầu với <em>system-design-primer</em> để nắm HLD fundamentals → Đọc <em>DDD Distilled</em> cho Domain concepts → Thực hành ERD với <em>draw.io</em> → Viết ADR đầu tiên cho dự án hiện tại → Dùng <em>PlantUML/Mermaid</em> cho UML diagrams. <strong>Quan trọng nhất: áp dụng ngay vào dự án thực tế</strong>, không chỉ đọc lý thuyết.</p>
+</div>
+</section>
+</div></main>
+
+<script>
+function showSection(id) {
+  // Hide all sections
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  // Show target section
+  var target = document.getElementById('s-' + id);
+  if (target) target.classList.add('active');
+
+  // Update sidebar nav items
+  document.querySelectorAll('.nav-item').forEach(function(item) {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') && item.getAttribute('onclick').indexOf("'" + id + "'") !== -1) {
+      item.classList.add('active');
+    }
+  });
+
+  // Update top nav items
+  document.querySelectorAll('.topnav-item').forEach(function(item) {
+    item.classList.remove('active');
+    if (item.getAttribute('onclick') && item.getAttribute('onclick').indexOf("'" + id + "'") !== -1) {
+      item.classList.add('active');
+    }
+  });
+
+  // Scroll to top of main
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Keyboard shortcut: press number keys 1-9 to jump to sections
+var sectionKeys = {
+  '1': 'intro', '2': 'adr', '3': 'ddd', '4': 'erd',
+  '5': 'hld', '6': 'lld', '7': 'uml', '8': 'glossary',
+  '9': 'compare', '0': 'refs'
+};
+document.addEventListener('keydown', function(e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (sectionKeys[e.key]) showSection(sectionKeys[e.key]);
+});
+
+// Smooth fade on section change
+document.querySelectorAll('.page-section').forEach(function(s) {
+  s.style.animation = 'none';
+});
+
+// Active section from URL hash
+window.addEventListener('DOMContentLoaded', function() {
+  var hash = window.location.hash.replace('#', '');
+  if (hash) showSection(hash);
+});
+
+function bindObsidianEvents() {
+  document.querySelectorAll('[data-section]').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.preventDefault();
+      const sec = el.getAttribute('data-section');
+      if (sec) showSection(sec);
+    });
+  });
+}
+bindObsidianEvents();
+document.addEventListener('DOMContentLoaded', bindObsidianEvents);
+</script>
+
+<style>
+.page-section.active {
+  animation: fadeIn 0.2s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+</style>
+</body>
+</html>

@@ -41,16 +41,28 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Go/🎯 Overview Go.md",
+                "file": "Go/Concurrency/🎯 Overview Go Concurrency.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "🎯 Overview Go"
+              "title": "🎯 Overview Go Concurrency"
+            }
+          },
+          {
+            "id": "451c75627e5b183b",
+            "type": "leaf",
+            "state": {
+              "type": "html-file-view",
+              "state": {
+                "file": "Go/Concurrency/06-wait-group.html"
+              },
+              "icon": "lucide-file",
+              "title": "06-wait-group"
             }
           }
         ],
-        "currentTab": 2
+        "currentTab": 3
       }
     ],
     "direction": "vertical"
@@ -123,7 +135,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "Go/Concurrency/03-race-conditions.html",
+                "file": "Go/Concurrency/06-wait-group.html",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -133,7 +145,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Backlinks for 03-race-conditions"
+              "title": "Backlinks for 06-wait-group"
             }
           },
           {
@@ -220,39 +232,40 @@
       "daily-notes:Open today's daily note": false,
       "templates:Insert template": false,
       "command-palette:Open command palette": false,
-      "bases:Create new base": false
+      "bases:Create new base": false,
+      "remotely-save:Remotely Save": false
     }
   },
-  "active": "116d5a455b4d0585",
+  "active": "451c75627e5b183b",
   "lastOpenFiles": [
-    "Glosarry/gen_ai_guide1.py",
-    "DSA/🎯 Overview DSA.md",
-    "Glosarry/AI glossary.md",
-    "public/images/ai_agentic_systems.png",
-    "public/images/ai_prompt_engineering.png",
-    "public/images/ai_core_llm_hero.png",
-    "Glosarry/🎯 Overview Glossary.md",
-    "Glosarry/security-architecture-guide.html",
-    "Glosarry/system-design-guide.html",
-    "Go/Fundamental/go-basics-guide.html",
-    "Go/Fundamental/go-advanced-guide.html",
-    "Go/🎯 Overview Go.md",
-    "Go/Fundamental/🎯 Overview Go Fundamental.md",
-    "LeetCode/advanced-ds-state-machine-dp.html",
-    "LeetCode/core-ds-basic-algorithms.html",
-    "LeetCode/expert-algorithms-hard-patterns.html",
-    "public/images/pg_plpgsql_architecture.png",
-    "public/images/sys_design_s04_mesh_sharding_bff.png",
-    "public/images/sys_design_s03_microservice_resilience.png",
-    "public/images/sys_design_s02_cqrs_event_sourcing.png",
-    "public/images/sys_design_s01_idempotency_saga.png",
-    "LeetCode/intermediate-algorithms-graphs.html",
-    "PostgreSQL/plpgsql-cte-mvcc.html",
-    "PostgreSQL/optimize-performance.html",
-    "PostgreSQL/🎯 Overview PostgreSQL.md",
-    "public/images/go_basics_f05_math.png",
-    "public/images/go_basics_f04_fmt.png",
+    "public/images/db_pat_s03_sharding.png",
+    "public/images/db_pat_s02_base.png",
+    "public/images/db_pat_s01_acid.png",
     "Go/Concurrency/🎯 Overview Go Concurrency.md",
+    "Go/Concurrency/06-wait-group.html",
+    "PostgreSQL/🎯 Overview PostgreSQL.md",
+    "Go/Concurrency/02-buffered-unbuffered-channels.html",
+    "Go/Concurrency/04-mutex-and-confinement.html",
+    "Go/Fundamental/go-optimization-guide.html",
+    "Go/Fundamental/go-advanced-guide.html",
+    "Go/Fundamental/🎯 Overview Go Fundamental.md",
+    "Go/🎯 Overview Go.md",
+    "Glosarry/🎯 Overview Glossary.md",
+    "Glosarry/AI glossary.md",
+    "Glosarry/database-patterns-guide.html",
+    "Go/Concurrency/03-race-conditions.html",
+    "public/images/api_pat_s05_polling_comparison.png",
+    "Go/Concurrency/01-goroutines-guide.html",
+    "public/images/api_pat_s04_webhook_callback.png",
+    "Glosarry/security-architecture-guide.html",
+    "public/images/api_pat_s03_grpc_http2.png",
+    "public/images/api_pat_s02_graphql_query.png",
+    "public/images/api_pat_s01_rest_architecture.png",
+    "Glosarry/postgresql-optimization-guide.html",
+    "public/images/go_opt_s09_goroutine_leaks.png",
+    "public/images/go_opt_s08_benchmark_benchstat.png",
+    "public/images/go_opt_s07_execution_tracer.png",
+    "DSA/🎯 Overview DSA.md",
     "LeetCode/🎯 Overview LeetCode.md",
     "2026-05-25.md",
     "Design Pattern/🎯 Overview Design Pattern.md",
