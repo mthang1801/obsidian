@@ -1022,6 +1022,57 @@
         </div>
       </div>
 
+      <!-- WAITGROUP -->
+      <div id="waitgroup">
+        <h3>sync.WaitGroup — Đồng bộ nhóm Goroutines</h3>
+
+        <p><span class="inline-code">sync.WaitGroup</span> dùng để đợi một tập hợp các goroutines hoàn thành. Hoạt động như một internal counter: <code>Add(n)</code> tăng counter, <code>Done()</code> giảm counter, và <code>Wait()</code> chặn (block) cho đến khi counter về 0.</p>
+
+        <div class="callout callout-warning">
+          <div class="callout-title">⚠️ 3 Lỗi phổ biến gây Race/Panic với WaitGroup</div>
+          <p>
+            1. <strong>Gọi wg.Add(1) bên trong Goroutine:</strong> Gây race condition giữa main thread (gọi <code>Wait()</code>) và goroutine mới. ➔ <em>Luôn gọi Add() bên ngoài, trước khi chạy lệnh go.</em><br>
+            2. <strong>Copy WaitGroup làm tham số:</strong> WaitGroup chứa internal state không được copy. ➔ <em>Phải truyền qua pointer (*sync.WaitGroup) hoặc dùng closure.</em><br>
+            3. <strong>Done() quá tay:</strong> Gọi Done() làm counter âm sẽ gây panic ngay lập tức.
+          </p>
+        </div>
+
+        <div class="compare-grid">
+          <div class="compare-card">
+            <div class="compare-header bad">❌ Lỗi Add() trong Goroutine &amp; Copy Value</div>
+<pre style="padding:16px;font-size:12px;font-family:'JetBrains Mono';color:#e6edf3;background:#161b22"><span class="cmt">// Lỗi 1: Add() trong goroutine (Race!)</span>
+<span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">10</span>; i++ {
+    <span class="kw">go func</span>() {
+        <span class="hl-danger">wg.Add(<span class="num">1</span>)</span> <span class="cmt">// ⚠️ Race với wg.Wait()!</span>
+        <span class="kw">defer</span> wg.Done()
+    }()
+}
+wg.Wait()
+
+<span class="cmt">// Lỗi 2: Truyền copy value (Deadlock/Race)</span>
+<span class="kw">func</span> <span class="fn">worker</span>(wg sync.<span class="typ">WaitGroup</span>) { <span class="cmt">// ⚠️ Copy!</span>
+    <span class="kw">defer</span> wg.Done()
+}</pre>
+          </div>
+          <div class="compare-card">
+            <div class="compare-header good">✅ Cách viết đúng chuẩn Thread-safe</div>
+<pre style="padding:16px;font-size:12px;font-family:'JetBrains Mono';color:#e6edf3;background:#161b22"><span class="cmt">// Chuẩn 1: Add() bên ngoài trước khi chạy go</span>
+<span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">10</span>; i++ {
+    <span class="hl-success">wg.Add(<span class="num">1</span>)</span> <span class="cmt">// ✅ Gọi trước</span>
+    <span class="kw">go func</span>() {
+        <span class="kw">defer</span> wg.Done()
+    }()
+}
+wg.Wait()
+
+<span class="cmt">// Chuẩn 2: Truyền qua Pointer</span>
+<span class="kw">func</span> <span class="fn">worker</span>(wg *sync.<span class="typ">WaitGroup</span>) { <span class="cmt">// ✅ Pointer</span>
+    <span class="kw">defer</span> wg.Done()
+}</pre>
+          </div>
+        </div>
+      </div>
+
       <!-- SYNC.ONCE -->
       <div id="once">
         <h3>sync.Once — Khởi tạo đúng một lần</h3>
@@ -1231,6 +1282,58 @@
     <!-- PATTERNS -->
     <section id="patterns" class="section">
       <h2>04. Patterns Thực Tế</h2>
+
+      <!-- COUNTER PATTERN -->
+      <div id="counter-pattern">
+        <h3>Thread-Safe Counter Pattern</h3>
+        <p><strong>Counter Pattern</strong> là mẫu thiết kế cơ bản nhất để cộng dồn giá trị qua nhiều goroutines. Trong Go, có hai cách tiếp cận chính: sử dụng <code>sync.Mutex</code> (đọc hiểu dễ dàng) hoặc <code>sync/atomic</code> (hiệu suất phần cứng tối đa).</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">counter_pattern.go</span>
+            <span class="code-badge-success">BEST PRACTICE</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+)
+
+<span class="cmt">// Cách 1: Mutex-based Counter</span>
+<span class="kw">type</span> <span class="typ">MutexCounter</span> <span class="kw">struct</span> {
+    mu    sync.<span class="typ">Mutex</span>
+    value <span class="typ">int64</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">MutexCounter</span>) <span class="fn">Inc</span>() {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.value++
+}
+
+<span class="kw">func</span> (c *<span class="typ">MutexCounter</span>) <span class="fn">Get</span>() <span class="typ">int64</span> {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">return</span> c.value
+}
+
+<span class="cmt">// Cách 2: Atomic-based Counter (Tối ưu hiệu năng)</span>
+<span class="kw">type</span> <span class="typ">AtomicCounter</span> <span class="kw">struct</span> {
+    value atomic.<span class="typ">Int64</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">AtomicCounter</span>) <span class="fn">Inc</span>() {
+    c.value.<span class="fn">Add</span>(<span class="num">1</span>) <span class="cmt">// Hardware-level atomic addition</span>
+}
+
+<span class="kw">func</span> (c *<span class="typ">AtomicCounter</span>) <span class="fn">Get</span>() <span class="typ">int64</span> {
+    return c.value.<span class="fn">Load</span>()
+}
+</pre>
+          </div>
+        </div>
 
       <!-- SHARED MAP -->
       <div id="shared-map">
@@ -1463,6 +1566,63 @@
 }</pre>
         </div>
       </div>
+
+      <!-- READ-WRITE LOCK -->
+      <div id="read-write-lock">
+        <h3>Read-Write Lock — Thiết kế Custom Cache</h3>
+        <p><strong>Read-Write Lock Pattern</strong> ứng dụng <code>sync.RWMutex</code> để tối ưu hóa bộ nhớ tạm (Cache) hoặc cấu hình hệ thống, nơi tần suất đọc vượt trội so với ghi. Nó cho phép vô số độc giả (readers) đọc đồng thời, nhưng bảo đảm tính ghi độc quyền (exclusive write).</p>
+
+        <div class="code-block">
+          <div class="code-header">
+            <span class="code-filename">rwlock_cache.go</span>
+            <span class="code-badge-success">HIGH PERFORMANCE</span>
+          </div>
+<pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="typ">CacheItem</span>[V <span class="kw">any</span>] <span class="kw">struct</span> {
+    value      V
+    expiration time.<span class="typ">Time</span>
+}
+
+<span class="kw">type</span> <span class="typ">RWMutexCache</span>[K comparable, V <span class="kw">any</span>] <span class="kw">struct</span> {
+    mu    sync.<span class="typ">RWMutex</span>
+    items <span class="kw">map</span>[K]<span class="typ">CacheItem</span>[V]
+}
+
+<span class="kw">func</span> <span class="fn">NewRWMutexCache</span>[K comparable, V <span class="kw">any</span>]() *<span class="typ">RWMutexCache</span>[K, V] {
+    <span class="kw">return</span> &amp;<span class="typ">RWMutexCache</span>[K, V]{items: <span class="fn">make</span>(<span class="kw">map</span>[K]<span class="typ">CacheItem</span>[V])}
+}
+
+<span class="cmt">// Get đọc dữ liệu dùng RLock — Không block các readers khác</span>
+<span class="kw">func</span> (c *<span class="typ">RWMutexCache</span>[K, V]) <span class="fn">Get</span>(key K) (V, <span class="typ">bool</span>) {
+    c.mu.<span class="fn">RLock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">RUnlock</span>()
+    item, ok := c.items[key]
+    <span class="kw">if</span> !ok || (!item.expiration.<span class="fn">IsZero</span>() && time.<span class="fn">Now</span>().<span class="fn">After</span>(item.expiration)) {
+        <span class="kw">var</span> zero V
+        <span class="kw">return</span> zero, <span class="kw">false</span>
+    }
+    <span class="kw">return</span> item.value, <span class="kw">true</span>
+}
+
+<span class="cmt">// Set ghi dữ liệu dùng Lock — Chặn tất cả readers & writers khác</span>
+<span class="kw">func</span> (c *<span class="typ">RWMutexCache</span>[K, V]) <span class="fn">Set</span>(key K, val V, ttl time.<span class="typ">Duration</span>) {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    <span class="kw">var</span> exp time.<span class="typ">Time</span>
+    <span class="kw">if</span> ttl > <span class="num">0</span> {
+        exp = time.<span class="fn">Now</span>().<span class="fn">Add</span>(ttl)
+    }
+    c.items[key] = <span class="typ">CacheItem</span>[V]{value: val, expiration: exp}
+}
+</pre>
+        </div>
+      </div>
     </section>
 
     <hr class="divider">
@@ -1660,7 +1820,13 @@
 
     <!-- EXPERT -->
     <section id="expert" class="section">
-      <h2>06. Expert — Lock-Free Structures & CAS</h2>
+      <h2>06. Expert — Lock-Free Structures &amp; CAS</h2>
+
+      <!-- CAS OPERATIONS -->
+      <div id="cas">
+        <h3>Compare-And-Swap (CAS) Operations</h3>
+        <p><strong>CAS (Compare-And-Swap)</strong> là chỉ thị CPU atomic cơ bản nhất làm nền tảng cho lập trình lock-free. Nó kiểm tra xem giá trị của một ô nhớ có bằng với giá trị cũ mong đợi không; nếu đúng, nó sẽ cập nhật ô nhớ đó thành giá trị mới một cách atomic.</p>
+      </div>
 
       <div id="lock-free">
         <h3>Lock-Free Stack với CAS</h3>
@@ -1786,6 +1952,26 @@
     v, _ := rb.<span class="fn">Dequeue</span>()
     fmt.<span class="fn">Println</span>(<span class="str">"Ring buffer value:"</span>, v)
 }</pre>
+        </div>
+      </div>
+
+      <!-- HAZARD POINTER -->
+      <div id="hazard-pointer">
+        <h3>Lập trình Lock-Free nâng cao: ABA Problem &amp; Hazard Pointers</h3>
+        <p>Trong cấu trúc dữ liệu Lock-Free phức tạp (như Lock-Free Stack hoặc Queue), một trong những thách thức lớn nhất là <strong>ABA Problem</strong>. Lỗi này xảy ra khi một Goroutine đọc giá trị địa chỉ vùng nhớ là <code>A</code>, sau đó Goroutine khác sửa đổi thành <code>B</code>, rồi lại đưa về giá trị <code>A</code>. Goroutine đầu tiên thực hiện lệnh CAS và thành công vì thấy giá trị vẫn là <code>A</code>, nhưng thực chất dữ liệu liên kết bên dưới đã bị hoán đổi cấu trúc và có thể gây hư hỏng bộ nhớ nghiêm trọng (memory corruption).</p>
+
+        <div class="callout callout-danger">
+          <div class="callout-title">💡 Giải pháp 1: Hazard Pointers</div>
+          <p>
+            Mỗi Goroutine độc giả (reader) sẽ công bố một danh sách các con trỏ "nguy hiểm" (Hazard Pointers) mà nó đang truy cập trực tiếp. Khi Goroutine ghi (writer) muốn thu hồi hay tái sử dụng một node dữ liệu, nó bắt buộc phải kiểm tra xem địa chỉ đó có nằm trong danh sách Hazard Pointers đang hoạt động nào không. Node chỉ bị giải phóng/tái sử dụng khi không còn ai tham chiếu.
+          </p>
+        </div>
+
+        <div class="callout callout-success">
+          <div class="callout-title">💡 Giải pháp 2: Generational Pointers (Double-word CAS)</div>
+          <p>
+            Mỗi con trỏ được gắn thêm một số hiệu phiên bản (generation count / epoch). Mỗi lần node bị hoán đổi, số phiên bản sẽ tăng lên. Khi thực hiện CAS, ta so sánh cả địa chỉ và số phiên bản cùng lúc (Double-Word CAS). Nhờ vậy, ngay cả khi địa chỉ quay về <code>A</code>, số phiên bản đã khác, khiến CAS thất bại một cách an toàn.
+          </p>
         </div>
       </div>
 
@@ -2036,37 +2222,68 @@
 </div>
 
 <script>
-// Robust smooth scroll for all anchor links starting with #
+// Programmatic robust smooth scroll with offset for sticky header
 document.querySelectorAll('a[href^="#"]').forEach(a => {
   a.addEventListener('click', e => {
     const href = a.getAttribute('href');
     if (!href || href === '#' || href.startsWith('#/')) return;
-    try {
-      const el = document.querySelector(href);
-      if (el) {
-        e.preventDefault();
-        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    
+    const id = href.substring(1);
+    const el = document.getElementById(id);
+    if (el) {
+      e.preventDefault();
+      
+      // Calculate position with offset for sticky header (56px + padding = 72px)
+      const topOffset = el.getBoundingClientRect().top + window.pageYOffset - 72;
+      
+      window.scrollTo({
+        top: topOffset,
+        behavior: 'smooth'
+      });
+      
+      // Update active state in sidebar immediately on click
+      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+      const activeLink = document.querySelector(`.sidebar-link[href="${href}"]`);
+      if (activeLink) activeLink.classList.add('active');
+      
+      // Attempt history update without throwing in sandboxed environments like Obsidian
+      try {
         history.pushState(null, null, href);
+      } catch (err) {
+        // Fallback for sandboxed file:// origins in Obsidian
+        console.info("History pushState bypassed in sandbox");
       }
-    } catch (err) {
-      console.warn("Invalid selector:", href, err);
     }
   });
 });
 
-// Active sidebar highlight
+// Active sidebar highlighting using IntersectionObserver on all target elements
+const observerOptions = {
+  rootMargin: '-80px 0px -70% 0px', // accounting for 56px header + 24px padding
+  threshold: 0
+};
+
 const observer = new IntersectionObserver(entries => {
   entries.forEach(entry => {
     if (entry.isIntersecting) {
-      document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
       const id = entry.target.getAttribute('id');
       const activeLink = document.querySelector(`.sidebar-link[href="#${id}"]`);
-      if (activeLink) activeLink.classList.add('active');
+      if (activeLink) {
+        document.querySelectorAll('.sidebar-link').forEach(l => l.classList.remove('active'));
+        activeLink.classList.add('active');
+      }
     }
   });
-}, { threshold: 0.3 });
+}, observerOptions);
 
-document.querySelectorAll('section[id]').forEach(s => observer.observe(s));
+// Observe all elements that have sidebar navigation links pointing to them
+document.querySelectorAll('.sidebar-link[href^="#"]').forEach(a => {
+  const href = a.getAttribute('href');
+  if (href && href !== '#') {
+    const target = document.getElementById(href.substring(1));
+    if (target) observer.observe(target);
+  }
+});
 
 // Copy button functionality
 document.querySelectorAll('.code-block').forEach(block => {
@@ -2075,9 +2292,13 @@ document.querySelectorAll('.code-block').forEach(block => {
   btn.addEventListener('click', () => {
     const code = block.querySelector('pre').innerText;
     navigator.clipboard.writeText(code).then(() => {
+      const origText = btn.textContent;
       btn.textContent = '✓ Đã copy';
       btn.classList.add('copied');
-      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+      setTimeout(() => { 
+        btn.textContent = origText; 
+        btn.classList.remove('copied'); 
+      }, 2000);
     });
   });
 });
