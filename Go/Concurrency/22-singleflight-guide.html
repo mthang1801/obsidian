@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Singleflight Pattern - Cẩm nang chuyên sâu</title>
+<meta name="description" content="Hướng dẫn chuyên sâu về Go Singleflight Pattern: chống thundering herd, cache stampede. Sử dụng golang.org/x/sync/singleflight từ basic, production L2 cache, DoChan timeout đến expert 3-layer Redis + GORM.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230d0f14'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='700' fill='%2300d4ff'>Go</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(0,212,255,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+    --font-title: 'Space Grotesk', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== SIDEBAR ====== */
+  #sidebar {
+    width: 270px;
+    min-width: 270px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    color: white; font-family: var(--font-mono);
+  }
+
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; font-family: var(--font-title); }
+  .logo-sub { font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); }
+
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center;
+    padding: 7px 8px; border-radius: 6px;
+    text-decoration: none; color: var(--text-secondary);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active {
+    background: rgba(0,212,255,0.1);
+    color: var(--accent-cyan);
+    border-left: 2px solid var(--accent-cyan);
+    padding-left: 6px;
+  }
+
+  /* ====== TOP NAV ====== */
+  #topnav {
+    position: fixed; top: 0; left: 270px; right: 0; height: 52px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 32px; gap: 8px; z-index: 50;
+    overflow-x: auto;
+  }
+
+  .topnav-item {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer;
+    white-space: nowrap; text-decoration: none;
+    transition: all 0.15s; border: none; background: none;
+  }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .topnav-item.active { color: var(--accent-cyan); background: rgba(0,212,255,0.1); }
+
+  /* ====== MAIN CONTENT ====== */
+  #main {
+    margin-left: 270px;
+    margin-top: 52px;
+    flex: 1;
+    max-width: calc(100% - 270px);
+  }
+
+  .content-area {
+    padding: 48px 56px;
+    max-width: 980px;
+  }
+
+  /* ====== SECTION HEADERS ====== */
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 32px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-number {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    color: white; flex-shrink: 0;
+  }
+
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); font-family: var(--font-title); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  .badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px;
+    font-weight: 600; letter-spacing: 0.05em; font-family: var(--font-mono);
+  }
+  .badge-expert { background: rgba(168,85,247,0.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced { background: rgba(245,158,11,0.12); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-basic { background: rgba(0,212,255,0.1); color: var(--accent-cyan); border: 1px solid rgba(0,212,255,0.25); }
+
+  /* ====== PAGE SECTIONS ====== */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ====== PROSE ====== */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code {
+    background: rgba(0,212,255,0.08); color: var(--accent-cyan);
+    padding: 2px 6px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 13px;
+  }
+
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; font-family: var(--font-title); }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* ====== CARDS ====== */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--border-accent); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* ====== CONCEPT HIGHLIGHT ====== */
+  .concept-box {
+    background: linear-gradient(135deg, rgba(0,212,255,0.05), rgba(168,85,247,0.05));
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 12px; padding: 24px; margin-bottom: 28px;
+  }
+  .concept-box .label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent-cyan); margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; font-family: var(--font-title); }
+
+  /* ====== CODE BLOCKS ====== */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 24px;
+  }
+
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .code-lang {
+    font-size: 11px; font-weight: 600; color: var(--accent-cyan);
+    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  .code-copy {
+    font-size: 11px; color: var(--text-muted); cursor: pointer;
+    background: none; border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 10px; color: var(--text-secondary);
+    transition: all 0.15s; font-family: var(--font-sans);
+  }
+  .code-copy:hover { border-color: var(--accent-cyan); color: var(--accent-cyan); }
+
+  pre {
+    margin: 0; padding: 20px;
+    overflow-x: auto; font-family: var(--font-mono);
+    font-size: 13px; line-height: 1.7;
+  }
+
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Syntax colors */
+  .kw { color: #c084fc; }          /* keywords */
+  .fn { color: #60a5fa; }          /* functions */
+  .str { color: #86efac; }         /* strings */
+  .cm { color: #4b5563; font-style: italic; } /* comments */
+  .num { color: #fb923c; }         /* numbers */
+  .tp { color: #67e8f9; }          /* types */
+  .pkg { color: #a78bfa; }         /* packages */
+  .op { color: #f472b6; }          /* operators */
+
+  /* ====== DIAGRAM ====== */
+  .diagram-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .diagram-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); margin-bottom: 20px;
+    font-family: var(--font-mono); text-align: center;
+  }
+
+  /* ====== TABLE ====== */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th {
+    padding: 10px 14px; text-align: left;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td code { background: rgba(0,212,255,0.08); color: var(--accent-cyan); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+
+  /* ====== WARNING / NOTE ====== */
+  .note {
+    display: flex; gap: 12px; padding: 14px 16px;
+    border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+  }
+  .note-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+  .note-info { background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2); color: var(--accent-cyan); }
+  .note-danger { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); color: var(--accent-green); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* ====== REFS ====== */
+  .ref-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    display: flex; align-items: flex-start; gap: 14px;
+    text-decoration: none; transition: all 0.15s;
+    cursor: pointer;
+  }
+  .ref-card:hover { border-color: var(--accent-cyan); transform: translateX(2px); }
+  .ref-icon {
+    width: 38px; height: 38px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .ref-body { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url { font-size: 11px; color: var(--accent-cyan); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* ====== COMPARISON ====== */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .compare-head {
+    padding: 12px 16px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    font-family: var(--font-mono); border-bottom: 1px solid var(--border);
+  }
+  .compare-head.cyan { background: rgba(0,212,255,0.08); color: var(--accent-cyan); }
+  .compare-head.purple { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); margin: 3px; }
+  .tag-good { background: rgba(0,255,136,0.08); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-bad { background: rgba(255,107,107,0.08); color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+  
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(0, 212, 255, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg-card);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* ====== HAMBURGER MENU ====== */
+  .hamburger {
+    display: none;
+    position: fixed; top: 12px; left: 14px; z-index: 200;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    cursor: pointer; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px; padding: 0;
+    transition: all 0.2s;
+  }
+  .hamburger span {
+    display: block; width: 18px; height: 2px;
+    background: var(--text-secondary); border-radius: 1px;
+    transition: all 0.3s;
+  }
+  .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
+
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .sidebar-overlay.active { opacity: 1; }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 1024px) {
+    .content-area { padding: 36px 32px; }
+  }
+
+  @media (max-width: 768px) {
+    .hamburger { display: flex; }
+    .sidebar-overlay.active { display: block; }
+
+    #sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+
+    #topnav {
+      left: 0;
+      padding: 0 16px 0 60px;
+    }
+
+    #main {
+      margin-left: 0;
+      max-width: 100%;
+    }
+
+    .content-area {
+      padding: 28px 20px;
+    }
+
+    .section-header {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-title { font-size: 20px; }
+
+    .card-grid,
+    .compare-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .diagram-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .diagram-container svg {
+      min-width: 600px;
+    }
+
+    pre {
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .data-table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ref-card {
+      flex-wrap: wrap;
+    }
+    .ref-stars {
+      margin-left: 0;
+      padding-left: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .content-area { padding: 20px 14px; }
+    .section-title { font-size: 18px; }
+    .concept-box { padding: 16px; }
+    .card { padding: 16px; }
+    .code-block pre { padding: 14px; font-size: 11px; }
+    h3 { font-size: 16px; }
+    .topnav-item { padding: 6px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HAMBURGER ===== -->
+<button class="hamburger" id="hamburger" aria-label="Toggle menu">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Go</div>
+    <div>
+      <div class="logo-text">Go Singleflight</div>
+      <div class="logo-sub">golang.org/x/sync</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Cơ bản</div>
+    <button class="nav-item active" data-section="intro">🏠 Tổng quan</button>
+    <button class="nav-item" data-section="principles">⚙️ Nguyên lý hoạt động</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Các ví dụ bám sát Usecase</div>
+    <button class="nav-item" data-section="basic">🚀 01. Đập tan Cache Stampede</button>
+    <button class="nav-item" data-section="intermediate">🏭 02. Singleflight + Memory Cache</button>
+    <button class="nav-item" data-section="advanced">⏱️ 03. DoChan &amp; Timeout Control</button>
+    <button class="nav-item" data-section="expert">🌟 04. Production 3-Layer Cache</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Nâng cao &amp; Thực tiễn</div>
+    <button class="nav-item" data-section="pitfalls">🐛 Cạm bẫy &amp; Anti-patterns</button>
+    <button class="nav-item" data-section="refs">📚 References</button>
+  </div>
+</nav>
+
+<!-- ===== TOP NAV ===== -->
+<nav id="topnav">
+  <button class="topnav-item active" data-section="intro">Tổng quan</button>
+  <button class="topnav-item" data-section="principles">Nguyên lý</button>
+  <button class="topnav-item" data-section="basic">01. Cache Stampede</button>
+  <button class="topnav-item" data-section="intermediate">02. Memory Cache</button>
+  <button class="topnav-item" data-section="advanced">03. DoChan Timeout</button>
+  <button class="topnav-item" data-section="expert">04. 3-Layer Cache</button>
+  <button class="topnav-item" data-section="pitfalls">Pitfalls</button>
+  <button class="topnav-item" data-section="refs">References</button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main id="main">
+<div class="content-area">
+
+<!-- ==================== INTRO ==================== -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Tổng quan về Singleflight Pattern</div>
+      <div class="section-subtitle">Dập tắt thundering herd, triệt tiêu cache stampede với <code>golang.org/x/sync/singleflight</code></div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Singleflight là gì?</div>
+    <p class="prose">
+      <strong>Singleflight</strong> là một mẫu thiết kế đồng bộ (synchronization pattern) cực kỳ mạnh mẽ trong Go, được phát triển chính thức trong thư viện phụ trợ của Go team (<code>golang.org/x/sync/singleflight</code>). Mẫu thiết kế này đảm bảo rằng đối với một định danh tác vụ (key) cụ thể, tại một thời điểm <strong>chỉ có tối đa 1 luồng xử lý thực thi thực tế</strong>.
+    </p>
+    <p class="prose">
+      Nếu có N goroutines đồng thời gọi yêu cầu cùng 1 key xử lý đó khi tác vụ đầu tiên đang diễn ra (in-flight), N-1 goroutines còn lại sẽ <strong>được chặn (block), chờ đợi và chia sẻ chung kết quả</strong> từ luồng chạy duy nhất đó mà không kích hoạt thêm bất kỳ thao tác downstream nào (DB query, API call...).
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/concurrency-router-map.png" alt="Go Concurrency Lane Navigation Flow" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: Định tuyến các Pattern trong Concurrency Lane. Singleflight là chốt chặn quan trọng nhất ở rìa ranh giới tương tác hệ thống ngoài để triệt tiêu tải trọng trùng lặp.</div>
+  </div>
+
+  <h3>Tại sao cần Singleflight?</h3>
+  <p class="prose">
+    Khi xây dựng các hệ thống API có lưu lượng truy cập cao (high-traffic API), việc sử dụng bộ nhớ đệm (caching) là bắt buộc. Tuy nhiên, khi một **Hot Key** (dữ liệu được hàng nghìn request đọc mỗi giây) hết hạn (Expired), hoặc khi hệ thống vừa khởi động lại (Cold Start), một thảm họa hệ thống sẽ xảy ra nếu không có cơ chế bảo vệ:
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">💥 Cache Stampede (Thảm hoạ đè Cache)</div>
+      <p class="prose" style="margin:0; font-size:13px">Cache hết hạn → 10,000 requests cùng lúc phát hiện Cache Miss → 10,000 DB queries chạy đồng thời. Database bị sập tải lập tức, gây ra mất điện diện rộng (cascade outage).</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🐂 Thundering Herd (Bầy thú cuồng nộ)</div>
+      <p class="prose" style="margin:0; font-size:13px">Nhiều luồng xử lý cùng bị đánh thức bởi một sự kiện và đồng thời tranh giành một tài nguyên giới hạn, gây hao tổn tài nguyên CPU cực lớn do tranh chấp lock (lock contention).</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🌐 Coalescing API Calls (Gộp yêu cầu API)</div>
+      <p class="prose" style="margin:0; font-size:13px">Duy nhất 1 lệnh HTTP GET hoặc gRPC được truyền đi, gom toàn bộ các luồng gọi trùng lặp về một kết quả, giảm thiểu 99% chi phí băng thông mạng.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Giảm áp lực Garbage Collector (GC)</div>
+      <p class="prose" style="margin:0; font-size:13px">Triệt tiêu việc khởi tạo hàng ngàn cấu trúc dữ liệu trùng lặp trên Heap cho các tác vụ trung gian, giảm tải cực lớn cho chu kỳ dọn rác của Go Runtime.</p>
+    </div>
+  </div>
+
+  <h3>So sánh định vị: Cache vs Mutex vs Singleflight</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Cơ chế</th>
+        <th>Mục đích chính</th>
+        <th>Phạm vi bảo vệ (Scope)</th>
+        <th>Đặc tính chặn (Blocking)</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Cache</strong></td>
+        <td>Lưu trữ kết quả để tái sử dụng lâu dài</td>
+        <td>Theo thời gian (TTL), xuyên suốt các request độc lập</td>
+        <td>Không chặn luồng gọi. Trả về kết quả cũ/mới ngay lập tức</td>
+      </tr>
+      <tr>
+        <td><strong>Mutex (sync.Mutex)</strong></td>
+        <td>Bảo vệ bộ nhớ dùng chung (Shared State)</td>
+        <td>Độc quyền truy cập, tuần tự hoá toàn bộ luồng gọi</td>
+        <td>Chặn toàn bộ trừ 1. Bắt buộc tất cả phải lần lượt thực thi</td>
+      </tr>
+      <tr>
+        <td><strong>Singleflight</strong></td>
+        <td>Gộp các thao tác in-flight trùng lặp</td>
+        <td>Chỉ tác động lên các luồng gọi đồng thời (concurrent)</td>
+        <td>Chặn các luồng gọi trùng lặp, giải phóng đồng loạt cùng lúc</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="note note-info">
+    <div class="note-icon">📦</div>
+    <p>
+      Package <code>golang.org/x/sync/singleflight</code> được cài đặt vô cùng đơn giản qua command: <br>
+      <code>go get golang.org/x/sync/singleflight</code>. Đây là thư viện bổ trợ chuẩn mực, được Go team thiết kế tỉ mỉ để tối ưu hoá hiệu năng ứng dụng.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== PRINCIPLES ==================== -->
+<section class="page-section" id="s-principles">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div>
+      <div class="section-title">Nguyên lý hoạt động &amp; Cấu trúc nội bộ</div>
+      <div class="section-subtitle">Lớp vỏ bọc đồng bộ tinh vi của Go Scheduler</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <h3>Cơ chế Collapse trùng lặp của Singleflight</h3>
+  <div class="diagram-container">
+    <div class="diagram-title">Sơ đồ luồng Singleflight — Đập tan truy vấn DB trùng lặp</div>
+    <svg width="100%" viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="cyan-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#a855f7;stop-opacity:0.04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Client Requests -->
+      <rect x="20" y="40" width="160" height="230" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+      <text x="100" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">Requests</text>
+      
+      <g transform="translate(30, 90)">
+        <rect x="0" y="0" width="140" height="30" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff" stroke-width="1"/>
+        <text x="70" y="18" text-anchor="middle" font-size="11" fill="#e2e8f0" font-family="Space Grotesk">Goroutine 1 (Owner)</text>
+      </g>
+      <g transform="translate(30, 140)">
+        <rect x="0" y="0" width="140" height="30" rx="5" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="70" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Space Grotesk">Goroutine 2 (Waiter)</text>
+      </g>
+      <g transform="translate(30, 190)">
+        <rect x="0" y="0" width="140" height="30" rx="5" fill="rgba(245,158,11,0.08)" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="70" y="18" text-anchor="middle" font-size="11" fill="#94a3b8" font-family="Space Grotesk">Goroutine 3 (Waiter)</text>
+      </g>
+
+      <!-- Singleflight Core -->
+      <rect x="250" y="40" width="310" height="230" rx="12" fill="url(#cyan-glow)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="405" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">singleflight.Group</text>
+
+      <!-- Key Call Mapping -->
+      <rect x="270" y="90" width="270" height="150" rx="8" fill="rgba(15,19,25,0.6)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="405" y="112" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">map[string]*call {"user:123"}</text>
+      
+      <!-- Inside call struct -->
+      <rect x="290" y="130" width="230" height="90" rx="6" fill="rgba(0,0,0,0.4)" stroke="rgba(0,255,136,0.3)" stroke-width="1"/>
+      <text x="405" y="150" text-anchor="middle" font-size="10" font-weight="600" fill="#00ff88" font-family="JetBrains Mono">call.wg (sync.WaitGroup)</text>
+      <text x="405" y="172" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">val: interface{} | err: error</text>
+      <text x="405" y="195" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Waiters blocked on wg.Wait()</text>
+
+      <!-- DB downstream -->
+      <rect x="630" y="100" width="160" height="110" rx="8" fill="rgba(0,255,136,0.05)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="710" y="130" text-anchor="middle" font-size="13" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">Database / API</text>
+      <text x="710" y="155" text-anchor="middle" font-size="10" fill="#64748b" font-family="JetBrains Mono">1 downstr. query</text>
+      <text x="710" y="175" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">(100% load reduction)</text>
+
+      <!-- Arrows -->
+      <line x1="170" y1="105" x2="250" y2="105" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr-arrow)"/>
+      <text x="210" y="95" text-anchor="middle" font-size="9" fill="#00d4ff" font-family="JetBrains Mono">Executes</text>
+
+      <line x1="170" y1="155" x2="250" y2="155" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-arrow)"/>
+      <line x1="170" y1="205" x2="250" y2="205" stroke="#f59e0b" stroke-width="1.5" marker-end="url(#arr-arrow)"/>
+      <text x="210" y="180" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Blocks</text>
+
+      <line x1="560" y1="155" x2="630" y2="155" stroke="#00ff88" stroke-width="1.5" marker-end="url(#arr-arrow)"/>
+      
+      <!-- Return Arrow -->
+      <path d="M630 180 C560 215, 210 215, 170 215" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-arrow)"/>
+      <text x="380" y="240" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Resolves all waiters at t_done</text>
+    </svg>
+  </div>
+
+  <h3>Cấu trúc dữ liệu nội tại (Internal Struct)</h3>
+  <p class="prose">
+    Hãy phân tích cấu trúc mã nguồn thực tế của thư viện <code>singleflight</code> để hiểu cơ chế thiết kế cực kỳ thông minh này:
+  </p>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">golang.org/x/sync/singleflight/singleflight.go (Simplified)</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">singleflight</span>
+
+<span class="kw">import</span> <span class="str">"sync"</span>
+
+<span class="cm">// call đại diện cho một tác vụ in-flight hoặc đang hoàn tất</span>
+<span class="kw">type</span> <span class="tp">call</span> <span class="kw">struct</span> {
+    wg  <span class="tp">sync.WaitGroup</span> <span class="cm">// Đồng bộ hoá toàn bộ các waiter chờ đợi</span>
+    val <span class="tp">interface{}</span>    <span class="cm">// Kết quả trả về của fn()</span>
+    err <span class="tp">error</span>          <span class="cm">// Lỗi trả về của fn()</span>
+    
+    <span class="cm">// Đếm số lượng waiter thực sự để ghi nhận xem kết quả có shared hay không</span>
+    dups  <span class="tp">int</span>
+    chans []<span class="kw">chan</span>&lt;- <span class="tp">Result</span> <span class="cm">// Phục vụ cho hàm DoChan non-blocking</span>
+}
+
+<span class="cm">// Group đại diện cho một lớp điều phối xử lý Singleflight, cô lập theo key</span>
+<span class="kw">type</span> <span class="tp">Group</span> <span class="kw">struct</span> {
+    mu <span class="tp">sync.Mutex</span>       <span class="cm">// Bảo vệ tính toàn vẹn của bảng map bên dưới</span>
+    m  <span class="kw">map</span>[<span class="tp">string</span>]*<span class="tp">call</span> <span class="cm">// Bảng theo dõi các khoá đang chạy</span>
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">💡</div>
+    <p>
+      <strong>Bí thuật của <code>sync.WaitGroup</code>:</strong> Singleflight không phát minh ra cơ chế luồng chờ đợi phức tạp. Nó tận dụng cấu trúc căn bản nhất của Go là <code>sync.WaitGroup</code>. Goroutine đầu tiên (chạy thực tế) sẽ gọi <code>wg.Add(1)</code>. Các Goroutine gọi sau chỉ cần kiểm tra sự tồn tại của key trong map và gọi <code>wg.Wait()</code> để chặn hàng chờ. Khi chủ sở hữu chạy xong, gọi <code>wg.Done()</code>, toàn bộ waiters được Go Scheduler đánh thức đồng loạt để trả kết quả!
+    </p>
+  </div>
+</section>
+
+<!-- ==================== BASIC ==================== -->
+<section class="page-section" id="s-basic">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div>
+      <div class="section-title">01. Đập tan Cache Stampede</div>
+      <div class="section-subtitle">Chốt chặn đầu tiên bảo vệ Database khi sập tải đột ngột</div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Hệ thống E-Commerce của bạn có lượng traffic cực cao. Key thông tin chi tiết sản phẩm <code>product:123</code> hết hạn trong Cache. Ngay tại microsecond đó, 100 requests đồng thời ập vào API gateway của bạn.
+    </p>
+    <p class="prose">
+      Nếu không xử lý tốt, cả 100 luồng API sẽ đồng loạt kết nối tới Postgres để đọc dữ liệu. Điều này lãng phí tài nguyên CPU của DB, tăng latency lên gấp nhiều lần và đe dọa trực tiếp đến sự ổn định của cụm Database Master.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/03-cache-stampede-defense.png" alt="Cơ chế chống Cache Stampede" loading="lazy">
+    <div class="concept-img-caption">Hình 3.1: Cơ chế phòng vệ sập tải hệ thống (Cache Stampede Defense) bằng chốt chặn Singleflight.</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">main.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"golang.org/x/sync/singleflight"</span>
+)
+
+<span class="kw">var</span> (
+    dbQueryCount <span class="tp">atomic.Int64</span>     <span class="cm">// Đếm số lần thực sự query Database</span>
+    sfGroup      <span class="tp">singleflight.Group</span> <span class="cm">// Singleflight coordinator</span>
+)
+
+<span class="cm">// queryProductFromDB mô phỏng thao tác đọc Database chậm chạp và đắt đỏ</span>
+<span class="kw">func</span> <span class="fn">queryProductFromDB</span>(id <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    dbQueryCount.<span class="fn">Add</span>(<span class="num">1</span>)
+    fmt.<span class="fn">Printf</span>(<span class="str">"  🗄️ [DB ACCESS] Querying product %s (actual query #%d)\n"</span>, id, dbQueryCount.<span class="fn">Load</span>())
+    time.<span class="fn">Sleep</span>(<span class="num">200</span> * time.Millisecond) <span class="cm">// Giả lập latency của DB</span>
+    <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"Product{id: %s, name: 'Sơn Tùng M-TP Album'}"</span>, id), <span class="kw">nil</span>
+}
+
+<span class="cm">// getProductDetails bảo vệ DB thông qua Singleflight gộp request</span>
+<span class="kw">func</span> <span class="fn">getProductDetails</span>(productID <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// Do(key, fn):</span>
+    <span class="cm">// - Đối số key: "prod:"+productID - gom nhóm tác vụ trùng key</span>
+    <span class="cm">// - fn: Hàm lấy data thực tế, chỉ chạy 1 lần nếu trùng key cùng thời điểm</span>
+    <span class="cm">// Trả về:</span>
+    <span class="cm">// - val: Kết quả trả về của fn (phải ép kiểu từ interface{})</span>
+    <span class="cm">// - err: Lỗi nếu có</span>
+    <span class="cm">// - shared: bool ghi nhận xem kết quả này có được dùng chung với luồng khác hay không</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    val, err, shared := sfGroup.<span class="fn">Do</span>(<span class="str">"prod:"</span>+productID, <span class="kw">func</span>() (<span class="tp">interface{}</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="fn">queryProductFromDB</span>(productID)
+    })
+
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="str">""</span>, err
+    }
+
+    <span class="kw">if</span> shared {
+        fmt.<span class="fn">Println</span>(<span class="str">"  ♻️ [SINGLEFLIGHT COLLAPSED] Trả về kết quả shared thành công cho luồng khác!"</span>)
+    }
+
+    <span class="kw">return</span> val.(<span class="tp">string</span>), <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.<span class="fn">Println</span>(<span class="str">"=== BẮT ĐẦU: 100 requests đọc dữ liệu cùng lúc ==="</span>)
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+    
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">100</span>; i++ {
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(reqID <span class="tp">int</span>) {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            _, err := <span class="fn">getProductDetails</span>(<span class="str">"album-99"</span>)
+            <span class="kw">if</span> err != <span class="kw">nil</span> {
+                fmt.<span class="fn">Printf</span>(<span class="str">"Request %d: Lỗi %v\n"</span>, reqID, err)
+            }
+        }(i)
+    }
+
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Printf</span>(<span class="str">"\n📊 KẾT QUẢ: Tổng số lần thực tế gọi tới Database: %d / 100 requests\n"</span>, dbQueryCount.<span class="fn">Load</span>())
+    fmt.<span class="fn">Printf</span>(<span class="str">"💡 Tiết kiệm thành công %d%% lưu lượng truy vấn Database!\n"</span>, (<span class="num">100</span>-dbQueryCount.<span class="fn">Load</span>()))
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p>
+      <strong>Note &amp; Conclusion:</strong> Ví dụ cơ bản trên đã chứng minh sức mạnh của Singleflight: 100 requests đồng thời chỉ sinh ra <strong>duy nhất 1 query DB</strong>. Tuy nhiên cần lưu ý: Singleflight <strong>không phải là Cache</strong>. Ngay sau khi tác vụ đầu tiên kết thúc thành công, khoá <code>prod:album-99</code> sẽ lập tức bị xoá bỏ khỏi map quản lý nội bộ. Request thứ 101 gửi tới sau đó 1 microsecond sẽ kích hoạt một query DB hoàn toàn mới.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== INTERMEDIATE ==================== -->
+<section class="page-section" id="s-intermediate">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div>
+      <div class="section-title">02. Singleflight + Memory Cache (Double-check)</div>
+      <div class="section-subtitle">Mẫu thiết kế Production bảo vệ dữ liệu cục bộ hiệu quả tối đa</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Trong ứng dụng thực tế, chỉ dùng Singleflight chay là không đủ. Khi có hàng triệu requests, luồng đi chuẩn chỉnh phải là: <strong>Kiểm tra bộ nhớ đệm (Cache) → Nếu Miss → Đưa vào Singleflight → Đọc DB → Ghi đè vào Cache → Trả về kết quả</strong>.
+    </p>
+    <p class="prose">
+      Tuy nhiên, có một kẽ hở nguy hiểm: Giữa thời điểm Goroutine kiểm tra Cache bị Miss và thời điểm nó chui được vào hàm thực thi của <code>singleflight.Do()</code>, rất có thể một Goroutine khác đã hoàn thành việc ghi dữ liệu mới vào Cache trước đó. Nếu không áp dụng mẫu thiết kế <strong>Double-check Locking</strong> bên trong Singleflight, chúng ta vẫn sẽ sinh ra các câu lệnh DB dư thừa không cần thiết.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/03-cache-stampede-singleflight.png" alt="Double-check Cache Singleflight Pattern" loading="lazy">
+    <div class="concept-img-caption">Hình 3.2: Luồng giải quyết Cache Miss đồng thời thông qua Double-check kết hợp Singleflight.</div>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">cache_service.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"sync/atomic"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"golang.org/x/sync/singleflight"</span>
+)
+
+<span class="cm">// MemoryCache là một In-memory Cache đơn giản có giới hạn thời gian (TTL)</span>
+<span class="kw">type</span> <span class="tp">CacheEntry</span> <span class="kw">struct</span> {
+    value     <span class="tp">string</span>
+    expiresAt <span class="tp">time.Time</span>
+}
+
+<span class="kw">type</span> <span class="tp">MemoryCache</span> <span class="kw">struct</span> {
+    mu      <span class="tp">sync.RWMutex</span>
+    store   <span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">CacheEntry</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewMemoryCache</span>() *<span class="tp">MemoryCache</span> {
+    <span class="kw">return</span> &<span class="tp">MemoryCache</span>{store: <span class="kw">make</span>(<span class="kw">map</span>[<span class="tp">string</span>]<span class="tp">CacheEntry</span>)}
+}
+
+<span class="kw">func</span> (c *<span class="tp">MemoryCache</span>) <span class="fn">Get</span>(key <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">bool</span>) {
+    c.mu.<span class="fn">RLock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">RUnlock</span>()
+    entry, found := c.store[key]
+    <span class="kw">if</span> !found || time.<span class="fn">Now</span>().<span class="fn">After</span>(entry.expiresAt) {
+        <span class="kw">return</span> <span class="str">""</span>, <span class="kw">false</span>
+    }
+    <span class="kw">return</span> entry.value, <span class="kw">true</span>
+}
+
+<span class="kw">func</span> (c *<span class="tp">MemoryCache</span>) <span class="fn">Set</span>(key, value <span class="tp">string</span>, ttl <span class="tp">time.Duration</span>) {
+    c.mu.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> c.mu.<span class="fn">Unlock</span>()
+    c.store[key] = <span class="tp">CacheEntry</span>{
+        value:     value,
+        expiresAt: time.<span class="fn">Now</span>().<span class="fn">Add</span>(ttl),
+    }
+}
+
+<span class="cm">// UserProductionService thiết kế kết hợp 3 lớp vững chãi</span>
+<span class="kw">type</span> <span class="tp">UserProductionService</span> <span class="kw">struct</span> {
+    cache   *<span class="tp">MemoryCache</span>
+    sfGroup <span class="tp">singleflight.Group</span>
+    dbHits  <span class="tp">atomic.Int64</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewUserService</span>() *<span class="tp">UserProductionService</span> {
+    <span class="kw">return</span> &<span class="tp">UserProductionService</span>{cache: <span class="fn">NewMemoryCache</span>()}
+}
+
+<span class="kw">func</span> (s *<span class="tp">UserProductionService</span>) <span class="fn">GetUserData</span>(userID <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    cacheKey := <span class="str">"user:"</span> + userID
+
+    <span class="cm">// ━━━ LỚP 1: Kiểm tra bộ nhớ đệm (Cache HIT) ━━━</span>
+    <span class="kw">if</span> val, ok := s.cache.<span class="fn">Get</span>(cacheKey); ok {
+        <span class="kw">return</span> val, <span class="kw">nil</span>
+    }
+
+    <span class="cm">// ━━━ LỚP 2: Cache Miss - Tiến hành Singleflight gộp luồng ━━━</span>
+    val, err, _ := s.sfGroup.<span class="fn">Do</span>(cacheKey, <span class="kw">func</span>() (<span class="tp">interface{}</span>, <span class="tp">error</span>) {
+        <span class="cm">// ━━━ LỚP DOUBLE-CHECK ━━━</span>
+        <span class="cm">// Khi goroutine bắt đầu thực thi hàm chạy thực tế này, có khả năng</span>
+        <span class="cm">// là một goroutine khác vừa ghi đè dữ liệu vào cache trước đó.</span>
+        <span class="cm">// Kiểm tra lại cache một lần nữa để triệt tiêu query DB!</span>
+        <span class="kw">if</span> val, ok := s.cache.<span class="fn">Get</span>(cacheKey); ok {
+            <span class="kw">return</span> val, <span class="kw">nil</span>
+        }
+
+        <span class="cm">// ━━━ LỚP 3: Thực sự chọc tới Database (Đắt đỏ) ━━━</span>
+        s.dbHits.<span class="fn">Add</span>(<span class="num">1</span>)
+        fmt.<span class="fn">Printf</span>(<span class="str">"  🔥 [DB QUERY RUN] Đọc thông tin User %s từ Postgres DB...\n"</span>, userID)
+        time.<span class="fn">Sleep</span>(<span class="num">100</span> * time.Millisecond) <span class="cm">// Simulate slow query</span>
+        userData := fmt.<span class="fn">Sprintf</span>(<span class="str">"User_Payload{id: %s, active: true}"</span>, userID)
+
+        <span class="cm">// Lưu kết quả vào Cache để phục vụ các yêu cầu tiếp theo</span>
+        s.cache.<span class="fn">Set</span>(cacheKey, userData, <span class="num">5</span>*time.Second)
+
+        <span class="kw">return</span> userData, <span class="kw">nil</span>
+    })
+
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="str">""</span>, err
+    }
+
+    <span class="kw">return</span> val.(<span class="tp">string</span>), <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    svc := <span class="fn">NewUserService</span>()
+    <span class="kw">var</span> wg <span class="tp">sync.WaitGroup</span>
+
+    fmt.<span class="fn">Println</span>(<span class="str">"--- WAVE 1: Cache lạnh hoàn toàn, 50 requests đồng thời ---"</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">50</span>; i++ {
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            svc.<span class="fn">GetUserData</span>(<span class="str">"999"</span>)
+        }()
+    }
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Printf</span>(<span class="str">"👉 DB hits sau Wave 1: %d (Tiết kiệm 49 DB queries!)\n\n"</span>, svc.dbHits.<span class="fn">Load</span>())
+
+    fmt.<span class="fn">Println</span>(<span class="str">"--- WAVE 2: Cache ấm, thêm 50 requests mới đột nhập ---"</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">50</span>; i++ {
+        wg.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>() {
+            <span class="kw">defer</span> wg.<span class="fn">Done</span>()
+            svc.<span class="fn">GetUserData</span>(<span class="str">"999"</span>)
+        }()
+    }
+    wg.<span class="fn">Wait</span>()
+    fmt.<span class="fn">Printf</span>(<span class="str">"👉 DB hits sau Wave 2: %d (Cache đã phục vụ 100%% requests Wave 2!)\n"</span>, svc.dbHits.<span class="fn">Load</span>())
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">💡</div>
+    <p>
+      <strong>Note &amp; Conclusion:</strong> Đây là mẫu thiết kế xương sống của mọi thư viện cache chuyên nghiệp trong production. Sử dụng quy tắc <strong>"Double-check"</strong> bên trong closure của <code>Do</code> sẽ đảm bảo việc truy cập Database bằng không nếu dữ liệu đã được nạp trước đó từ luồng chạy song song trước. Rất trực quan và an toàn!
+    </p>
+  </div>
+</section>
+
+<!-- ==================== ADVANCED ==================== -->
+<section class="page-section" id="s-advanced">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div>
+      <div class="section-title">03. DoChan &amp; Non-blocking Timeout Control</div>
+      <div class="section-subtitle">Kiểm soát thời gian chờ tối ưu cho từng Client độc lập</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Hàm <code>Do()</code> cơ bản của Singleflight là hàm **Đồng bộ và Chặn luồng (Blocking)**. Nghĩa là tất cả các Goroutine Waiter bắt buộc phải chờ đến khi tác vụ chạy chính hoàn tất.
+    </p>
+    <p class="prose">
+      Điều gì xảy ra nếu hệ thống downstream của bạn (ví dụ: DB hoặc API thanh toán bên thứ ba) bị treo và mất tới 30 giây để phản hồi? Toàn bộ hàng ngàn luồng xử lý đồng thời trong Server của bạn cũng sẽ bị treo cứng tại <code>Do()</code>, làm cạn kiệt tài nguyên Server và kéo sập Service.
+    </p>
+    <p class="prose">
+      <strong>Yêu cầu:</strong> Mỗi client phải có quyền tự chủ thời gian chờ (Timeout) của riêng mình. Nếu quá 1 giây không phản hồi, client cần fallback ngay, nhưng luồng xử lý dữ liệu chính vẫn tiếp tục chạy ngầm để nạp cache cho tương lai mà không bị gián đoạn hay huỷ bỏ vô tổ chức.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Sơ đồ cơ chế DoChan Timeout &amp; Forget(key)</div>
+    <svg width="100%" viewBox="0 0 820 320" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="cyan-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Client 1 with Context (Timeout 1s) -->
+      <rect x="20" y="40" width="180" height="90" rx="8" fill="rgba(255,255,255,0.02)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="110" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#ff6b6b" font-family="Space Grotesk">Client G1 (Timeout 1s)</text>
+      <text x="110" y="90" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">select { case &lt;-ch: }</text>
+      <text x="110" y="110" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">case &lt;-ctx.Done()</text>
+
+      <!-- Client 2 with Context (No Timeout) -->
+      <rect x="20" y="170" width="180" height="90" rx="8" fill="rgba(255,255,255,0.02)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="110" y="195" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88" font-family="Space Grotesk">Client G2 (No Timeout)</text>
+      <text x="110" y="220" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Waiting on ch...</text>
+      <text x="110" y="240" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Patient waiter</text>
+
+      <!-- Singleflight coordinator -->
+      <rect x="280" y="60" width="240" height="180" rx="12" fill="url(#cyan-gradient)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="400" y="85" text-anchor="middle" font-size="13" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">DoChan("slow-key")</text>
+      <rect x="300" y="110" width="200" height="50" rx="6" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="400" y="130" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">Returns &lt;-chan Result</text>
+      <text x="400" y="148" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Multiplexed output channel</text>
+
+      <!-- Downstream Database (3s delay) -->
+      <rect x="600" y="95" width="180" height="110" rx="8" fill="rgba(255,107,107,0.05)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="690" y="125" text-anchor="middle" font-size="13" font-weight="700" fill="#ff6b6b" font-family="Space Grotesk">DB Query (Treo 3s)</text>
+      <text x="690" y="150" text-anchor="middle" font-size="10" fill="#94a3b8" font-family="JetBrains Mono">Runs in background G</text>
+      <text x="690" y="170" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">t = 1s -> Timeout!</text>
+
+      <!-- Arrows -->
+      <line x1="200" y1="85" x2="280" y2="85" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+      <line x1="200" y1="215" x2="280" y2="215" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+
+      <line x1="520" y1="150" x2="600" y2="150" stroke="#ff6b6b" stroke-width="1.5" stroke-dasharray="3,3" marker-end="url(#arr-coral)"/>
+
+      <!-- Forget event -->
+      <path d="M110 130 C110 290, 400 290, 400 240" fill="none" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-coral)"/>
+      <text x="250" y="295" text-anchor="middle" font-size="10" fill="#f59e0b" font-family="JetBrains Mono">t = 1s: ctx.Done() -> sfGroup.Forget("slow-key")</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">timeout_service.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"golang.org/x/sync/singleflight"</span>
+)
+
+<span class="kw">var</span> sfGroup <span class="tp">singleflight.Group</span>
+
+<span class="cm">// slowDBQuery mô phỏng một truy vấn DB bị treo khoảng 3 giây</span>
+<span class="kw">func</span> <span class="fn">slowDBQuery</span>() (<span class="tp">string</span>, <span class="tp">error</span>) {
+    time.<span class="fn">Sleep</span>(<span class="num">3</span> * time.Second)
+    <span class="kw">return</span> <span class="str">"DB_HEAVY_RESULT"</span>, <span class="kw">nil</span>
+}
+
+<span class="kw">func</span> <span class="fn">getProductWithTimeout</span>(ctx <span class="tp">context.Context</span>, key <span class="tp">string</span>) (<span class="tp">string</span>, <span class="tp">error</span>) {
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// DoChan(key, fn):</span>
+    <span class="cm">// Thay vì chặn luồng đồng bộ, DoChan trả về ngay một Go Channel</span>
+    <span class="cm">// nhận về cấu trúc singleflight.Result khi hoàn thành.</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    ch := sfGroup.<span class="fn">DoChan</span>(key, <span class="kw">func</span>() (<span class="tp">interface{}</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="fn">slowDBQuery</span>()
+    })
+
+    <span class="cm">// Sử dụng select-case kết hợp Channel trả về và Timeout để tự chủ quyết định thời gian chờ</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> res := &lt;-ch:
+        <span class="cm">// Tác vụ chạy thành công trong giới hạn thời gian cho phép</span>
+        <span class="kw">if</span> res.Err != <span class="kw">nil</span> {
+            <span class="kw">return</span> <span class="str">""</span>, res.Err
+        }
+        <span class="kw">return</span> res.Val.(<span class="tp">string</span>), <span class="kw">nil</span>
+
+    <span class="kw">case</span> &lt;-ctx.<span class="fn">Done</span>():
+        <span class="cm">// Client hết kiên nhẫn và Timeout đã kích hoạt!</span>
+        <span class="cm">// ⚠️ Cực kỳ quan trọng: Gọi Forget(key) ngay lập tức!</span>
+        <span class="cm">// Nếu không gọi Forget, các request đến sau này vẫn sẽ bị ánh xạ tiếp vào</span>
+        <span class="cm">// goroutine cũ bị treo, tiếp tục gây lỗi dây chuyền liên tục.</span>
+        sfGroup.<span class="fn">Forget</span>(key)
+        <span class="kw">return</span> <span class="str">"FALLBACK_DEFAULT_VALUE"</span>, ctx.<span class="fn">Err</span>()
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.<span class="fn">Println</span>(<span class="str">"=== Bắt đầu chạy test timeout với DoChan ==="</span>)
+    start := time.<span class="fn">Now</span>()
+
+    <span class="cm">// Thiết lập Client chỉ chấp nhận chờ đợi trong 1 giây</span>
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">1</span>*time.Second)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    val, err := <span class="fn">getProductWithTimeout</span>(ctx, <span class="str">"slow-key"</span>)
+    fmt.<span class="fn">Printf</span>(<span class="str">"⏱️ Sau %v:\n"</span>, time.<span class="fn">Since</span>(start))
+    fmt.<span class="fn">Printf</span>(<span class="str">"  👉 Kết quả trả về cho Client: %s\n"</span>, val)
+    fmt.<span class="fn">Printf</span>(<span class="str">"  👉 Chi tiết lỗi: %v\n\n"</span>, err)
+
+    <span class="cm">// Đợi thêm 3 giây để Goroutine chạy ngầm kết thúc</span>
+    time.<span class="fn">Sleep</span>(<span class="num">3</span> * time.Second)
+    fmt.<span class="fn">Println</span>(<span class="str">"✅ Kết thúc thành công, luồng xử lý hoàn thành êm đẹp."</span>)
+}</pre>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p>
+      <strong>Bản chất của <code>Forget(key)</code>:</strong> Khi một waiter thoát ra sớm do Timeout, Goroutine thực thi gốc vẫn tiếp tục chạy ngầm trong Server để xử lý và cuối cùng ghi kết quả vào Cache. Bắt buộc phải gọi <code>Forget(key)</code> tại thời điểm Timeout để xoá bỏ ánh xạ khoá bị lỗi, cho phép các request đến sau có cơ hội thử kích hoạt một luồng truy vấn mới thay vì tiếp tục cắm đầu chờ đợi một Goroutine "bị hỏng".
+    </p>
+  </div>
+</section>
+
+<!-- ==================== EXPERT ==================== -->
+<section class="page-section" id="s-expert">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div>
+      <div class="section-title">04. Production 3-Layer Cache Suite: Redis + GORM + Singleflight</div>
+      <div class="section-subtitle">Hệ thống phân phối dữ liệu phân lớp cực hạn cho Enterprise</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Trong hệ thống chịu tải triệu CCU (Concurrent Users), dữ liệu được tổ chức theo mô hình Cache Phân Lớp (Multi-layer caching):
+      <strong>L1 Cache (In-Memory cục bộ) → L2 Cache (Redis Cluster tập trung) → Singleflight Protection → GORM Engine (PostgreSQL Master-Slave)</strong>.
+    </p>
+    <p class="prose">
+      Nếu hàng vạn request tràn qua L1, quét sạch L2 do Cache Miss đột ngột, ta bắt buộc phải gộp luồng bằng Singleflight trước khi gọi tới GORM. Khi một sản phẩm được cập nhật giá từ Admin Panel, ta cần thực hiện quy trình Invalidate Cache an toàn tuyệt đối trên cả Redis, Local Cache và tháo dỡ Singleflight lập tức để cập nhật giá mới ngay.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Kiến trúc Cache Phân Lớp &amp; Singleflight Protection Suite</div>
+    <svg width="100%" viewBox="0 0 820 340" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="purple-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Client Requests -->
+      <rect x="20" y="40" width="130" height="250" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+      <text x="85" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#94a3b8" font-family="Space Grotesk">10,000 Requests</text>
+      <circle cx="85" cy="110" r="15" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1"/>
+      <text x="85" y="114" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">R1</text>
+      <circle cx="85" cy="160" r="15" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1"/>
+      <text x="85" y="164" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">R2</text>
+      <circle cx="85" cy="210" r="15" fill="rgba(0,212,255,0.1)" stroke="#00d4ff" stroke-width="1"/>
+      <text x="85" y="214" text-anchor="middle" font-size="10" fill="#00d4ff" font-family="JetBrains Mono">RN</text>
+
+      <!-- L1 Memory Cache -->
+      <rect x="200" y="40" width="130" height="70" rx="8" fill="rgba(0,255,136,0.05)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="265" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="Space Grotesk">L1 Local Cache</text>
+      <text x="265" y="85" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">go-cache (In-Mem)</text>
+
+      <!-- L2 Redis Cache -->
+      <rect x="200" y="130" width="130" height="70" rx="8" fill="rgba(0,212,255,0.05)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="265" y="155" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="Space Grotesk">L2 Redis Cache</text>
+      <text x="265" y="175" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Redis Cluster</text>
+
+      <!-- Singleflight Group -->
+      <rect x="380" y="40" width="220" height="160" rx="12" fill="url(#purple-glow)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="490" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">Singleflight Barrier</text>
+      <rect x="400" y="90" width="180" height="40" rx="6" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="490" y="115" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">sfGroup.Do("prod:99")</text>
+      <text x="490" y="165" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Collapses N requests -> 1 DB</text>
+
+      <!-- L3 Database (GORM) -->
+      <rect x="650" y="85" width="140" height="80" rx="8" fill="rgba(255,107,107,0.05)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="720" y="115" text-anchor="middle" font-size="12" font-weight="700" fill="#ff6b6b" font-family="Space Grotesk">L3 Database</text>
+      <text x="720" y="140" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">GORM + PostgreSQL</text>
+
+      <!-- Flow Lines -->
+      <path d="M150 110 L200 75" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr-green)"/>
+      <path d="M150 160 L200 165" fill="none" stroke="#94a3b8" stroke-width="1.2" marker-end="url(#arr-green)"/>
+      
+      <!-- Miss Lines to Singleflight -->
+      <path d="M330 75 L380 75" fill="none" stroke="#ff6b6b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-purple)"/>
+      <text x="355" y="68" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="JetBrains Mono">L1 Miss</text>
+
+      <path d="M330 165 L380 145" fill="none" stroke="#ff6b6b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-purple)"/>
+      <text x="355" y="180" text-anchor="middle" font-size="8" fill="#ff6b6b" font-family="JetBrains Mono">L2 Miss</text>
+
+      <!-- Singleflight executing DB -->
+      <line x1="600" y1="125" x2="650" y2="125" stroke="#00ff88" stroke-width="1.5" marker-end="url(#arr-green)"/>
+      <text x="625" y="115" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">1 Query</text>
+
+      <!-- Async write-back path -->
+      <path d="M720 165 C720 270, 265 270, 265 200" fill="none" stroke="#00ff88" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-green)"/>
+      <text x="492" y="260" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Async Populate Cache: Redis &amp; Local</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">enterprise_cache.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"encoding/json"</span>
+    <span class="str">"errors"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"log"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/redis/go-redis/v9"</span>
+    <span class="str">"golang.org/x/sync/singleflight"</span>
+    <span class="str">"gorm.io/driver/postgres"</span>
+    <span class="str">"gorm.io/gorm"</span>
+)
+
+<span class="cm">// Product là thực thể đại diện cho bảng sản phẩm trong PostgreSQL</span>
+<span class="kw">type</span> <span class="tp">Product</span> <span class="kw">struct</span> {
+    ID        <span class="tp">uint</span>      <span class="gorm">`gorm:"primaryKey"`</span>
+    SKU       <span class="tp">string</span>    <span class="gorm">`gorm:"column:sku;uniqueIndex"`</span>
+    Name      <span class="tp">string</span>    
+    Price     <span class="tp">float64</span>   
+    Stock     <span class="tp">int</span>       
+    UpdatedAt <span class="tp">time.Time</span> 
+}
+
+<span class="cm">// ProductEnterpriseService tích hợp toàn diện 3-Layer bảo vệ cực hạn</span>
+<span class="kw">type</span> <span class="tp">ProductEnterpriseService</span> <span class="kw">struct</span> {
+    db      *<span class="tp">gorm.DB</span>
+    rdb     *<span class="tp">redis.Client</span>
+    sfGroup <span class="tp">singleflight.Group</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewProductService</span>(db *<span class="tp">gorm.DB</span>, rdb *<span class="tp">redis.Client</span>) *<span class="tp">ProductEnterpriseService</span> {
+    <span class="kw">return</span> &<span class="tp">ProductEnterpriseService</span>{db: db, rdb: rdb}
+}
+
+<span class="cm">// GetProductDetails xử lý lấy dữ liệu phân lớp tinh tế</span>
+<span class="kw">func</span> (s *<span class="tp">ProductEnterpriseService</span>) <span class="fn">GetProductDetails</span>(ctx <span class="tp">context.Context</span>, id <span class="tp">uint</span>) (*<span class="tp">Product</span>, <span class="tp">error</span>) {
+    redisKey := fmt.<span class="fn">Sprintf</span>(<span class="str">"cache:product:%d"</span>, id)
+
+    <span class="cm">// ━━━ LỚP 1: Đọc từ Redis Cluster (L2 Cache) ━━━</span>
+    <span class="cm">// Rất nhanh, chỉ mất ~0.5ms - 2ms</span>
+    cachedData, err := s.rdb.<span class="fn">Get</span>(ctx, redisKey).<span class="fn">Bytes</span>()
+    <span class="kw">if</span> err == <span class="kw">nil</span> {
+        <span class="kw">var</span> prod <span class="tp">Product</span>
+        <span class="kw">if</span> json.<span class="fn">Unmarshal</span>(cachedData, &prod) == <span class="kw">nil</span> {
+            log.<span class="fn">Printf</span>(<span class="str">"🚀 [REDIS HIT] Phục vụ từ Redis cho key %s\n"</span>, redisKey)
+            <span class="kw">return</span> &prod, <span class="kw">nil</span>
+        }
+    }
+
+    <span class="cm">// ━━━ LỚP 2: Kích hoạt Singleflight gộp luồng đọc DB ━━━</span>
+    val, err, shared := s.sfGroup.<span class="fn">Do</span>(redisKey, <span class="kw">func</span>() (<span class="tp">interface{}</span>, <span class="tp">error</span>) {
+        <span class="cm">// Doublecheck lại Redis phòng trường hợp luồng song song vừa ghi đè</span>
+        cachedDataDouble, errDouble := s.rdb.<span class="fn">Get</span>(ctx, redisKey).<span class="fn">Bytes</span>()
+        <span class="kw">if</span> errDouble == <span class="kw">nil</span> {
+            <span class="kw">var</span> prod <span class="tp">Product</span>
+            <span class="kw">if</span> json.<span class="fn">Unmarshal</span>(cachedDataDouble, &prod) == <span class="kw">nil</span> {
+                <span class="kw">return</span> &prod, <span class="kw">nil</span>
+            }
+        }
+
+        <span class="cm">// ━━━ LỚP 3: GORM chọc thẳng vào Postgres DB Master (Source of Truth) ━━━</span>
+        log.<span class="fn">Printf</span>(<span class="str">"🔥 [DB ACCESS] Querying database Postgres cho key %s...\n"</span>, redisKey)
+        <span class="kw">var</span> product <span class="tp">Product</span>
+        <span class="kw">if</span> errDB := s.db.<span class="fn">WithContext</span>(ctx).<span class="fn">First</span>(&product, id).Error; errDB != <span class="kw">nil</span> {
+            <span class="kw">return</span> <span class="kw">nil</span>, fmt.<span class="fn">Errorf</span>(<span class="str">"sản phẩm %d không tồn tại: %w"</span>, id, errDB)
+        }
+
+        <span class="cm">// Ghi ngược lại Redis không chặn luồng chính (Async Write Cache)</span>
+        <span class="kw">go</span> <span class="kw">func</span>(p <span class="tp">Product</span>) {
+            bytesPayload, _ := json.<span class="fn">Marshal</span>(p)
+            s.rdb.<span class="fn">Set</span>(context.<span class="fn">Background</span>(), redisKey, bytesPayload, <span class="num">15</span>*time.Minute)
+        }(product)
+
+        <span class="kw">return</span> &product, <span class="kw">nil</span>
+    })
+
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        <span class="kw">return</span> <span class="kw">nil</span>, err
+    }
+
+    <span class="kw">if</span> shared {
+        log.<span class="fn">Printf</span>(<span class="str">"♻️ [SINGLEFLIGHT COLLAPSED] Gộp thành công request đọc Postgres cho key %s!\n"</span>, redisKey)
+    }
+
+    <span class="kw">return</span> val.(*<span class="tp">Product</span>), <span class="kw">nil</span>
+}
+
+<span class="cm">// UpdateProductState: Thực hiện quy trình cập nhật dữ liệu và Invalidate Cache an toàn</span>
+<span class="kw">func</span> (s *<span class="tp">ProductEnterpriseService</span>) <span class="fn">UpdateProductState</span>(ctx <span class="tp">context.Context</span>, product *<span class="tp">Product</span>) <span class="tp">error</span> {
+    <span class="cm">// 1. Cập nhật dữ liệu vào DB trước</span>
+    <span class="kw">if</span> err := s.db.<span class="fn">WithContext</span>(ctx).<span class="fn">Save</span>(product).Error; err != <span class="kw">nil</span> {
+        <span class="kw">return</span> err
+    }
+
+    redisKey := fmt.<span class="fn">Sprintf</span>(<span class="str">"cache:product:%d"</span>, product.ID)
+    
+    <span class="cm">// 2. Xoá khoá trong Redis Cluster ngay</span>
+    s.rdb.<span class="fn">Del</span>(ctx, redisKey)
+
+    <span class="cm">// 3. Buộc Singleflight xoá ngay ánh xạ để các request mới lấy chính xác giá vừa update</span>
+    s.sfGroup.<span class="fn">Forget</span>(redisKey)
+
+    log.<span class="fn">Printf</span>(<span class="str">"✅ [INVALIDATE CACHE SUCCESS] Khoá sạch %s thành công!\n"</span>, redisKey)
+    <span class="kw">return</span> <span class="kw">nil</span>
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">🏆</div>
+    <p>
+      <strong>Note &amp; Conclusion:</strong> Đây là kiến trúc tối thượng dành cho hệ thống cấp cao. Việc phối hợp giữa Redis phân tán, Singleflight gom luồng in-flight và GORM ORM giúp bảo vệ database an toàn tối đa dưới mọi áp lực tải trọng cực đoan. Lưu ý: Luôn gọi <code>Forget()</code> khi invalidate dữ liệu để tránh đưa thông tin giá cũ ra màn hình!
+    </p>
+  </div>
+</section>
+
+<!-- ==================== PITFALLS ==================== -->
+<section class="page-section" id="s-pitfalls">
+  <div class="section-header">
+    <div class="section-number">07</div>
+    <div>
+      <div class="section-title">Cạm bẫy thiết kế &amp; Anti-patterns</div>
+      <div class="section-subtitle">Nơi những sai sót nhỏ nhất biến thành sự cố ngắt hệ thống nghiêm trọng</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head cyan">❌ SAI: Error Propagation Trap</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">
+          Singleflight mặc định chia sẻ **cả dữ liệu lẫn lỗi**. Nếu goroutine chủ chọc xuống DB bị đứt mạng hoặc gặp lỗi tạm thời (Transient Error), **toàn bộ 1,000 waiter khác cũng sẽ đồng loạt nhận về đúng lỗi đó** mà không hề thử lại!
+        </p>
+        <span class="tag tag-bad">Nguy cơ sập dây chuyền</span>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head purple">✅ ĐÚNG: Khắc phục lỗi bằng cơ chế Retry tự thân</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">
+          Nếu nhận về lỗi, waiter hoặc client cần bắt lỗi ngay, chủ động gọi hàm <code>Forget(key)</code> hoặc tự thân thực hiện cơ chế Backoff-Retry một lần nữa để giải toả luồng tắc nghẽn.
+        </p>
+        <span class="tag tag-good">Tự phục hồi dữ liệu thông minh</span>
+      </div>
+    </div>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Lỗi phổ biến</th>
+        <th>Hệ quả vận hành</th>
+        <th>Biện pháp khắc phục chuẩn chỉnh</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Dùng chung 1 Group Singleflight cho toàn bộ ứng dụng</td>
+        <td>Key trùng lắp chéo giữa các miền nghiệp vụ gây xung đột và gộp nhầm kết quả sai loại</td>
+        <td>Khởi tạo các đối tượng <code>singleflight.Group</code> độc lập cho từng Repository hoặc API domain riêng biệt</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Quên không gọi <code>Forget(key)</code> khi kích hoạt luồng chạy ngầm ghi Cache</td>
+        <td>Key in-flight tồn tại vô thời hạn nếu Goroutine chủ bị rò rỉ hoặc bị kẹt vô tận trong I/O</td>
+        <td>Luôn bọc hàm I/O trong Context Timeout thích hợp và tự động huỷ bỏ qua <code>Forget()</code> khi gặp Timeout</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Gộp luồng cho các tác vụ nhạy cảm của từng cá nhân (Personalized Data)</td>
+        <td>Người dùng A có thể xem nhầm thông tin cá nhân của người dùng B do gộp nhầm key chung</td>
+        <td>Chỉ áp dụng Singleflight cho dữ liệu tĩnh hoặc dữ liệu chung (Public Product, Global Config). Phải nhúng userID vào Key nếu gộp thông tin cá nhân!</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr class="divider">
+
+  <div class="note note-danger">
+    <div class="note-icon">🚨</div>
+    <p>
+      <strong>Cảnh giác với rò rỉ Goroutine:</strong> Do Singleflight giữ chân các Goroutine bằng WaitGroup bên trong, nếu Goroutine chính thực hiện query DB bị treo không có Timeout (không dùng context), toàn bộ các Goroutine chờ đợi phía sau cũng sẽ bị kẹt vĩnh viễn trên Heap, gây ra lỗi rò rỉ bộ nhớ (Memory Leak) nghiêm trọng nhất trong Go.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== REFERENCES ==================== -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">08</div>
+    <div>
+      <div class="section-title">Tài liệu tham khảo &amp; Nguồn uy tín</div>
+      <div class="section-subtitle">Nơi tiếp tục hành trình làm chủ Concurrency trong môi trường thực chiến</div>
+    </div>
+  </div>
+
+  <a class="ref-card" href="https://pkg.go.dev/golang.org/x/sync/singleflight" target="_blank">
+    <div class="ref-icon" style="background: rgba(0,212,255,0.1)">📦</div>
+    <div class="ref-body">
+      <div class="ref-title">Go Official Documentation — Package singleflight</div>
+      <div class="ref-desc">Tài liệu và định nghĩa API chuẩn mực của thư viện bổ trợ chính thức từ Go team.</div>
+      <div class="ref-url">pkg.go.dev/golang.org/x/sync/singleflight</div>
+    </div>
+    <div class="ref-stars">⭐ Official API</div>
+  </a>
+
+  <a class="ref-card" href="https://github.com/golang/sync/blob/master/singleflight/singleflight.go" target="_blank">
+    <div class="ref-icon" style="background: rgba(168,85,247,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">GitHub Source Code — singleflight.go</div>
+      <div class="ref-desc">Toàn bộ mã nguồn cốt lõi của Singleflight. Nên đọc để thấu hiểu cách Go team dùng WaitGroup điều phối tài tình.</div>
+      <div class="ref-url">github.com/golang/sync/singleflight</div>
+    </div>
+    <div class="ref-stars">⭐ 100% Open Source</div>
+  </a>
+
+  <a class="ref-card" href="https://www.calhoun.io/using-singleflight-to-deduplicate-requests/" target="_blank">
+    <div class="ref-icon" style="background: rgba(0,255,136,0.1)">📝</div>
+    <div class="ref-body">
+      <div class="ref-title">Deduplicating Requests in Go — Calhoun.io</div>
+      <div class="ref-desc">Bài viết chi tiết của Gopher Calhoun phân tích cách thức Singleflight dập tắt thundering herd trong production.</div>
+      <div class="ref-url">calhoun.io/using-singleflight-to-deduplicate-requests/</div>
+    </div>
+    <div class="ref-stars">⭐ Highly Rated</div>
+  </a>
+
+  <hr class="divider">
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p>
+      <strong>Tóm tắt cốt lõi:</strong> <code>singleflight</code> là vũ khí tối thượng giúp giảm thiểu tải trọng Database và ngăn ngừa sập hệ thống (outage) khi xảy ra Cache Miss dây chuyền. Hãy ghi nhớ quy tắc: (1) Luôn bọc trong Timeout thông qua <code>DoChan</code>, (2) Luôn Double-check Cache bên trong closure, (3) Chủ động gọi <code>Forget()</code> khi gặp lỗi hoặc khi cập nhật dữ liệu mới!
+    </p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<!-- ====== JAVASCRIPT SPA ROUTER ====== -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const hamburger = document.getElementById("hamburger");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  
+  // Toggle Sidebar
+  function toggleSidebar() {
+    hamburger.classList.toggle("active");
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("active");
+  }
+
+  hamburger.addEventListener("click", toggleSidebar);
+  overlay.addEventListener("click", toggleSidebar);
+
+  // Router logic
+  const sections = document.querySelectorAll(".page-section");
+  const navItems = document.querySelectorAll(".nav-item");
+  const topnavItems = document.querySelectorAll(".topnav-item");
+
+  function showSection(id) {
+    sections.forEach(sec => {
+      sec.classList.remove("active");
+    });
+    const activeSec = document.getElementById("s-" + id);
+    if (activeSec) {
+      activeSec.classList.add("active");
+    }
+
+    // Sync sidebar state
+    navItems.forEach(item => {
+      item.classList.remove("active");
+      if (item.getAttribute("data-section") === id) {
+        item.classList.add("active");
+      }
+    });
+
+    // Sync topnav state
+    topnavItems.forEach(item => {
+      item.classList.remove("active");
+      if (item.getAttribute("data-section") === id) {
+        item.classList.add("active");
+      }
+    });
+
+    // Scroll to top cleanly
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function handleHash() {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      showSection(hash);
+    } else {
+      showSection("intro");
+    }
+  }
+
+  // Bind click dynamically to adhere to strict Obsidian CSP restrictions (no inline onclick)
+  navItems.forEach(item => {
+    item.addEventListener("click", function() {
+      const targetSec = this.getAttribute("data-section");
+      try {
+        history.pushState(null, null, "#" + targetSec);
+      } catch (e) {
+        // Fallback for secure Obsidian sandboxed environments
+        window.location.hash = targetSec;
+      }
+      showSection(targetSec);
+      
+      // Close sidebar on mobile
+      if (window.innerWidth <= 768) {
+        toggleSidebar();
+      }
+    });
+  });
+
+  topnavItems.forEach(item => {
+    item.addEventListener("click", function() {
+      const targetSec = this.getAttribute("data-section");
+      try {
+        history.pushState(null, null, "#" + targetSec);
+      } catch (e) {
+        window.location.hash = targetSec;
+      }
+      showSection(targetSec);
+    });
+  });
+
+  window.addEventListener("hashchange", handleHash);
+
+  // Initialize
+  handleHash();
+
+  // Copy code blocks
+  document.querySelectorAll(".code-copy").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const codeBlock = this.closest(".code-block");
+      const pre = codeBlock.querySelector("pre");
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        this.textContent = "Copied!";
+        this.style.color = "var(--accent-green)";
+        setTimeout(() => {
+          this.textContent = "Copy";
+          this.style.color = "var(--text-secondary)";
+        }, 2000);
+      });
+    });
+  });
+});
+</script>
+
+</body>
+</html>

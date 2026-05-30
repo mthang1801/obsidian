@@ -67,12 +67,14 @@
             "id": "014cbf555b3a6178",
             "type": "leaf",
             "state": {
-              "type": "html-file-view",
+              "type": "markdown",
               "state": {
-                "file": "Glosarry/process-delivery-guide.html"
+                "file": "Go/Concurrency/🎯 Overview Go Concurrency.md",
+                "mode": "source",
+                "source": false
               },
               "icon": "lucide-file",
-              "title": "process-delivery-guide"
+              "title": "🎯 Overview Go Concurrency"
             }
           }
         ],
@@ -252,13 +254,18 @@
   },
   "active": "014cbf555b3a6178",
   "lastOpenFiles": [
-    "Glosarry/product-requirements-guide.html",
-    "Glosarry/database-patterns-guide.html",
-    "Glosarry/process-delivery-guide.html",
-    "Glosarry/system-design-guide.html",
+    "Go/Concurrency/01-goroutines-guide.html",
+    "Go/Concurrency/23-ants-pool-guide.html",
+    "Go/Concurrency/22-singleflight-guide.html",
+    "Go/Concurrency/24-conc-structured-concurrency.html",
+    "Go/Concurrency/21-asynq.html",
+    "Go/Concurrency/16-sync-pool.html",
+    "Go/Concurrency/19-semaphore-guide.html",
+    "Go/Concurrency/04-mutex-and-confinement.html",
+    "Go/Concurrency/🎯 Overview Go Concurrency.md",
     "Go/Fundamental/go-orm-guide.html",
     "Go/Fundamental/go-optimization-guide.html",
-    "Go/Fundamental/go-fundamental-guide.html",
+    "Go/Fundamental/go-basics-guide.html",
     "public/images/uat-traceability.png",
     "public/images/uat-compare.png",
     "public/images/testing-quality-router.png",
@@ -269,10 +276,6 @@
     "public/images/bdd-shared-language.png",
     "public/images/bdd-compare.png",
     "public/images/17-flaky-test-triage.png",
-    "scripts/glossary.txt",
-    "scripts/generate_glossary.py",
-    "Glosarry/security-architecture-guide.html",
-    "scripts/translate_orm_mdfiles.py",
     "Glosarry/🎯 Overview Glossary.md",
     "Go/Fundamental/🎯 Overview Go Fundamental.md",
     "Documents/best-practice/01-inventory-stock-deduction.md",
@@ -297,7 +300,6 @@
     "Documents/system-design/13-go-map-internals.md",
     "Documents/system-design/12-top-20-system-design-concepts.md",
     "Documents/system-design/11-realtime-web-updates.md",
-    "Documents/system-design/10-http-ecosystem.md",
     "Untitled.canvas",
     "mAIvt/Untitled.canvas",
     "Untitled 2.canvas",

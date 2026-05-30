@@ -29,7 +29,7 @@ Scale và optimize:
 14. [**Tee Channel**](./14-tee-channel-go-pattern.html) - Duplicate stream cho nhiều consumers
 15. [**ErrorGroup**](./15-errgroup-guide.html) - Coordinated error handling (`golang.org/x/sync/errgroup`)
 
-#### **LEVEL 4: Optimization & Resource Management (16-20)**
+#### **LEVEL 4: Optimization & Resource Management (16-24)**
 
 Performance tuning:
 
@@ -38,12 +38,15 @@ Performance tuning:
 18. [**Rate Limiting**](./18-rate-limiting-go.html) - Token bucket, leaky bucket patterns
 19. [**Semaphore**](./19-semaphore-guide.html) - Limit concurrent operations (`golang.org/x/sync/semaphore`)
 20. [**Bounded Parallelism**](./20-bounded-parallelism-errgroup.html) - Control parallelism level với errgroup
-21. [**Asyncq**](./21-asynq.html) - Background job 
+21. [**Asynq**](./21-asynq.html) - Background job queue với Redis
+22. [**Singleflight**](./22-singleflight-guide.html) - Gộp các in-flight requests trùng lặp, chống thundering herd
+23. [**Ants Goroutine Pool**](./23-ants-pool-guide.html) - Bể chứa goroutine hiệu năng cao, giảm GC allocations
+24. [**Structured Concurrency với Conc**](./24-conc-structured-concurrency.html) - Lập trình song song an toàn kiểu tĩnh (Generics) và an toàn lỗi (Panic safety)
 
-#### **BONUS: Production Patterns (21-22)**
+#### **BONUS: Production Patterns (25-26)**
 
-21. **Circuit Breaker** - Fail fast cho external services
-22. **Retry with Backoff** - Exponential backoff cho failed operations
+25. **Circuit Breaker** - Fail fast cho external services
+26. **Retry with Backoff** - Exponential backoff cho failed operations
 
 ---
 

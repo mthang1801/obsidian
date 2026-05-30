@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Structured Concurrency với Sourcegraph Conc - Cẩm nang chuyên sâu</title>
+<meta name="description" content="Hướng dẫn chuyên sâu về Structured Concurrency trong Go sử dụng thư viện github.com/sourcegraph/conc. Tự động gom lỗi, bảo vệ Panic, tối ưu parallel iteration Map/ForEach.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%230d0f14'/><text x='50%25' y='55%25' dominant-baseline='middle' text-anchor='middle' font-size='16' font-weight='700' fill='%23a855f7'>Go</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0d0f14;
+    --bg-secondary: #131720;
+    --bg-card: #1a1f2e;
+    --bg-card-hover: #1f2638;
+    --bg-code: #0f1319;
+    --accent-cyan: #00d4ff;
+    --accent-green: #00ff88;
+    --accent-purple: #a855f7;
+    --accent-amber: #f59e0b;
+    --accent-coral: #ff6b6b;
+    --accent-blue: #3b82f6;
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --border: rgba(255,255,255,0.07);
+    --border-accent: rgba(168,85,247,0.3);
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-sans: 'Inter', sans-serif;
+    --font-title: 'Space Grotesk', sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ====== SIDEBAR ====== */
+  #sidebar {
+    width: 270px;
+    min-width: 270px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sidebar::-webkit-scrollbar { width: 4px; }
+  #sidebar::-webkit-scrollbar-track { background: transparent; }
+  #sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .sidebar-logo {
+    padding: 20px 20px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .logo-icon {
+    width: 32px; height: 32px;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700;
+    color: white; font-family: var(--font-mono);
+  }
+
+  .logo-text { font-size: 14px; font-weight: 600; color: var(--text-primary); line-height: 1.2; font-family: var(--font-title); }
+  .logo-sub { font-size: 11px; color: var(--accent-purple); font-family: var(--font-mono); }
+
+  .nav-section { padding: 16px 12px 8px; }
+  .nav-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-muted);
+    padding: 0 8px;
+    margin-bottom: 6px;
+  }
+
+  .nav-item {
+    display: flex; align-items: center;
+    padding: 7px 8px; border-radius: 6px;
+    text-decoration: none; color: var(--text-secondary);
+    font-size: 13px; cursor: pointer;
+    transition: all 0.15s; border: none; background: none; width: 100%; text-align: left;
+  }
+
+  .nav-item:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+  .nav-item.active {
+    background: rgba(168,85,247,0.1);
+    color: var(--accent-purple);
+    border-left: 2px solid var(--accent-purple);
+    padding-left: 6px;
+  }
+
+  /* ====== TOP NAV ====== */
+  #topnav {
+    position: fixed; top: 0; left: 270px; right: 0; height: 52px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 32px; gap: 8px; z-index: 50;
+    overflow-x: auto;
+  }
+
+  .topnav-item {
+    padding: 6px 14px; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    color: var(--text-secondary); cursor: pointer;
+    white-space: nowrap; text-decoration: none;
+    transition: all 0.15s; border: none; background: none;
+  }
+  .topnav-item:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+  .topnav-item.active { color: var(--accent-purple); background: rgba(168,85,247,0.1); }
+
+  /* ====== MAIN CONTENT ====== */
+  #main {
+    margin-left: 270px;
+    margin-top: 52px;
+    flex: 1;
+    max-width: calc(100% - 270px);
+  }
+
+  .content-area {
+    padding: 48px 56px;
+    max-width: 980px;
+  }
+
+  /* ====== SECTION HEADERS ====== */
+  .section-header {
+    display: flex; align-items: center; gap: 14px;
+    margin-bottom: 32px; padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-number {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--font-mono); font-size: 14px; font-weight: 700;
+    color: white; flex-shrink: 0;
+  }
+
+  .section-title { font-size: 26px; font-weight: 700; color: var(--text-primary); font-family: var(--font-title); }
+  .section-subtitle { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+
+  .badge {
+    padding: 4px 10px; border-radius: 20px; font-size: 11px;
+    font-weight: 600; letter-spacing: 0.05em; font-family: var(--font-mono);
+  }
+  .badge-expert { background: rgba(168,85,247,0.15); color: var(--accent-purple); border: 1px solid rgba(168,85,247,0.3); }
+  .badge-advanced { background: rgba(245,158,11,0.12); color: var(--accent-amber); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-basic { background: rgba(0,212,255,0.1); color: var(--accent-cyan); border: 1px solid rgba(0,212,255,0.25); }
+
+  /* ====== PAGE SECTIONS ====== */
+  .page-section { display: none; }
+  .page-section.active { display: block; }
+
+  /* ====== PROSE ====== */
+  .prose { font-size: 15px; line-height: 1.8; color: var(--text-secondary); margin-bottom: 20px; }
+  .prose strong { color: var(--text-primary); font-weight: 600; }
+  .prose code {
+    background: rgba(168,85,247,0.08); color: var(--accent-purple);
+    padding: 2px 6px; border-radius: 4px;
+    font-family: var(--font-mono); font-size: 13px;
+  }
+
+  h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; font-family: var(--font-title); }
+  h4 { font-size: 15px; font-weight: 600; color: var(--text-secondary); margin: 20px 0 8px; }
+
+  /* ====== CARDS ====== */
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 20px;
+    transition: border-color 0.2s;
+  }
+  .card:hover { border-color: var(--border-accent); }
+  .card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 10px; }
+
+  .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+
+  /* ====== CONCEPT HIGHLIGHT ====== */
+  .concept-box {
+    background: linear-gradient(135deg, rgba(168,85,247,0.05), rgba(0,212,255,0.05));
+    border: 1px solid rgba(168,85,247,0.2);
+    border-radius: 12px; padding: 24px; margin-bottom: 28px;
+  }
+  .concept-box .label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.1em; color: var(--accent-purple); margin-bottom: 8px;
+    font-family: var(--font-mono);
+  }
+  .concept-box .title { font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 10px; font-family: var(--font-title); }
+
+  /* ====== CODE BLOCKS ====== */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden; margin-bottom: 24px;
+  }
+
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; border-bottom: 1px solid var(--border);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .code-lang {
+    font-size: 11px; font-weight: 600; color: var(--accent-purple);
+    font-family: var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em;
+  }
+
+  .code-filename { font-size: 12px; color: var(--text-muted); font-family: var(--font-mono); }
+
+  .code-copy {
+    font-size: 11px; color: var(--text-muted); cursor: pointer;
+    background: none; border: 1px solid var(--border); border-radius: 4px;
+    padding: 3px 10px; color: var(--text-secondary);
+    transition: all 0.15s; font-family: var(--font-sans);
+  }
+  .code-copy:hover { border-color: var(--accent-purple); color: var(--accent-purple); }
+
+  pre {
+    margin: 0; padding: 20px;
+    overflow-x: auto; font-family: var(--font-mono);
+    font-size: 13px; line-height: 1.7;
+  }
+
+  pre::-webkit-scrollbar { height: 4px; }
+  pre::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Syntax colors */
+  .kw { color: #c084fc; }          /* keywords */
+  .fn { color: #60a5fa; }          /* functions */
+  .str { color: #86efac; }         /* strings */
+  .cm { color: #4b5563; font-style: italic; } /* comments */
+  .num { color: #fb923c; }         /* numbers */
+  .tp { color: #67e8f9; }          /* types */
+  .pkg { color: #a78bfa; }         /* packages */
+  .op { color: #f472b6; }          /* operators */
+
+  /* ====== DIAGRAM ====== */
+  .diagram-container {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 28px;
+    overflow: hidden;
+  }
+
+  .diagram-title {
+    font-size: 11px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.1em;
+    color: var(--text-muted); margin-bottom: 20px;
+    font-family: var(--font-mono); text-align: center;
+  }
+
+  /* ====== TABLE ====== */
+  .data-table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 14px; }
+  .data-table th {
+    padding: 10px 14px; text-align: left;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+    color: var(--text-muted); font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600;
+  }
+  .data-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table td code { background: rgba(168,85,247,0.08); color: var(--accent-purple); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; }
+
+  /* ====== WARNING / NOTE ====== */
+  .note {
+    display: flex; gap: 12px; padding: 14px 16px;
+    border-radius: 8px; margin-bottom: 20px; font-size: 14px;
+  }
+  .note-warn { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fcd34d; }
+  .note-info { background: rgba(0,212,255,0.06); border: 1px solid rgba(0,212,255,0.2); color: var(--accent-cyan); }
+  .note-danger { background: rgba(255,107,107,0.08); border: 1px solid rgba(255,107,107,0.2); color: var(--accent-coral); }
+  .note-success { background: rgba(0,255,136,0.06); border: 1px solid rgba(0,255,136,0.2); color: var(--accent-green); }
+  .note-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+  .note p { margin: 0; line-height: 1.6; }
+
+  /* ====== REFS ====== */
+  .ref-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; margin-bottom: 12px;
+    display: flex; align-items: flex-start; gap: 14px;
+    text-decoration: none; transition: all 0.15s;
+    cursor: pointer;
+  }
+  .ref-card:hover { border-color: var(--accent-purple); transform: translateX(2px); }
+  .ref-icon {
+    width: 38px; height: 38px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; flex-shrink: 0;
+  }
+  .ref-body { flex: 1; min-width: 0; }
+  .ref-title { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 3px; }
+  .ref-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .ref-url { font-size: 11px; color: var(--accent-purple); font-family: var(--font-mono); margin-top: 4px; word-break: break-all; }
+  .ref-stars { font-size: 11px; color: var(--accent-amber); margin-left: auto; white-space: nowrap; padding-left: 12px; }
+
+  /* ====== COMPARISON ====== */
+  .compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .compare-card {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 10px; overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .compare-head {
+    padding: 12px 16px; font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.07em;
+    font-family: var(--font-mono); border-bottom: 1px solid var(--border);
+  }
+  .compare-head.purple { background: rgba(168,85,247,0.08); color: var(--accent-purple); }
+  .compare-head.cyan { background: rgba(0,212,255,0.08); color: var(--accent-cyan); }
+
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 5px; font-size: 12px; font-family: var(--font-mono); margin: 3px; }
+  .tag-good { background: rgba(0,255,136,0.08); color: var(--accent-green); border: 1px solid rgba(0,255,136,0.2); }
+  .tag-bad { background: rgba(255,107,107,0.08); color: var(--accent-coral); border: 1px solid rgba(255,107,107,0.2); }
+
+  /* Divider */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 36px 0; }
+  
+  /* ── Concept Image Container ── */
+  .concept-img-wrapper {
+    margin: 1.5rem 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid rgba(168, 85, 247, 0.25);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+    background: var(--bg-card);
+    padding: 12px;
+  }
+  .concept-img-wrapper img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+  }
+  .concept-img-caption {
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    font-style: italic;
+    line-height: 1.5;
+  }
+
+  /* ====== HAMBURGER MENU ====== */
+  .hamburger {
+    display: none;
+    position: fixed; top: 12px; left: 14px; z-index: 200;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    cursor: pointer; align-items: center; justify-content: center;
+    flex-direction: column; gap: 4px; padding: 0;
+    transition: all 0.2s;
+  }
+  .hamburger span {
+    display: block; width: 18px; height: 2px;
+    background: var(--text-secondary); border-radius: 1px;
+    transition: all 0.3s;
+  }
+  .hamburger.active span:nth-child(1) { transform: rotate(45deg) translate(4px, 4px); }
+  .hamburger.active span:nth-child(2) { opacity: 0; }
+  .hamburger.active span:nth-child(3) { transform: rotate(-45deg) translate(4px, -4px); }
+
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0; z-index: 90;
+    background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .sidebar-overlay.active { opacity: 1; }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 1024px) {
+    .content-area { padding: 36px 32px; }
+  }
+
+  @media (max-width: 768px) {
+    .hamburger { display: flex; }
+    .sidebar-overlay.active { display: block; }
+
+    #sidebar {
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+    }
+    #sidebar.open {
+      transform: translateX(0);
+    }
+
+    #topnav {
+      left: 0;
+      padding: 0 16px 0 60px;
+    }
+
+    #main {
+      margin-left: 0;
+      max-width: 100%;
+    }
+
+    .content-area {
+      padding: 28px 20px;
+    }
+
+    .section-header {
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .section-title { font-size: 20px; }
+
+    .card-grid,
+    .compare-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .diagram-container {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .diagram-container svg {
+      min-width: 600px;
+    }
+
+    pre {
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .data-table {
+      display: block;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .ref-card {
+      flex-wrap: wrap;
+    }
+    .ref-stars {
+      margin-left: 0;
+      padding-left: 0;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .content-area { padding: 20px 14px; }
+    .section-title { font-size: 18px; }
+    .concept-box { padding: 16px; }
+    .card { padding: 16px; }
+    .code-block pre { padding: 14px; font-size: 11px; }
+    h3 { font-size: 16px; }
+    .topnav-item { padding: 6px 10px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ===== HAMBURGER ===== -->
+<button class="hamburger" id="hamburger" aria-label="Toggle menu">
+  <span></span><span></span><span></span>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<!-- ===== SIDEBAR ===== -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">Conc</div>
+    <div>
+      <div class="logo-text">Go Conc Concurrency</div>
+      <div class="logo-sub">github.com/sourcegraph/conc</div>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Cơ bản</div>
+    <button class="nav-item active" data-section="intro">🏠 Tổng quan</button>
+    <button class="nav-item" data-section="principles">⚙️ Nguyên lý hoạt động</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Các ví dụ bám sát Usecase</div>
+    <button class="nav-item" data-section="basic">🚀 01. Phân loại Pools trong Conc</button>
+    <button class="nav-item" data-section="intermediate">🔄 02. Song song hoá Map &amp; ForEach</button>
+    <button class="nav-item" data-section="advanced">🛡️ 03. So sánh Panic Safety</button>
+    <button class="nav-item" data-section="expert">🌟 04. Expert Bounded API Aggregator</button>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Nâng cao &amp; Thực tiễn</div>
+    <button class="nav-item" data-section="pitfalls">🐛 Cạm bẫy &amp; Anti-patterns</button>
+    <button class="nav-item" data-section="refs">📚 References</button>
+  </div>
+</nav>
+
+<!-- ===== TOP NAV ===== -->
+<nav id="topnav">
+  <button class="topnav-item active" data-section="intro">Tổng quan</button>
+  <button class="topnav-item" data-section="principles">Nguyên lý</button>
+  <button class="topnav-item" data-section="basic">01. Pools</button>
+  <button class="topnav-item" data-section="intermediate">02. Iteration</button>
+  <button class="topnav-item" data-section="advanced">03. Panic Safety</button>
+  <button class="topnav-item" data-section="expert">04. Expert Aggregator</button>
+  <button class="topnav-item" data-section="pitfalls">Pitfalls</button>
+  <button class="topnav-item" data-section="refs">References</button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main id="main">
+<div class="content-area">
+
+<!-- ==================== INTRO ==================== -->
+<section class="page-section active" id="s-intro">
+  <div class="section-header">
+    <div class="section-number">01</div>
+    <div>
+      <div class="section-title">Structured Concurrency trong Go với Sourcegraph Conc</div>
+      <div class="section-subtitle">Xây dựng ứng dụng song song an toàn kiểu (Type-safe), an toàn lỗi (Panic-safe)</div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <div class="concept-box">
+    <div class="label">💡 Định nghĩa</div>
+    <div class="title">Structured Concurrency là gì?</div>
+    <p class="prose">
+      <strong>Structured Concurrency</strong> (Lập trình song song có cấu trúc) là triết lý lập trình quy định rằng các luồng xử lý song song (Goroutines) phải có <strong>vòng đời rõ ràng, lồng ghép chặt chẽ</strong> trong phạm vi của hàm gọi chúng. Nó đảm bảo nguyên tắc: Một hàm chỉ hoàn thành khi toàn bộ các luồng con do nó spawn ra đã kết thúc hoàn toàn.
+    </p>
+    <p class="prose">
+      Trong Go chuẩn mực, việc gọi <code>go func()</code> tạo ra một Goroutine "mồ côi" không có ranh giới cấu trúc. Nếu xảy ra lỗi hoặc treo, luồng này sẽ bị rò rỉ (Goroutine Leak) ngầm. <strong>Conc</strong> (phát triển bởi Sourcegraph) là thư viện tối tân giúp đưa Structured Concurrency vào Go, đi kèm hỗ trợ Generics Type-safe và Panic-recovery tự động.
+    </p>
+  </div>
+
+  <div class="concept-img-wrapper">
+    <img src="../../public/images/13-conc-structured-concurrency-map.png" alt="Go Concurrency Structured Map" loading="lazy">
+    <div class="concept-img-caption">Hình 1.1: Định vị Conc trong Concurrency Layers. Conc mang đến Structured Concurrency, kiểm soát luồng chặt chẽ nhằm triệt tiêu hoàn toàn rò rỉ luồng và bảo vệ lỗi tuyệt hảo.</div>
+  </div>
+
+  <h3>Tại sao Conc vượt trội hơn sync.WaitGroup &amp; errgroup?</h3>
+  <p class="prose">
+    Mặc dù <code>sync.WaitGroup</code> và <code>golang.org/x/sync/errgroup</code> rất phổ biến, chúng vẫn để lộ những kẽ hở lớn về độ an toàn mã nguồn trong môi trường tải lớn:
+  </p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-title">🛡️ Tự động phục hồi lỗi (Panic Safety)</div>
+      <p class="prose" style="margin:0; font-size:13px">Một goroutine chạy ngầm bị Panic trong raw WaitGroup hoặc errgroup sẽ kéo đổ toàn bộ ứng dụng Server. Conc tự động bắt Panic, bảo vệ Server và ném lại Panic an toàn tại luồng chủ ở hàm Wait().</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🧩 Generics Type-Safe hoàn hảo</div>
+      <p class="prose" style="margin:0; font-size:13px">errgroup không trả về dữ liệu. Bạn phải tự dùng channel hoặc mutex để gom kết quả thô interface{}. Conc <code>ResultPool[T]</code> dùng generics trả thẳng về mảng kiểu T an toàn.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🔄 Thu gom đa lỗi (Multi-error Collection)</div>
+      <p class="prose" style="margin:0; font-size:13px">errgroup chỉ trả về lỗi đầu tiên phát hiện và bỏ qua toàn bộ lỗi của các luồng khác. Conc <code>ErrorPool</code> thu thập đầy đủ tất cả các lỗi xảy ra trong các luồng con.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">🏎️ Xử lý mảng siêu tốc (Parallel Iteration)</div>
+      <p class="prose" style="margin:0; font-size:13px">Conc cung cấp module <code>iter</code> cho phép song song hoá vòng lặp mảng <code>ForEach</code> và <code>Map</code> cực kỳ ngắn gọn, bảo toàn thứ tự kết quả mà không cần viết tay hàng chục dòng code channel phức tạp.</p>
+    </div>
+  </div>
+
+  <h3>So sánh tính năng: Conc vs Errgroup vs Raw Go</h3>
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Tính năng</th>
+        <th>Sourcegraph Conc</th>
+        <th>golang.org/x/sync/errgroup</th>
+        <th>Raw Goroutine + WaitGroup</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Đồng bộ có cấu trúc</strong></td>
+        <td>✅ Bắt buộc (Structured)</td>
+        <td>✅ Có hỗ trợ</td>
+        <td>❌ Phải tự quản lý tay dễ rò rỉ</td>
+      </tr>
+      <tr>
+        <td><strong>Bảo vệ Panic</strong></td>
+        <td>✅ Có (Re-raise tại Wait)</td>
+        <td>❌ Không (Crashes Process)</td>
+        <td>❌ Không (Crashes Process)</td>
+      </tr>
+      <tr>
+        <td><strong>Thu gom lỗi</strong></td>
+        <td>✅ Toàn bộ lỗi (Multi-error)</td>
+        <td>⚠️ Chỉ lỗi đầu tiên</td>
+        <td>❌ Phải tự code gom lỗi</td>
+      </tr>
+      <tr>
+        <td><strong>Kiểu dữ liệu đầu ra</strong></td>
+        <td>✅ Generics Type-Safe <code>[]T</code></td>
+        <td>❌ Không hỗ trợ</td>
+        <td>❌ Không hỗ trợ</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ==================== PRINCIPLES ==================== -->
+<section class="page-section" id="s-principles">
+  <div class="section-header">
+    <div class="section-number">02</div>
+    <div>
+      <div class="section-title">Nguyên lý hoạt động &amp; Luồng xử lý</div>
+      <div class="section-subtitle">Cách thức Conc bảo toàn dữ liệu và đồng bộ hoá mảng song song</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <h3>Sơ đồ hoạt động của iter.Map</h3>
+  <p class="prose">
+    Khi xử lý mảng song song, fan-out/fan-in thô sơ bằng channel sẽ làm xáo trộn thứ tự các phần tử. <code>conc/iter.Map</code> khắc phục điều này bằng cách <strong>cấp phát trước mảng kết quả có cùng chiều dài</strong>, phân chia index độc lập cho các workers chèn ghi song song, loại bỏ hoàn toàn chi phí tranh chấp lock.
+  </p>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Sơ đồ song song hoá và bảo toàn thứ tự của iter.Map</div>
+    <svg width="100%" viewBox="0 0 820 330" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="purple-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#00d4ff;stop-opacity:0.04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Input Slice -->
+      <rect x="20" y="40" width="160" height="230" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+      <text x="100" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">Input Slice</text>
+      
+      <g transform="translate(40, 90)">
+        <rect x="0" y="0" width="120" height="30" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <text x="60" y="18" text-anchor="middle" font-size="11" fill="#e2e8f0" font-family="Space Grotesk">Idx 0: Alice</text>
+      </g>
+      <g transform="translate(40, 140)">
+        <rect x="0" y="0" width="120" height="30" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <text x="60" y="18" text-anchor="middle" font-size="11" fill="#e2e8f0" font-family="Space Grotesk">Idx 1: Bob</text>
+      </g>
+      <g transform="translate(40, 190)">
+        <rect x="0" y="0" width="120" height="30" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <text x="60" y="18" text-anchor="middle" font-size="11" fill="#e2e8f0" font-family="Space Grotesk">Idx 2: Charlie</text>
+      </g>
+
+      <!-- Parallel Execution (Conc Pool) -->
+      <rect x="250" y="40" width="310" height="230" rx="12" fill="url(#purple-glow)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="405" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">iter.Map Workers</text>
+
+      <g transform="translate(280, 95)">
+        <rect x="0" y="0" width="250" height="36" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1"/>
+        <text x="125" y="22" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Worker 0 -> transform(Alice)</text>
+      </g>
+      <g transform="translate(280, 145)">
+        <rect x="0" y="0" width="250" height="36" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1"/>
+        <text x="125" y="22" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Worker 1 -> transform(Bob)</text>
+      </g>
+      <g transform="translate(280, 195)">
+        <rect x="0" y="0" width="250" height="36" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1"/>
+        <text x="125" y="22" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Worker 2 -> transform(Charlie)</text>
+      </g>
+
+      <!-- Pre-allocated Output -->
+      <rect x="630" y="40" width="160" height="230" rx="8" fill="rgba(0,212,255,0.02)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="710" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Output Slice</text>
+
+      <g transform="translate(650, 90)">
+        <rect x="0" y="0" width="120" height="30" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff" stroke-width="1"/>
+        <text x="60" y="18" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Idx 0: ALICE &lt;ali&gt;</text>
+      </g>
+      <g transform="translate(650, 140)">
+        <rect x="0" y="0" width="120" height="30" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff" stroke-width="1"/>
+        <text x="60" y="18" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Idx 1: BOB &lt;bob&gt;</text>
+      </g>
+      <g transform="translate(650, 190)">
+        <rect x="0" y="0" width="120" height="30" rx="5" fill="rgba(0,212,255,0.08)" stroke="#00d4ff" stroke-width="1"/>
+        <text x="60" y="18" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Idx 2: CHARLIE...</text>
+      </g>
+
+      <!-- Connector Arrows -->
+      <line x1="180" y1="110" x2="250" y2="110" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <line x1="180" y1="160" x2="250" y2="160" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <line x1="180" y1="210" x2="250" y2="210" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+
+      <line x1="560" y1="112" x2="630" y2="112" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <line x1="560" y1="162" x2="630" y2="162" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <line x1="560" y1="212" x2="630" y2="212" stroke="#00d4ff" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+    </svg>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">💡</div>
+    <p>
+      <strong>Lợi ích bảo toàn thứ tự:</strong> Việc pre-allocate mảng đầu ra giúp triệt tiêu thao tác append tranh chấp tài nguyên bộ nhớ Heap. Bạn luôn nhận về mảng kết quả sắp xếp đúng 100% thứ tự của mảng đầu vào mà không tốn bất kỳ chi phí CPU nào để sort lại dữ liệu.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== BASIC ==================== -->
+<section class="page-section" id="s-basic">
+  <div class="section-header">
+    <div class="section-number">03</div>
+    <div>
+      <div class="section-title">01. Phân loại Pools trong Conc</div>
+      <div class="section-subtitle">So sánh và áp dụng đúng đắn 3 cấu trúc bể chứa song song cốt lõi</div>
+    </div>
+    <span class="badge badge-basic">CƠ BẢN</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Ứng dụng của bạn có các nhu cầu song song đa dạng:
+      1. Bắn thông báo marketing ra bên ngoài (Fire-and-forget, lỗi thì bỏ qua).
+      2. Gọi nhiều dịch vụ kiểm tra tín dụng (Nếu bất kỳ dịch vụ nào lỗi thì dừng lại thu thập lỗi).
+      3. Song song tính toán bình phương của tập dữ liệu trả về mảng kết quả.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Các cấu trúc bể chứa (Pool Types) trong thư viện Conc</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="purple-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- 1. pool.Pool -->
+      <rect x="20" y="40" width="230" height="200" rx="8" fill="rgba(255,255,255,0.02)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="135" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="Space Grotesk">1. pool.Pool</text>
+      <rect x="35" y="85" width="200" height="80" rx="6" fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="135" y="105" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Basic concurrency control</text>
+      <text x="135" y="125" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Fire-and-forget tasks</text>
+      <text x="135" y="145" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">🛡️ Panic Safety included</text>
+      <text x="135" y="200" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Output: None (Side-effects)</text>
+
+      <!-- 2. pool.ErrorPool -->
+      <rect x="290" y="40" width="240" height="200" rx="8" fill="rgba(255,255,255,0.02)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="410" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#ff6b6b" font-family="Space Grotesk">2. pool.ErrorPool</text>
+      <rect x="310" y="85" width="200" height="80" rx="6" fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="410" y="105" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Error propagation channel</text>
+      <text x="410" y="125" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">WithErrors() modifier</text>
+      <text x="410" y="145" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">❌ Aggregates multi-errors</text>
+      <text x="410" y="200" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Output: error (Wait())</text>
+
+      <!-- 3. pool.ResultPool[T] -->
+      <rect x="570" y="40" width="230" height="200" rx="8" fill="rgba(0,212,255,0.02)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="685" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#00d4ff" font-family="Space Grotesk">3. pool.ResultPool[T]</text>
+      <rect x="585" y="85" width="200" height="80" rx="6" fill="rgba(0,0,0,0.3)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="685" y="105" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Generics-based type safety</text>
+      <text x="685" y="125" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">WithResults[T]() builder</text>
+      <text x="685" y="145" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">👉 No interface{} casting</text>
+      <text x="685" y="200" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="Space Grotesk">Output: []T array</text>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">pool_types.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/sourcegraph/conc/pool"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// 1. pool.Pool — fire-and-forget cơ bản</span>
+    <span class="cm">// Tự động bắt panic, giới hạn tối đa 3 workers chạy đồng thời</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"=== 1. pool.Pool ==="</span>)
+    p := pool.<span class="fn">New</span>().<span class="fn">WithMaxGoroutines</span>(<span class="num">3</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">5</span>; i++ {
+        taskID := i
+        p.<span class="fn">Go</span>(<span class="kw">func</span>() {
+            time.<span class="fn">Sleep</span>(<span class="num">50</span> * time.Millisecond)
+            fmt.<span class="fn">Printf</span>(<span class="str">"  Task %d hoàn tất\n"</span>, taskID)
+        })
+    }
+    p.<span class="fn">Wait</span>() <span class="cm">// Đảm bảo toàn bộ tác vụ con kết thúc</span>
+
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// 2. pool.ErrorPool — Thu gom đa lỗi</span>
+    <span class="cm">// Trả về tập lỗi tổng hợp (multi-error) cực kỳ chi tiết</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"\n=== 2. pool.ErrorPool ==="</span>)
+    ep := pool.<span class="fn">New</span>().<span class="fn">WithErrors</span>().<span class="fn">WithMaxGoroutines</span>(<span class="num">3</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">5</span>; i++ {
+        taskID := i
+        ep.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="tp">error</span> {
+            <span class="kw">if</span> taskID%<span class="num">2</span> == <span class="num">0</span> {
+                <span class="kw">return</span> fmt.<span class="fn">Errorf</span>(<span class="str">"tác vụ %d thất bại"</span>, taskID)
+            }
+            <span class="kw">return</span> <span class="kw">nil</span>
+        })
+    }
+    <span class="kw">if</span> err := ep.<span class="fn">Wait</span>(); err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="str">"  ❌ Các lỗi thu thập được: \n%v\n"</span>, err)
+    }
+
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// 3. pool.ResultPool[T] — Generics Type-Safe</span>
+    <span class="cm">// Tự động trả về []T cực sạch, không tốn ép kiểu interface{}</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"\n=== 3. pool.ResultPool[T] ==="</span>)
+    rp := pool.<span class="fn">NewWithResults</span>[<span class="tp">string</span>]().<span class="fn">WithMaxGoroutines</span>(<span class="num">3</span>)
+    <span class="kw">for</span> i := <span class="num">0</span>; i &lt; <span class="num">5</span>; i++ {
+        taskID := i
+        rp.<span class="fn">Go</span>(<span class="kw">func</span>() <span class="tp">string</span> {
+            <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"Kết quả mẫu-%d"</span>, taskID)
+        })
+    }
+    results := rp.<span class="fn">Wait</span>() <span class="cm">// Trả thẳng về []string</span>
+    <span class="kw">for</span> _, r := range results {
+        fmt.<span class="fn">Printf</span>(<span class="str">"  👉 %s\n"</span>, r)
+    }
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p>
+      <strong>Note &amp; Conclusion:</strong> Phân loại Pool rõ ràng giúp bạn chọn đúng công cụ tối giản hoá logic code. Dùng <code>ResultPool[T]</code> giúp triệt tiêu hoàn toàn rủi ro ép kiểu thất bại tại Runtime, nâng cao đáng kể độ tin cậy của mã nguồn.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== INTERMEDIATE ==================== -->
+<section class="page-section" id="s-intermediate">
+  <div class="section-header">
+    <div class="section-number">04</div>
+    <div>
+      <div class="section-title">02. Song song hoá Map &amp; ForEach</div>
+      <div class="section-subtitle">Xử lý tập hợp lớn siêu tốc không lo xáo trộn thứ tự</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Bạn có một danh sách chứa 1,000 thực thể khách hàng. Bạn cần:
+      1. Gửi email xác thực hàng loạt tới từng người (Side-effects, không trả về dữ liệu).
+      2. Chuyển đổi định dạng danh sách User thành danh sách hiển thị dạng String chuẩn (Data transformation, bảo toàn thứ tự).
+    </p>
+    <p class="prose">
+      Nếu tự viết bằng kênh channel truyền dữ liệu thủ công, bạn sẽ tốn khoảng 50 dòng code kèm rủi ro nghẽn luồng cao. <code>conc/iter</code> giải quyết bài toán này chỉ với 3 dòng code cực kỳ thanh lịch.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Cơ chế xử lý tập hợp song song: iter.ForEach vs iter.Map của conc/iter</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-blue-iter" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-green-iter" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="blue-glow-iter" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00d4ff;stop-opacity:0.12"/>
+          <stop offset="100%" style="stop-color:#0d0f14;stop-opacity:0.02"/>
+        </linearGradient>
+        <linearGradient id="green-glow-iter" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#00ff88;stop-opacity:0.12"/>
+          <stop offset="100%" style="stop-color:#0d0f14;stop-opacity:0.02"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Input Data Source (Shared) -->
+      <rect x="20" y="40" width="160" height="200" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+      <text x="100" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#94a3b8" font-family="Space Grotesk">Input Collection</text>
+      
+      <!-- Array Elements -->
+      <g transform="translate(35, 90)">
+        <rect x="0" y="0" width="130" height="30" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="65" y="18" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">[0] User A</text>
+      </g>
+      <g transform="translate(35, 130)">
+        <rect x="0" y="0" width="130" height="30" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="65" y="18" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">[1] User B</text>
+      </g>
+      <g transform="translate(35, 170)">
+        <rect x="0" y="0" width="130" height="30" rx="4" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="65" y="18" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">[2] User C</text>
+      </g>
+
+      <!-- Pathway 1: ForEach (Side Effects) -->
+      <rect x="230" y="40" width="260" height="95" rx="10" fill="url(#blue-glow-iter)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="360" y="62" text-anchor="middle" font-size="11" font-weight="700" fill="#00d4ff" font-family="Space Grotesk">iter.ForEach (Side-Effects)</text>
+      <text x="360" y="80" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Space Grotesk">Chạy song song, không trả về giá trị</text>
+      
+      <g transform="translate(250, 95)">
+        <rect x="0" y="0" width="220" height="26" rx="4" fill="rgba(0,212,255,0.05)" stroke="rgba(0,212,255,0.2)" stroke-width="1"/>
+        <text x="110" y="16" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="JetBrains Mono">SendEmail(User) concurrently</text>
+      </g>
+
+      <!-- Pathway 2: Map (Data Transformation & Keep Order) -->
+      <rect x="230" y="145" width="260" height="95" rx="10" fill="url(#green-glow-iter)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="360" y="167" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="Space Grotesk">iter.Map (Data Transformation)</text>
+      <text x="360" y="185" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="Space Grotesk">Bảo toàn vị trí chỉ mục tuyệt đối</text>
+
+      <g transform="translate(250, 200)">
+        <rect x="0" y="0" width="220" height="26" rx="4" fill="rgba(0,255,136,0.05)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
+        <text x="110" y="16" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="JetBrains Mono">ParseUserToString(User) -> String</text>
+      </g>
+
+      <!-- Output Collection (For Map) -->
+      <rect x="540" y="145" width="260" height="95" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+      <text x="670" y="167" text-anchor="middle" font-size="11" font-weight="700" fill="#a855f7" font-family="Space Grotesk">Output Orderly Slice</text>
+      <text x="560" y="195" font-size="9" fill="#e2e8f0" font-family="JetBrains Mono">[0] Str A</text>
+      <text x="640" y="195" font-size="9" fill="#e2e8f0" font-family="JetBrains Mono">[1] Str B</text>
+      <text x="720" y="195" font-size="9" fill="#e2e8f0" font-family="JetBrains Mono">[2] Str C</text>
+      <text x="670" y="222" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="Space Grotesk">Không xáo trộn vị trí dù luồng chạy lệch pha</text>
+
+      <!-- Connections -->
+      <line x1="180" y1="90" x2="230" y2="90" stroke="#00d4ff" stroke-width="1.2" marker-end="url(#arr-blue-iter)"/>
+      <line x1="180" y1="190" x2="230" y2="190" stroke="#00ff88" stroke-width="1.2" marker-end="url(#arr-green-iter)"/>
+      <line x1="490" y1="190" x2="540" y2="190" stroke="#a855f7" stroke-width="1.2" marker-end="url(#arr-blue-iter)"/>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">iter_concurrency.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"strings"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/sourcegraph/conc/iter"</span>
+)
+
+<span class="kw">type</span> <span class="tp">Customer</span> <span class="kw">struct</span> {
+    ID    <span class="tp">int</span>
+    Name  <span class="tp">string</span>
+    Email <span class="tp">string</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    customers := []<span class="tp">Customer</span>{
+        {ID: <span class="num">1</span>, Name: <span class="str">"Anh Tùng"</span>, Email: <span class="str">"tung@m-tp.vn"</span>},
+        {ID: <span class="num">2</span>, Name: <span class="str">"Chị Linh"</span>, Email: <span class="str">"linh@example.com"</span>},
+        {ID: <span class="num">3</span>, Name: <span class="str">"Anh Bách"</span>, Email: <span class="str">"bach@tech.com"</span>},
+    }
+
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// 1. iter.ForEach: Xử lý song song có hiệu ứng phụ (Side-effects)</span>
+    <span class="cm">// Mặc định sử dụng tối đa số lượng CPU hiện có (runtime.NumCPU())</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"=== 1. iter.ForEach ==="</span>)
+    iter.<span class="fn">ForEach</span>(customers, <span class="kw">func</span>(c *<span class="tp">Customer</span>) {
+        time.<span class="fn">Sleep</span>(<span class="num">50</span> * time.Millisecond) <span class="cm">// Giả lập I/O</span>
+        fmt.<span class="fn">Printf</span>(<span class="str">"  📧 Gửi email thành công tới %s (%s)\n"</span>, c.Name, c.Email)
+    })
+
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// 2. iter.Map: Chuyển đổi dữ liệu và BẢO TOÀN THỨ TỰ</span>
+    <span class="cm">// Trả thẳng về mảng định kiểu mới tinh tế</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    fmt.<span class="fn">Println</span>(<span class="str">"\n=== 2. iter.Map ==="</span>)
+    displayNames := iter.<span class="fn">Map</span>(customers, <span class="kw">func</span>(c *<span class="tp">Customer</span>) <span class="tp">string</span> {
+        time.<span class="fn">Sleep</span>(<span class="num">30</span> * time.Millisecond)
+        <span class="kw">return</span> fmt.<span class="fn">Sprintf</span>(<span class="str">"MEMBER-%d: %s [%s]"</span>, c.ID, strings.<span class="fn">ToUpper</span>(c.Name), c.Email)
+    })
+
+    <span class="kw">for</span> i, name := range displayNames {
+        fmt.<span class="fn">Printf</span>(<span class="str">"  [%d] %s\n"</span>, i, name)
+    }
+    fmt.<span class="fn">Println</span>(<span class="str">"👉 Thứ tự đầu ra hoàn toàn trùng khớp thứ tự đầu vào ban đầu!"</span>)
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">💡</div>
+    <p>
+      <strong>Nhận xét:</strong> Callbacks của <code>iter.ForEach</code> và <code>iter.Map</code> nhận tham số là một <strong>Con trỏ (Pointer)</strong> trỏ trực tiếp vào phần tử mảng (<code>*Customer</code>). Giúp bạn dễ dàng chỉnh sửa giá trị trực tiếp trên mảng gốc nếu cần thiết mà không phải sao chép dữ liệu tốn RAM.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== ADVANCED ==================== -->
+<section class="page-section" id="s-advanced">
+  <div class="section-header">
+    <div class="section-number">05</div>
+    <div>
+      <div class="section-title">03. So sánh Panic Safety (Conc vs Errgroup)</div>
+      <div class="section-subtitle">Chốt chặn tự động phục hồi lỗi bảo vệ hệ thống tuyệt hảo</div>
+    </div>
+    <span class="badge badge-advanced">NÂNG CAO</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Khi phát triển các luồng xử lý song song ngầm, thảm họa tồi tệ nhất là lỗi **Panic** từ thư viện bên ngoài (ví dụ: con trỏ nil, chỉ số mảng vượt biên...).
+    </p>
+    <p class="prose">
+      Nếu dùng <code>errgroup.Group</code> hoặc <code>sync.WaitGroup</code>, lỗi panic này sẽ lập tức làm sập chết toàn bộ Server (Process Crash).
+      Bạn bắt buộc phải tự viết khối <code>recover()</code> thủ công cho từng Goroutine con một cách vô cùng mệt mỏi và dễ sơ sót.
+    </p>
+    <p class="prose">
+      <strong>Yêu cầu:</strong> Bể chứa song song phải tự động bắt toàn bộ Panic của các luồng con, đóng gói thông tin vết lỗi (Stack Trace) và truyền về luồng chủ an toàn để xử lý cô lập.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Cơ chế bảo vệ Panic Safety của Conc so với Errgroup</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-coral" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="coral-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#0d0f14;stop-opacity:0.02"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Worker Goroutine triggering Panic -->
+      <rect x="20" y="40" width="220" height="200" rx="8" fill="url(#coral-glow)" stroke="#ff6b6b" stroke-width="1.5"/>
+      <text x="130" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#ff6b6b" font-family="Space Grotesk">Goroutine Con (Worker)</text>
+      <rect x="35" y="90" width="190" height="50" rx="5" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1"/>
+      <text x="130" y="112" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">var ptr *int; *ptr = 99</text>
+      <text x="130" y="130" text-anchor="middle" font-size="10" font-weight="700" fill="#ff6b6b" font-family="Space Grotesk">💥 PANIC: Nil Pointer!</text>
+
+      <!-- Conc Panic Handler -->
+      <rect x="290" y="40" width="240" height="200" rx="12" fill="rgba(168,85,247,0.05)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="410" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#a855f7" font-family="JetBrains Mono">conc.Pool Recovery</text>
+      <rect x="310" y="95" width="200" height="40" rx="6" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="410" y="118" text-anchor="middle" font-size="10" fill="#00ff88" font-family="JetBrains Mono">recover() intercepts panic</text>
+      <text x="410" y="165" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Stores stack trace &amp; error</text>
+      <text x="410" y="182" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Safe packaging</text>
+
+      <!-- Parent Thread Wait() -->
+      <rect x="580" y="40" width="220" height="200" rx="8" fill="rgba(0,255,136,0.05)" stroke="#00ff88" stroke-width="1.5"/>
+      <text x="690" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#00ff88" font-family="Space Grotesk">Main Goroutine</text>
+      <rect x="595" y="95" width="190" height="50" rx="6" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="690" y="115" text-anchor="middle" font-size="10" fill="#e2e8f0" font-family="JetBrains Mono">p.Wait() triggered</text>
+      <text x="690" y="132" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Re-raises panic safely</text>
+      
+      <text x="690" y="185" text-anchor="middle" font-size="10" fill="#00ff88" font-family="Space Grotesk">✅ Process Survives!</text>
+      <text x="690" y="205" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">Web Server keeps running</text>
+
+      <!-- Connections -->
+      <line x1="240" y1="120" x2="290" y2="120" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#arr-coral)"/>
+      <line x1="530" y1="120" x2="580" y2="120" stroke="#00ff88" stroke-width="1.5" marker-end="url(#arr-green)"/>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">panic_safety.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+
+    <span class="str">"github.com/sourcegraph/conc/pool"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    fmt.<span class="fn">Println</span>(<span class="str">"=== Khởi động Pool an toàn Panic ==="</span>)
+
+    <span class="cm">// Hàm ẩn dụ bọc ngoài để thu giữ Panic ném ra từ Conc Wait()</span>
+    <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="kw">func</span>() {
+            <span class="kw">if</span> r := <span class="fn">recover</span>(); r != <span class="kw">nil</span> {
+                fmt.<span class="fn">Printf</span>(<span class="str">"✅ [SYSTEM PROTECTED] Phát hiện và bắt gọn Panic: %v\n"</span>, r)
+            }
+        }()
+
+        p := pool.<span class="fn">New</span>().<span class="fn">WithMaxGoroutines</span>(<span class="num">2</span>)
+
+        p.<span class="fn">Go</span>(<span class="kw">func</span>() {
+            fmt.<span class="fn">Println</span>(<span class="str">"  Task 1: Vận hành ổn định."</span>)
+        })
+
+        p.<span class="fn">Go</span>(<span class="kw">func</span>() {
+            <span class="cm">// Tác vụ con bị sập do lỗi con trỏ nil ảo</span>
+            <span class="kw">var</span> ptr *<span class="tp">int</span>
+            *ptr = <span class="num">99</span> <span class="cm">// 💥 Sinh Panic tại đây!</span>
+        })
+
+        p.<span class="fn">Go</span>(<span class="kw">func</span>() {
+            fmt.<span class="fn">Println</span>(<span class="str">"  Task 3: Vận hành ổn định."</span>)
+        })
+
+        <span class="cm">// ⚠️ Wait() sẽ tự động ném lại (Re-raise) lỗi Panic đã được gom từ luồng con</span>
+        p.<span class="fn">Wait</span>()
+    }()
+
+    fmt.<span class="fn">Println</span>(<span class="str">"🎉 Hệ thống vẫn tiếp tục vận hành an toàn sau sự cố!"</span>)
+    fmt.<span class="fn">Println</span>(<span class="str">"   (Nếu dùng errgroup, cả Server của bạn đã bị sập tắt hoàn toàn)"</span>)
+}</pre>
+  </div>
+
+  <div class="note note-warn">
+    <div class="note-icon">⚠️</div>
+    <p>
+      <strong>Triết lý đằng sau:</strong> Go đề cao tính tường minh, nên stdlib để mặc cho sập để lập trình viên sửa lỗi tận gốc. Tuy nhiên trong môi trường sản xuất chịu tải doanh nghiệp, việc sập toàn bộ Server chỉ vì một luồng con bị lỗi là điều không thể chấp nhận được. Conc giải quyết hoàn hảo sự cân bằng này: an toàn ở luồng con, tường minh ở luồng chủ!
+    </p>
+  </div>
+</section>
+
+<!-- ==================== EXPERT ==================== -->
+<section class="page-section" id="s-expert">
+  <div class="section-header">
+    <div class="section-number">06</div>
+    <div>
+      <div class="section-title">04. Expert Bounded API Aggregator</div>
+      <div class="section-subtitle">Gom tài nguyên từ nhiều nguồn API song song an toàn kiểu cấp độ Enterprise</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📖 Ngữ cảnh thực tế (Problem Statement)</div>
+    <p class="prose">
+      Trang tổng quan (Dashboard) của bạn cần tổng hợp thông tin cá nhân khách hàng bằng cách gọi 3 APIs dịch vụ độc lập:
+      <strong>API Thông tin cơ bản (Profile) → API Ví tiền (Wallet) → API Lịch sử đơn hàng (Orders)</strong>.
+    </p>
+    <p class="prose">
+      <strong>Yêu cầu thiết kế:</strong>
+      1. Tối ưu thời gian phản hồi bằng cách gọi song song cả 3 APIs cùng lúc.
+      2. Khống chế cứng thời gian phản hồi (Timeout) toàn cục.
+      3. Thu gom toàn bộ lỗi nếu có (ví dụ: API Ví bị lỗi nhưng API Orders vẫn OK, ta cần báo chính xác API nào hỏng).
+      4. An toàn dữ liệu kiểu tĩnh (Type-safe) trả về không cần ép kiểu interface.
+    </p>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram-title">Kiến trúc Bounded API Aggregator song song trong Conc</div>
+    <svg width="100%" viewBox="0 0 820 280" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arr-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#a855f7" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <marker id="arr-cyan" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M2 1L8 5L2 9" fill="none" stroke="#00d4ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </marker>
+        <linearGradient id="purple-glow" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:#a855f7;stop-opacity:0.15"/>
+          <stop offset="100%" style="stop-color:#00ff88;stop-opacity:0.04"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Main Goroutine Orchestrator -->
+      <rect x="20" y="40" width="180" height="200" rx="8" fill="rgba(255,255,255,0.02)" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="110" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#a855f7" font-family="Space Grotesk">Dashboard API Call</text>
+      <rect x="35" y="90" width="150" height="50" rx="5" fill="rgba(0,0,0,0.4)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="110" y="112" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="JetBrains Mono">NewWithResults[T]()</text>
+      <text x="110" y="130" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">WithErrors()</text>
+      <text x="110" y="180" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="Space Grotesk">Global Timeout 200ms</text>
+
+      <!-- Conc Concurrency Pool -->
+      <rect x="270" y="40" width="280" height="200" rx="12" fill="url(#purple-glow)" stroke="#00d4ff" stroke-width="1.5"/>
+      <text x="410" y="65" text-anchor="middle" font-size="13" font-weight="700" fill="#00d4ff" font-family="JetBrains Mono">Parallel Fetch Pool</text>
+
+      <g transform="translate(290, 85)">
+        <rect x="0" y="0" width="240" height="36" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1"/>
+        <text x="120" y="22" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="Space Grotesk">Worker 0 -> fetchProfile(80ms)</text>
+      </g>
+      <g transform="translate(290, 135)">
+        <rect x="0" y="0" width="240" height="36" rx="6" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1"/>
+        <text x="120" y="22" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="Space Grotesk">Worker 1 -> fetchWallet(120ms)</text>
+      </g>
+      <g transform="translate(290, 185)">
+        <rect x="0" y="0" width="240" height="36" rx="6" fill="rgba(255,107,107,0.1)" stroke="#ff6b6b" stroke-width="1"/>
+        <text x="120" y="22" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Space Grotesk">Worker 2 -> fetchOrders(60ms - ERROR)</text>
+      </g>
+
+      <!-- Downstream Services -->
+      <rect x="620" y="40" width="180" height="200" rx="8" fill="rgba(255,255,255,0.02)" stroke="rgba(255,255,255,0.05)" stroke-width="1.5"/>
+      <text x="710" y="65" text-anchor="middle" font-size="12" font-weight="700" fill="#94a3b8" font-family="Space Grotesk">Downstream APIs</text>
+      <rect x="635" y="85" width="150" height="30" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="710" y="104" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="Space Grotesk">Profile Service</text>
+      <rect x="635" y="130" width="150" height="30" rx="5" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+      <text x="710" y="149" text-anchor="middle" font-size="9" fill="#e2e8f0" font-family="Space Grotesk">Wallet Service</text>
+      <rect x="635" y="175" width="150" height="30" rx="5" fill="rgba(255,107,107,0.08)" stroke="#ff6b6b" stroke-width="1"/>
+      <text x="710" y="194" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="Space Grotesk">Order Service (Down)</text>
+
+      <!-- Connectors -->
+      <line x1="200" y1="140" x2="270" y2="140" stroke="#a855f7" stroke-width="1.5" marker-end="url(#arr-purple)"/>
+      <line x1="550" y1="103" x2="620" y2="103" stroke="#00d4ff" stroke-width="1.2" marker-end="url(#arr-cyan)"/>
+      <line x1="550" y1="153" x2="620" y2="153" stroke="#00d4ff" stroke-width="1.2" marker-end="url(#arr-cyan)"/>
+      <line x1="550" y1="203" x2="620" y2="190" stroke="#ff6b6b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-cyan)"/>
+    </svg>
+  </div>
+
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">GO</span>
+      <span class="code-filename">api_aggregator.go</span>
+      <button class="code-copy">Copy</button>
+    </div>
+    <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+
+    <span class="str">"github.com/sourcegraph/conc/pool"</span>
+)
+
+<span class="kw">type</span> <span class="tp">APIResponse</span> <span class="kw">struct</span> {
+    Source <span class="tp">string</span>
+    Data   <span class="tp">string</span>
+}
+
+<span class="cm">// fetchProfile mô phỏng gọi API chi tiết user</span>
+<span class="kw">func</span> <span class="fn">fetchProfile</span>(ctx <span class="tp">context.Context</span>) (<span class="tp">APIResponse</span>, <span class="tp">error</span>) {
+    time.<span class="fn">Sleep</span>(<span class="num">80</span> * time.Millisecond)
+    <span class="kw">return</span> <span class="tp">APIResponse</span>{Source: <span class="str">"Profile"</span>, Data: <span class="str">"User: Tung M-TP, Level: VIP"</span>}, <span class="kw">nil</span>
+}
+
+<span class="cm">// fetchWallet mô phỏng gọi API số dư ví</span>
+<span class="kw">func</span> <span class="fn">fetchWallet</span>(ctx <span class="tp">context.Context</span>) (<span class="tp">APIResponse</span>, <span class="tp">error</span>) {
+    time.<span class="fn">Sleep</span>(<span class="num">120</span> * time.Millisecond)
+    <span class="kw">return</span> <span class="tp">APIResponse</span>{Source: <span class="str">"Wallet"</span>, Data: <span class="str">"Balance: 99,000,000 VND"</span>}, <span class="kw">nil</span>
+}
+
+<span class="cm">// fetchOrders mô phỏng gọi API lịch sử đơn hàng bị lỗi</span>
+<span class="kw">func</span> <span class="fn">fetchOrders</span>(ctx <span class="tp">context.Context</span>) (<span class="tp">APIResponse</span>, <span class="tp">error</span>) {
+    time.<span class="fn">Sleep</span>(<span class="num">60</span> * time.Millisecond)
+    <span class="kw">return</span> <span class="tp">APIResponse</span>{}, fmt.<span class="fn">Errorf</span>(<span class="str">"API đơn hàng bảo trì đột xuất"</span>)
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    ctx, cancel := context.<span class="fn">WithTimeout</span>(context.<span class="fn">Background</span>(), <span class="num">200</span>*time.Millisecond)
+    <span class="kw">defer</span> <span class="fn">cancel</span>()
+
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    <span class="cm">// pool.NewWithResults[T]().WithErrors():</span>
+    <span class="cm">// Cú pháp tối thượng kết hợp song song gộp lỗi và trả về dữ liệu an toàn kiểu tĩnh</span>
+    <span class="cm">// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━</span>
+    p := pool.<span class="fn">NewWithResults</span>[<span class="tp">APIResponse</span>]().<span class="fn">WithErrors</span>()
+
+    <span class="cm">// Gửi song song cả 3 APIs</span>
+    p.<span class="fn">Go</span>(<span class="kw">func</span>() (<span class="tp">APIResponse</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="fn">fetchProfile</span>(ctx)
+    })
+    p.<span class="fn">Go</span>(<span class="kw">func</span>() (<span class="tp">APIResponse</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="fn">fetchWallet</span>(ctx)
+    })
+    p.<span class="fn">Go</span>(<span class="kw">func</span>() (<span class="tp">APIResponse</span>, <span class="tp">error</span>) {
+        <span class="kw">return</span> <span class="fn">fetchOrders</span>(ctx)
+    })
+
+    <span class="cm">// Thu gom kết quả và lỗi đồng thời</span>
+    results, err := p.<span class="fn">Wait</span>()
+
+    <span class="kw">if</span> err != <span class="kw">nil</span> {
+        fmt.<span class="fn">Printf</span>(<span class="str">"⚠️ [MULTI-ERROR CAPTURED] Có lỗi phát sinh trong luồng song song:\n%v\n\n"</span>, err)
+    }
+
+    fmt.<span class="fn">Println</span>(<span class="str">"📋 Kết quả API thu gom thành công:"</span>)
+    <span class="kw">for</span> _, res := range results {
+        <span class="kw">if</span> res.Source != <span class="str">""</span> {
+            fmt.<span class="fn">Printf</span>(<span class="str">"  👉 Nguồn: %-8s | Dữ liệu: %s\n"</span>, res.Source, res.Data)
+        }
+    }
+}</pre>
+  </div>
+
+  <div class="note note-success">
+    <div class="note-icon">🏆</div>
+    <p>
+      <strong>Kết luận cấp cao:</strong> Sự kết hợp tuyệt mỹ giữa Generics định kiểu <code>APIResponse</code> và gom đa lỗi <code>WithErrors()</code> của Conc mang lại trải nghiệm viết code song song chuẩn chỉ chưa từng có trong Go. Không ép kiểu interface{}, không lock mutex, không lọt lỗi. Vô cùng hoàn hảo!
+    </p>
+  </div>
+</section>
+
+<!-- ==================== PITFALLS ==================== -->
+<section class="page-section" id="s-pitfalls">
+  <div class="section-header">
+    <div class="section-number">07</div>
+    <div>
+      <div class="section-title">Cạm bẫy thiết kế &amp; Anti-patterns</div>
+      <div class="section-subtitle">Tránh những sai sót cấu hình gây treo hệ thống hay nghẽn CPU</div>
+    </div>
+    <span class="badge badge-expert">EXPERT</span>
+  </div>
+
+  <div class="compare-grid">
+    <div class="compare-card">
+      <div class="compare-head purple">❌ SAI: Quên cấu hình WithMaxGoroutines</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">
+          Mặc định, <code>pool.New()</code> sẽ <strong>không giới hạn</strong> số lượng Goroutines con. Nếu bạn chọc vòng lặp 100,000 dòng để gửi request, hệ thống sẽ bùng nổ 100,000 Goroutines lập tức gây nghẽn RAM!
+        </p>
+        <span class="tag tag-bad">Nguy cơ OOM sập Server</span>
+      </div>
+    </div>
+    <div class="compare-card">
+      <div class="compare-head cyan">✅ ĐÚNG: Luôn chốt chặn cứng MaxGoroutines</div>
+      <div style="padding:16px">
+        <p class="prose" style="font-size:13px">
+          Luôn khai báo giới hạn qua <code>WithMaxGoroutines(limit)</code> khi xử lý danh sách không kiểm soát hoặc I/O để bảo vệ dòng tải.
+        </p>
+        <span class="tag tag-good">Độ ổn định hệ thống cao</span>
+      </div>
+    </div>
+  </div>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>STT</th>
+        <th>Lỗi phổ biến</th>
+        <th>Hệ quả vận hành</th>
+        <th>Biện pháp khắc phục chuẩn chỉnh</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>Thay đổi biến dùng chung (Shared State) trong <code>iter.ForEach</code> không bảo vệ</td>
+        <td>Đổ vỡ dữ liệu ngầm (Silent Data Race) do hàng chục Goroutine cùng ghi đè lên bộ nhớ cùng lúc</td>
+        <td>Sử dụng <code>sync.Mutex</code> bảo vệ đoạn code ghi, hoặc chuyển sang dùng <code>iter.Map</code> trả kết quả cô lập</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Không bắt lỗi (Recover) tại hàm gọi Wait()</td>
+        <td>Hệ thống sập toàn diện do Panic của luồng con ném ngược lại luồng chính không có chốt chặn bọc ngoài</td>
+        <td>Luôn bọc hàm có nguy cơ Panic ở luồng chủ bằng <code>defer recover()</code> an toàn</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>Thao tác xử lý trong vòng lặp <code>iter.Map</code> quá nhẹ (Light Tasks)</td>
+        <td>Latency tăng lên do chi phí điều phối goroutines lớn hơn chi phí tính toán thực tế của task</td>
+        <td>Chỉ dùng song song hoá mảng khi tác vụ có dính tới I/O (DB, HTTP) hoặc tính toán thuật toán phức tạp</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <hr class="divider">
+
+  <div class="note note-danger">
+    <div class="note-icon">🚨</div>
+    <p>
+      <strong>Cảnh giác với rò rỉ Context:</strong> Dù Conc quản lý Goroutines rất tốt, nó không tự động huỷ bỏ (Cancel) các tác vụ con nếu Context đã bị Timeout. Hãy chủ động truyền <code>ctx</code> sâu vào từng API call bên trong các tác vụ con để giải phóng kết nối mạng kịp thời.
+    </p>
+  </div>
+</section>
+
+<!-- ==================== REFERENCES ==================== -->
+<section class="page-section" id="s-refs">
+  <div class="section-header">
+    <div class="section-number">08</div>
+    <div>
+      <div class="section-title">Tài liệu tham khảo &amp; Nguồn uy tín</div>
+      <div class="section-subtitle">Những liên kết hữu ích để thấu hiểu tường tận triết lý Structured Concurrency</div>
+    </div>
+  </div>
+
+  <a class="ref-card" href="https://github.com/sourcegraph/conc" target="_blank">
+    <div class="ref-icon" style="background: rgba(168,85,247,0.1)">🐙</div>
+    <div class="ref-body">
+      <div class="ref-title">GitHub Repository — Sourcegraph Conc</div>
+      <div class="ref-desc">Toàn bộ mã nguồn, tài liệu hướng dẫn và các benchmarks hiệu năng của conc.</div>
+      <div class="ref-url">github.com/sourcegraph/conc</div>
+    </div>
+    <div class="ref-stars">⭐ 8K+ Stars</div>
+  </a>
+
+  <a class="ref-card" href="https://pkg.go.dev/github.com/sourcegraph/conc" target="_blank">
+    <div class="ref-icon" style="background: rgba(0,212,255,0.1)">📦</div>
+    <div class="ref-body">
+      <div class="ref-title">GoDoc API Reference — Sourcegraph Conc</div>
+      <div class="ref-desc">Bản vẽ chi tiết các phương thức điều phối và kiểu định nghĩa an toàn.</div>
+      <div class="ref-url">pkg.go.dev/github.com/sourcegraph/conc</div>
+    </div>
+    <div class="ref-stars">⭐ Official API Docs</div>
+  </a>
+
+  <a class="ref-card" href="https://about.sourcegraph.com/blog/building-conc-better-structured-concurrency-for-go" target="_blank">
+    <div class="ref-icon" style="background: rgba(0,255,136,0.1)">📝</div>
+    <div class="ref-body">
+      <div class="ref-title">Sourcegraph Blog — Rationale Behind Conc</div>
+      <div class="ref-desc">Bài phân tích kinh điển của đội ngũ kỹ sư Sourcegraph lý giải tại sao họ xây dựng conc để thay thế errgroup.</div>
+      <div class="ref-url">about.sourcegraph.com/blog/building-conc-better-structured-concurrency-for-go</div>
+    </div>
+    <div class="ref-stars">⭐ Design Read</div>
+  </a>
+
+  <hr class="divider">
+
+  <div class="note note-success">
+    <div class="note-icon">✅</div>
+    <p>
+      <strong>Tóm tắt cốt lõi:</strong> <code>conc</code> là thư viện chuẩn mực tương lai giúp hiện thực hoá Structured Concurrency trong Go một cách an toàn và tinh tế. Nắm chắc 3 quy tắc: (1) Luôn chốt chặn WithMaxGoroutines, (2) Dùng ResultPool[T] thay interface{}, (3) Bọc kỹ Wait() đề phòng Re-raised Panics!
+    </p>
+  </div>
+</section>
+
+</div>
+</main>
+
+<!-- ====== JAVASCRIPT SPA ROUTER ====== -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const hamburger = document.getElementById("hamburger");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  
+  function toggleSidebar() {
+    hamburger.classList.toggle("active");
+    sidebar.classList.toggle("open");
+    overlay.classList.toggle("active");
+  }
+
+  hamburger.addEventListener("click", toggleSidebar);
+  overlay.addEventListener("click", toggleSidebar);
+
+  const sections = document.querySelectorAll(".page-section");
+  const navItems = document.querySelectorAll(".nav-item");
+  const topnavItems = document.querySelectorAll(".topnav-item");
+
+  function showSection(id) {
+    sections.forEach(sec => {
+      sec.classList.remove("active");
+    });
+    const activeSec = document.getElementById("s-" + id);
+    if (activeSec) {
+      activeSec.classList.add("active");
+    }
+
+    navItems.forEach(item => {
+      item.classList.remove("active");
+      if (item.getAttribute("data-section") === id) {
+        item.classList.add("active");
+      }
+    });
+
+    topnavItems.forEach(item => {
+      item.classList.remove("active");
+      if (item.getAttribute("data-section") === id) {
+        item.classList.add("active");
+      }
+    });
+
+    window.scrollTo({ top: 0, behavior: "instant" });
+  }
+
+  function handleHash() {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+      showSection(hash);
+    } else {
+      showSection("intro");
+    }
+  }
+
+  navItems.forEach(item => {
+    item.addEventListener("click", function() {
+      const targetSec = this.getAttribute("data-section");
+      try {
+        history.pushState(null, null, "#" + targetSec);
+      } catch (e) {
+        window.location.hash = targetSec;
+      }
+      showSection(targetSec);
+      
+      if (window.innerWidth <= 768) {
+        toggleSidebar();
+      }
+    });
+  });
+
+  topnavItems.forEach(item => {
+    item.addEventListener("click", function() {
+      const targetSec = this.getAttribute("data-section");
+      try {
+        history.pushState(null, null, "#" + targetSec);
+      } catch (e) {
+        window.location.hash = targetSec;
+      }
+      showSection(targetSec);
+    });
+  });
+
+  window.addEventListener("hashchange", handleHash);
+
+  handleHash();
+
+  document.querySelectorAll(".code-copy").forEach(btn => {
+    btn.addEventListener("click", function() {
+      const codeBlock = this.closest(".code-block");
+      const pre = codeBlock.querySelector("pre");
+      navigator.clipboard.writeText(pre.innerText).then(() => {
+        this.textContent = "Copied!";
+        this.style.color = "var(--accent-green)";
+        setTimeout(() => {
+          this.textContent = "Copy";
+          this.style.color = "var(--text-secondary)";
+        }, 2000);
+      });
+    });
+  });
+});
+</script>
+
+</body>
+</html>
