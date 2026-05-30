@@ -1,0 +1,75 @@
+version: 1
+kind: algorithm-playground
+
+meta:
+  id: binary-search
+  title: Binary Search
+  family: binary-search
+  difficulty: foundation
+
+dataset:
+  type: int-array
+  params:
+    - name: nums
+      required: true
+    - name: target
+      required: true
+
+ui:
+  renderer: indexed-array
+  controls: [play, pause, next, reset, speed]
+  panels: [visual, variables, code, explanation]
+
+examples:
+  - id: found
+    label: Found target
+    input:
+      nums: [2, 5, 8, 12, 16, 23, 38]
+      target: 23
+  - id: missing
+    label: Missing target
+    input:
+      nums: [2, 5, 8, 12, 16, 23, 38]
+      target: 15
+
+bindings:
+  variables: [lo, hi, mid, value, target]
+  pointers:
+    - name: lo
+      variable: lo
+      style: left-bound
+    - name: hi
+      variable: hi
+      style: right-bound
+    - name: mid
+      variable: mid
+      style: probe
+  code:
+    style: pseudocode
+    lines:
+      - id: init
+        text: lo = 0, hi = n - 1
+      - id: mid
+        text: mid = lo + (hi - lo) / 2
+      - id: check
+        text: compare nums[mid] with target
+      - id: go-right
+        text: lo = mid + 1
+      - id: go-left
+        text: hi = mid - 1
+      - id: found
+        text: return mid
+      - id: not-found
+        text: return -1
+
+program:
+  entry: exact_match
+  macros:
+    - init_closed_range
+    - loop_closed_range
+    - compute_mid
+    - inspect_mid
+    - branch_exact_match
+    - discard_left_half
+    - discard_right_half
+    - return_not_found

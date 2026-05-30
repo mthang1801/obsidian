@@ -1,0 +1,2125 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Product Requirements — Cẩm nang chuyên sâu cho Tài liệu Yêu cầu Sản phẩm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,500&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;
+  --bg-2:#0e1117;
+  --panel:#12161f;
+  --panel-2:#161b26;
+  --line:#222a39;
+  --line-soft:#1a2030;
+  --ink:#e8ecf4;
+  --ink-soft:#aeb7c9;
+  --ink-mute:#7e889d;
+  --gold:#e9b949;
+  --gold-soft:#f3d27a;
+  --amber:#d98e3c;
+  --teal:#43c1b0;
+  --teal-soft:#7fe0d2;
+  --rose:#e06c8a;
+  --violet:#9b8cf0;
+  --blue:#5aa9f0;
+  --green:#6cc36a;
+  --code-bg:#0c1019;
+  --shadow:0 24px 60px -24px rgba(0,0,0,.7);
+  --maxw:1180px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+body{
+  background:
+    radial-gradient(1200px 700px at 85% -8%, rgba(233,185,73,.08), transparent 55%),
+    radial-gradient(1000px 600px at -5% 12%, rgba(67,193,176,.07), transparent 55%),
+    var(--bg);
+  color:var(--ink);
+  font-family:'Space Grotesk',system-ui,sans-serif;
+  line-height:1.72;
+  font-size:16.5px;
+  -webkit-font-smoothing:antialiased;
+  overflow-x:hidden;
+}
+::selection{background:rgba(233,185,73,.28);color:#fff}
+
+/* ============ TOP BAR ============ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  backdrop-filter:blur(14px);
+  background:rgba(10,12,16,.78);
+  border-bottom:1px solid var(--line-soft);
+}
+.topbar-inner{
+  max-width:var(--maxw);margin:0 auto;padding:14px 24px;
+  display:flex;align-items:center;justify-content:space-between;gap:20px;
+}
+.brand{display:flex;align-items:center;gap:12px;font-family:'Fraunces',serif;font-weight:900;font-size:18px;letter-spacing:.2px}
+.brand .dot{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--gold),var(--amber));color:#1a1304;font-size:16px;box-shadow:0 6px 18px -6px rgba(233,185,73,.6)}
+.topnav{display:flex;gap:6px;flex-wrap:wrap}
+.topnav a{color:var(--ink-mute);text-decoration:none;font-size:13.5px;font-weight:500;padding:6px 11px;border-radius:8px;transition:.18s}
+.topnav a:hover{color:var(--ink);background:var(--panel-2)}
+@media(max-width:880px){.topnav{display:none}}
+
+/* ============ LAYOUT ============ */
+.shell{max-width:var(--maxw);margin:0 auto;padding:74px 24px 0;display:grid;grid-template-columns:248px 1fr;gap:44px}
+@media(max-width:980px){.shell{grid-template-columns:1fr}}
+
+aside.toc{
+  position:sticky;top:84px;align-self:start;height:calc(100vh - 100px);overflow-y:auto;
+  padding:22px 0 60px;font-size:13.6px;
+}
+aside.toc::-webkit-scrollbar{width:8px}
+aside.toc::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+.toc-title{font-family:'Fraunces',serif;font-size:13px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin:0 0 14px;font-weight:600}
+.toc a{display:block;color:var(--ink-mute);text-decoration:none;padding:5px 12px;border-left:2px solid transparent;transition:.16s;border-radius:0 6px 6px 0}
+.toc a:hover{color:var(--ink);background:var(--panel)}
+.toc a.sub{padding-left:24px;font-size:12.8px;color:#69728a}
+.toc a.active{color:var(--gold-soft);border-left-color:var(--gold);background:linear-gradient(90deg,rgba(233,185,73,.08),transparent)}
+@media(max-width:980px){aside.toc{position:static;height:auto;border-bottom:1px solid var(--line);margin-bottom:20px}}
+
+main{padding:0 0 120px;min-width:0}
+
+/* ============ HERO ============ */
+.hero{padding:74px 0 30px;border-bottom:1px solid var(--line-soft);margin-bottom:48px}
+.eyebrow{display:inline-flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--teal-soft);
+  border:1px solid var(--line);background:var(--panel);padding:7px 14px;border-radius:100px;margin-bottom:24px}
+.eyebrow .pulse{width:7px;height:7px;border-radius:50%;background:var(--teal);box-shadow:0 0 0 0 rgba(67,193,176,.5);animation:pulse 2.4s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(67,193,176,.5)}70%{box-shadow:0 0 0 9px rgba(67,193,176,0)}100%{box-shadow:0 0 0 0 rgba(67,193,176,0)}}
+h1.hero-title{font-family:'Fraunces',serif;font-weight:900;font-size:clamp(38px,6vw,68px);line-height:1.02;letter-spacing:-.02em;margin-bottom:22px}
+h1.hero-title em{font-style:italic;color:var(--gold);font-weight:500}
+.hero-lede{font-size:19px;color:var(--ink-soft);max-width:760px;margin-bottom:30px}
+.hero-meta{display:flex;gap:14px;flex-wrap:wrap}
+.chip{font-size:13px;color:var(--ink-soft);border:1px solid var(--line);background:var(--panel);padding:8px 15px;border-radius:10px;display:flex;align-items:center;gap:8px}
+.chip b{color:var(--ink)}
+
+/* ============ TYPOGRAPHY ============ */
+.topic{display:none;padding:46px 0;border-bottom:1px solid var(--line-soft);scroll-margin-top:84px}
+.topic.active{display:block!important}
+.topic-head{display:flex;align-items:flex-start;gap:18px;margin-bottom:18px}
+.topic-num{flex:none;font-family:'Fraunces',serif;font-weight:900;font-size:15px;width:46px;height:46px;border-radius:13px;display:grid;place-items:center;
+  background:linear-gradient(135deg,var(--panel-2),var(--panel));border:1px solid var(--line);color:var(--gold);box-shadow:var(--shadow)}
+h2.topic-title{font-family:'Fraunces',serif;font-weight:900;font-size:clamp(27px,3.6vw,40px);line-height:1.08;letter-spacing:-.01em}
+.topic-sub{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--teal-soft);letter-spacing:.05em;margin-top:4px}
+h3{font-family:'Fraunces',serif;font-weight:600;font-size:23px;margin:36px 0 12px;letter-spacing:-.01em;color:#fff}
+h3::before{content:"";display:inline-block;width:22px;height:2px;background:var(--gold);vertical-align:middle;margin-right:12px;margin-bottom:5px}
+h4{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:16.5px;margin:24px 0 8px;color:var(--gold-soft)}
+p{margin:12px 0;color:var(--ink-soft)}
+p strong,li strong{color:var(--ink);font-weight:600}
+a.link{color:var(--teal-soft);text-decoration:none;border-bottom:1px dashed rgba(127,224,210,.4)}
+a.link:hover{border-bottom-style:solid}
+ul,ol{margin:12px 0 12px 4px;padding-left:22px}
+li{margin:7px 0;color:var(--ink-soft)}
+ul li::marker{color:var(--gold)}
+ol li::marker{color:var(--teal-soft);font-family:'JetBrains Mono',monospace;font-weight:700}
+code{font-family:'JetBrains Mono',monospace;font-size:.88em;background:var(--code-bg);border:1px solid var(--line-soft);padding:2px 7px;border-radius:6px;color:var(--gold-soft)}
+
+/* ============ COMPONENTS ============ */
+.lead-card{background:linear-gradient(135deg,var(--panel),var(--bg-2));border:1px solid var(--line);border-radius:18px;padding:26px 28px;margin:20px 0;position:relative;overflow:hidden}
+.lead-card::before{content:"";position:absolute;top:0;left:0;width:4px;height:100%;background:linear-gradient(var(--gold),var(--amber))}
+.lead-card .label{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);margin-bottom:8px}
+
+.def-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px 24px;margin:18px 0}
+.def-box .term{font-family:'Fraunces',serif;font-weight:600;font-size:18px;color:#fff;margin-bottom:4px}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:18px 0}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+@media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+.mini{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:18px 20px}
+.mini .ic{font-size:20px;margin-bottom:8px;display:block}
+.mini h5{font-size:15px;color:#fff;margin-bottom:5px;font-weight:700}
+.mini p{font-size:14px;margin:0;color:var(--ink-mute)}
+
+.callout{border-radius:13px;padding:16px 20px;margin:18px 0;border:1px solid;font-size:15px;display:flex;gap:13px;align-items:flex-start}
+.callout .ci{font-size:18px;flex:none;margin-top:1px}
+.callout.tip{background:rgba(67,193,176,.07);border-color:rgba(67,193,176,.3)}
+.callout.tip .ci{color:var(--teal)}
+.callout.warn{background:rgba(217,142,60,.08);border-color:rgba(217,142,60,.32)}
+.callout.warn .ci{color:var(--amber)}
+.callout.danger{background:rgba(224,108,138,.08);border-color:rgba(224,108,138,.32)}
+.callout.danger .ci{color:var(--rose)}
+.callout b{color:var(--ink)}
+
+/* ============ EXAMPLE BLOCK ============ */
+.example{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--line);border-radius:20px;padding:0;margin:30px 0;overflow:hidden;box-shadow:var(--shadow)}
+.example-head{display:flex;align-items:center;gap:14px;padding:20px 26px;border-bottom:1px solid var(--line-soft);background:rgba(255,255,255,.012)}
+.example-badge{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.1em;padding:5px 11px;border-radius:8px;text-transform:uppercase;flex:none}
+.lvl-basic{background:rgba(108,195,106,.14);color:var(--green);border:1px solid rgba(108,195,106,.34)}
+.lvl-adv{background:rgba(90,169,240,.14);color:var(--blue);border:1px solid rgba(90,169,240,.34)}
+.lvl-expert{background:rgba(155,140,240,.16);color:var(--violet);border:1px solid rgba(155,140,240,.36)}
+.example-head h4{margin:0;font-family:'Fraunces',serif;font-size:20px;color:#fff;font-weight:600}
+.example-body{padding:24px 26px}
+.phase{margin:0 0 20px}
+.phase:last-child{margin-bottom:0}
+.phase-tag{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:11.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700;margin-bottom:8px;padding:4px 10px;border-radius:7px}
+.pt-problem{color:var(--rose);background:rgba(224,108,138,.1)}
+.pt-solution{color:var(--teal-soft);background:rgba(67,193,176,.1)}
+.pt-visual{color:var(--gold-soft);background:rgba(233,185,73,.1)}
+.pt-note{color:var(--violet);background:rgba(155,140,240,.12)}
+.phase p{margin:6px 0}
+.note-block{background:var(--panel-2);border:1px dashed var(--line);border-radius:13px;padding:16px 20px;margin-top:6px}
+
+/* ============ TABLE ============ */
+.tbl-wrap{overflow-x:auto;margin:18px 0;border:1px solid var(--line);border-radius:14px}
+table{width:100%;border-collapse:collapse;font-size:14.5px;min-width:520px}
+th,td{text-align:left;padding:12px 16px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+th{background:var(--panel-2);color:var(--gold-soft);font-family:'Space Grotesk';font-weight:700;font-size:13px;letter-spacing:.03em}
+tr:last-child td{border-bottom:none}
+td{color:var(--ink-soft)}
+tr:hover td{background:rgba(255,255,255,.012)}
+
+/* ============ DIAGRAM (SVG) ============ */
+.diagram{background:var(--code-bg);border:1px solid var(--line);border-radius:16px;padding:24px;margin:18px 0;text-align:center}
+.diagram svg{max-width:100%;height:auto}
+.diagram .cap{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--ink-mute);margin-top:14px;letter-spacing:.03em}
+.svg-box{fill:var(--panel-2);stroke:var(--line);stroke-width:1.5}
+.svg-box-gold{fill:rgba(233,185,73,.1);stroke:var(--gold);stroke-width:1.5}
+.svg-box-teal{fill:rgba(67,193,176,.1);stroke:var(--teal);stroke-width:1.5}
+.svg-box-blue{fill:rgba(90,169,240,.1);stroke:var(--blue);stroke-width:1.5}
+.svg-box-rose{fill:rgba(224,108,138,.1);stroke:var(--rose);stroke-width:1.5}
+.svg-box-violet{fill:rgba(155,140,240,.1);stroke:var(--violet);stroke-width:1.5}
+.svg-t{fill:var(--ink);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:500}
+.svg-t-sm{fill:var(--ink-mute);font-family:'JetBrains Mono',monospace;font-size:10.5px}
+.svg-t-b{fill:#fff;font-family:'Space Grotesk',sans-serif;font-size:13.5px;font-weight:700}
+.svg-line{stroke:var(--line);stroke-width:1.6;fill:none}
+.svg-line-g{stroke:var(--gold);stroke-width:1.8;fill:none}
+.svg-line-t{stroke:var(--teal);stroke-width:1.8;fill:none}
+.svg-dash{stroke:var(--ink-mute);stroke-width:1.4;fill:none;stroke-dasharray:5 4}
+
+/* compare cols */
+.vs{display:grid;grid-template-columns:1fr auto 1fr;gap:0;margin:18px 0;align-items:stretch}
+@media(max-width:680px){.vs{grid-template-columns:1fr}}
+.vs-col{background:var(--panel);border:1px solid var(--line);padding:18px 20px}
+.vs-col:first-child{border-radius:14px 0 0 14px}
+.vs-col:last-child{border-radius:0 14px 14px 0}
+@media(max-width:680px){.vs-col{border-radius:14px!important}}
+.vs-mid{display:grid;place-items:center;padding:0 8px;font-family:'Fraunces';font-style:italic;color:var(--gold);font-size:18px}
+@media(max-width:680px){.vs-mid{padding:8px}}
+.vs-col h5{font-family:'Fraunces',serif;font-size:17px;color:#fff;margin-bottom:8px}
+
+/* footer / refs */
+.refs{padding:50px 0 0}
+.ref-item{display:flex;gap:14px;padding:15px 0;border-bottom:1px solid var(--line-soft)}
+.ref-item .rn{font-family:'JetBrains Mono';font-size:12px;color:var(--gold);flex:none;width:30px;padding-top:2px}
+.ref-item .rc h5{font-size:15.5px;color:#fff;margin-bottom:2px}
+.ref-item .rc a{color:var(--teal-soft);font-size:13px;font-family:'JetBrains Mono';text-decoration:none;word-break:break-all}
+.ref-item .rc p{font-size:13.5px;margin:3px 0 0;color:var(--ink-mute)}
+
+.endcard{margin-top:54px;text-align:center;padding:40px 24px;border:1px solid var(--line);border-radius:20px;
+  background:radial-gradient(600px 200px at 50% 0%,rgba(233,185,73,.08),transparent)}
+.endcard .q{font-family:'Fraunces',serif;font-style:italic;font-size:22px;color:var(--gold-soft);max-width:620px;margin:0 auto 8px}
+.footer{padding:40px 0 10px;color:var(--ink-mute);font-size:13px;text-align:center}
+
+.anchor-pill{display:inline-block;font-family:'JetBrains Mono';font-size:11px;color:var(--ink-mute);border:1px solid var(--line);padding:3px 9px;border-radius:7px;margin:0 6px 6px 0}
+.kicker{font-family:'JetBrains Mono';font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin:32px 0 4px}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand"><span class="dot">◆</span> Product&nbsp;Requirements&nbsp;<em style="color:var(--ink-mute);font-weight:400;font-family:'JetBrains Mono';font-size:12px;font-style:normal">/ cẩm nang</em></div>
+    <nav class="topnav">
+      <a href="#brs">BRS</a><a href="#frs">FRS</a><a href="#nfr">NFR</a>
+      <a href="#prd">PRD</a><a href="#srs">SRS</a><a href="#usecase">Use Case</a>
+      <a href="#story">User Story</a><a href="#scenario">Scenario</a><a href="#vivid">Vivid</a>
+      <a href="#refs">Refs</a>
+    </nav>
+  </div>
+</div>
+
+<div class="shell">
+<!-- TOC -->
+<aside class="toc">
+  <div class="toc-title">Mục lục</div>
+  <a href="#intro">Mở đầu &amp; Bản đồ thuật ngữ</a>
+  <a href="#brs">1 · Business Requirement Spec</a>
+  <a href="#frs">2 · Functional Requirement Spec</a>
+  <a href="#nfr">3 · Non-Functional Requirement Spec</a>
+  <a href="#prd">4 · Product Requirements Document</a>
+  <a href="#srs">5 · Software Requirement Spec</a>
+  <a href="#usecase">6 · Use Case</a>
+  <a href="#story">7 · User Story</a>
+  <a href="#scenario">8 · Scenario</a>
+  <a href="#vivid">9 · Vivid Scenario</a>
+  <a href="#matrix">★ Ma trận tổng hợp</a>
+  <a href="#refs">References</a>
+</aside>
+
+<main>
+<!-- ============ INTRO ============ -->
+<div id="intro" class="topic active">
+<header class="hero" style="padding-top:0">
+  <div class="eyebrow"><span class="pulse"></span> Technical Writing · Requirements Engineering</div>
+  <h1 class="hero-title">Tài liệu Yêu cầu Sản phẩm<br><em>từ ý tưởng kinh doanh đến dòng code</em></h1>
+  <p class="hero-lede">Một cẩm nang chuyên sâu giúp bạn phân biệt và sử dụng đúng 9 loại tài liệu yêu cầu cốt lõi — biết <strong>khi nào dùng cái gì</strong>, viết thế nào cho rõ ràng, kiểm thử được và không gây hiểu lầm giữa business, product, design và engineering.</p>
+  <div class="hero-meta">
+    <span class="chip">📚 <b>9</b> loại tài liệu</span>
+    <span class="chip">🧩 <b>27+</b> ví dụ thực chiến</span>
+    <span class="chip">📊 Sơ đồ &amp; flowchart trực quan</span>
+    <span class="chip">🎯 Basic → Advanced → Expert</span>
+  </div>
+</header>
+
+<!-- INTRO: TERMINOLOGY MAP -->
+<div class="topic-content" style="border-top:none">
+  <div class="lead-card">
+    <div class="label">Vì sao tài liệu này tồn tại</div>
+    <p style="margin-top:0">Trong vòng đời phát triển một sản phẩm, có rất nhiều loại "tài liệu yêu cầu" với tên gọi gần giống nhau: BRS, FRS, NFR, PRD, SRS, Use Case, User Story, Scenario… Việc dùng nhầm loại tài liệu cho sai ngữ cảnh là nguyên nhân hàng đầu gây ra <strong>scope creep</strong>, hiểu lầm giữa các phòng ban và sản phẩm sai mục tiêu.</p>
+    <p style="margin-bottom:0">Cẩm nang này không chỉ định nghĩa từng loại, mà còn chỉ rõ <strong>chúng nằm ở tầng nào</strong> trong dòng chảy từ <em>chiến lược kinh doanh → sản phẩm → thiết kế kỹ thuật → hiện thực</em>, và minh họa bằng các tình huống thực tế bạn sẽ gặp.</p>
+  </div>
+
+  <h3>Bản đồ tổng quan: 9 loại tài liệu nằm ở đâu?</h3>
+  <p>Hãy hình dung các tài liệu yêu cầu xếp theo <strong>mức độ trừu tượng</strong>. Càng lên cao càng trả lời câu hỏi <em>"Tại sao / Cái gì"</em> (góc nhìn kinh doanh); càng xuống thấp càng trả lời <em>"Như thế nào"</em> (góc nhìn kỹ thuật).</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 860 430" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sơ đồ phân tầng các tài liệu yêu cầu">
+      <!-- axis -->
+      <line x1="60" y1="30" x2="60" y2="400" class="svg-line-g"/>
+      <polygon points="60,24 55,36 65,36" fill="var(--gold)"/>
+      <text x="48" y="20" class="svg-t-sm" text-anchor="end" transform="rotate(0 48 20)">WHY / WHAT — Kinh doanh</text>
+      <text x="48" y="408" class="svg-t-sm" text-anchor="end">HOW — Kỹ thuật</text>
+
+      <!-- tier 1 -->
+      <rect x="90" y="40" width="710" height="62" rx="12" class="svg-box-gold"/>
+      <text x="110" y="66" class="svg-t-b">Tầng Chiến lược</text>
+      <text x="110" y="86" class="svg-t-sm">BRS — Business Requirement Spec · mục tiêu, ROI, ràng buộc kinh doanh</text>
+
+      <!-- tier 2 -->
+      <rect x="90" y="116" width="710" height="62" rx="12" class="svg-box-teal"/>
+      <text x="110" y="142" class="svg-t-b">Tầng Sản phẩm</text>
+      <text x="110" y="162" class="svg-t-sm">PRD — Product Requirements Document · vấn đề người dùng, phạm vi, tính năng, metrics</text>
+
+      <!-- tier 3 split -->
+      <rect x="90" y="192" width="345" height="92" rx="12" class="svg-box-blue"/>
+      <text x="110" y="218" class="svg-t-b">Tầng Hành vi (Functional)</text>
+      <text x="110" y="238" class="svg-t-sm">FRS · Use Case · User Story</text>
+      <text x="110" y="256" class="svg-t-sm">Scenario · Vivid Scenario</text>
+      <text x="110" y="274" class="svg-t-sm">→ Hệ thống PHẢI LÀM gì</text>
+
+      <rect x="455" y="192" width="345" height="92" rx="12" class="svg-box-violet"/>
+      <text x="475" y="218" class="svg-t-b">Tầng Chất lượng (Quality)</text>
+      <text x="475" y="238" class="svg-t-sm">NFR · Non-Functional Requirements</text>
+      <text x="475" y="256" class="svg-t-sm">performance, security, usability...</text>
+      <text x="475" y="274" class="svg-t-sm">→ Hệ thống PHẢI TỐT thế nào</text>
+
+      <!-- tier 4 -->
+      <rect x="90" y="298" width="710" height="62" rx="12" class="svg-box"/>
+      <text x="110" y="324" class="svg-t-b">Tầng Kỹ thuật tổng hợp</text>
+      <text x="110" y="344" class="svg-t-sm">SRS — Software Requirement Spec · gói gọn Functional + Non-Functional cho đội kỹ thuật</text>
+
+      <!-- arrows -->
+      <line x1="445" y1="102" x2="445" y2="114" class="svg-line"/><polygon points="445,116 441,108 449,108" fill="var(--line)"/>
+      <line x1="445" y1="178" x2="445" y2="190" class="svg-line"/><polygon points="445,192 441,184 449,184" fill="var(--line)"/>
+      <line x1="262" y1="284" x2="320" y2="296" class="svg-dash"/>
+      <line x1="627" y1="284" x2="570" y2="296" class="svg-dash"/>
+    </svg>
+    <div class="cap">Hình 0 · Dòng chảy trừu tượng: BRS → PRD → (FRS + NFR) → SRS</div>
+  </div>
+
+  <h3>Phân biệt nhanh — "ai viết, cho ai đọc"</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Tài liệu</th><th>Trả lời câu hỏi</th><th>Người viết chính</th><th>Người đọc chính</th></tr></thead>
+      <tbody>
+        <tr><td><strong>BRS</strong></td><td>Tại sao làm dự án này? Đem lại lợi ích gì?</td><td>Business Analyst / Sponsor</td><td>Ban lãnh đạo, stakeholders</td></tr>
+        <tr><td><strong>PRD</strong></td><td>Sản phẩm giải quyết vấn đề gì cho ai?</td><td>Product Manager</td><td>Design, Eng, QA, Marketing</td></tr>
+        <tr><td><strong>FRS</strong></td><td>Hệ thống phải làm những hành vi gì?</td><td>BA / System Analyst</td><td>Dev, QA</td></tr>
+        <tr><td><strong>NFR</strong></td><td>Hệ thống phải đạt chất lượng nào?</td><td>Architect / BA</td><td>Dev, QA, Ops, Security</td></tr>
+        <tr><td><strong>SRS</strong></td><td>Toàn bộ đặc tả phần mềm (Func + NonFunc)</td><td>System Analyst</td><td>Đội kỹ thuật</td></tr>
+        <tr><td><strong>Use Case</strong></td><td>Actor tương tác với hệ thống ra sao?</td><td>BA / Designer</td><td>Dev, QA, Design</td></tr>
+        <tr><td><strong>User Story</strong></td><td>Người dùng cần gì &amp; vì sao (Agile)?</td><td>PO / Team</td><td>Đội Scrum</td></tr>
+        <tr><td><strong>Scenario</strong></td><td>Một luồng cụ thể diễn ra thế nào?</td><td>BA / QA / Designer</td><td>Toàn đội</td></tr>
+        <tr><td><strong>Vivid Scenario</strong></td><td>Trải nghiệm "sống" của người dùng ra sao?</td><td>UX / Product</td><td>Stakeholders, Design</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip"><span class="ci">💡</span><div><b>Cách đọc cẩm nang:</b> mỗi mục theo cùng một khung — Định nghĩa → Cách hoạt động → Cấu trúc → Lợi ích → Best Practices → các ví dụ <em>Basic / Advanced / Expert</em>. Mỗi ví dụ luôn có 4 phần: <b>Problem Statement → Solution → Visual Support → Note &amp; Conclusion</b>.</div></div>
+</div>
+</div>
+
+<!-- ============ 1. BRS ============ -->
+<section class="topic" id="brs">
+  <div class="topic-head">
+    <div class="topic-num">01</div>
+    <div>
+      <h2 class="topic-title">Business Requirement Spec</h2>
+      <div class="topic-sub">BRS · BRD — Tầng chiến lược · "Tại sao chúng ta làm việc này?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0"><strong>Business Requirement Specification (BRS)</strong> — đôi khi gọi là BRD (Business Requirements Document) — là tài liệu mô tả <strong>các nhu cầu ở cấp độ kinh doanh</strong> mà một dự án hoặc sản phẩm phải đáp ứng. Nó tập trung vào <em>mục tiêu, lý do, giá trị</em> và <em>kết quả mong muốn</em> ở góc nhìn của tổ chức — chứ không quan tâm hệ thống sẽ được xây dựng <em>như thế nào</em>.</p>
+  </div>
+
+  <h3>Cách hoạt động &amp; vai trò</h3>
+  <p>BRS là <strong>điểm khởi đầu</strong> của toàn bộ chuỗi yêu cầu. Nó được tạo ra <em>trước</em> khi có bất kỳ quyết định kỹ thuật nào, nhằm đảm bảo mọi người đồng thuận về <strong>"bài toán kinh doanh"</strong>. Mọi tài liệu phía sau (PRD, FRS, SRS) đều phải <em>truy vết ngược</em> được về một mục tiêu trong BRS — nếu một tính năng không phục vụ mục tiêu nào trong BRS, đó là dấu hiệu của scope creep.</p>
+
+  <h4>Các thành phần điển hình của một BRS</h4>
+  <ul>
+    <li><strong>Executive Summary</strong> — tóm tắt bối cảnh và lý do dự án.</li>
+    <li><strong>Business Objectives</strong> — mục tiêu kinh doanh đo lường được (ví dụ: giảm 20% chi phí vận hành).</li>
+    <li><strong>Scope &amp; Out-of-Scope</strong> — ranh giới rõ ràng của dự án.</li>
+    <li><strong>Stakeholders</strong> — ai liên quan, ai phê duyệt, ai chịu ảnh hưởng.</li>
+    <li><strong>Business Requirements</strong> — danh sách nhu cầu cấp cao (thường đánh mã BR-01, BR-02…).</li>
+    <li><strong>Assumptions, Constraints, Risks</strong> — giả định, ràng buộc (ngân sách, pháp lý, thời gian) và rủi ro.</li>
+    <li><strong>Success Metrics</strong> — tiêu chí thành công ở góc độ kinh doanh.</li>
+  </ul>
+
+  <div class="grid3">
+    <div class="mini"><span class="ic">🎯</span><h5>Đồng thuận sớm</h5><p>Tránh việc đội kỹ thuật xây sai thứ vì hiểu nhầm mục tiêu.</p></div>
+    <div class="mini"><span class="ic">🧭</span><h5>Kim chỉ nam</h5><p>Là tiêu chuẩn để quyết định tính năng nào "đáng làm".</p></div>
+    <div class="mini"><span class="ic">📈</span><h5>Đo lường ROI</h5><p>Gắn mỗi yêu cầu với giá trị kinh doanh cụ thể.</p></div>
+  </div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Viết yêu cầu theo ngôn ngữ <strong>kinh doanh</strong>, tránh thuật ngữ kỹ thuật.</li>
+    <li>Mỗi business requirement nên <strong>đo lường được</strong> (SMART) — tránh câu chữ mơ hồ như "cải thiện trải nghiệm".</li>
+    <li>Luôn khai báo rõ <strong>Out-of-Scope</strong>: thứ <em>không</em> làm cũng quan trọng như thứ làm.</li>
+    <li>Gắn mỗi BR với <strong>stakeholder</strong> và <strong>success metric</strong> tương ứng để dễ truy vết.</li>
+    <li>Giữ BRS <strong>ổn định</strong>; mọi thay đổi phải qua quy trình change control vì nó ảnh hưởng toàn chuỗi.</li>
+  </ul>
+
+  <!-- EXAMPLE 1.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 1.1 — Cửa hàng cần kênh bán hàng online</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một chuỗi cửa hàng thời trang truyền thống nhận thấy doanh thu tại cửa hàng đang chững lại. Ban giám đốc <em>nghĩ rằng</em> "cần một website bán hàng", nhưng đội kỹ thuật không hiểu rõ vì sao, dẫn đến nguy cơ xây một website đẹp nhưng không giải quyết đúng vấn đề thật. Không ai trả lời được câu hỏi: <strong>thành công nghĩa là gì?</strong></p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Trước khi nói đến công nghệ, Business Analyst viết một BRS làm rõ <strong>bài toán kinh doanh</strong>:</p>
+        <ul>
+          <li><strong>Objective:</strong> Tăng tổng doanh thu 15% trong 12 tháng bằng cách mở kênh bán hàng trực tuyến.</li>
+          <li><strong>BR-01:</strong> Khách hàng phải mua được sản phẩm mà không cần đến cửa hàng.</li>
+          <li><strong>BR-02:</strong> Doanh nghiệp phải theo dõi được tồn kho hợp nhất giữa online và offline.</li>
+          <li><strong>Success Metric:</strong> ≥ 2.000 đơn hàng online/tháng sau quý 2; tỉ lệ huỷ đơn &lt; 5%.</li>
+          <li><strong>Out-of-Scope:</strong> Ứng dụng di động native (giai đoạn sau).</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 760 220" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="80" width="170" height="60" rx="10" class="svg-box-rose"/>
+            <text x="105" y="106" class="svg-t-b" text-anchor="middle">Vấn đề kinh doanh</text>
+            <text x="105" y="124" class="svg-t-sm" text-anchor="middle">Doanh thu chững lại</text>
+
+            <rect x="295" y="80" width="170" height="60" rx="10" class="svg-box-gold"/>
+            <text x="380" y="106" class="svg-t-b" text-anchor="middle">BRS</text>
+            <text x="380" y="124" class="svg-t-sm" text-anchor="middle">Mục tiêu + BR + Metrics</text>
+
+            <rect x="570" y="40" width="170" height="50" rx="10" class="svg-box-teal"/>
+            <text x="655" y="70" class="svg-t" text-anchor="middle">Quyết định: làm web</text>
+            <rect x="570" y="130" width="170" height="50" rx="10" class="svg-box-teal"/>
+            <text x="655" y="160" class="svg-t" text-anchor="middle">Đo bằng KPI rõ ràng</text>
+
+            <line x1="190" y1="110" x2="293" y2="110" class="svg-line-g"/><polygon points="295,110 287,106 287,114" fill="var(--gold)"/>
+            <line x1="465" y1="105" x2="568" y2="70" class="svg-line-t"/><polygon points="570,65 561,67 565,74" fill="var(--teal)"/>
+            <line x1="465" y1="115" x2="568" y2="150" class="svg-line-t"/><polygon points="570,155 565,146 561,153" fill="var(--teal)"/>
+          </svg>
+          <div class="cap">Hình 1.1 · BRS biến nỗi đau mơ hồ thành mục tiêu &amp; thước đo cụ thể</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> BRS không mô tả "website trông thế nào" mà mô tả "vì sao cần và thành công là gì". Câu <em>"cần một website"</em> là một <strong>giải pháp</strong>, không phải yêu cầu kinh doanh — BRS giúp lùi lại một bước để tìm bài toán thật.</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> luôn dùng ở đầu mọi dự án có ngân sách đáng kể. <strong>Tránh:</strong> đừng nhét chi tiết UI/kỹ thuật vào BRS.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 1.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 1.2 — Ngân hàng tích hợp eKYC tuân thủ pháp lý</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một ngân hàng muốn cho phép mở tài khoản 100% online. Nhưng đây là lĩnh vực bị quản lý chặt: có quy định của ngân hàng nhà nước về định danh điện tử (eKYC), chống rửa tiền (AML) và lưu trữ dữ liệu. Đội product muốn "ship nhanh", còn đội pháp chế lo ngại rủi ro tuân thủ. Hai bên xung đột vì <strong>không có một nguồn sự thật chung về ràng buộc kinh doanh - pháp lý</strong>.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>BRS ở đây phải thể hiện được lớp <strong>Constraints &amp; Compliance</strong> như một công dân hạng nhất, không chỉ là phụ lục:</p>
+        <ul>
+          <li><strong>BR-10 (Business):</strong> Giảm thời gian mở tài khoản từ 3 ngày xuống &lt; 15 phút.</li>
+          <li><strong>CR-01 (Constraint - pháp lý):</strong> Quy trình eKYC phải tuân thủ Thông tư về định danh điện tử; mọi giao dịch định danh phải có audit trail không thể chỉnh sửa.</li>
+          <li><strong>CR-02 (Constraint - dữ liệu):</strong> Dữ liệu sinh trắc học lưu trong lãnh thổ, mã hoá at-rest.</li>
+          <li><strong>Risk-01:</strong> Nếu eKYC sai → phạt hành chính + rủi ro uy tín → mức ưu tiên cao nhất.</li>
+        </ul>
+        <p>Mỗi constraint được gắn <strong>chủ sở hữu (legal)</strong> và <strong>tiêu chí chấp nhận</strong>, để khi đội kỹ thuật đọc PRD/SRS phía sau, các ràng buộc này không bị "rơi rớt".</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 780 300" xmlns="http://www.w3.org/2000/svg">
+            <rect x="290" y="20" width="200" height="54" rx="10" class="svg-box-gold"/>
+            <text x="390" y="44" class="svg-t-b" text-anchor="middle">BRS</text>
+            <text x="390" y="62" class="svg-t-sm" text-anchor="middle">Nguồn sự thật chung</text>
+
+            <rect x="40" y="120" width="200" height="60" rx="10" class="svg-box-teal"/>
+            <text x="140" y="146" class="svg-t" text-anchor="middle">Business Objectives</text>
+            <text x="140" y="164" class="svg-t-sm" text-anchor="middle">BR-10: mở TK &lt;15'</text>
+
+            <rect x="290" y="120" width="200" height="60" rx="10" class="svg-box-violet"/>
+            <text x="390" y="146" class="svg-t" text-anchor="middle">Compliance</text>
+            <text x="390" y="164" class="svg-t-sm" text-anchor="middle">CR-01 eKYC · CR-02 data</text>
+
+            <rect x="540" y="120" width="200" height="60" rx="10" class="svg-box-rose"/>
+            <text x="640" y="146" class="svg-t" text-anchor="middle">Risks</text>
+            <text x="640" y="164" class="svg-t-sm" text-anchor="middle">Risk-01: phạt &amp; uy tín</text>
+
+            <rect x="190" y="230" width="400" height="50" rx="10" class="svg-box"/>
+            <text x="390" y="260" class="svg-t" text-anchor="middle">PRD · FRS · SRS — đều phải truy vết ngược về BRS</text>
+
+            <line x1="390" y1="74" x2="140" y2="118" class="svg-line-g"/><polygon points="140,120 142,111 149,116" fill="var(--gold)"/>
+            <line x1="390" y1="74" x2="390" y2="118" class="svg-line-g"/><polygon points="390,120 386,112 394,112" fill="var(--gold)"/>
+            <line x1="390" y1="74" x2="640" y2="118" class="svg-line-g"/><polygon points="640,120 631,116 638,111" fill="var(--gold)"/>
+            <line x1="390" y1="180" x2="390" y2="228" class="svg-dash"/><polygon points="390,230 386,222 394,222" fill="var(--ink-mute)"/>
+          </svg>
+          <div class="cap">Hình 1.2 · BRS trong dự án bị quản lý: Compliance &amp; Risk đứng ngang hàng với Objectives</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> Ở lĩnh vực bị quản lý, một BRS tốt biến "xung đột product vs legal" thành "bảng ưu tiên có thể thương lượng". Constraint không phải kẻ thù của tốc độ — nó là biên giới giúp đội tăng tốc an toàn.</p>
+          <p style="margin-bottom:0"><strong>Cảnh báo:</strong> đừng giấu compliance ở phần phụ lục cuối tài liệu. Những gì không hiện diện trong BRS sẽ bị bỏ quên ở SRS.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EXAMPLE 1.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 1.3 — BRS cho nền tảng đa thị trường &amp; truy vết yêu cầu (RTM)</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một tập đoàn thương mại điện tử mở rộng ra 5 quốc gia. Mỗi nước có thuế, tiền tệ, ngôn ngữ và quy định khác nhau. Có hàng trăm yêu cầu kinh doanh đan xen. Sau 6 tháng, không ai trả lời được: <em>"Tính năng tính thuế VAT động này phục vụ mục tiêu kinh doanh nào, và nếu cắt nó đi thì ảnh hưởng gì?"</em>. Phạm vi phình to, ngân sách vượt 40%.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Ở quy mô này, BRS phải gắn với một <strong>Requirements Traceability Matrix (RTM)</strong> — ma trận truy vết liên kết: <em>Business Objective → Business Requirement → Feature (PRD) → Functional Req (FRS/SRS) → Test Case</em>. Mỗi dòng cho biết một yêu cầu đến từ đâu và được kiểm chứng ở đâu.</p>
+        <p>Khi cần cắt giảm phạm vi, đội chỉ cần lọc RTM theo Objective ưu tiên thấp và thấy ngay chuỗi tác động xuống tận test case.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Objective</th><th>BR</th><th>Feature (PRD)</th><th>FR (SRS)</th><th>Test Case</th></tr></thead>
+            <tbody>
+              <tr><td>OBJ-1 Mở rộng quốc tế</td><td>BR-21 Bán đa tiền tệ</td><td>F-Currency</td><td>FR-310 Quy đổi tỉ giá realtime</td><td>TC-901..904</td></tr>
+              <tr><td>OBJ-1 Mở rộng quốc tế</td><td>BR-22 Tuân thủ thuế</td><td>F-Tax-Engine</td><td>FR-330 Tính VAT theo quốc gia</td><td>TC-910..915</td></tr>
+              <tr><td>OBJ-2 Tăng chuyển đổi</td><td>BR-25 Thanh toán nội địa</td><td>F-LocalPay</td><td>FR-360 Tích hợp ví địa phương</td><td>TC-940..948</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="diagram">
+          <svg viewBox="0 0 800 120" xmlns="http://www.w3.org/2000/svg">
+            <rect x="10" y="40" width="120" height="44" rx="9" class="svg-box-gold"/><text x="70" y="67" class="svg-t" text-anchor="middle">Objective</text>
+            <rect x="170" y="40" width="120" height="44" rx="9" class="svg-box-gold"/><text x="230" y="67" class="svg-t" text-anchor="middle">BR</text>
+            <rect x="330" y="40" width="120" height="44" rx="9" class="svg-box-teal"/><text x="390" y="67" class="svg-t" text-anchor="middle">Feature</text>
+            <rect x="490" y="40" width="120" height="44" rx="9" class="svg-box-blue"/><text x="550" y="67" class="svg-t" text-anchor="middle">FR / SRS</text>
+            <rect x="650" y="40" width="120" height="44" rx="9" class="svg-box-violet"/><text x="710" y="67" class="svg-t" text-anchor="middle">Test Case</text>
+            <line x1="130" y1="62" x2="168" y2="62" class="svg-line-g"/><polygon points="170,62 162,58 162,66" fill="var(--gold)"/>
+            <line x1="290" y1="62" x2="328" y2="62" class="svg-line-g"/><polygon points="330,62 322,58 322,66" fill="var(--gold)"/>
+            <line x1="450" y1="62" x2="488" y2="62" class="svg-line-t"/><polygon points="490,62 482,58 482,66" fill="var(--teal)"/>
+            <line x1="610" y1="62" x2="648" y2="62" class="svg-line-t"/><polygon points="650,62 642,58 642,66" fill="var(--teal)"/>
+          </svg>
+          <div class="cap">Hình 1.3 · Chuỗi truy vết RTM — cắt một mắt xích thấy ngay tác động lan truyền</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> ở quy mô lớn, BRS không còn là một tài liệu tĩnh mà là <strong>gốc của một đồ thị truy vết</strong>. RTM biến câu hỏi "tính năng này để làm gì?" thành một truy vấn có câu trả lời ngay.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> dự án nhiều stakeholder, đa thị trường, vòng đời dài, hoặc bị audit. <strong>Khi nào quá mức:</strong> startup MVP nhỏ — RTM đầy đủ sẽ là gánh nặng; chỉ cần liên kết nhẹ giữa BR và feature.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. FRS ============ -->
+<section class="topic" id="frs">
+  <div class="topic-head">
+    <div class="topic-num">02</div>
+    <div>
+      <h2 class="topic-title">Functional Requirement Spec</h2>
+      <div class="topic-sub">FRS — Tầng hành vi · "Hệ thống PHẢI LÀM gì?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0"><strong>Functional Requirement Specification (FRS)</strong> mô tả <strong>các hành vi cụ thể</strong> mà hệ thống phải thực hiện: đầu vào nào dẫn đến đầu ra nào, hệ thống phản ứng ra sao với từng hành động của người dùng, các quy tắc nghiệp vụ (business rules) được áp dụng thế nào. Mỗi functional requirement nên <strong>kiểm thử được</strong> — tức là QA có thể viết test case để xác nhận đúng/sai.</p>
+  </div>
+
+  <h3>Cách hoạt động</h3>
+  <p>FRS nằm <em>dưới</em> PRD và <em>trên</em> code. PRD nói <em>"người dùng cần đặt lại mật khẩu"</em>; FRS chuyển điều đó thành những phát biểu chính xác: <em>"Khi người dùng nhập email hợp lệ và nhấn Gửi, hệ thống PHẢI gửi email chứa link reset có hiệu lực 15 phút"</em>. FRS thường dùng từ khoá quy phạm <code>SHALL</code> / <code>PHẢI</code> để biểu thị tính bắt buộc.</p>
+
+  <h4>Một functional requirement tốt gồm gì?</h4>
+  <div class="grid2">
+    <div class="mini"><span class="ic">🆔</span><h5>ID duy nhất</h5><p>FR-001, FR-002… để truy vết và liên kết test case.</p></div>
+    <div class="mini"><span class="ic">⚡</span><h5>Trigger &amp; Response</h5><p>Điều kiện kích hoạt → hành vi mong đợi của hệ thống.</p></div>
+    <div class="mini"><span class="ic">📐</span><h5>Business Rules</h5><p>Quy tắc nghiệp vụ áp dụng (giới hạn, công thức, điều kiện).</p></div>
+    <div class="mini"><span class="ic">✅</span><h5>Tính kiểm thử</h5><p>Có thể xác minh đúng/sai một cách khách quan.</p></div>
+  </div>
+
+  <div class="callout warn"><span class="ci">⚠</span><div><b>FRS ≠ SRS ≠ Use Case.</b> FRS liệt kê <em>các hành vi</em>. SRS là tài liệu lớn hơn bao gồm cả FRS + NFR. Use Case mô tả <em>luồng tương tác</em> dẫn đến những hành vi đó. Nhiều tổ chức gộp FRS vào SRS — điều này hoàn toàn bình thường.</div></div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Một requirement = <strong>một hành vi</strong>. Tránh câu ghép "và/hoặc" làm khó kiểm thử.</li>
+    <li>Dùng động từ quy phạm nhất quán: <code>SHALL</code> (bắt buộc), <code>SHOULD</code> (nên), <code>MAY</code> (tuỳ chọn).</li>
+    <li>Tránh từ mơ hồ: "nhanh", "thân thiện", "v.v." — đó là dấu hiệu của NFR chưa định lượng hoặc requirement chưa hoàn chỉnh.</li>
+    <li>Khai báo cả <strong>luồng lỗi</strong> (error/alternate flows), không chỉ happy path.</li>
+    <li>Gắn mỗi FR với business requirement (BRS) hoặc story (PRD) tương ứng.</li>
+  </ul>
+
+  <!-- EX 2.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 2.1 — Chức năng đăng nhập</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một dev nhận được yêu cầu "làm chức năng login". Anh ấy code một form email + mật khẩu. QA test xong hỏi: <em>"Nhập sai 5 lần thì sao? Mật khẩu sai hiện thông báo gì? Có khoá tài khoản không?"</em> — không ai trả lời được, vì requirement chỉ là một dòng mơ hồ.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết các functional requirement tách bạch và kiểm thử được:</p>
+        <ul>
+          <li><strong>FR-001:</strong> Hệ thống PHẢI cho phép đăng nhập bằng email + mật khẩu.</li>
+          <li><strong>FR-002:</strong> Nếu email không tồn tại HOẶC mật khẩu sai, hệ thống PHẢI hiển thị thông báo chung "Email hoặc mật khẩu không đúng" (không tiết lộ trường nào sai).</li>
+          <li><strong>FR-003:</strong> Sau 5 lần đăng nhập sai liên tiếp, hệ thống PHẢI khoá tạm thời 15 phút.</li>
+          <li><strong>FR-004:</strong> Khi đăng nhập thành công, hệ thống PHẢI tạo session và chuyển đến Dashboard.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 760 280" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="120" cy="40" rx="80" ry="24" class="svg-box-teal"/><text x="120" y="45" class="svg-t" text-anchor="middle">Nhập credentials</text>
+            <polygon points="120,90 230,140 120,190 10,140" class="svg-box-gold"/>
+            <text x="120" y="138" class="svg-t" text-anchor="middle">Hợp lệ?</text><text x="120" y="154" class="svg-t-sm" text-anchor="middle">FR-002</text>
+
+            <rect x="320" y="20" width="160" height="44" rx="9" class="svg-box-rose"/><text x="400" y="47" class="svg-t" text-anchor="middle">Báo lỗi chung</text>
+            <polygon points="560,42 660,42 660,42 660,42" /> 
+            <polygon points="540,18 660,18 660,66 540,66" class="svg-box-gold" rx="9"/>
+            <text x="600" y="38" class="svg-t" text-anchor="middle">≥5 lần?</text><text x="600" y="54" class="svg-t-sm" text-anchor="middle">FR-003</text>
+            <rect x="540" y="100" width="160" height="44" rx="9" class="svg-box-rose"/><text x="620" y="127" class="svg-t" text-anchor="middle">Khoá 15 phút</text>
+
+            <rect x="320" y="168" width="160" height="44" rx="9" class="svg-box-teal"/><text x="400" y="195" class="svg-t" text-anchor="middle">Tạo session → Dashboard</text>
+            <text x="400" y="232" class="svg-t-sm" text-anchor="middle">FR-004</text>
+
+            <line x1="120" y1="64" x2="120" y2="88" class="svg-line"/><polygon points="120,90 116,82 124,82" fill="var(--line)"/>
+            <line x1="230" y1="140" x2="318" y2="42" class="svg-line"/><text x="265" y="80" class="svg-t-sm">Sai</text><polygon points="320,40 311,42 314,49" fill="var(--line)"/>
+            <line x1="120" y1="190" x2="120" y2="210" class="svg-line"/><line x1="120" y1="210" x2="400" y2="210" class="svg-line"/><line x1="400" y1="210" x2="400" y2="214" class="svg-line"/><text x="180" y="205" class="svg-t-sm">Đúng</text><polygon points="400,214 396,206 404,206" fill="var(--line)"/>
+            <line x1="480" y1="42" x2="538" y2="42" class="svg-line"/><polygon points="540,42 532,38 532,46" fill="var(--line)"/>
+            <line x1="600" y1="66" x2="600" y2="98" class="svg-line"/><text x="610" y="86" class="svg-t-sm">Có</text><polygon points="600,100 596,92 604,92" fill="var(--line)"/>
+          </svg>
+          <div class="cap">Hình 2.1 · Execution flow của chức năng đăng nhập với các FR tương ứng</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> "làm login" không phải requirement — nó là một <em>tên gọi</em>. FRS biến nó thành chuỗi hành vi mà QA có thể chấm điểm pass/fail. Lưu ý FR-002 còn ẩn chứa một yêu cầu bảo mật (không tiết lộ trường sai).</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> bất cứ khi nào hành vi có nhánh lỗi, quy tắc, hoặc trạng thái. Một dòng yêu cầu mơ hồ luôn sinh ra bug ở biên.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 2.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 2.2 — Quy tắc nghiệp vụ tính phí vận chuyển động</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một sàn TMĐT có chính sách phí ship phức tạp: miễn phí cho đơn &gt; 500k, phụ phí vùng xa, giảm 50% cho thành viên VIP, và không áp dụng cho hàng cồng kềnh. Dev mỗi người hiểu một kiểu, dẫn đến phí hiển thị ở giỏ hàng khác với phí ở trang thanh toán — khách hàng mất niềm tin và huỷ đơn.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Tách <strong>business rules</strong> thành các FR có thứ tự áp dụng rõ ràng và một bảng quyết định (decision table) để loại bỏ mọi nhập nhằng:</p>
+        <ul>
+          <li><strong>FR-120:</strong> Phí cơ bản = trọng lượng × đơn giá vùng.</li>
+          <li><strong>FR-121:</strong> NẾU tổng đơn ≥ 500.000đ VÀ không phải hàng cồng kềnh → miễn phí ship.</li>
+          <li><strong>FR-122:</strong> NẾU khách VIP → giảm 50% phần phí còn lại (áp dụng sau FR-121).</li>
+          <li><strong>FR-123:</strong> Phí cuối cùng PHẢI nhất quán giữa Cart, Checkout và Order confirmation.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Đơn ≥ 500k</th><th>Hàng cồng kềnh</th><th>VIP</th><th>Kết quả phí ship</th></tr></thead>
+            <tbody>
+              <tr><td>Có</td><td>Không</td><td>—</td><td><strong>0đ</strong> (FR-121)</td></tr>
+              <tr><td>Có</td><td>Có</td><td>Không</td><td>Phí cơ bản (FR-120)</td></tr>
+              <tr><td>Có</td><td>Có</td><td>Có</td><td>Phí cơ bản × 50% (FR-122)</td></tr>
+              <tr><td>Không</td><td>—</td><td>Có</td><td>Phí cơ bản × 50%</td></tr>
+              <tr><td>Không</td><td>—</td><td>Không</td><td>Phí cơ bản đầy đủ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="callout tip"><span class="ci">🧮</span><div>Decision table biến văn xuôi mơ hồ thành <b>tổ hợp đầy đủ các trường hợp</b> — QA chỉ cần test đúng số dòng của bảng là phủ hết logic.</div></div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> với logic nhiều điều kiện, <strong>thứ tự áp dụng</strong> rule là then chốt — đảo thứ tự FR-121 và FR-122 sẽ ra kết quả khác. Một decision table loại bỏ tranh cãi "ai đúng".</p>
+          <p style="margin-bottom:0"><strong>Tránh:</strong> diễn đạt rule lồng nhau bằng văn xuôi dài. <strong>Nên:</strong> dùng decision table hoặc pseudo-rule khi có ≥ 3 điều kiện giao nhau.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 2.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 2.3 — Đặc tả hành vi cho hệ thống bất đồng bộ &amp; idempotency</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một hệ thống thanh toán gọi cổng đối tác qua API. Mạng không ổn định: đôi khi request gửi đi nhưng phản hồi bị timeout, client retry → khách bị trừ tiền 2 lần. Functional spec cũ chỉ mô tả happy path "gọi API → nhận kết quả", hoàn toàn bỏ qua thế giới thực của hệ thống phân tán.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>FRS cấp expert phải đặc tả hành vi cho <strong>trạng thái không xác định</strong> và đảm bảo <strong>idempotency</strong>:</p>
+        <ul>
+          <li><strong>FR-500:</strong> Mỗi yêu cầu thanh toán PHẢI mang một <code>idempotency-key</code> duy nhất do client sinh.</li>
+          <li><strong>FR-501:</strong> Nếu nhận lại request có cùng key đã xử lý, hệ thống PHẢI trả về kết quả lần đầu, KHÔNG thực hiện trừ tiền lần hai.</li>
+          <li><strong>FR-502:</strong> Khi timeout với cổng đối tác, giao dịch chuyển trạng thái <code>PENDING</code>, hệ thống PHẢI reconcile bằng job đối soát trong 5 phút.</li>
+          <li><strong>FR-503:</strong> Trạng thái giao dịch chỉ chuyển theo state machine: <code>INIT → PENDING → (SUCCESS | FAILED)</code>; cấm mọi chuyển trạng thái ngược.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 780 230" xmlns="http://www.w3.org/2000/svg">
+            <!-- state machine -->
+            <ellipse cx="80" cy="115" rx="58" ry="34" class="svg-box-teal"/><text x="80" y="120" class="svg-t-b" text-anchor="middle">INIT</text>
+            <ellipse cx="300" cy="115" rx="64" ry="36" class="svg-box-gold"/><text x="300" y="120" class="svg-t-b" text-anchor="middle">PENDING</text>
+            <ellipse cx="640" cy="55" rx="64" ry="34" class="svg-box-teal"/><text x="640" y="60" class="svg-t-b" text-anchor="middle">SUCCESS</text>
+            <ellipse cx="640" cy="175" rx="64" ry="34" class="svg-box-rose"/><text x="640" y="180" class="svg-t-b" text-anchor="middle">FAILED</text>
+
+            <line x1="138" y1="115" x2="234" y2="115" class="svg-line-t"/><polygon points="236,115 228,111 228,119" fill="var(--teal)"/><text x="186" y="106" class="svg-t-sm" text-anchor="middle">gửi req</text>
+            <path d="M356 100 Q 480 50 578 58" class="svg-line-t"/><polygon points="578,58 569,54 571,63" fill="var(--teal)"/><text x="470" y="60" class="svg-t-sm" text-anchor="middle">reconcile OK</text>
+            <path d="M356 130 Q 480 185 578 172" class="svg-line-g"/><polygon points="578,172 571,166 569,175" fill="var(--gold)"/><text x="470" y="170" class="svg-t-sm" text-anchor="middle">timeout/đối soát fail</text>
+            <path d="M270 80 Q 300 40 332 78" class="svg-dash"/><text x="300" y="38" class="svg-t-sm" text-anchor="middle">retry cùng key → no-op (FR-501)</text>
+          </svg>
+          <div class="cap">Hình 2.3 · State machine đảm bảo idempotency &amp; chống chuyển trạng thái ngược</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> FRS trưởng thành đặc tả cả <em>"điều gì xảy ra khi mọi thứ không như ý"</em>. Idempotency và state machine là cách biến sự bất định của hệ phân tán thành hành vi tất định, kiểm thử được.</p>
+          <p style="margin-bottom:0"><strong>Khi nào bắt buộc:</strong> mọi thao tác liên quan tiền, tồn kho, hoặc tích hợp bên thứ ba qua mạng. <strong>Sai lầm kinh điển:</strong> chỉ spec happy path rồi xử lý lỗi "sau" — thực tế lỗi chính là nơi mất tiền.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. NFR ============ -->
+<section class="topic" id="nfr">
+  <div class="topic-head">
+    <div class="topic-num">03</div>
+    <div>
+      <h2 class="topic-title">Non-Functional Requirement Spec</h2>
+      <div class="topic-sub">NFR — Tầng chất lượng · "Hệ thống PHẢI TỐT như thế nào?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0"><strong>Non-Functional Requirements (NFR)</strong> mô tả <strong>thuộc tính chất lượng</strong> của hệ thống — không phải <em>hệ thống làm gì</em> mà <em>hệ thống vận hành tốt đến đâu</em>. Đây là các "-ilities": performance, scalability, availability, security, usability, maintainability, reliability… NFR thường được gọi là <em>quality attributes</em> trong kiến trúc phần mềm.</p>
+  </div>
+
+  <h3>Vì sao NFR quan trọng &amp; dễ bị bỏ quên</h3>
+  <p>Functional requirement quyết định sản phẩm <em>có hoạt động không</em>; NFR quyết định sản phẩm <em>có dùng được trong thực tế không</em>. Một chức năng tìm kiếm "đúng" nhưng mất 30 giây mỗi lượt là một thất bại NFR. NFR thường bị bỏ quên vì chúng vô hình ở giai đoạn demo — nhưng lại là nguyên nhân hàng đầu của các sự cố production và rewrite tốn kém.</p>
+
+  <h4>Các nhóm NFR phổ biến</h4>
+  <div class="grid3">
+    <div class="mini"><span class="ic">⚡</span><h5>Performance</h5><p>Thời gian phản hồi, throughput, độ trễ.</p></div>
+    <div class="mini"><span class="ic">📈</span><h5>Scalability</h5><p>Chịu tải tăng trưởng theo người dùng/dữ liệu.</p></div>
+    <div class="mini"><span class="ic">🟢</span><h5>Availability</h5><p>Uptime, SLA (99.9%...), khả năng phục hồi.</p></div>
+    <div class="mini"><span class="ic">🔒</span><h5>Security</h5><p>Xác thực, phân quyền, mã hoá, chống tấn công.</p></div>
+    <div class="mini"><span class="ic">🧑‍🦽</span><h5>Usability / A11y</h5><p>Dễ dùng, tiếp cận được (WCAG).</p></div>
+    <div class="mini"><span class="ic">🛠️</span><h5>Maintainability</h5><p>Dễ sửa, dễ mở rộng, dễ test.</p></div>
+  </div>
+
+  <div class="callout danger"><span class="ci">✗</span><div><b>NFR tệ:</b> "Hệ thống phải nhanh và an toàn." → vô nghĩa vì không đo được. <b>NFR tốt:</b> "95% request tìm kiếm phải hoàn thành dưới 300ms ở mức tải 1.000 req/s."</div></div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Luôn <strong>định lượng</strong>: con số, đơn vị, điều kiện đo. Không có số = không phải NFR hoàn chỉnh.</li>
+    <li>Gắn NFR với <strong>kịch bản đo được</strong> (quality attribute scenario): nguồn kích thích → phản hồi → ngưỡng.</li>
+    <li>Xác định NFR <strong>sớm</strong> — chúng định hình kiến trúc; thêm sau thường phải rewrite.</li>
+    <li>Phân biệt <strong>ngưỡng cứng</strong> (must) và <strong>mục tiêu</strong> (target) — không phải mọi thứ đều 99.999%.</li>
+    <li>Cân nhắc <strong>trade-off</strong>: tăng security có thể giảm usability; tăng consistency có thể giảm availability.</li>
+  </ul>
+
+  <!-- EX 3.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 3.1 — Từ "phải nhanh" đến NFR đo được</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>PRD của một app tin tức ghi: "Trang chủ phải tải nhanh để giữ chân người dùng". Đội dev tự hỏi: nhanh là bao nhiêu? Đo trên mạng nào? Thiết bị nào? Mỗi người tối ưu theo một cảm tính, và khi launch, người dùng 3G ở vùng nông thôn vẫn phàn nàn chậm.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Chuyển phát biểu cảm tính thành NFR có ngưỡng và điều kiện:</p>
+        <ul>
+          <li><strong>NFR-P1:</strong> Largest Contentful Paint (LCP) của trang chủ &lt; 2.5s ở phân vị 75 (P75), trên mạng 4G mô phỏng, thiết bị tầm trung.</li>
+          <li><strong>NFR-P2:</strong> Time To Interactive &lt; 3.5s ở cùng điều kiện.</li>
+          <li><strong>NFR-P3:</strong> Kích thước trang đầu &lt; 500KB (nén).</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="vs">
+          <div class="vs-col" style="border-color:rgba(224,108,138,.4)"><h5>❌ NFR mơ hồ</h5><p style="margin:0">"Trang chủ phải tải nhanh."<br><span style="color:var(--ink-mute);font-size:13px">→ Không đo được, không nghiệm thu được, mỗi người hiểu một kiểu.</span></p></div>
+          <div class="vs-mid">→</div>
+          <div class="vs-col" style="border-color:rgba(108,195,106,.4)"><h5>✅ NFR đo được</h5><p style="margin:0">"LCP &lt; 2.5s (P75) trên 4G, thiết bị tầm trung."<br><span style="color:var(--ink-mute);font-size:13px">→ Có ngưỡng, có điều kiện, có công cụ đo (Lighthouse/RUM).</span></p></div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> NFR mà không có <em>con số + điều kiện đo</em> thì chỉ là lời chúc tốt đẹp. "Nhanh" với ai, ở đâu, đo bằng gì — ba câu hỏi đó biến mong muốn thành tiêu chí.</p>
+          <p style="margin-bottom:0"><strong>Mẹo:</strong> dùng phân vị (P75, P95) thay vì trung bình — trung bình che giấu trải nghiệm tệ của nhóm người dùng yếu thế nhất.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 3.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 3.2 — Quality Attribute Scenario cho khả năng chịu tải</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một sàn vé concert mỗi khi mở bán sẽ có hàng chục nghìn người truy cập cùng lúc trong vài giây. Năm ngoái hệ thống sập, người dùng phẫn nộ. NFR "phải chịu tải cao" không đủ cụ thể để kiến trúc sư thiết kế và để QA load-test.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Dùng <strong>Quality Attribute Scenario</strong> (mô hình của SEI/Bass) gồm 6 phần: <em>source → stimulus → environment → artifact → response → response measure</em>:</p>
+        <ul>
+          <li><strong>Source:</strong> 50.000 người dùng đồng thời.</li>
+          <li><strong>Stimulus:</strong> nhấn "Mua vé" trong cửa sổ 10 giây đầu mở bán.</li>
+          <li><strong>Environment:</strong> giờ cao điểm, hệ thống đang chạy bình thường.</li>
+          <li><strong>Artifact:</strong> dịch vụ checkout &amp; giữ chỗ (inventory).</li>
+          <li><strong>Response:</strong> hệ thống xếp hàng công bằng, không bán vượt số ghế.</li>
+          <li><strong>Response measure:</strong> P95 thời gian phản hồi &lt; 1s; oversell = 0; error rate &lt; 1%.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 780 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="80" width="120" height="48" rx="9" class="svg-box-rose"/><text x="80" y="100" class="svg-t" text-anchor="middle">50k users</text><text x="80" y="116" class="svg-t-sm" text-anchor="middle">Source</text>
+            <rect x="180" y="80" width="130" height="48" rx="9" class="svg-box-gold"/><text x="245" y="100" class="svg-t" text-anchor="middle">Nhấn Mua</text><text x="245" y="116" class="svg-t-sm" text-anchor="middle">Stimulus · 10s</text>
+            <rect x="350" y="40" width="150" height="128" rx="11" class="svg-box-teal"/><text x="425" y="92" class="svg-t-b" text-anchor="middle">Checkout</text><text x="425" y="110" class="svg-t-sm" text-anchor="middle">+ Queue + Inventory</text><text x="425" y="126" class="svg-t-sm" text-anchor="middle">Artifact</text>
+            <rect x="540" y="50" width="220" height="44" rx="9" class="svg-box-violet"/><text x="650" y="71" class="svg-t" text-anchor="middle">P95 &lt; 1s · err &lt; 1%</text><text x="650" y="86" class="svg-t-sm" text-anchor="middle">Response measure</text>
+            <rect x="540" y="114" width="220" height="44" rx="9" class="svg-box-violet"/><text x="650" y="135" class="svg-t" text-anchor="middle">Oversell = 0</text><text x="650" y="150" class="svg-t-sm" text-anchor="middle">Response measure</text>
+            <line x1="140" y1="104" x2="178" y2="104" class="svg-line"/><polygon points="180,104 172,100 172,108" fill="var(--line)"/>
+            <line x1="310" y1="104" x2="348" y2="104" class="svg-line"/><polygon points="350,104 342,100 342,108" fill="var(--line)"/>
+            <line x1="500" y1="90" x2="538" y2="72" class="svg-line-t"/><polygon points="540,71 531,72 535,79" fill="var(--teal)"/>
+            <line x1="500" y1="118" x2="538" y2="134" class="svg-line-t"/><polygon points="540,135 531,131 535,138" fill="var(--teal)"/>
+          </svg>
+          <div class="cap">Hình 3.2 · Cấu trúc 6 phần của một Quality Attribute Scenario</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> Quality Attribute Scenario buộc ta nói rõ <em>tải đến từ đâu, trong môi trường nào, và đo thành công bằng gì</em>. Đây chính là đầu vào để kiến trúc sư chọn pattern (queue, rate-limit, sharding) và để QA viết kịch bản load test.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> mọi hệ thống có đỉnh tải đột biến, ràng buộc availability hoặc dữ liệu nhạy cảm. <strong>Tránh:</strong> dùng một con số đơn lẻ ("chịu 10.000 user") mà không nêu môi trường và hành vi.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 3.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 3.3 — Cân bằng trade-off giữa các NFR xung đột</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một hệ thống ngân hàng số đặt ra: bảo mật tối đa (xác thực 2 lớp mọi giao dịch), độ trễ thấp nhất, và availability 99.99%. Khi triển khai, các mục tiêu này <strong>kéo nhau ngược chiều</strong>: thêm bước bảo mật làm chậm giao dịch; đảm bảo consistency tuyệt đối làm giảm availability khi mạng phân vùng (CAP theorem). Không thể tối ưu mọi NFR cùng lúc.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Expert không cố "đạt tất cả" mà <strong>quản trị trade-off một cách tường minh</strong>:</p>
+        <ul>
+          <li>Phân loại theo <strong>mức rủi ro giao dịch</strong>: chuyển tiền lớn → bảo mật ưu tiên trên tốc độ; xem số dư → tốc độ ưu tiên.</li>
+          <li>Áp dụng <strong>tiered consistency</strong>: số dư hiển thị có thể eventual-consistent (ưu tiên availability), nhưng bút toán phải strong-consistent.</li>
+          <li>Ghi rõ <strong>quyết định kiến trúc</strong> và lý do vào ADR (Architecture Decision Record) để truy vết.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 480 320" xmlns="http://www.w3.org/2000/svg">
+            <!-- radar-ish triangle trade-off -->
+            <polygon points="240,40 420,260 60,260" class="svg-dash"/>
+            <text x="240" y="30" class="svg-t-b" text-anchor="middle">Security</text>
+            <text x="440" y="278" class="svg-t-b" text-anchor="end">Performance</text>
+            <text x="40" y="278" class="svg-t-b" text-anchor="start">Availability</text>
+            <!-- profile A: high value txn -->
+            <polygon points="240,70 300,235 130,210" class="svg-box-rose" fill-opacity="0.25"/>
+            <text x="240" y="160" class="svg-t-sm" text-anchor="middle" fill="var(--rose)">Giao dịch lớn</text>
+            <!-- profile B: balance view -->
+            <polygon points="240,150 380,250 110,240" class="svg-box-teal" fill-opacity="0.2"/>
+            <text x="300" y="225" class="svg-t-sm" text-anchor="middle" fill="var(--teal)">Xem số dư</text>
+            <circle cx="240" cy="40" r="4" fill="var(--gold)"/><circle cx="420" cy="260" r="4" fill="var(--gold)"/><circle cx="60" cy="260" r="4" fill="var(--gold)"/>
+          </svg>
+          <div class="cap">Hình 3.3 · Mỗi loại thao tác có "hồ sơ trade-off" NFR riêng — không có cấu hình tối ưu chung</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> NFR ở cấp expert là nghệ thuật <em>đánh đổi có chủ đích</em>, không phải đạt điểm tuyệt đối ở mọi trục. Việc khác biệt hoá NFR theo từng loại thao tác/người dùng cho phép vừa an toàn vừa mượt mà ở nơi cần.</p>
+          <p style="margin-bottom:0"><strong>Bài học:</strong> mọi NFR "tối đa hoá tất cả" là dấu hiệu chưa hiểu trade-off. Hãy ghi lại quyết định vào ADR — sáu tháng sau bạn sẽ quên vì sao đã chọn như vậy.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. PRD ============ -->
+<section class="topic" id="prd">
+  <div class="topic-head">
+    <div class="topic-num">04</div>
+    <div>
+      <h2 class="topic-title">Product Requirements Document</h2>
+      <div class="topic-sub">PRD — Tầng sản phẩm · "Sản phẩm giải quyết vấn đề gì, cho ai?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0"><strong>Product Requirements Document (PRD)</strong> là tài liệu trung tâm do <strong>Product Manager</strong> sở hữu, mô tả <em>sản phẩm/tính năng sẽ xây dựng</em>: vấn đề người dùng, đối tượng, mục tiêu, phạm vi, các tính năng chính, tiêu chí thành công và các metrics. PRD là <strong>cầu nối</strong> giữa BRS (chiến lược) và các đặc tả kỹ thuật (FRS/SRS) — nó dịch mục tiêu kinh doanh thành định hướng sản phẩm mà Design, Eng, QA cùng hiểu.</p>
+  </div>
+
+  <h3>Cách hoạt động &amp; cấu trúc</h3>
+  <p>PRD trả lời "What &amp; Why" ở góc nhìn sản phẩm, cố ý <strong>không</strong> đi sâu vào "How" kỹ thuật để đội ngũ có không gian thiết kế giải pháp. Một PRD hiện đại (kiểu Agile) thường gọn nhẹ, sống động, được cập nhật liên tục.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Phần</th><th>Trả lời câu hỏi</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Problem / Background</strong></td><td>Vấn đề gì? Vì sao bây giờ?</td></tr>
+        <tr><td><strong>Goals &amp; Non-Goals</strong></td><td>Đạt gì? Cố ý KHÔNG làm gì?</td></tr>
+        <tr><td><strong>Target Users / Personas</strong></td><td>Cho ai?</td></tr>
+        <tr><td><strong>Success Metrics</strong></td><td>Đo thành công thế nào (KPI/north star)?</td></tr>
+        <tr><td><strong>User Stories / Requirements</strong></td><td>Người dùng cần làm được gì?</td></tr>
+        <tr><td><strong>Scope &amp; Milestones</strong></td><td>Làm gì trước, gì sau?</td></tr>
+        <tr><td><strong>Open Questions / Risks</strong></td><td>Còn gì chưa rõ?</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Bắt đầu bằng <strong>vấn đề</strong>, không phải giải pháp. PRD tốt khiến người đọc đồng cảm với nỗi đau người dùng trước khi thấy tính năng.</li>
+    <li>Định nghĩa <strong>Non-Goals</strong> rõ ràng — đây là vũ khí mạnh nhất chống scope creep.</li>
+    <li>Mỗi mục tiêu phải gắn <strong>metric</strong>; tránh "tăng engagement" mà không nói đo bằng gì.</li>
+    <li>Giữ PRD <strong>là tài liệu sống</strong>: liên kết tới mockup, ticket, dữ liệu — không phải file Word đóng băng.</li>
+    <li>Phân biệt <strong>must / should / could</strong> (MoSCoW) để ưu tiên khi thời gian eo hẹp.</li>
+  </ul>
+
+  <!-- EX 4.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 4.1 — PRD cho tính năng "Lưu sản phẩm yêu thích"</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một PM viết vào backlog: "Thêm nút Yêu thích (wishlist)". Đội thiết kế và dev nhận task mà không hiểu vì sao cần, người dùng nào cần, và làm sao biết tính năng thành công. Kết quả: một icon trái tim được thêm vào nhưng tỉ lệ dùng gần như bằng 0.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết một PRD ngắn nhưng đủ "khung xương":</p>
+        <ul>
+          <li><strong>Problem:</strong> 60% người dùng rời đi rồi quay lại nhưng không tìm lại được sản phẩm họ quan tâm → mất chuyển đổi.</li>
+          <li><strong>Goal:</strong> giúp người dùng lưu &amp; quay lại sản phẩm dễ dàng, tăng tỉ lệ quay lại mua.</li>
+          <li><strong>Non-Goal:</strong> chia sẻ wishlist công khai (giai đoạn sau).</li>
+          <li><strong>Success Metric:</strong> ≥ 25% người dùng tạo ít nhất 1 wishlist; tỉ lệ mua từ wishlist ≥ 8%.</li>
+          <li><strong>User Story:</strong> "Là người mua, tôi muốn lưu sản phẩm để xem lại sau, vì tôi chưa quyết định mua ngay."</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 760 150" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="50" width="150" height="50" rx="10" class="svg-box-rose"/><text x="95" y="80" class="svg-t" text-anchor="middle">Problem</text>
+            <rect x="210" y="50" width="150" height="50" rx="10" class="svg-box-gold"/><text x="285" y="80" class="svg-t" text-anchor="middle">Goal + Metric</text>
+            <rect x="400" y="50" width="150" height="50" rx="10" class="svg-box-teal"/><text x="475" y="80" class="svg-t" text-anchor="middle">User Story</text>
+            <rect x="590" y="50" width="150" height="50" rx="10" class="svg-box-blue"/><text x="665" y="74" class="svg-t" text-anchor="middle">Design + Build</text><text x="665" y="90" class="svg-t-sm" text-anchor="middle">(đội tự thiết kế)</text>
+            <line x1="170" y1="75" x2="208" y2="75" class="svg-line-g"/><polygon points="210,75 202,71 202,79" fill="var(--gold)"/>
+            <line x1="360" y1="75" x2="398" y2="75" class="svg-line-g"/><polygon points="400,75 392,71 392,79" fill="var(--gold)"/>
+            <line x1="550" y1="75" x2="588" y2="75" class="svg-line-t"/><polygon points="590,75 582,71 582,79" fill="var(--teal)"/>
+          </svg>
+          <div class="cap">Hình 4.1 · PRD dẫn từ vấn đề → mục tiêu đo được → story, rồi trao quyền thiết kế cho đội</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> "thêm nút Yêu thích" là một <em>giải pháp tự áp đặt</em>. PRD lùi lại để nêu vấn đề và metric, nhờ đó đội có thể đề xuất giải pháp tốt hơn (ví dụ: gợi ý "tiếp tục xem" thay vì wishlist).</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> mọi tính năng đáng để nhiều người cùng làm. Non-Goal "chia sẻ công khai" ở đây ngăn tính năng phình to ngay từ đầu.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 4.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 4.2 — PRD với metrics dạng cây &amp; phân tầng ưu tiên</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một PM phụ trách tính năng onboarding cho app fintech. Stakeholder mỗi người muốn một thứ: marketing muốn nhiều đăng ký, ops muốn ít gọi hỗ trợ, finance muốn nhiều tài khoản được nạp tiền. PM bị giằng xé, PRD trở thành "danh sách ước nguyện" không có ưu tiên, đội kỹ thuật ngộp.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Xây <strong>cây metric</strong> với một <strong>North Star Metric</strong> ở đỉnh và các input metrics phía dưới, rồi dùng MoSCoW để ưu tiên tính năng theo mức ảnh hưởng lên metric:</p>
+        <ul>
+          <li><strong>North Star:</strong> Số người dùng "kích hoạt" (hoàn tất onboarding + nạp tiền lần đầu) trong 7 ngày.</li>
+          <li><strong>Driver 1:</strong> tỉ lệ hoàn tất eKYC → tính năng "auto-fill từ CCCD" (Must).</li>
+          <li><strong>Driver 2:</strong> tỉ lệ hiểu giá trị → tính năng "tour 3 bước" (Should).</li>
+          <li><strong>Driver 3:</strong> ma sát nạp tiền → "gợi ý mệnh giá" (Could).</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 760 270" xmlns="http://www.w3.org/2000/svg">
+            <rect x="270" y="20" width="220" height="50" rx="11" class="svg-box-gold"/><text x="380" y="42" class="svg-t-b" text-anchor="middle">North Star</text><text x="380" y="60" class="svg-t-sm" text-anchor="middle">Activated users / 7d</text>
+            <rect x="60" y="120" width="180" height="48" rx="10" class="svg-box-teal"/><text x="150" y="140" class="svg-t" text-anchor="middle">Hoàn tất eKYC</text><text x="150" y="156" class="svg-t-sm" text-anchor="middle">Driver 1</text>
+            <rect x="290" y="120" width="180" height="48" rx="10" class="svg-box-teal"/><text x="380" y="140" class="svg-t" text-anchor="middle">Hiểu giá trị</text><text x="380" y="156" class="svg-t-sm" text-anchor="middle">Driver 2</text>
+            <rect x="520" y="120" width="180" height="48" rx="10" class="svg-box-teal"/><text x="610" y="140" class="svg-t" text-anchor="middle">Ma sát nạp tiền</text><text x="610" y="156" class="svg-t-sm" text-anchor="middle">Driver 3</text>
+            <rect x="60" y="210" width="180" height="44" rx="9" class="svg-box-rose"/><text x="150" y="237" class="svg-t" text-anchor="middle">Auto-fill CCCD · MUST</text>
+            <rect x="290" y="210" width="180" height="44" rx="9" class="svg-box-blue"/><text x="380" y="237" class="svg-t" text-anchor="middle">Tour 3 bước · SHOULD</text>
+            <rect x="520" y="210" width="180" height="44" rx="9" class="svg-box"/><text x="610" y="237" class="svg-t" text-anchor="middle">Gợi ý mệnh giá · COULD</text>
+            <line x1="380" y1="70" x2="150" y2="118" class="svg-line-g"/><line x1="380" y1="70" x2="380" y2="118" class="svg-line-g"/><line x1="380" y1="70" x2="610" y2="118" class="svg-line-g"/>
+            <line x1="150" y1="168" x2="150" y2="208" class="svg-dash"/><line x1="380" y1="168" x2="380" y2="208" class="svg-dash"/><line x1="610" y1="168" x2="610" y2="208" class="svg-dash"/>
+          </svg>
+          <div class="cap">Hình 4.2 · Cây metric: mỗi tính năng được ưu tiên theo driver mà nó tác động</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> cây metric biến "ai cũng muốn thứ của mình" thành một cuộc thảo luận khách quan: tính năng nào tác động mạnh nhất lên North Star thì được ưu tiên. PRD trở thành công cụ ra quyết định, không chỉ là bản mô tả.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> nhiều stakeholder, nguồn lực hạn chế, cần biện minh ưu tiên. <strong>Tránh:</strong> chọn quá nhiều North Star — nhiều "ngôi sao Bắc Đẩu" thì chẳng còn ngôi nào dẫn đường.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 4.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 4.3 — PRD dạng giả thuyết &amp; vòng lặp thử nghiệm</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một công ty SaaS chuẩn bị xây tính năng lớn "AI tóm tắt cuộc họp". PRD truyền thống giả định trước rằng người dùng sẽ thích, rồi build 3 tháng. Rủi ro: nếu giả định sai, công ty đốt cả quý cho thứ không ai dùng. Vấn đề là PRD đang được viết như một <em>lời cam kết</em> chứ không phải <em>một giả thuyết cần kiểm chứng</em>.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết PRD theo cấu trúc <strong>hypothesis-driven</strong>: mỗi tính năng lớn là một giả thuyết với cách kiểm chứng rẻ trước khi build đầy đủ:</p>
+        <ul>
+          <li><strong>Hypothesis:</strong> "Chúng tôi tin rằng người quản lý dự án sẽ tiết kiệm 2h/tuần nếu có bản tóm tắt họp tự động."</li>
+          <li><strong>Riskiest Assumption:</strong> liệu bản tóm tắt AI có đủ chính xác để tin được?</li>
+          <li><strong>Test:</strong> chạy "concierge MVP" — tóm tắt thủ công cho 20 khách hàng trong 2 tuần.</li>
+          <li><strong>Success criteria:</strong> ≥ 60% khách dùng tóm tắt mỗi tuần → mới build hệ thống AI thật.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 620 260" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="310" cy="50" r="40" class="svg-box-gold"/><text x="310" y="48" class="svg-t" text-anchor="middle">Giả</text><text x="310" y="64" class="svg-t" text-anchor="middle">thuyết</text>
+            <circle cx="520" cy="160" r="40" class="svg-box-blue"/><text x="520" y="158" class="svg-t" text-anchor="middle">Đo</text><text x="520" y="174" class="svg-t" text-anchor="middle">lường</text>
+            <circle cx="310" cy="220" r="40" class="svg-box-rose"/><text x="310" y="218" class="svg-t" text-anchor="middle">Học &amp;</text><text x="310" y="234" class="svg-t" text-anchor="middle">quyết</text>
+            <circle cx="100" cy="160" r="40" class="svg-box-teal"/><text x="100" y="158" class="svg-t" text-anchor="middle">Test</text><text x="100" y="174" class="svg-t" text-anchor="middle">rẻ</text>
+            <path d="M345 75 Q 470 90 500 128" class="svg-line-g"/><polygon points="500,128 491,124 496,118" fill="var(--gold)"/>
+            <path d="M505 195 Q 430 240 350 222" class="svg-line-t"/><polygon points="350,222 359,219 355,213" fill="var(--teal)"/>
+            <path d="M275 218 Q 110 230 100 200" class="svg-line-t"/><polygon points="100,200 96,209 104,206" fill="var(--teal)"/>
+            <path d="M120 125 Q 200 70 272 58" class="svg-line-g"/><polygon points="272,58 263,57 266,65" fill="var(--gold)"/>
+            <text x="310" y="150" class="svg-t-sm" text-anchor="middle">Build–Measure–Learn</text>
+          </svg>
+          <div class="cap">Hình 4.3 · PRD hypothesis-driven gắn với vòng lặp học hỏi, build chỉ khi giả định được xác thực</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> PRD trưởng thành nhất thừa nhận rằng nó chứa <em>giả định</em>, không phải sự thật. Bằng cách kiểm chứng "giả định rủi ro nhất" với chi phí thấp trước, đội tránh được thảm hoạ build-trước-validate-sau.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> tính năng mới, chưa được kiểm chứng, đầu tư lớn. <strong>Khi nào không cần:</strong> các thay đổi nhỏ, đã rõ ràng — viết hypothesis cho nút "đổi màu" là thừa thãi.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 5. SRS ============ -->
+<section class="topic" id="srs">
+  <div class="topic-head">
+    <div class="topic-num">05</div>
+    <div>
+      <h2 class="topic-title">Software Requirement Spec</h2>
+      <div class="topic-sub">SRS — Tầng kỹ thuật tổng hợp · "Toàn bộ đặc tả phần mềm"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0"><strong>Software Requirements Specification (SRS)</strong> là tài liệu kỹ thuật toàn diện mô tả <strong>tất cả</strong> những gì phần mềm phải làm và phải đạt — bao gồm cả <em>functional requirements</em> lẫn <em>non-functional requirements</em>, ràng buộc giao diện, dữ liệu, môi trường. Đây là "hợp đồng kỹ thuật" giữa stakeholder và đội phát triển. Chuẩn tham chiếu kinh điển là <strong>IEEE 830</strong> (và bản kế nhiệm ISO/IEC/IEEE 29148).</p>
+  </div>
+
+  <h3>SRS quan hệ thế nào với các tài liệu khác?</h3>
+  <p>Nếu PRD là góc nhìn sản phẩm thì SRS là góc nhìn kỹ thuật. SRS thường <strong>bao gồm</strong> nội dung FRS và NFR, cộng thêm mô tả external interfaces (API, phần cứng, người dùng) và yêu cầu dữ liệu. Trong nhiều tổ chức, SRS được dẫn xuất trực tiếp từ PRD.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+      <rect x="40" y="80" width="120" height="44" rx="9" class="svg-box-gold"/><text x="100" y="107" class="svg-t" text-anchor="middle">PRD</text>
+      <rect x="280" y="20" width="160" height="160" rx="13" class="svg-box-blue"/>
+      <text x="360" y="48" class="svg-t-b" text-anchor="middle">SRS</text>
+      <rect x="300" y="64" width="120" height="40" rx="8" class="svg-box-teal"/><text x="360" y="88" class="svg-t-sm" text-anchor="middle">Functional (FRS)</text>
+      <rect x="300" y="112" width="120" height="40" rx="8" class="svg-box-violet"/><text x="360" y="136" class="svg-t-sm" text-anchor="middle">Non-Functional</text>
+      <rect x="560" y="80" width="130" height="44" rx="9" class="svg-box"/><text x="625" y="107" class="svg-t" text-anchor="middle">Code &amp; Test</text>
+      <line x1="160" y1="102" x2="278" y2="102" class="svg-line-g"/><polygon points="280,102 272,98 272,106" fill="var(--gold)"/>
+      <line x1="440" y1="102" x2="558" y2="102" class="svg-line"/><polygon points="560,102 552,98 552,106" fill="var(--line)"/>
+    </svg>
+    <div class="cap">Hình 5.0 · SRS đóng gói Functional + Non-Functional, là cầu nối PRD → hiện thực</div>
+  </div>
+
+  <h4>Cấu trúc IEEE 830 (rút gọn)</h4>
+  <ul>
+    <li><strong>1. Introduction</strong> — mục đích, phạm vi, định nghĩa, tham chiếu.</li>
+    <li><strong>2. Overall Description</strong> — bối cảnh sản phẩm, chức năng tổng quát, đặc điểm người dùng, ràng buộc, giả định.</li>
+    <li><strong>3. Specific Requirements</strong> — external interfaces, functional requirements, performance, design constraints, software system attributes (NFR).</li>
+    <li><strong>Appendices &amp; Index</strong>.</li>
+  </ul>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Mỗi requirement phải <strong>correct, unambiguous, complete, consistent, verifiable, traceable</strong> (6 đặc tính của IEEE).</li>
+    <li>Đánh ID và phân loại; tránh trộn lẫn functional với NFR trong cùng một câu.</li>
+    <li>Đặc tả <strong>external interfaces</strong> rõ ràng — nơi tích hợp là nơi sinh lỗi nhiều nhất.</li>
+    <li>Dùng glossary để mọi thuật ngữ chỉ có một nghĩa.</li>
+    <li>Phân biệt SRS (đặc tả "cái gì") với SDS/Design Doc (mô tả "thiết kế như thế nào").</li>
+  </ul>
+
+  <!-- EX 5.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 5.1 — SRS cho module xuất báo cáo</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một đội outsource nhận yêu cầu "làm chức năng xuất báo cáo doanh thu". Sau khi bàn giao, khách phàn nàn: định dạng sai, thiếu cột, file lớn mở không nổi. Hai bên tranh cãi vì không có tài liệu nào ghi rõ "đúng" nghĩa là gì — chỉ có vài tin nhắn rời rạc.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết một mục SRS gộp cả functional, interface và NFR:</p>
+        <ul>
+          <li><strong>FR-201:</strong> Hệ thống PHẢI xuất báo cáo doanh thu theo khoảng ngày người dùng chọn.</li>
+          <li><strong>FR-202:</strong> Hỗ trợ định dạng XLSX và CSV.</li>
+          <li><strong>Interface (data):</strong> các cột bắt buộc: Ngày, Mã đơn, Sản phẩm, SL, Doanh thu, Thuế.</li>
+          <li><strong>NFR-perf:</strong> báo cáo ≤ 100.000 dòng PHẢI sinh xong &lt; 10s; nếu vượt → xử lý nền và gửi email link tải.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>ID</th><th>Loại</th><th>Yêu cầu</th><th>Verify bằng</th></tr></thead>
+            <tbody>
+              <tr><td>FR-201</td><td>Functional</td><td>Xuất theo khoảng ngày</td><td>Test case TC-201</td></tr>
+              <tr><td>FR-202</td><td>Functional</td><td>Định dạng XLSX/CSV</td><td>TC-202</td></tr>
+              <tr><td>IF-01</td><td>Interface</td><td>Đủ 6 cột bắt buộc</td><td>Kiểm tra schema</td></tr>
+              <tr><td>NFR-perf</td><td>Non-func</td><td>&lt;10s cho 100k dòng</td><td>Performance test</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> SRS biến "làm báo cáo" thành một danh sách có thể nghiệm thu khách quan, mỗi dòng kèm cách verify. Tranh chấp bàn giao biến mất vì "đúng" đã được định nghĩa trước.</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> đặc biệt quan trọng với hợp đồng outsource / fixed-bid, nơi SRS chính là cơ sở pháp lý cho nghiệm thu.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 5.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 5.2 — Đặc tả external interface cho tích hợp đa hệ thống</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một hệ thống ERP cần tích hợp với kho hàng (WMS), cổng thanh toán, và hệ thống kế toán cũ. Mỗi hệ thống nói một "ngôn ngữ" khác nhau. Khi tích hợp, dữ liệu đơn hàng bị lệch: ERP gửi số tiền có thuế, kế toán hiểu là chưa thuế → sai sổ sách hàng tỉ đồng.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>SRS phải có mục <strong>External Interface Requirements</strong> đặc tả chính xác hợp đồng dữ liệu giữa các hệ thống: schema, đơn vị, chiều giao tiếp, cơ chế lỗi:</p>
+        <ul>
+          <li><strong>EIF-01 (ERP → WMS):</strong> đẩy lệnh xuất kho qua message queue, payload JSON theo schema v2, đơn vị số lượng = cái.</li>
+          <li><strong>EIF-02 (ERP ↔ Payment):</strong> số tiền tính bằng <em>đồng, đã gồm thuế</em>; trường <code>tax_included=true</code> bắt buộc.</li>
+          <li><strong>EIF-03 (ERP → Kế toán):</strong> bút toán gửi <em>tách riêng</em> tiền hàng và tiền thuế.</li>
+          <li><strong>Error contract:</strong> mọi interface trả mã lỗi chuẩn hoá + retry policy.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 760 230" xmlns="http://www.w3.org/2000/svg">
+            <rect x="300" y="90" width="160" height="56" rx="11" class="svg-box-gold"/><text x="380" y="124" class="svg-t-b" text-anchor="middle">ERP (core)</text>
+            <rect x="40" y="20" width="160" height="50" rx="10" class="svg-box-teal"/><text x="120" y="50" class="svg-t" text-anchor="middle">WMS</text>
+            <rect x="560" y="20" width="160" height="50" rx="10" class="svg-box-blue"/><text x="640" y="50" class="svg-t" text-anchor="middle">Payment</text>
+            <rect x="290" y="180" width="180" height="44" rx="9" class="svg-box-violet"/><text x="380" y="207" class="svg-t" text-anchor="middle">Kế toán (legacy)</text>
+            <line x1="300" y1="110" x2="200" y2="60" class="svg-line-t"/><polygon points="200,60 209,62 205,69" fill="var(--teal)"/><text x="230" y="80" class="svg-t-sm">EIF-01 cái</text>
+            <line x1="460" y1="110" x2="560" y2="60" class="svg-line-t"/><polygon points="560,60 551,62 555,69" fill="var(--teal)"/><text x="500" y="80" class="svg-t-sm">EIF-02 gồm thuế</text>
+            <line x1="380" y1="146" x2="380" y2="178" class="svg-line-t"/><polygon points="380,180 376,172 384,172" fill="var(--teal)"/><text x="470" y="166" class="svg-t-sm">EIF-03 tách thuế</text>
+          </svg>
+          <div class="cap">Hình 5.2 · Architecture diagram: mỗi cạnh tích hợp là một interface contract được đặc tả rõ đơn vị &amp; schema</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> phần lớn lỗi nghiêm trọng nằm ở <em>ranh giới giữa các hệ thống</em>, không phải bên trong. Đặc tả interface đến mức "đơn vị tiền tệ" và "đã gồm thuế hay chưa" nghe thừa thãi, nhưng đó chính là nơi mất tiền thật.</p>
+          <p style="margin-bottom:0"><strong>Best practice:</strong> mỗi interface là một hợp đồng song phương — phải có schema, đơn vị, chiều, và contract lỗi. Versioning schema (v2…) cho phép tiến hoá mà không phá hệ thống cũ.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 5.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 5.3 — SRS như "living spec" với verifiable acceptance criteria</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một sản phẩm phát triển nhanh theo Agile, nhưng vẫn cần SRS để tuân thủ kiểm định (ví dụ thiết bị y tế, hàng không). SRS Word truyền thống lập tức lỗi thời sau vài sprint, tạo khoảng cách nguy hiểm giữa "tài liệu" và "thực tế hệ thống" — auditor phát hiện sai lệch, dự án bị treo.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Áp dụng <strong>specification by example / executable specification</strong>: mỗi requirement trong SRS được gắn với <strong>acceptance criteria có thể chạy được</strong> (ví dụ Gherkin Given–When–Then), và test tự động hoá đóng vai trò bằng chứng tuân thủ:</p>
+        <ul>
+          <li>SRS giữ phần "what" ổn định và được đánh số (REQ-IDs) để truy vết.</li>
+          <li>Mỗi REQ-ID liên kết tới ≥ 1 kịch bản Given–When–Then chạy trong CI.</li>
+          <li>Khi test pass → requirement được chứng minh là đang được đáp ứng <em>tại mọi thời điểm</em>.</li>
+          <li>Báo cáo coverage REQ → test trở thành tài liệu tuân thủ "sống".</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 760 210" xmlns="http://www.w3.org/2000/svg">
+            <rect x="30" y="80" width="170" height="56" rx="11" class="svg-box-blue"/><text x="115" y="106" class="svg-t-b" text-anchor="middle">SRS REQ-ID</text><text x="115" y="123" class="svg-t-sm" text-anchor="middle">"what" ổn định</text>
+            <rect x="290" y="80" width="190" height="56" rx="11" class="svg-box-teal"/><text x="385" y="104" class="svg-t" text-anchor="middle">Given–When–Then</text><text x="385" y="121" class="svg-t-sm" text-anchor="middle">acceptance criteria</text>
+            <rect x="560" y="30" width="170" height="50" rx="10" class="svg-box-violet"/><text x="645" y="60" class="svg-t" text-anchor="middle">CI chạy test</text>
+            <rect x="560" y="130" width="170" height="50" rx="10" class="svg-box-gold"/><text x="645" y="155" class="svg-t" text-anchor="middle">Báo cáo tuân thủ</text><text x="645" y="170" class="svg-t-sm" text-anchor="middle">coverage REQ→test</text>
+            <line x1="200" y1="108" x2="288" y2="108" class="svg-line"/><polygon points="290,108 282,104 282,112" fill="var(--line)"/>
+            <line x1="480" y1="98" x2="558" y2="62" class="svg-line-t"/><polygon points="560,57 551,59 555,66" fill="var(--teal)"/>
+            <line x1="645" y1="80" x2="645" y2="128" class="svg-dash"/><polygon points="645,130 641,122 649,122" fill="var(--ink-mute)"/>
+          </svg>
+          <div class="cap">Hình 5.3 · Executable spec: requirement ⇄ acceptance test chạy trong CI ⇒ tuân thủ luôn cập nhật</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> SRS đỉnh cao xoá bỏ khoảng cách "tài liệu vs thực tế" bằng cách biến acceptance criteria thành test chạy được. Tài liệu không còn nói dối, vì nếu hệ thống lệch khỏi spec, test sẽ đỏ ngay.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> môi trường vừa Agile vừa cần tuân thủ/audit (fintech, y tế, hàng không). <strong>Lưu ý:</strong> không phải mọi requirement đều executable — phần kiến trúc/ràng buộc vẫn cần văn xuôi rõ ràng.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 6. USE CASE ============ -->
+<section class="topic" id="usecase">
+  <div class="topic-head">
+    <div class="topic-num">06</div>
+    <div>
+      <h2 class="topic-title">Use Case</h2>
+      <div class="topic-sub">Tầng hành vi · "Actor tương tác với hệ thống ra sao để đạt mục tiêu?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0">Một <strong>Use Case</strong> mô tả <em>chuỗi tương tác</em> giữa một hoặc nhiều <strong>actor</strong> (người dùng hoặc hệ thống bên ngoài) và hệ thống nhằm đạt một <strong>mục tiêu</strong> cụ thể. Use case nắm bắt cả <em>luồng chính</em> (main/basic flow) lẫn <em>luồng thay thế &amp; ngoại lệ</em> (alternate/exception flows). Phương pháp này được hệ thống hoá bởi Ivar Jacobson và là nền tảng của UML.</p>
+  </div>
+
+  <h3>Cấu trúc một Use Case (kiểu Cockburn)</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Thành phần</th><th>Ý nghĩa</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Use Case Name</strong></td><td>Mục tiêu, viết dạng động từ ("Đặt hàng")</td></tr>
+        <tr><td><strong>Primary Actor</strong></td><td>Người/hệ thống khởi xướng</td></tr>
+        <tr><td><strong>Preconditions</strong></td><td>Điều kiện phải đúng trước khi bắt đầu</td></tr>
+        <tr><td><strong>Main Success Scenario</strong></td><td>Các bước của luồng thành công</td></tr>
+        <tr><td><strong>Extensions / Alternate</strong></td><td>Các nhánh rẽ, lỗi, ngoại lệ</td></tr>
+        <tr><td><strong>Postconditions</strong></td><td>Trạng thái sau khi hoàn tất</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="callout tip"><span class="ci">💡</span><div><b>Use Case vs User Story:</b> User story ngắn gọn ("Là X tôi muốn Y để Z"), tập trung giá trị, dùng trong Agile. Use case chi tiết hơn về <em>luồng và ngoại lệ</em>, phù hợp hệ thống phức tạp. Chúng bổ trợ chứ không loại trừ nhau.</div></div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Đặt tên use case bằng <strong>mục tiêu của actor</strong>, không phải thao tác hệ thống.</li>
+    <li>Viết các bước ở mức "<strong>goal level</strong>" — tránh sa đà vào chi tiết UI ("click nút màu xanh").</li>
+    <li>Luôn liệt kê <strong>extension</strong>: phần lớn giá trị của use case nằm ở các nhánh lỗi.</li>
+    <li>Một use case = một mục tiêu của một actor; tránh gộp nhiều mục tiêu.</li>
+    <li>Dùng use case diagram cho bức tranh tổng thể, đặc tả text cho chi tiết.</li>
+  </ul>
+
+  <!-- EX 6.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 6.1 — Use Case "Rút tiền tại ATM"</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Đội phát triển phần mềm ATM chỉ được mô tả: "khách hàng rút tiền". Khi code, vô số câu hỏi nảy sinh: thẻ bị nuốt khi nào? Sai PIN mấy lần? Hết tiền trong máy thì sao? Không có nguồn nào trả lời, mỗi tình huống bị xử lý tuỳ hứng.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết use case đầy đủ main flow + extensions:</p>
+        <p><strong>UC-01 Rút tiền · Primary Actor:</strong> Chủ thẻ · <strong>Precondition:</strong> ATM hoạt động, có kết nối ngân hàng.</p>
+        <p><strong>Main Success Scenario:</strong></p>
+        <ol>
+          <li>Khách đưa thẻ; hệ thống đọc thẻ.</li>
+          <li>Hệ thống yêu cầu PIN; khách nhập.</li>
+          <li>Hệ thống xác thực PIN.</li>
+          <li>Khách chọn số tiền; hệ thống kiểm tra số dư.</li>
+          <li>Hệ thống nhả tiền, trừ tài khoản, in biên lai, trả thẻ.</li>
+        </ol>
+        <p><strong>Extensions:</strong> 3a) PIN sai 3 lần → nuốt thẻ. 4a) Số dư không đủ → báo lỗi, quay lại bước 4. 5a) Máy hết tiền → báo lỗi, huỷ giao dịch, trả thẻ.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 600 220" xmlns="http://www.w3.org/2000/svg">
+            <!-- actor stick -->
+            <circle cx="60" cy="60" r="14" class="svg-box-teal"/><line x1="60" y1="74" x2="60" y2="115" class="svg-line-t"/><line x1="40" y1="90" x2="80" y2="90" class="svg-line-t"/><line x1="60" y1="115" x2="44" y2="145" class="svg-line-t"/><line x1="60" y1="115" x2="76" y2="145" class="svg-line-t"/>
+            <text x="60" y="170" class="svg-t-sm" text-anchor="middle">Chủ thẻ</text>
+            <!-- system boundary -->
+            <rect x="180" y="20" width="380" height="180" rx="14" class="svg-dash"/>
+            <text x="370" y="42" class="svg-t-sm" text-anchor="middle">Hệ thống ATM</text>
+            <ellipse cx="290" cy="80" rx="80" ry="26" class="svg-box-gold"/><text x="290" y="85" class="svg-t" text-anchor="middle">Xác thực PIN</text>
+            <ellipse cx="290" cy="150" rx="80" ry="26" class="svg-box-gold"/><text x="290" y="155" class="svg-t" text-anchor="middle">Rút tiền</text>
+            <ellipse cx="470" cy="150" rx="70" ry="26" class="svg-box-rose"/><text x="470" y="155" class="svg-t" text-anchor="middle">Nuốt thẻ</text>
+            <line x1="80" y1="100" x2="212" y2="82" class="svg-line"/>
+            <line x1="80" y1="105" x2="212" y2="148" class="svg-line"/>
+            <path d="M370 150 L 398 150" class="svg-dash"/><text x="408" y="135" class="svg-t-sm">«extend»</text>
+          </svg>
+          <div class="cap">Hình 6.1 · Use case diagram với actor, use case chính và quan hệ «extend» cho nhánh nuốt thẻ</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> giá trị của use case nằm ở <em>extensions</em> — chính các nhánh "PIN sai", "hết tiền" mới là phần dễ bị bỏ sót và gây sự cố. Main flow ai cũng nghĩ ra; ngoại lệ mới phân biệt spec tốt với spec hời hợt.</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> hệ thống có nhiều luồng tương tác và nhánh lỗi quan trọng (ATM, đặt vé, quy trình duyệt).</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 6.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 6.2 — Use case với «include» &amp; «extend» tái sử dụng</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một hệ thống TMĐT có hàng chục use case: đặt hàng, đổi địa chỉ, đánh giá, theo dõi đơn… Tất cả đều yêu cầu "đăng nhập". Đội viết lại bước đăng nhập trong từng use case, dẫn đến trùng lặp khổng lồ và khi quy trình đăng nhập đổi (thêm OTP) thì phải sửa hàng chục chỗ.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Dùng quan hệ <strong>«include»</strong> để tách hành vi dùng chung, và <strong>«extend»</strong> cho hành vi tuỳ chọn/điều kiện:</p>
+        <ul>
+          <li>"Đặt hàng", "Đánh giá", "Theo dõi đơn" đều <strong>«include»</strong> use case "Xác thực người dùng".</li>
+          <li>"Đặt hàng" được <strong>«extend»</strong> bởi "Áp mã giảm giá" (chỉ xảy ra khi có mã).</li>
+          <li>Khi đăng nhập thêm OTP, chỉ cần sửa <em>một</em> use case "Xác thực".</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 700 250" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="160" cy="60" rx="80" ry="28" class="svg-box-gold"/><text x="160" y="65" class="svg-t" text-anchor="middle">Đặt hàng</text>
+            <ellipse cx="160" cy="190" rx="80" ry="28" class="svg-box-gold"/><text x="160" y="195" class="svg-t" text-anchor="middle">Đánh giá</text>
+            <ellipse cx="430" cy="125" rx="90" ry="30" class="svg-box-teal"/><text x="430" y="130" class="svg-t" text-anchor="middle">Xác thực người dùng</text>
+            <ellipse cx="600" cy="50" rx="80" ry="26" class="svg-box-violet"/><text x="600" y="55" class="svg-t" text-anchor="middle">Áp mã giảm giá</text>
+            <line x1="240" y1="68" x2="345" y2="118" class="svg-dash"/><text x="280" y="80" class="svg-t-sm">«include»</text>
+            <line x1="240" y1="182" x2="345" y2="132" class="svg-dash"/><text x="280" y="178" class="svg-t-sm">«include»</text>
+            <line x1="240" y1="52" x2="522" y2="50" class="svg-dash"/><text x="380" y="42" class="svg-t-sm">«extend»</text>
+          </svg>
+          <div class="cap">Hình 6.2 · «include» cho hành vi bắt buộc dùng chung, «extend» cho hành vi tuỳ chọn</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> «include» = "luôn cần, tách ra để tái dùng" (giống gọi hàm); «extend» = "đôi khi xảy ra, theo điều kiện". Phân biệt đúng giúp tránh trùng lặp và khoanh vùng thay đổi.</p>
+          <p style="margin-bottom:0"><strong>Cảnh báo:</strong> đừng lạm dụng «extend»/«include» tạo sơ đồ rối như mạng nhện. Chỉ tách khi thật sự dùng chung; quá nhiều quan hệ làm sơ đồ khó đọc hơn là gộp lại.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 6.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 6.3 — Use case nhiều actor &amp; goal levels (Cockburn)</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một hệ thống duyệt chi tiêu doanh nghiệp có nhiều actor (nhân viên, quản lý, kế toán, hệ thống ngân hàng) và quy trình duyệt nhiều cấp tuỳ giá trị. Use case được viết lẫn lộn giữa mức "tóm tắt chiến lược" và mức "thao tác chi tiết", khiến cả lãnh đạo lẫn dev đều đọc thấy hoặc quá cao hoặc quá vụn.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Áp dụng <strong>goal levels của Cockburn</strong> — phân tầng use case theo độ cao mục tiêu, ký hiệu bằng biểu tượng "biển/cá/sò":</p>
+        <ul>
+          <li><strong>Cloud/Kite (cao):</strong> "Quản lý ngân sách phòng ban" — bối cảnh chiến lược.</li>
+          <li><strong>Sea level (mức biển — quan trọng nhất):</strong> "Nhân viên gửi yêu cầu chi tiêu" — một phiên làm việc hoàn chỉnh.</li>
+          <li><strong>Fish/Clam (thấp):</strong> "Xác thực ngân sách còn lại" — bước con, thường là «include».</li>
+        </ul>
+        <p>Quy trình duyệt nhiều cấp được mô hình hoá bằng activity/state diagram đính kèm.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="100" width="120" height="44" rx="9" class="svg-box-teal"/><text x="100" y="127" class="svg-t" text-anchor="middle">Gửi yêu cầu</text>
+            <polygon points="200,122 280,90 280,154" class="svg-box-gold"/><text x="240" y="118" class="svg-t-sm" text-anchor="middle">≤ 5tr?</text>
+            <rect x="320" y="40" width="150" height="44" rx="9" class="svg-box-blue"/><text x="395" y="67" class="svg-t" text-anchor="middle">QL duyệt</text>
+            <rect x="320" y="160" width="150" height="44" rx="9" class="svg-box-violet"/><text x="395" y="183" class="svg-t-sm" text-anchor="middle">QL + Giám đốc duyệt</text>
+            <rect x="520" y="100" width="160" height="44" rx="9" class="svg-box-teal"/><text x="600" y="120" class="svg-t" text-anchor="middle">Kế toán chi</text><text x="600" y="135" class="svg-t-sm" text-anchor="middle">→ Ngân hàng</text>
+            <line x1="160" y1="122" x2="198" y2="122" class="svg-line"/>
+            <line x1="280" y1="100" x2="318" y2="62" class="svg-line"/><text x="295" y="88" class="svg-t-sm">≤5tr</text>
+            <line x1="280" y1="144" x2="318" y2="178" class="svg-line"/><text x="290" y="170" class="svg-t-sm">&gt;5tr</text>
+            <line x1="470" y1="62" x2="540" y2="100" class="svg-line-t"/>
+            <line x1="470" y1="182" x2="540" y2="140" class="svg-line-t"/>
+          </svg>
+          <div class="cap">Hình 6.3 · State/activity flow của quy trình duyệt nhiều cấp đính kèm use case mức "sea level"</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> phân tầng goal levels giúp <em>mỗi đối tượng đọc đúng độ cao cần thiết</em>: lãnh đạo đọc mức kite, dev đọc mức fish. Một tài liệu phục vụ nhiều người mà không ai bị ngợp hay thiếu.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> hệ thống nhiều actor, quy trình phân nhánh theo điều kiện. <strong>Tránh:</strong> trộn nhiều mức trong một use case — đó là nguyên nhân khiến tài liệu "khó đọc với tất cả mọi người".</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 7. USER STORY ============ -->
+<section class="topic" id="story">
+  <div class="topic-head">
+    <div class="topic-num">07</div>
+    <div>
+      <h2 class="topic-title">User Story</h2>
+      <div class="topic-sub">Tầng hành vi (Agile) · "Người dùng cần gì &amp; vì sao?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0">Một <strong>User Story</strong> là một mô tả ngắn gọn, dễ hiểu về một nhu cầu của người dùng, viết theo góc nhìn của họ. Mẫu kinh điển (Mike Cohn):<br><code>Là &lt;loại người dùng&gt;, tôi muốn &lt;mục tiêu&gt;, để &lt;giá trị/lý do&gt;.</code><br>User story là đơn vị làm việc cốt lõi trong Agile/Scrum — không phải để đặc tả đầy đủ, mà để <strong>khơi gợi một cuộc trò chuyện</strong> giữa đội và người dùng.</p>
+  </div>
+
+  <h3>Ba chữ C &amp; tiêu chí INVEST</h3>
+  <div class="grid3">
+    <div class="mini"><span class="ic">📇</span><h5>Card</h5><p>Câu chuyện ngắn ghi trên thẻ — lời nhắc, không phải đặc tả.</p></div>
+    <div class="mini"><span class="ic">💬</span><h5>Conversation</h5><p>Trao đổi để làm rõ chi tiết khi cần.</p></div>
+    <div class="mini"><span class="ic">✅</span><h5>Confirmation</h5><p>Acceptance criteria xác nhận hoàn thành.</p></div>
+  </div>
+  <p>Một story tốt thoả <strong>INVEST</strong>: <em>Independent, Negotiable, Valuable, Estimable, Small, Testable</em>.</p>
+
+  <div class="callout warn"><span class="ci">⚠</span><div>User story <b>không thay thế</b> đặc tả chi tiết. Nó cố tình để ngỏ chi tiết để đội thảo luận. "Detail" sống trong <em>acceptance criteria</em> và cuộc trò chuyện, không phải trong câu story.</div></div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Luôn có vế <strong>"để…"</strong> (giá trị). Story thiếu lý do là một task trá hình.</li>
+    <li>Gắn <strong>acceptance criteria</strong> rõ ràng (thường dạng Given–When–Then).</li>
+    <li>Chia nhỏ story lớn (epic) thành story <strong>vừa một sprint</strong> — vertical slice, không phải theo tầng kỹ thuật.</li>
+    <li>Tránh viết story từ góc nhìn hệ thống ("Là hệ thống, tôi muốn…") — đó là dấu hiệu sai.</li>
+    <li>Story là lời mời trò chuyện, đừng cố nhồi mọi chi tiết vào một câu.</li>
+  </ul>
+
+  <!-- EX 7.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 7.1 — Từ task kỹ thuật thành user story có giá trị</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Backlog đầy các dòng kiểu: "Tạo bảng users", "Làm API forgot-password", "Thêm trường email". Đội build cần mẫn nhưng không ai biết các task này phục vụ ai và vì sao. Khi phải cắt giảm, không có cơ sở để quyết định cái nào quan trọng.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết lại dưới dạng user story gắn giá trị + acceptance criteria:</p>
+        <p><strong>Story:</strong> "Là người dùng đã quên mật khẩu, tôi muốn đặt lại mật khẩu qua email, để tôi lấy lại được quyền truy cập tài khoản mà không cần gọi hỗ trợ."</p>
+        <p><strong>Acceptance Criteria (Given–When–Then):</strong></p>
+        <ul>
+          <li><em>Given</em> tôi nhập email đã đăng ký, <em>when</em> tôi yêu cầu reset, <em>then</em> tôi nhận email chứa link trong vòng 1 phút.</li>
+          <li><em>Given</em> link reset, <em>when</em> tôi mở sau 15 phút, <em>then</em> hệ thống báo link hết hạn.</li>
+          <li><em>Given</em> email không tồn tại, <em>when</em> tôi yêu cầu reset, <em>then</em> hệ thống vẫn báo "đã gửi" (không lộ email tồn tại hay không).</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="vs">
+          <div class="vs-col" style="border-color:rgba(224,108,138,.4)"><h5>❌ Task kỹ thuật</h5><p style="margin:0">"Làm API forgot-password"<br><span style="color:var(--ink-mute);font-size:13px">→ Không rõ ai cần, vì sao, hoàn thành là gì.</span></p></div>
+          <div class="vs-mid">→</div>
+          <div class="vs-col" style="border-color:rgba(108,195,106,.4)"><h5>✅ User Story</h5><p style="margin:0">"Là người quên mật khẩu… để lấy lại truy cập."<br><span style="color:var(--ink-mute);font-size:13px">→ Có người dùng, giá trị, và acceptance criteria.</span></p></div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> vế "để…" là linh hồn của user story — nó cho phép đội đề xuất giải pháp tốt hơn (ví dụ magic-link thay vì mật khẩu) và giúp ưu tiên theo giá trị. AC chính là nơi giấu các chi tiết quan trọng (link hết hạn, không lộ email).</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> mọi đội Agile. Một backlog toàn task kỹ thuật không có "vì sao" là dấu hiệu mất kết nối với người dùng.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 7.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 7.2 — Story Splitting &amp; Story Mapping</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một đội nhận story khổng lồ: "Là người dùng, tôi muốn thanh toán đơn hàng." Story này chứa thẻ tín dụng, ví điện tử, trả góp, hoàn tiền… Nó quá lớn để ước lượng hay hoàn thành trong một sprint, nhưng nếu chia theo tầng kỹ thuật (DB / API / UI) thì không tầng nào tự mang lại giá trị cho người dùng.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Áp dụng <strong>vertical slicing</strong> và <strong>Story Mapping</strong> (Jeff Patton). Chia thành các lát mỏng, mỗi lát vẫn giao được giá trị end-to-end:</p>
+        <ul>
+          <li><strong>Slice 1 (walking skeleton):</strong> thanh toán bằng <em>một</em> phương thức (thẻ), happy path.</li>
+          <li><strong>Slice 2:</strong> thêm ví điện tử.</li>
+          <li><strong>Slice 3:</strong> xử lý thất bại &amp; retry.</li>
+          <li><strong>Slice 4:</strong> trả góp.</li>
+        </ul>
+        <p>Story map sắp xếp theo chiều ngang (hành trình người dùng) và chiều dọc (mức ưu tiên/release).</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 720 240" xmlns="http://www.w3.org/2000/svg">
+            <!-- backbone -->
+            <rect x="30" y="20" width="150" height="40" rx="8" class="svg-box-gold"/><text x="105" y="45" class="svg-t" text-anchor="middle">Chọn hàng</text>
+            <rect x="200" y="20" width="150" height="40" rx="8" class="svg-box-gold"/><text x="275" y="45" class="svg-t" text-anchor="middle">Thanh toán</text>
+            <rect x="370" y="20" width="150" height="40" rx="8" class="svg-box-gold"/><text x="445" y="45" class="svg-t" text-anchor="middle">Xác nhận</text>
+            <text x="600" y="46" class="svg-t-sm">← backbone (hành trình)</text>
+            <!-- release 1 -->
+            <line x1="20" y1="80" x2="560" y2="80" class="svg-dash"/><text x="585" y="84" class="svg-t-sm" fill="var(--teal)">Release 1</text>
+            <rect x="200" y="90" width="150" height="36" rx="7" class="svg-box-teal"/><text x="275" y="113" class="svg-t-sm" text-anchor="middle">Thẻ · happy path</text>
+            <!-- release 2 -->
+            <line x1="20" y1="140" x2="560" y2="140" class="svg-dash"/><text x="585" y="144" class="svg-t-sm" fill="var(--blue)">Release 2</text>
+            <rect x="200" y="150" width="150" height="36" rx="7" class="svg-box-blue"/><text x="275" y="173" class="svg-t-sm" text-anchor="middle">Ví + retry lỗi</text>
+            <!-- release 3 -->
+            <line x1="20" y1="200" x2="560" y2="200" class="svg-dash"/><text x="585" y="204" class="svg-t-sm" fill="var(--violet)">Release 3</text>
+            <rect x="200" y="208" width="150" height="30" rx="7" class="svg-box-violet"/><text x="275" y="227" class="svg-t-sm" text-anchor="middle">Trả góp</text>
+          </svg>
+          <div class="cap">Hình 7.2 · Story map: backbone là hành trình, mỗi hàng dưới là một release ưu tiên giảm dần</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> chia story theo <em>chiều dọc (giá trị)</em> chứ không theo <em>tầng kỹ thuật</em>. Mỗi slice phải tự đứng được như một thứ người dùng dùng được. Story map cho thấy "MVP" thực sự là gì: lát mỏng nhất xuyên suốt hành trình.</p>
+          <p style="margin-bottom:0"><strong>Tránh:</strong> chia "làm DB / làm API / làm UI" — không lát nào giao được giá trị, và bạn không thể release cho đến khi xong cả ba.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 7.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 7.3 — User story cho hệ thống không có "người dùng" rõ ràng (job story / BDD)</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một đội xây nền tảng dữ liệu nội bộ và các pipeline tự động. Mẫu "Là &lt;ai&gt;, tôi muốn…" trở nên gượng ép: "Là pipeline, tôi muốn…" nghe vô lý. Đội cũng nhận ra persona đôi khi che giấu <em>ngữ cảnh</em> thật sự thúc đẩy nhu cầu. User story truyền thống không bắt được điều đó.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Chuyển sang <strong>Job Story</strong> (Alan Klement) tập trung vào tình huống, và kết hợp <strong>BDD</strong> để biến acceptance criteria thành đặc tả thực thi:</p>
+        <ul>
+          <li><strong>Job Story:</strong> "<em>Khi</em> một pipeline thất bại lúc nửa đêm, <em>tôi muốn</em> được cảnh báo kèm nguyên nhân gốc, <em>để</em> tôi xử lý mà không phải lục log thủ công." (When–I want–So I can)</li>
+          <li><strong>BDD scenarios</strong> (Gherkin) đính kèm, chạy được trong CI làm "living documentation".</li>
+          <li>Loại bỏ persona giả tạo, thay bằng <strong>situation</strong> rõ ràng.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="30" y="70" width="170" height="60" rx="11" class="svg-box-gold"/><text x="115" y="96" class="svg-t-b" text-anchor="middle">Situation</text><text x="115" y="114" class="svg-t-sm" text-anchor="middle">"Khi pipeline fail 0h"</text>
+            <rect x="270" y="70" width="170" height="60" rx="11" class="svg-box-teal"/><text x="355" y="96" class="svg-t-b" text-anchor="middle">Motivation</text><text x="355" y="114" class="svg-t-sm" text-anchor="middle">"muốn cảnh báo + cause"</text>
+            <rect x="510" y="70" width="180" height="60" rx="11" class="svg-box-violet"/><text x="600" y="96" class="svg-t-b" text-anchor="middle">Outcome</text><text x="600" y="114" class="svg-t-sm" text-anchor="middle">"xử lý không cần lục log"</text>
+            <line x1="200" y1="100" x2="268" y2="100" class="svg-line-g"/><polygon points="270,100 262,96 262,104" fill="var(--gold)"/>
+            <line x1="440" y1="100" x2="508" y2="100" class="svg-line-t"/><polygon points="510,100 502,96 502,104" fill="var(--teal)"/>
+          </svg>
+          <div class="cap">Hình 7.3 · Job Story: When (tình huống) → I want (động lực) → So I can (kết quả)</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> khi persona gượng ép hoặc che giấu ngữ cảnh, job story đặt <em>tình huống</em> làm trung tâm — nắm bắt "vì sao bây giờ" tốt hơn. BDD biến phần "confirmation" của story thành tài liệu sống, luôn đồng bộ với code.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> sản phẩm platform/nội bộ, hoặc khi nhu cầu phụ thuộc mạnh vào hoàn cảnh hơn là "loại người dùng". <strong>Lưu ý:</strong> đừng giáo điều — nhiều đội dùng song song cả user story và job story tuỳ ngữ cảnh.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 8. SCENARIO ============ -->
+<section class="topic" id="scenario">
+  <div class="topic-head">
+    <div class="topic-num">08</div>
+    <div>
+      <h2 class="topic-title">Scenario</h2>
+      <div class="topic-sub">Tầng hành vi · "Một luồng cụ thể diễn ra như thế nào?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0">Một <strong>Scenario</strong> là <em>một trường hợp cụ thể</em> (một instance) của việc sử dụng hệ thống — một câu chuyện kể lại một loạt sự kiện diễn ra từ đầu đến cuối với dữ liệu và bối cảnh xác định. Nếu use case là <strong>khuôn mẫu trừu tượng</strong> bao mọi nhánh, thì scenario là <strong>một con đường cụ thể được đi qua</strong> trong khuôn mẫu đó. Một use case thường sinh ra nhiều scenario: happy path, alternate, và edge/negative.</p>
+  </div>
+
+  <h3>Use Case vs Scenario — phân biệt cốt lõi</h3>
+  <div class="vs">
+    <div class="vs-col"><h5>Use Case</h5><p style="margin:0">Trừu tượng, bao trùm tất cả luồng (main + mọi extension). Một bản mô tả tổng quát.<br><span style="color:var(--ink-mute);font-size:13px">"Khách rút tiền" với mọi nhánh có thể.</span></p></div>
+    <div class="vs-mid">≠</div>
+    <div class="vs-col"><h5>Scenario</h5><p style="margin:0">Cụ thể, một lần chạy với dữ liệu thật, đi qua đúng một đường.<br><span style="color:var(--ink-mute);font-size:13px">"An rút 2tr, nhưng máy chỉ còn 1tr → báo lỗi."</span></p></div>
+  </div>
+
+  <h3>Các loại scenario &amp; lợi ích</h3>
+  <div class="grid3">
+    <div class="mini"><span class="ic">✅</span><h5>Positive (happy)</h5><p>Mọi thứ diễn ra đúng kỳ vọng.</p></div>
+    <div class="mini"><span class="ic">⚠️</span><h5>Negative</h5><p>Đầu vào sai, hành vi ngoài ý muốn.</p></div>
+    <div class="mini"><span class="ic">🌗</span><h5>Edge / Boundary</h5><p>Giá trị biên, tình huống hiếm nhưng nguy hiểm.</p></div>
+  </div>
+  <p>Scenario rất mạnh để: làm rõ yêu cầu mơ hồ qua ví dụ cụ thể, làm cơ sở viết <strong>test case</strong> (scenario-based testing), và giúp stakeholder hình dung hệ thống bằng câu chuyện thay vì danh sách quy tắc.</p>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Dùng <strong>dữ liệu cụ thể</strong> (tên, số tiền, thời gian) — đó là điều làm scenario "sống" hơn use case.</li>
+    <li>Luôn viết cả scenario <strong>tiêu cực &amp; biên</strong>, đừng chỉ kể happy path.</li>
+    <li>Mỗi scenario chỉ đi <strong>một con đường</strong>; nếu rẽ nhánh, đó là scenario khác.</li>
+    <li>Liên kết scenario với use case/story gốc để truy vết.</li>
+    <li>Giữ scenario ở mức quan sát được — "cái gì xảy ra", không phải "code làm thế nào".</li>
+  </ul>
+
+  <!-- EX 8.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 8.1 — Làm rõ yêu cầu mơ hồ bằng scenario cụ thể</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Requirement ghi: "Hệ thống áp dụng giảm giá cho khách hàng thân thiết". Đội tranh cãi: thân thiết là gì? Giảm bao nhiêu? Áp trước hay sau thuế? Mỗi người tưởng tượng một kịch bản khác nhau và không cách nào hội tụ chỉ bằng đọc câu requirement.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết vài scenario cụ thể để "chốt" cách hiểu chung:</p>
+        <ul>
+          <li><strong>S1 (positive):</strong> Chị Lan, thành viên Gold (mua &gt; 10 đơn), đặt giỏ 1.000.000đ. Hệ thống giảm 10% = còn 900.000đ, rồi cộng thuế 8% trên 900.000đ.</li>
+          <li><strong>S2 (negative):</strong> Anh Bình, khách vãng lai (0 đơn), đặt giỏ 1.000.000đ. Không đủ điều kiện → không giảm.</li>
+          <li><strong>S3 (edge):</strong> Chị Hoa vừa đủ 10 đơn ngay lúc đặt hàng → có được tính Gold trong đơn này không? (lộ ra một quy tắc còn thiếu!)</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 740 180" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="20" width="200" height="50" rx="10" class="svg-box-gold"/><text x="120" y="40" class="svg-t-b" text-anchor="middle">Use Case (trừu tượng)</text><text x="120" y="58" class="svg-t-sm" text-anchor="middle">"Áp giảm giá KH thân thiết"</text>
+            <rect x="290" y="10" width="430" height="36" rx="8" class="svg-box-teal"/><text x="505" y="33" class="svg-t-sm" text-anchor="middle">S1 · Lan Gold → giảm 10% rồi tính thuế</text>
+            <rect x="290" y="58" width="430" height="36" rx="8" class="svg-box-rose"/><text x="505" y="81" class="svg-t-sm" text-anchor="middle">S2 · Bình vãng lai → không giảm</text>
+            <rect x="290" y="106" width="430" height="36" rx="8" class="svg-box-violet"/><text x="505" y="129" class="svg-t-sm" text-anchor="middle">S3 · Hoa vừa đủ 10 đơn → quy tắc còn thiếu!</text>
+            <line x1="220" y1="45" x2="288" y2="28" class="svg-line"/><line x1="220" y1="48" x2="288" y2="76" class="svg-line"/><line x1="220" y1="52" x2="288" y2="124" class="svg-line"/>
+          </svg>
+          <div class="cap">Hình 8.1 · Một use case sinh nhiều scenario cụ thể — scenario biên S3 lộ ra lỗ hổng yêu cầu</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> scenario cụ thể là "máy dò" yêu cầu thiếu sót. Chính câu chuyện S3 — với dữ liệu thật — phơi bày một quy tắc chưa ai nghĩ đến. Con số và cái tên buộc mọi người phải đồng ý về một cách hiểu duy nhất.</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> bất cứ khi nào một requirement gây tranh cãi về cách hiểu. Một scenario tốt chấm dứt tranh luận nhanh hơn mười dòng quy tắc.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 8.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 8.2 — Scenario-based testing bao phủ nhánh quan trọng</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một tính năng đặt lịch khám bệnh có nhiều ràng buộc: bác sĩ phải rảnh, bệnh nhân không trùng giờ, phòng khám còn slot. QA viết test theo cảm tính, bỏ sót tổ hợp "bác sĩ rảnh nhưng phòng hết slot", và lỗi này lọt ra production gây đặt trùng.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Dẫn xuất bộ scenario có hệ thống từ use case, mỗi scenario là một đường đi qua sequence các tác nhân, đảm bảo phủ các nhánh quyết định:</p>
+        <ul>
+          <li><strong>S-A (happy):</strong> bác sĩ rảnh + bệnh nhân rảnh + phòng còn slot → đặt thành công.</li>
+          <li><strong>S-B:</strong> bác sĩ bận → gợi ý khung giờ khác.</li>
+          <li><strong>S-C:</strong> bác sĩ rảnh nhưng phòng hết slot → từ chối + đề xuất phòng khác.</li>
+          <li><strong>S-D (race):</strong> hai bệnh nhân đặt cùng slot cuối cùng đồng thời → chỉ một người thành công.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 720 250" xmlns="http://www.w3.org/2000/svg">
+            <!-- sequence diagram S-C -->
+            <text x="80" y="24" class="svg-t-b" text-anchor="middle">Bệnh nhân</text>
+            <text x="280" y="24" class="svg-t-b" text-anchor="middle">Hệ thống</text>
+            <text x="480" y="24" class="svg-t-b" text-anchor="middle">Lịch BS</text>
+            <text x="640" y="24" class="svg-t-b" text-anchor="middle">Phòng</text>
+            <line x1="80" y1="34" x2="80" y2="230" class="svg-dash"/>
+            <line x1="280" y1="34" x2="280" y2="230" class="svg-dash"/>
+            <line x1="480" y1="34" x2="480" y2="230" class="svg-dash"/>
+            <line x1="640" y1="34" x2="640" y2="230" class="svg-dash"/>
+            <line x1="80" y1="60" x2="278" y2="60" class="svg-line-t"/><polygon points="280,60 272,56 272,64" fill="var(--teal)"/><text x="180" y="54" class="svg-t-sm" text-anchor="middle">đặt lịch 9:00</text>
+            <line x1="280" y1="95" x2="478" y2="95" class="svg-line-t"/><polygon points="480,95 472,91 472,99" fill="var(--teal)"/><text x="380" y="89" class="svg-t-sm" text-anchor="middle">BS rảnh?</text>
+            <line x1="480" y1="120" x2="282" y2="120" class="svg-line-g"/><polygon points="280,120 288,116 288,124" fill="var(--gold)"/><text x="380" y="114" class="svg-t-sm" text-anchor="middle">OK rảnh</text>
+            <line x1="280" y1="150" x2="638" y2="150" class="svg-line-t"/><polygon points="640,150 632,146 632,154" fill="var(--teal)"/><text x="460" y="144" class="svg-t-sm" text-anchor="middle">còn slot?</text>
+            <line x1="640" y1="178" x2="282" y2="178" class="svg-line-g" stroke="var(--rose)"/><polygon points="280,178 288,174 288,182" fill="var(--rose)"/><text x="460" y="172" class="svg-t-sm" text-anchor="middle" fill="var(--rose)">HẾT slot</text>
+            <line x1="280" y1="208" x2="82" y2="208" class="svg-line-g" stroke="var(--rose)"/><polygon points="80,208 88,204 88,212" fill="var(--rose)"/><text x="180" y="202" class="svg-t-sm" text-anchor="middle" fill="var(--rose)">từ chối + đề xuất phòng khác</text>
+          </svg>
+          <div class="cap">Hình 8.2 · Sequence diagram của scenario S-C (bác sĩ rảnh nhưng phòng hết slot)</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> dẫn xuất scenario một cách <em>có hệ thống</em> từ các nhánh quyết định giúp QA không bỏ sót tổ hợp nguy hiểm. Sequence diagram làm rõ thứ tự tương tác giữa các thành phần — đặc biệt quan trọng với scenario race condition (S-D).</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> tính năng có nhiều điều kiện giao nhau hoặc tương tác đồng thời. <strong>Tránh:</strong> chỉ test happy path — đa số lỗi production sống ở các scenario phụ và biên.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 8.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 8.3 — Persona-driven scenario cho thiết kế chống lạm dụng</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một nền tảng mạng xã hội thiết kế tính năng nhắn tin. Đội chỉ nghĩ tới "người dùng thiện chí". Sau khi ra mắt, tính năng bị lạm dụng cho quấy rối, spam, lừa đảo. Vấn đề: scenario chỉ phủ người dùng tốt, chưa bao giờ xét tới actor có ý đồ xấu (abuse case / misuse case).</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Mở rộng scenario sang <strong>misuse scenario</strong> với persona đối nghịch, đặt cạnh persona thiện chí để thiết kế biện pháp phòng vệ ngay từ đầu:</p>
+        <ul>
+          <li><strong>Persona thiện chí — "Mai":</strong> nhắn tin cho bạn bè, kỳ vọng riêng tư &amp; nhanh.</li>
+          <li><strong>Misuse persona — "Kẻ spam":</strong> gửi 1.000 tin/giờ tới người lạ → cần rate-limit &amp; chặn người lạ.</li>
+          <li><strong>Misuse persona — "Kẻ quấy rối":</strong> tạo tài khoản mới sau khi bị chặn → cần phát hiện hành vi &amp; chặn theo thiết bị.</li>
+          <li>Mỗi misuse scenario sinh ra một <strong>yêu cầu phòng vệ</strong> (mitigation) có thể test.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg">
+            <ellipse cx="360" cy="115" rx="95" ry="34" class="svg-box-teal"/><text x="360" y="120" class="svg-t-b" text-anchor="middle">Gửi tin nhắn</text>
+            <!-- good actor -->
+            <circle cx="70" cy="60" r="12" class="svg-box-teal"/><text x="70" y="95" class="svg-t-sm" text-anchor="middle">Mai (thiện chí)</text>
+            <line x1="86" y1="68" x2="270" y2="108" class="svg-line-t"/>
+            <!-- misuse actors -->
+            <circle cx="70" cy="180" r="12" class="svg-box-rose"/><text x="70" y="210" class="svg-t-sm" text-anchor="middle">Kẻ spam</text>
+            <line x1="86" y1="176" x2="270" y2="125" class="svg-line-g" stroke="var(--rose)"/><text x="150" y="160" class="svg-t-sm" fill="var(--rose)">«threatens»</text>
+            <!-- mitigation -->
+            <ellipse cx="600" cy="60" rx="85" ry="30" class="svg-box-gold"/><text x="600" y="65" class="svg-t-sm" text-anchor="middle">Rate-limit + chặn lạ</text>
+            <ellipse cx="600" cy="170" rx="85" ry="30" class="svg-box-gold"/><text x="600" y="175" class="svg-t-sm" text-anchor="middle">Phát hiện né-chặn</text>
+            <line x1="450" y1="105" x2="516" y2="68" class="svg-dash"/><text x="490" y="78" class="svg-t-sm">«mitigates»</text>
+            <line x1="450" y1="128" x2="516" y2="165" class="svg-dash"/><text x="490" y="158" class="svg-t-sm">«mitigates»</text>
+          </svg>
+          <div class="cap">Hình 8.3 · Misuse scenario: actor đối nghịch «threatens», biện pháp phòng vệ «mitigates»</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> bằng cách viết scenario cho cả actor có ý đồ xấu, đội thiết kế phòng vệ <em>trước</em> thay vì vá lỗi sau scandal. Misuse scenario biến an toàn &amp; chống lạm dụng thành yêu cầu hạng nhất, không phải suy nghĩ muộn.</p>
+          <p style="margin-bottom:0"><strong>Khi nào bắt buộc:</strong> mọi tính năng có tương tác giữa người lạ, nội dung do người dùng tạo, hoặc liên quan tiền/quyền riêng tư. <strong>Lưu ý:</strong> mỗi misuse scenario nên đẻ ra một mitigation kiểm thử được, nếu không nó chỉ là nỗi lo suông.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 9. VIVID SCENARIO ============ -->
+<section class="topic" id="vivid">
+  <div class="topic-head">
+    <div class="topic-num">09</div>
+    <div>
+      <h2 class="topic-title">Vivid Scenario</h2>
+      <div class="topic-sub">Tầng trải nghiệm · "Trải nghiệm SỐNG của người dùng diễn ra thế nào?"</div>
+    </div>
+  </div>
+
+  <div class="def-box">
+    <div class="term">Định nghĩa</div>
+    <p style="margin:0">Một <strong>Vivid Scenario</strong> (kịch bản sống động) là một dạng scenario được kể như một <em>câu chuyện giàu chi tiết, có cảm xúc và bối cảnh</em> — một "day-in-the-life" của persona. Khác với scenario kỹ thuật khô khan tập trung vào bước &amp; dữ liệu, vivid scenario làm <strong>sống dậy trải nghiệm con người</strong>: cảm xúc, động lực, môi trường, các điểm đau (pain points). Đây là công cụ của UX/Design để tạo <em>đồng cảm</em> và căn chỉnh tầm nhìn sản phẩm giữa các bên.</p>
+  </div>
+
+  <h3>Scenario vs Vivid Scenario</h3>
+  <div class="vs">
+    <div class="vs-col"><h5>Scenario (kỹ thuật)</h5><p style="margin:0">"Người dùng đăng nhập, chọn sản phẩm, thanh toán bằng thẻ, nhận xác nhận."<br><span style="color:var(--ink-mute);font-size:13px">→ Đủ để dev/QA làm việc, nhưng vô hồn.</span></p></div>
+    <div class="vs-mid">→</div>
+    <div class="vs-col"><h5>Vivid Scenario</h5><p style="margin:0">"7h sáng, Lan vừa dỗ con ngủ, tay còn bế bé, cố đặt bỉm trên điện thoại trước khi hết khuyến mãi…"<br><span style="color:var(--ink-mute);font-size:13px">→ Bộc lộ ràng buộc thật: một tay, vội, mất tập trung.</span></p></div>
+  </div>
+
+  <h3>Vì sao &amp; khi nào dùng</h3>
+  <div class="grid3">
+    <div class="mini"><span class="ic">❤️</span><h5>Tạo đồng cảm</h5><p>Giúp cả đội "cảm" được người dùng, không chỉ "biết".</p></div>
+    <div class="mini"><span class="ic">🧭</span><h5>Căn chỉnh tầm nhìn</h5><p>Một câu chuyện chung gắn kết product, design, eng, sếp.</p></div>
+    <div class="mini"><span class="ic">🔍</span><h5>Lộ pain point ẩn</h5><p>Bối cảnh đời thực phơi bày ràng buộc mà spec khô bỏ sót.</p></div>
+  </div>
+
+  <h3>Best Practices</h3>
+  <ul>
+    <li>Dựa trên <strong>research thật</strong> (phỏng vấn, dữ liệu) — không bịa persona theo định kiến.</li>
+    <li>Đưa vào <strong>bối cảnh &amp; cảm xúc</strong>: ở đâu, lúc nào, đang cảm thấy gì, bị gì cản trở.</li>
+    <li>Tập trung vào <strong>động lực &amp; mục tiêu</strong> của người dùng, không phải tính năng.</li>
+    <li>Giữ tính <strong>chân thực</strong>: kể cả khoảnh khắc bực bội, gián đoạn, lỗi.</li>
+    <li>Dùng để <strong>khơi gợi yêu cầu</strong> rồi chuyển hoá thành story/scenario kỹ thuật — đừng để nó thay thế đặc tả.</li>
+  </ul>
+
+  <!-- EX 9.1 BASIC -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-basic">Basic</span><h4>Ví dụ 9.1 — Biến scenario khô thành câu chuyện sống động</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Đội thiết kế app giao đồ ăn có một scenario: "Người dùng mở app, chọn món, đặt hàng, theo dõi đơn". Mọi người gật gù nhưng thiết kế ra giao diện đầy bước rườm rà. Không ai nhận ra người dùng thực thường đói, vội, và quyết định trong 30 giây — vì scenario quá vô cảm để bộc lộ điều đó.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết lại thành vivid scenario có nhân vật, bối cảnh, cảm xúc:</p>
+        <div class="callout tip"><span class="ci">📖</span><div><em>"12h trưa thứ Tư. Tuấn, lập trình viên, vừa kết thúc cuộc họp căng thẳng, bụng đói cồn cào, chỉ có 40 phút nghỉ. Anh mở app bằng một tay khi tay kia còn cầm tài liệu. Anh không muốn đọc menu dài — anh muốn 'món quen, đặt lại, xong'. Mỗi giây chần chừ là một giây đói thêm và lo trễ giờ làm."</em></div></div>
+        <p>Câu chuyện này lập tức gợi ý tính năng: <strong>"Đặt lại đơn cũ" một chạm</strong>, gợi ý món quen, và checkout siêu nhanh.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 740 170" xmlns="http://www.w3.org/2000/svg">
+            <rect x="20" y="60" width="120" height="50" rx="10" class="svg-box-rose"/><text x="80" y="82" class="svg-t-sm" text-anchor="middle">Đói · vội</text><text x="80" y="98" class="svg-t-sm" text-anchor="middle">40 phút</text>
+            <rect x="180" y="60" width="120" height="50" rx="10" class="svg-box-rose"/><text x="240" y="82" class="svg-t-sm" text-anchor="middle">Một tay</text><text x="240" y="98" class="svg-t-sm" text-anchor="middle">mất tập trung</text>
+            <rect x="350" y="55" width="140" height="60" rx="11" class="svg-box-gold"/><text x="420" y="80" class="svg-t" text-anchor="middle">Insight</text><text x="420" y="98" class="svg-t-sm" text-anchor="middle">"món quen, đặt lại"</text>
+            <rect x="540" y="55" width="180" height="60" rx="11" class="svg-box-teal"/><text x="630" y="80" class="svg-t" text-anchor="middle">Tính năng</text><text x="630" y="98" class="svg-t-sm" text-anchor="middle">Đặt lại 1 chạm</text>
+            <line x1="140" y1="85" x2="178" y2="85" class="svg-line"/><polygon points="180,85 172,81 172,89" fill="var(--line)"/>
+            <line x1="300" y1="85" x2="348" y2="85" class="svg-line"/><polygon points="350,85 342,81 342,89" fill="var(--line)"/>
+            <line x1="490" y1="85" x2="538" y2="85" class="svg-line-t"/><polygon points="540,85 532,81 532,89" fill="var(--teal)"/>
+          </svg>
+          <div class="cap">Hình 9.1 · Chi tiết đời thực (đói, vội, một tay) → insight → tính năng cụ thể</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Bài học:</strong> chính những chi tiết "thừa" (đói, vội, một tay) mới là nguồn của insight thiết kế. Scenario khô bỏ qua chúng; vivid scenario giữ lại và biến chúng thành định hướng tính năng cụ thể.</p>
+          <p style="margin-bottom:0"><strong>Khi nào dùng:</strong> giai đoạn khám phá &amp; thiết kế trải nghiệm. <strong>Tránh:</strong> đừng dùng vivid scenario làm đặc tả nghiệm thu — nó truyền cảm hứng, không phải tài liệu kiểm thử.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 9.2 ADVANCED -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-adv">Advanced</span><h4>Ví dụ 9.2 — Journey map cảm xúc từ vivid scenario</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một bệnh viện số hoá quy trình đặt lịch khám. Các con số đều "ổn" (đặt được lịch, tỉ lệ lỗi thấp), nhưng khảo sát hài lòng lại thấp một cách khó hiểu. Đội không biết vấn đề nằm ở đâu vì họ chỉ nhìn các bước rời rạc, không thấy <strong>toàn bộ hành trình cảm xúc</strong> của bệnh nhân.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Viết vivid scenario cho persona "bà Hồng, 64 tuổi, không rành công nghệ, lo lắng về sức khoẻ", rồi chuyển thành <strong>customer journey map</strong> có trục cảm xúc để định vị các "moment of pain":</p>
+        <ul>
+          <li>Giai đoạn tìm bác sĩ: bối rối vì quá nhiều lựa chọn → cảm xúc tụt.</li>
+          <li>Điền thông tin: lo điền sai, chữ nhỏ → khó chịu.</li>
+          <li>Chờ xác nhận: không biết đã đặt được chưa → lo âu (điểm thấp nhất).</li>
+          <li>Nhận nhắc lịch: yên tâm → cảm xúc hồi phục.</li>
+        </ul>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 740 230" xmlns="http://www.w3.org/2000/svg">
+            <!-- axis -->
+            <line x1="60" y1="30" x2="60" y2="180" class="svg-line"/>
+            <line x1="60" y1="105" x2="700" y2="105" class="svg-dash"/>
+            <text x="50" y="40" class="svg-t-sm" text-anchor="end">vui</text>
+            <text x="50" y="180" class="svg-t-sm" text-anchor="end">lo</text>
+            <!-- emotion curve -->
+            <polyline points="120,90 270,130 420,165 570,75 680,60" class="svg-line-g"/>
+            <circle cx="120" cy="90" r="6" fill="var(--gold)"/><text x="120" y="205" class="svg-t-sm" text-anchor="middle">Tìm BS</text>
+            <circle cx="270" cy="130" r="6" fill="var(--amber)"/><text x="270" y="205" class="svg-t-sm" text-anchor="middle">Điền form</text>
+            <circle cx="420" cy="165" r="7" fill="var(--rose)"/><text x="420" y="205" class="svg-t-sm" text-anchor="middle">Chờ xác nhận</text>
+            <text x="420" y="222" class="svg-t-sm" text-anchor="middle" fill="var(--rose)">★ điểm đau</text>
+            <circle cx="570" cy="75" r="6" fill="var(--teal)"/><text x="570" y="205" class="svg-t-sm" text-anchor="middle">Nhắc lịch</text>
+            <circle cx="680" cy="60" r="6" fill="var(--teal)"/><text x="680" y="205" class="svg-t-sm" text-anchor="middle">Đến khám</text>
+          </svg>
+          <div class="cap">Hình 9.2 · Đường cong cảm xúc trên journey map — "chờ xác nhận" là moment of pain cần ưu tiên sửa</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Điểm cốt lõi:</strong> mỗi bước có thể "thành công" về mặt kỹ thuật nhưng vẫn tạo cảm xúc tiêu cực. Journey map dẫn xuất từ vivid scenario phơi bày điểm đau (chờ xác nhận trong lo âu) mà các metric rời rạc không thấy — từ đó ưu tiên thêm thông báo tức thì.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> khi metric tốt nhưng hài lòng thấp, hoặc khi thiết kế cho nhóm dễ tổn thương (người già, người bệnh). <strong>Lưu ý:</strong> trục cảm xúc phải dựa trên nghiên cứu thật, không phải phỏng đoán của đội.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EX 9.3 EXPERT -->
+  <div class="example">
+    <div class="example-head"><span class="example-badge lvl-expert">Expert</span><h4>Ví dụ 9.3 — Vivid scenario cho tương lai &amp; thiết kế tầm nhìn (envisioning)</h4></div>
+    <div class="example-body">
+      <div class="phase">
+        <span class="phase-tag pt-problem">⚠ Problem Statement</span>
+        <p>Một công ty muốn định hình sản phẩm 3 năm tới quanh AI, nhưng các cuộc họp chiến lược toàn slide trừu tượng ("tận dụng AI", "cá nhân hoá"). Không ai hình dung được cụ thể sản phẩm tương lai sẽ <em>cảm giác</em> ra sao, dẫn đến tranh luận vòng vo và quyết định mơ hồ. Spec thường mô tả hiện tại, không giúp tưởng tượng tương lai.</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-solution">✓ Solution</span>
+        <p>Dùng <strong>envisioning / future vivid scenario</strong> — viết một câu chuyện chi tiết về một ngày của persona trong tương lai khi sản phẩm đã tồn tại, như một "bộ phim ngắn bằng chữ":</p>
+        <div class="callout tip"><span class="ci">🔮</span><div><em>"Năm 2027. Minh, chủ một quán cà phê nhỏ, mở app lúc 6h sáng. Trợ lý AI đã chuẩn bị sẵn: 'Hôm nay mưa, dự báo khách giảm 20%, em đã giảm đơn nhập sữa tươi và gợi ý khuyến mãi đồ nóng.' Minh chỉ gật đầu duyệt. Việc mà trước đây ngốn của anh cả tiếng đồng hồ tính toán, giờ xong trong 30 giây — và quan trọng hơn, anh thấy được tin tưởng, không bị thay thế."</em></div></div>
+        <p>Câu chuyện này biến chiến lược trừu tượng thành một <strong>đích đến cảm nhận được</strong>, từ đó dẫn ngược ra các năng lực cần xây (dự báo, gợi ý, giao diện duyệt nhanh, sự tin tưởng).</p>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-visual">◇ Visual Support</span>
+        <div class="diagram">
+          <svg viewBox="0 0 720 200" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="75" width="180" height="56" rx="12" class="svg-box-violet"/><text x="130" y="100" class="svg-t-b" text-anchor="middle">Vivid future story</text><text x="130" y="118" class="svg-t-sm" text-anchor="middle">"một ngày của Minh 2027"</text>
+            <rect x="300" y="20" width="160" height="44" rx="9" class="svg-box-teal"/><text x="380" y="47" class="svg-t-sm" text-anchor="middle">Năng lực: dự báo</text>
+            <rect x="300" y="78" width="160" height="44" rx="9" class="svg-box-teal"/><text x="380" y="105" class="svg-t-sm" text-anchor="middle">Năng lực: gợi ý</text>
+            <rect x="300" y="136" width="160" height="44" rx="9" class="svg-box-teal"/><text x="380" y="163" class="svg-t-sm" text-anchor="middle">Năng lực: duyệt nhanh</text>
+            <rect x="520" y="78" width="170" height="44" rx="9" class="svg-box-gold"/><text x="605" y="98" class="svg-t-sm" text-anchor="middle">Roadmap 3 năm</text><text x="605" y="113" class="svg-t-sm" text-anchor="middle">ưu tiên ngược từ tầm nhìn</text>
+            <line x1="220" y1="95" x2="298" y2="45" class="svg-line-v" stroke="var(--violet)" stroke-width="1.6" fill="none"/>
+            <line x1="220" y1="103" x2="298" y2="100" stroke="var(--violet)" stroke-width="1.6" fill="none"/>
+            <line x1="220" y1="111" x2="298" y2="155" stroke="var(--violet)" stroke-width="1.6" fill="none"/>
+            <line x1="460" y1="100" x2="518" y2="100" class="svg-line-g"/><polygon points="520,100 512,96 512,104" fill="var(--gold)"/>
+          </svg>
+          <div class="cap">Hình 9.3 · Future vivid scenario → trích xuất năng lực cần có → dẫn ngược ra roadmap (backcasting)</div>
+        </div>
+      </div>
+      <div class="phase">
+        <span class="phase-tag pt-note">★ Note &amp; Conclusion</span>
+        <div class="note-block">
+          <p style="margin-top:0"><strong>Giá trị cốt lõi:</strong> vivid scenario tương lai là công cụ <em>backcasting</em> — bắt đầu từ một tương lai mong muốn được kể sống động, rồi suy ngược ra những gì phải xây hôm nay. Nó căn chỉnh cả tổ chức quanh một hình dung chung thay vì các khẩu hiệu trừu tượng.</p>
+          <p style="margin-bottom:0"><strong>Khi nào nên:</strong> hoạch định tầm nhìn dài hạn, đổi mới đột phá, hoặc khi cần "bán" một hướng đi cho lãnh đạo. <strong>Cảnh báo:</strong> giữ câu chuyện <em>khả tín</em> — viễn cảnh khoa học viễn tưởng quá xa sẽ mất sức thuyết phục và không dẫn ra hành động thực tế.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ MATRIX ============ -->
+<section class="topic" id="matrix">
+  <div class="topic-head">
+    <div class="topic-num">★</div>
+    <div>
+      <h2 class="topic-title">Ma trận tổng hợp — Chọn đúng tài liệu</h2>
+      <div class="topic-sub">Khi nào dùng cái gì · so sánh 9 loại tài liệu cạnh nhau</div>
+    </div>
+  </div>
+
+  <p>Sau khi đi qua từng loại, đây là bảng tra cứu nhanh để chọn đúng công cụ cho đúng tình huống. Nhớ rằng các tài liệu này <strong>bổ trợ</strong> nhau — một dự án trưởng thành thường dùng nhiều loại ở các tầng khác nhau, không phải chọn một bỏ chín.</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>Tài liệu</th><th>Tầng trừu tượng</th><th>Câu hỏi cốt lõi</th><th>Hợp với</th><th>Mức chi tiết</th></tr></thead>
+      <tbody>
+        <tr><td><strong>BRS</strong></td><td>Chiến lược</td><td>Tại sao làm?</td><td>Mọi mô hình, dự án lớn</td><td>Cao cấp, ít chi tiết</td></tr>
+        <tr><td><strong>PRD</strong></td><td>Sản phẩm</td><td>Sản phẩm giải quyết gì, cho ai?</td><td>Product-led, cả Agile &amp; truyền thống</td><td>Trung bình</td></tr>
+        <tr><td><strong>FRS</strong></td><td>Hành vi</td><td>Hệ thống phải làm gì?</td><td>Truyền thống / hợp đồng; bổ trợ Agile</td><td>Chi tiết</td></tr>
+        <tr><td><strong>NFR</strong></td><td>Chất lượng</td><td>Phải tốt thế nào?</td><td>Mọi hệ thống nghiêm túc</td><td>Định lượng</td></tr>
+        <tr><td><strong>SRS</strong></td><td>Kỹ thuật tổng hợp</td><td>Toàn bộ đặc tả phần mềm?</td><td>Quy mô lớn, regulated, outsource</td><td>Rất chi tiết</td></tr>
+        <tr><td><strong>Use Case</strong></td><td>Hành vi</td><td>Actor tương tác ra sao?</td><td>Hệ thống nhiều luồng/ngoại lệ</td><td>Chi tiết, có nhánh</td></tr>
+        <tr><td><strong>User Story</strong></td><td>Hành vi (Agile)</td><td>Người dùng cần gì, vì sao?</td><td>Scrum/Kanban, lặp nhanh</td><td>Ngắn + AC</td></tr>
+        <tr><td><strong>Scenario</strong></td><td>Hành vi (instance)</td><td>Một luồng cụ thể diễn ra sao?</td><td>Test, làm rõ yêu cầu</td><td>Cụ thể, một đường</td></tr>
+        <tr><td><strong>Vivid Scenario</strong></td><td>Trải nghiệm</td><td>Trải nghiệm sống ra sao?</td><td>UX discovery, tầm nhìn</td><td>Tường thuật, cảm xúc</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>Cây quyết định nhanh</h3>
+  <div class="diagram">
+    <svg viewBox="0 0 760 330" xmlns="http://www.w3.org/2000/svg">
+      <rect x="290" y="14" width="180" height="44" rx="10" class="svg-box-gold"/><text x="380" y="41" class="svg-t" text-anchor="middle">Bạn cần làm rõ điều gì?</text>
+      <!-- branch why -->
+      <rect x="20" y="100" width="150" height="44" rx="9" class="svg-box-teal"/><text x="95" y="120" class="svg-t-sm" text-anchor="middle">Vì sao / giá trị KD</text><text x="95" y="135" class="svg-t-sm" text-anchor="middle">→ BRS</text>
+      <!-- product -->
+      <rect x="190" y="100" width="150" height="44" rx="9" class="svg-box-teal"/><text x="265" y="120" class="svg-t-sm" text-anchor="middle">Sản phẩm cho ai</text><text x="265" y="135" class="svg-t-sm" text-anchor="middle">→ PRD</text>
+      <!-- behavior -->
+      <rect x="360" y="100" width="160" height="44" rx="9" class="svg-box-blue"/><text x="440" y="120" class="svg-t-sm" text-anchor="middle">Hành vi hệ thống</text><text x="440" y="135" class="svg-t-sm" text-anchor="middle">→ FRS/UC/Story</text>
+      <!-- quality -->
+      <rect x="540" y="100" width="150" height="44" rx="9" class="svg-box-violet"/><text x="615" y="120" class="svg-t-sm" text-anchor="middle">Chất lượng/-ilities</text><text x="615" y="135" class="svg-t-sm" text-anchor="middle">→ NFR</text>
+
+      <!-- second row -->
+      <rect x="300" y="190" width="160" height="44" rx="9" class="svg-box-gold"/><text x="380" y="210" class="svg-t-sm" text-anchor="middle">Cần gói tất cả cho dev</text><text x="380" y="225" class="svg-t-sm" text-anchor="middle">→ SRS</text>
+      <rect x="120" y="260" width="190" height="44" rx="9" class="svg-box-blue"/><text x="215" y="280" class="svg-t-sm" text-anchor="middle">Một luồng cụ thể / test</text><text x="215" y="295" class="svg-t-sm" text-anchor="middle">→ Scenario</text>
+      <rect x="450" y="260" width="200" height="44" rx="9" class="svg-box-violet"/><text x="550" y="280" class="svg-t-sm" text-anchor="middle">Đồng cảm / tầm nhìn UX</text><text x="550" y="295" class="svg-t-sm" text-anchor="middle">→ Vivid Scenario</text>
+
+      <line x1="380" y1="58" x2="95" y2="98" class="svg-line"/>
+      <line x1="380" y1="58" x2="265" y2="98" class="svg-line"/>
+      <line x1="380" y1="58" x2="440" y2="98" class="svg-line"/>
+      <line x1="380" y1="58" x2="615" y2="98" class="svg-line"/>
+      <line x1="440" y1="144" x2="380" y2="188" class="svg-dash"/>
+      <line x1="440" y1="144" x2="215" y2="258" class="svg-dash"/>
+      <line x1="615" y1="144" x2="550" y2="258" class="svg-dash"/>
+    </svg>
+    <div class="cap">Hình ★ · Cây quyết định: bắt đầu từ "bạn cần làm rõ điều gì?" để chọn tài liệu phù hợp</div>
+  </div>
+
+  <div class="callout tip"><span class="ci">🎯</span><div><b>Nguyên tắc vàng:</b> chọn tài liệu theo <em>câu hỏi bạn cần trả lời</em> và <em>người bạn cần thuyết phục</em>, không theo "tổ chức quy định phải có". Tài liệu là phương tiện giao tiếp, không phải mục tiêu tự thân — viết vừa đủ để mọi người hiểu đúng và làm đúng.</div></div>
+</section>
+
+<!-- ============ REFERENCES ============ -->
+<section class="topic refs" id="refs" style="border-bottom:none">
+  <div class="topic-head">
+    <div class="topic-num">§</div>
+    <div>
+      <h2 class="topic-title">References</h2>
+      <div class="topic-sub">Nguồn uy tín để đào sâu thêm</div>
+    </div>
+  </div>
+  <p>Các nguồn dưới đây là tài liệu nền tảng và được cộng đồng đánh giá cao về requirements engineering, product management và UX.</p>
+
+  <div class="ref-item"><div class="rn">01</div><div class="rc"><h5>ISO/IEC/IEEE 29148:2018 — Requirements Engineering</h5><a href="https://www.iso.org/standard/72089.html">iso.org/standard/72089.html</a><p>Chuẩn quốc tế kế nhiệm IEEE 830, định nghĩa khung cho SRS, đặc tính của yêu cầu tốt và quy trình requirements engineering.</p></div></div>
+  <div class="ref-item"><div class="rn">02</div><div class="rc"><h5>IEEE 830-1998 — Recommended Practice for SRS</h5><a href="https://standards.ieee.org/ieee/830/1222/">standards.ieee.org/ieee/830</a><p>Tài liệu kinh điển về cấu trúc SRS và 6 đặc tính (correct, unambiguous, complete, consistent, verifiable, traceable).</p></div></div>
+  <div class="ref-item"><div class="rn">03</div><div class="rc"><h5>Alistair Cockburn — Writing Effective Use Cases</h5><a href="https://www.amazon.com/dp/0201702258">Writing Effective Use Cases</a><p>Sách nền tảng về use case, giới thiệu goal levels (cloud/kite/sea/fish/clam) và cấu trúc đặc tả use case thực dụng.</p></div></div>
+  <div class="ref-item"><div class="rn">04</div><div class="rc"><h5>Mike Cohn — User Stories Applied &amp; Mountain Goat Software</h5><a href="https://www.mountaingoatsoftware.com/agile/user-stories">mountaingoatsoftware.com/agile/user-stories</a><p>Nguồn chuẩn về user story, mẫu "As a… I want… so that…", ba chữ C và thực hành ước lượng.</p></div></div>
+  <div class="ref-item"><div class="rn">05</div><div class="rc"><h5>Bill Wake — INVEST in Good Stories</h5><a href="https://xp123.com/articles/invest-in-good-stories-and-smart-tasks/">xp123.com/articles/invest-in-good-stories</a><p>Bài viết gốc giới thiệu tiêu chí INVEST cho user story chất lượng.</p></div></div>
+  <div class="ref-item"><div class="rn">06</div><div class="rc"><h5>Jeff Patton — User Story Mapping</h5><a href="https://www.jpattonassociates.com/story-mapping/">jpattonassociates.com/story-mapping</a><p>Kỹ thuật story map để chia nhỏ và ưu tiên story theo hành trình người dùng, xác định MVP đúng nghĩa.</p></div></div>
+  <div class="ref-item"><div class="rn">07</div><div class="rc"><h5>Karl Wiegers &amp; Joy Beatty — Software Requirements (3rd ed.)</h5><a href="https://www.microsoftpressstore.com/store/software-requirements-9780735679665">Software Requirements, 3rd Edition</a><p>Tham khảo toàn diện về BRS/FRS/NFR, elicitation, quản lý và truy vết yêu cầu.</p></div></div>
+  <div class="ref-item"><div class="rn">08</div><div class="rc"><h5>Alan Klement — Job Stories &amp; JTBD</h5><a href="https://jtbd.info/replacing-the-user-story-with-the-job-story-af7cdee10c27">jtbd.info — replacing the user story with the job story</a><p>Giới thiệu job story (When… I want… so I can…) thay thế persona gượng ép bằng tình huống.</p></div></div>
+  <div class="ref-item"><div class="rn">09</div><div class="rc"><h5>SEI — Quality Attribute Scenarios &amp; ATAM</h5><a href="https://insights.sei.cmu.edu/library/software-architecture-in-practice-third-edition/">SEI / Software Architecture in Practice</a><p>Nguồn gốc của quality attribute scenario 6 phần (source–stimulus–environment–artifact–response–measure) cho NFR.</p></div></div>
+  <div class="ref-item"><div class="rn">10</div><div class="rc"><h5>Atlassian — How to write a PRD</h5><a href="https://www.atlassian.com/agile/product-management/requirements">atlassian.com/agile/product-management/requirements</a><p>Hướng dẫn thực dụng viết PRD gọn nhẹ kiểu Agile, lấy ví dụ "1-page PRD".</p></div></div>
+  <div class="ref-item"><div class="rn">11</div><div class="rc"><h5>Dan Olsen — The Lean Product Playbook</h5><a href="https://leanproductplaybook.com/">leanproductplaybook.com</a><p>Khung hypothesis-driven, product-market fit và metric cho PRD hiện đại.</p></div></div>
+  <div class="ref-item"><div class="rn">12</div><div class="rc"><h5>Nielsen Norman Group — Personas &amp; Scenarios / Journey Mapping</h5><a href="https://www.nngroup.com/articles/persona/">nngroup.com/articles/persona</a><p>Nguồn UX uy tín về persona, scenario và customer journey map làm nền cho vivid scenario.</p></div></div>
+  <div class="ref-item"><div class="rn">13</div><div class="rc"><h5>Cucumber / Gherkin — BDD Documentation</h5><a href="https://cucumber.io/docs/gherkin/">cucumber.io/docs/gherkin</a><p>Tài liệu chính thức về Given–When–Then và specification by example cho acceptance criteria thực thi được.</p></div></div>
+  <div class="ref-item"><div class="rn">14</div><div class="rc"><h5>Ian Alexander — Misuse Cases</h5><a href="https://www.scenarioplus.org.uk/papers/misuse_cases/misuse_cases.htm">scenarioplus.org.uk — misuse cases</a><p>Phương pháp misuse/abuse case để mô hình hoá actor đối nghịch và yêu cầu phòng vệ.</p></div></div>
+
+  <div class="endcard">
+    <p class="q">"Tài liệu yêu cầu tốt không phải là tài liệu đầy đủ nhất, mà là tài liệu khiến mọi người hiểu đúng cùng một điều — và biết rõ điều gì cố ý để ngỏ."</p>
+    <p style="color:var(--ink-mute);font-size:14px;margin:0">Chọn đúng tầng, viết vừa đủ, luôn truy vết được về một mục tiêu.</p>
+  </div>
+
+  <div class="footer">
+    <p>Product Requirements · Cẩm nang chuyên sâu · Biên soạn cho mục đích tham khảo &amp; đào tạo.</p>
+    <p style="margin-top:4px">BRS · FRS · NFR · PRD · SRS · Use Case · User Story · Scenario · Vivid Scenario</p>
+  </div>
+</section>
+
+</main>
+</div>
+
+<script>
+function show(id) {
+  // Hide all sections
+  document.querySelectorAll('.topic').forEach(s => s.classList.remove('active'));
+  
+  // Show target section
+  const sec = document.getElementById(id);
+  if (sec) {
+    sec.classList.add('active');
+  }
+
+  // Update active status for all links pointing to sections
+  document.querySelectorAll('aside.toc a, nav.topnav a').forEach(a => {
+    const href = a.getAttribute('href');
+    if (href === '#' + id) {
+      a.classList.add('active');
+    } else {
+      a.classList.remove('active');
+    }
+  });
+
+  // Scroll to top of main content area securely
+  window.scrollTo(0, 0);
+}
+
+// Handle hash changes or programmatic calls
+function handleHash() {
+  const hash = window.location.hash.substring(1);
+  if (hash) {
+    const target = document.getElementById(hash);
+    if (target && target.classList.contains('topic')) {
+      show(hash);
+      return;
+    }
+  }
+  // Default to intro
+  show('intro');
+}
+
+// Bind click events on all local anchor tags
+function bindEvents() {
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', function(e) {
+      e.preventDefault();
+      const id = a.getAttribute('href').substring(1);
+      const target = document.getElementById(id);
+      if (target && target.classList.contains('topic')) {
+        show(id);
+        // Safely update history hash to allow direct URL deep linking
+        try {
+          history.pushState(null, null, '#' + id);
+        } catch (err) {
+          // Fallback for sandboxed frames like Obsidian without crashing
+          window.location.hash = '#' + id;
+        }
+      }
+    });
+  });
+}
+
+// Initialize on DOM ready
+document.addEventListener('DOMContentLoaded', () => {
+  bindEvents();
+  handleHash();
+});
+
+// Sync hash changes (back/forward button)
+window.addEventListener('hashchange', handleHash);
+</script>
+</body>
+</html>

@@ -1,0 +1,2242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Go Channels: Buffered & Unbuffered — Hướng Dẫn Toàn Diện</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Sora:wght@300;400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #21262d;
+    --bg4: #30363d;
+    --border: #30363d;
+    --border2: #484f58;
+    --text: #e6edf3;
+    --text2: #8b949e;
+    --text3: #6e7681;
+    --blue: #58a6ff;
+    --blue-bg: #0d419d;
+    --blue-dim: #1f3458;
+    --green: #3fb950;
+    --green-bg: #0f3324;
+    --green-dim: #1a4328;
+    --orange: #d29922;
+    --orange-bg: #3d2b00;
+    --orange-dim: #3d2b00;
+    --red: #f85149;
+    --red-bg: #490202;
+    --red-dim: #3c1c1c;
+    --purple: #bc8cff;
+    --purple-bg: #2d1660;
+    --purple-dim: #251050;
+    --teal: #39d353;
+    --cyan: #56d364;
+    --accent: #79c0ff;
+    --code-bg: #161b22;
+    --tag-go: #00add8;
+    --channel-color: #e8aa53;
+    --goroutine-color: #6b8ec9;
+    --font-body: 'Space Grotesk', sans-serif;
+    --font-code: 'JetBrains Mono', monospace;
+    --font-display: 'Sora', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.7;
+    min-height: 100vh;
+  }
+
+  /* ============ HEADER ============ */
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #0a1628 40%, #0d1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 0 50px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(88,166,255,0.08) 0%, transparent 70%);
+  }
+  .hero-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(0,173,216,0.12); border: 1px solid rgba(0,173,216,0.3);
+    color: var(--tag-go); font-size: 12px; font-weight: 600;
+    padding: 4px 12px; border-radius: 999px; letter-spacing: 1px;
+    text-transform: uppercase; margin-bottom: 20px;
+  }
+  .hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    background: linear-gradient(135deg, #e6edf3 0%, #79c0ff 50%, #3fb950 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 16px;
+  }
+  .hero-sub {
+    color: var(--text2); font-size: 16px; max-width: 620px; margin: 0 auto 28px;
+  }
+  .hero-badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .badge {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2); font-size: 12px; padding: 4px 12px;
+    border-radius: 999px; font-family: var(--font-code);
+  }
+
+  /* ============ LAYOUT ============ */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .content { padding: 48px 0; }
+  
+  /* ============ TOC ============ */
+  .toc-wrapper {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin-bottom: 48px;
+  }
+  .toc-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text3); font-weight: 600; margin-bottom: 16px;
+  }
+  .toc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  .toc-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 12px; border-radius: 8px;
+    color: var(--text2); text-decoration: none; font-size: 13px;
+    border: 1px solid transparent; transition: all 0.15s;
+  }
+  .toc-item:hover { background: var(--bg3); border-color: var(--border); color: var(--text); }
+  .toc-num {
+    width: 22px; height: 22px; border-radius: 50%;
+    background: var(--bg3); border: 1px solid var(--border);
+    font-size: 10px; font-weight: 600; color: var(--text3);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ============ SECTION HEADERS ============ */
+  .section { margin-bottom: 64px; scroll-margin-top: 20px; }
+  .section-label {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--text3); font-weight: 600; margin-bottom: 12px;
+  }
+  .section-label span {
+    display: inline-block; width: 24px; height: 1px; background: var(--border2);
+  }
+  h2.section-title {
+    font-family: var(--font-display);
+    font-size: 1.65rem; font-weight: 700;
+    color: var(--text); margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px;
+  }
+  h2.section-title .hi { color: var(--blue); }
+  h3 { font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; color: var(--text); margin: 28px 0 12px; }
+  h4 { font-size: 0.9rem; font-weight: 600; color: var(--accent); margin: 20px 0 8px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+  p { color: var(--text2); margin-bottom: 14px; }
+  strong { color: var(--text); font-weight: 600; }
+  code { font-family: var(--font-code); font-size: 13px; background: var(--bg3); border: 1px solid var(--border); padding: 1px 6px; border-radius: 4px; color: var(--accent); }
+
+  /* ============ INFO BOXES ============ */
+  .callout {
+    border-radius: 10px; padding: 16px 20px;
+    margin: 20px 0; display: flex; gap: 14px;
+    border-left: 3px solid;
+  }
+  .callout-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+  .callout-body h4 { margin: 0 0 6px; font-size: 13px; }
+  .callout-body p { margin: 0; font-size: 13px; }
+  .callout.info { background: rgba(88,166,255,0.07); border-color: var(--blue); }
+  .callout.info .callout-icon { color: var(--blue); }
+  .callout.info h4 { color: var(--blue); }
+  .callout.warn { background: rgba(210,153,34,0.07); border-color: var(--orange); }
+  .callout.warn .callout-icon { color: var(--orange); }
+  .callout.warn h4 { color: var(--orange); }
+  .callout.danger { background: rgba(248,81,73,0.07); border-color: var(--red); }
+  .callout.danger .callout-icon { color: var(--red); }
+  .callout.danger h4 { color: var(--red); }
+  .callout.success { background: rgba(63,185,80,0.07); border-color: var(--green); }
+  .callout.success .callout-icon { color: var(--green); }
+  .callout.success h4 { color: var(--green); }
+  .callout.tip { background: rgba(188,140,255,0.07); border-color: var(--purple); }
+  .callout.tip .callout-icon { color: var(--purple); }
+  .callout.tip h4 { color: var(--purple); }
+
+  /* ============ CODE BLOCKS ============ */
+  .code-wrapper {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 10px; margin: 16px 0; overflow: hidden;
+  }
+  .code-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px; background: var(--bg3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-family: var(--font-code); font-size: 11px;
+    color: var(--tag-go); font-weight: 600; letter-spacing: 1px; text-transform: uppercase;
+  }
+  .code-title { font-size: 12px; color: var(--text3); }
+  .code-dots { display: flex; gap: 5px; }
+  .code-dots span { width: 10px; height: 10px; border-radius: 50%; }
+  .code-dots .d1 { background: #ff5f57; }
+  .code-dots .d2 { background: #ffbd2e; }
+  .code-dots .d3 { background: #28ca41; }
+  pre {
+    padding: 20px;
+    font-family: var(--font-code);
+    font-size: 13px;
+    line-height: 1.7;
+    overflow-x: auto;
+    white-space: pre;
+  }
+  pre .kw { color: #ff7b72; }
+  pre .fn { color: #d2a8ff; }
+  pre .str { color: #a5d6ff; }
+  pre .num { color: #f2cc60; }
+  pre .cmt { color: #8b949e; font-style: italic; }
+  pre .type { color: #ffa657; }
+  pre .op { color: #e6edf3; }
+  pre .pkg { color: #79c0ff; }
+  pre .var { color: #e6edf3; }
+  pre .chan { color: #e8aa53; font-weight: 500; }
+
+  /* ============ DIAGRAMS ============ */
+  .diagram-wrapper {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin: 24px 0;
+    overflow-x: auto;
+  }
+  .diagram-title {
+    font-size: 12px; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 1px;
+    font-weight: 600; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .diagram-title::before {
+    content: ''; display: block;
+    width: 3px; height: 14px;
+    background: var(--blue); border-radius: 2px;
+  }
+
+  /* ============ COMPARISON TABLE ============ */
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .compare-table th {
+    background: var(--bg3); color: var(--text);
+    padding: 12px 16px; text-align: left;
+    font-weight: 600; font-family: var(--font-display);
+    border-bottom: 2px solid var(--border);
+  }
+  .compare-table th.ub { color: #6b8ec9; }
+  .compare-table th.buf { color: var(--channel-color); }
+  .compare-table td { padding: 10px 16px; border-bottom: 1px solid var(--border); color: var(--text2); vertical-align: top; }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .compare-table td.attr { color: var(--text); font-weight: 500; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .tag-block { background: rgba(248,81,73,0.15); color: var(--red); }
+  .tag-noblock { background: rgba(63,185,80,0.15); color: var(--green); }
+  .tag-sync { background: rgba(88,166,255,0.15); color: var(--blue); }
+  .tag-async { background: rgba(232,170,83,0.15); color: var(--channel-color); }
+
+  /* ============ PATTERN CARDS ============ */
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; margin: 20px 0; }
+  .pattern-card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; cursor: pointer;
+    transition: all 0.2s; position: relative; overflow: hidden;
+  }
+  .pattern-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent 60%, rgba(255,255,255,0.02));
+    pointer-events: none;
+  }
+  .pattern-card:hover { border-color: var(--border2); background: var(--bg3); transform: translateY(-1px); }
+  .pattern-card .card-icon { font-size: 28px; margin-bottom: 12px; }
+  .pattern-card h3 { font-size: 14px; margin: 0 0 8px; color: var(--text); }
+  .pattern-card p { font-size: 12px; margin: 0; color: var(--text3); line-height: 1.5; }
+  .pattern-card .card-tag {
+    position: absolute; top: 14px; right: 14px;
+    font-family: var(--font-code); font-size: 10px;
+    color: var(--text3); background: var(--bg4);
+    padding: 2px 8px; border-radius: 4px;
+  }
+  .pattern-card.blue-accent { border-top: 2px solid var(--blue); }
+  .pattern-card.green-accent { border-top: 2px solid var(--green); }
+  .pattern-card.orange-accent { border-top: 2px solid var(--orange); }
+  .pattern-card.purple-accent { border-top: 2px solid var(--purple); }
+  .pattern-card.red-accent { border-top: 2px solid var(--red); }
+  .pattern-card.cyan-accent { border-top: 2px solid #56d364; }
+
+  /* ============ CHANNEL VISUALIZER ============ */
+  .viz-container {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; margin: 24px 0;
+  }
+  .viz-title { font-size: 13px; color: var(--text); font-weight: 600; margin-bottom: 20px; }
+  .channel-demo {
+    display: flex; align-items: center; gap: 0;
+    margin: 12px 0; position: relative;
+  }
+  .goroutine-box {
+    padding: 10px 16px; border-radius: 8px;
+    font-family: var(--font-code); font-size: 12px;
+    font-weight: 500; min-width: 120px; text-align: center;
+    border: 1px solid;
+  }
+  .g-sender { background: rgba(107,142,201,0.12); border-color: rgba(107,142,201,0.4); color: #6b8ec9; }
+  .g-receiver { background: rgba(63,185,80,0.1); border-color: rgba(63,185,80,0.35); color: #3fb950; }
+  .channel-pipe {
+    flex: 1; position: relative; height: 50px;
+    display: flex; align-items: center;
+  }
+  .pipe-line {
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, rgba(107,142,201,0.3), var(--channel-color), rgba(63,185,80,0.3));
+    position: relative;
+  }
+  .pipe-label {
+    position: absolute; top: -20px; left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--font-code); font-size: 11px;
+    color: var(--channel-color); white-space: nowrap;
+    background: var(--bg2); padding: 0 8px;
+  }
+  .buffer-slots {
+    display: flex; gap: 3px; position: absolute;
+    left: 50%; transform: translateX(-50%);
+  }
+  .slot {
+    width: 28px; height: 28px; border-radius: 4px;
+    border: 1px solid var(--border2);
+    background: var(--bg3);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-family: var(--font-code);
+    transition: all 0.3s;
+  }
+  .slot.filled { background: rgba(232,170,83,0.25); border-color: var(--channel-color); color: var(--channel-color); }
+  .slot.empty { color: var(--text3); }
+  .block-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 11px; color: var(--red);
+    background: rgba(248,81,73,0.1); border: 1px solid rgba(248,81,73,0.25);
+    padding: 3px 10px; border-radius: 999px; margin-left: 12px;
+  }
+
+  /* ============ INTERACTIVE DEMO ============ */
+  #demo-section { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; margin: 24px 0; }
+  .demo-controls { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+  .demo-btn {
+    padding: 8px 16px; border-radius: 8px; font-family: var(--font-code);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    border: 1px solid; transition: all 0.15s; background: transparent;
+  }
+  .btn-send { color: var(--blue); border-color: rgba(88,166,255,0.4); }
+  .btn-send:hover { background: rgba(88,166,255,0.1); }
+  .btn-recv { color: var(--green); border-color: rgba(63,185,80,0.4); }
+  .btn-recv:hover { background: rgba(63,185,80,0.1); }
+  .btn-reset { color: var(--text3); border-color: var(--border); }
+  .btn-reset:hover { background: var(--bg3); }
+  .btn-toggle { color: var(--purple); border-color: rgba(188,140,255,0.4); }
+  .btn-toggle:hover { background: rgba(188,140,255,0.1); }
+  .demo-channel-vis {
+    display: flex; align-items: center; gap: 16px; margin: 16px 0;
+    flex-wrap: wrap;
+  }
+  .demo-label { font-size: 12px; color: var(--text3); min-width: 100px; font-family: var(--font-code); }
+  .demo-slots { display: flex; gap: 6px; }
+  .demo-slot {
+    width: 42px; height: 42px; border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--bg3); display: flex; align-items: center;
+    justify-content: center; font-size: 16px; transition: all 0.25s;
+    cursor: default; user-select: none;
+  }
+  .demo-slot.has-val { background: rgba(232,170,83,0.2); border-color: var(--channel-color); animation: pop 0.2s ease-out; }
+  @keyframes pop { 0% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .demo-log {
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 12px 16px; max-height: 160px;
+    overflow-y: auto; font-family: var(--font-code); font-size: 12px;
+    line-height: 1.8;
+  }
+  .log-send { color: var(--blue); }
+  .log-recv { color: var(--green); }
+  .log-block { color: var(--red); }
+  .log-info { color: var(--text3); }
+  .demo-status {
+    font-family: var(--font-code); font-size: 12px;
+    color: var(--text3); margin: 10px 0;
+  }
+  .demo-status .status-val { color: var(--channel-color); font-weight: 600; }
+
+  /* ============ BEST PRACTICES GRID ============ */
+  .bp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin: 20px 0; }
+  .bp-card {
+    border-radius: 10px; padding: 16px; border: 1px solid var(--border);
+  }
+  .bp-card.do { background: rgba(63,185,80,0.06); border-color: rgba(63,185,80,0.25); }
+  .bp-card.dont { background: rgba(248,81,73,0.06); border-color: rgba(248,81,73,0.25); }
+  .bp-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .bp-icon { font-size: 14px; }
+  .bp-card.do .bp-header span { color: var(--green); font-size: 12px; font-weight: 700; }
+  .bp-card.dont .bp-header span { color: var(--red); font-size: 12px; font-weight: 700; }
+  .bp-list { list-style: none; padding: 0; }
+  .bp-list li { font-size: 12px; color: var(--text2); padding: 4px 0; padding-left: 14px; position: relative; }
+  .bp-list li::before { content: '—'; position: absolute; left: 0; color: var(--text3); }
+
+  /* ============ MISC ============ */
+  .divider { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+
+  .highlight-box {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-left: 3px solid var(--blue); border-radius: 8px;
+    padding: 16px 20px; margin: 16px 0;
+  }
+  .highlight-box.green { border-left-color: var(--green); }
+  .highlight-box.orange { border-left-color: var(--orange); }
+
+  .formula-box {
+    background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 8px; padding: 14px 20px; margin: 12px 0;
+    font-family: var(--font-code); font-size: 13px; color: var(--accent);
+    text-align: center;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* Concept Images */
+  .concept-img-wrapper {
+    margin: 32px 0;
+    border-radius: 12px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: var(--bg2);
+  }
+  .concept-img-wrapper img {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+  .concept-img-caption {
+    padding: 12px 16px;
+    font-size: 13px;
+    color: var(--text2);
+    text-align: center;
+    border-top: 1px solid var(--border);
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="container">
+    <div class="hero-tag">⚡ Go Concurrency</div>
+    <h1>Buffered &amp; Unbuffered Channels</h1>
+    <p class="hero-sub">Hướng dẫn toàn diện từ cơ bản đến chuyên sâu về Channels trong Go — Cơ chế giao tiếp giữa các Goroutines</p>
+    <div class="hero-badges">
+      <span class="badge">Go 1.21+</span>
+      <span class="badge">Concurrency</span>
+      <span class="badge">Goroutines</span>
+      <span class="badge">make(chan T, N)</span>
+      <span class="badge">CSP Model</span>
+    </div>
+  </div>
+</div>
+
+<div class="container content">
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc-wrapper">
+    <div class="toc-title">📋 Mục Lục</div>
+    <div class="toc-grid">
+      <a href="#s1" class="toc-item"><span class="toc-num">1</span> Tổng Quan về Channel</a>
+      <a href="#s2" class="toc-item"><span class="toc-num">2</span> Unbuffered Channel</a>
+      <a href="#s3" class="toc-item"><span class="toc-num">3</span> Buffered Channel</a>
+      <a href="#s4" class="toc-item"><span class="toc-num">4</span> So Sánh Chi Tiết</a>
+      <a href="#s5" class="toc-item"><span class="toc-num">5</span> Demo Tương Tác</a>
+      <a href="#s6" class="toc-item"><span class="toc-num">6</span> Advanced Patterns</a>
+      <a href="#s7" class="toc-item"><span class="toc-num">7</span> Deadlock & Pitfalls</a>
+      <a href="#s8" class="toc-item"><span class="toc-num">8</span> Real-world Examples</a>
+      <a href="#s9" class="toc-item"><span class="toc-num">9</span> Best Practices</a>
+      <a href="#s10" class="toc-item"><span class="toc-num">10</span> Cheatsheet</a>
+    </div>
+  </div>
+
+  <!-- SECTION 1: TỔNG QUAN -->
+  <section class="section" id="s1">
+    <div class="section-label"><span></span> Khái niệm nền tảng</div>
+    <h2 class="section-title"><span class="hi">01</span> — Tổng Quan về Channel</h2>
+
+    <p>Channel là cơ chế giao tiếp cốt lõi trong Go, được xây dựng dựa trên mô hình <strong>CSP (Communicating Sequential Processes)</strong> của Tony Hoare. Thay vì chia sẻ bộ nhớ giữa các goroutines, Go khuyến khích việc chia sẻ dữ liệu thông qua channel.</p>
+
+    <div class="concept-img-wrapper">
+      <img src="../../public/images/go-channels-concept.png" alt="Go Channel Concept — Sender và Receiver Goroutine giao tiếp qua Channel" loading="lazy">
+      <div class="concept-img-caption">Minh họa: Hai goroutine giao tiếp qua unbuffered channel — Sender gửi dữ liệu, Receiver nhận (block khi channel trống)</div>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <h4>Go Concurrency Mantra</h4>
+        <p><em>"Don't communicate by sharing memory; share memory by communicating."</em> — Rob Pike</p>
+      </div>
+    </div>
+
+    <!-- Diagram: CSP Model -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">Mô Hình CSP — Channel như một "Pipe" giữa các Goroutines</div>
+      <svg width="100%" viewBox="0 0 820 220" role="img">
+        <title>Mô hình CSP với Channel</title>
+        <defs>
+          <marker id="arr1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#58a6ff" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+          <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#e8aa53" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+          <marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- Goroutine A -->
+        <rect x="30" y="70" width="140" height="80" rx="10" fill="rgba(107,142,201,0.12)" stroke="rgba(107,142,201,0.5)" stroke-width="1"/>
+        <text x="100" y="105" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#6b8ec9" font-weight="600">goroutine A</text>
+        <text x="100" y="125" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8b949e">sender</text>
+        <text x="100" y="58" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#8b949e">Goroutine độc lập</text>
+
+        <!-- Arrow A → Channel -->
+        <line x1="170" y1="110" x2="290" y2="110" stroke="#58a6ff" stroke-width="1.5" marker-end="url(#arr1)" stroke-dasharray="6,3"/>
+        <text x="230" y="100" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#58a6ff">ch &lt;- data</text>
+
+        <!-- Channel -->
+        <rect x="290" y="50" width="240" height="120" rx="12" fill="rgba(232,170,83,0.1)" stroke="rgba(232,170,83,0.5)" stroke-width="1.5"/>
+        <text x="410" y="85" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="13" fill="#e8aa53" font-weight="600">channel</text>
+        <text x="410" y="105" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#e8aa53">make(chan int, N)</text>
+        <!-- Slots -->
+        <rect x="325" y="115" width="35" height="30" rx="4" fill="rgba(232,170,83,0.2)" stroke="rgba(232,170,83,0.4)" stroke-width="1"/>
+        <text x="342" y="135" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">42</text>
+        <rect x="368" y="115" width="35" height="30" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <rect x="411" y="115" width="35" height="30" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+        <rect x="454" y="115" width="35" height="30" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+
+        <!-- Arrow Channel → B -->
+        <line x1="530" y1="110" x2="650" y2="110" stroke="#3fb950" stroke-width="1.5" marker-end="url(#arr3)" stroke-dasharray="6,3"/>
+        <text x="590" y="100" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#3fb950">data := &lt;-ch</text>
+
+        <!-- Goroutine B -->
+        <rect x="650" y="70" width="140" height="80" rx="10" fill="rgba(63,185,80,0.1)" stroke="rgba(63,185,80,0.4)" stroke-width="1"/>
+        <text x="720" y="105" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#3fb950" font-weight="600">goroutine B</text>
+        <text x="720" y="125" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8b949e">receiver</text>
+        <text x="720" y="58" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#8b949e">Goroutine độc lập</text>
+
+        <!-- Bottom labels -->
+        <text x="100" y="175" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#484f58">Stack riêng</text>
+        <text x="410" y="192" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#484f58">Synchronized data transfer</text>
+        <text x="720" y="175" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#484f58">Stack riêng</text>
+      </svg>
+    </div>
+
+    <h3>Channel là gì?</h3>
+    <p>Channel trong Go là một <strong>typed conduit</strong> (ống dẫn có kiểu dữ liệu) cho phép các goroutines gửi và nhận giá trị. Channel đảm bảo <strong>thread-safety</strong> mà không cần mutex thủ công.</p>
+
+    <div class="two-col">
+      <div class="highlight-box">
+        <h4>📌 Khai báo Channel</h4>
+        <div class="code-wrapper">
+          <pre><span class="cmt">// Unbuffered channel</span>
+<span class="var">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>)
+
+<span class="cmt">// Buffered channel (capacity=5)</span>
+<span class="var">bch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="num">5</span>)
+
+<span class="cmt">// Directional channels</span>
+<span class="kw">var</span> <span class="var">send</span> <span class="kw">chan</span>&lt;- <span class="type">int</span>  <span class="cmt">// send-only</span>
+<span class="kw">var</span> <span class="var">recv</span> &lt;-<span class="kw">chan</span> <span class="type">int</span>  <span class="cmt">// receive-only</span></pre>
+        </div>
+      </div>
+      <div class="highlight-box green">
+        <h4>📌 Operations cơ bản</h4>
+        <div class="code-wrapper">
+          <pre><span class="cmt">// Gửi giá trị vào channel</span>
+<span class="chan">ch</span> &lt;- <span class="num">42</span>
+
+<span class="cmt">// Nhận giá trị từ channel</span>
+<span class="var">v</span> := &lt;-<span class="chan">ch</span>
+
+<span class="cmt">// Nhận + kiểm tra channel đã đóng</span>
+<span class="var">v</span>, <span class="var">ok</span> := &lt;-<span class="chan">ch</span>
+
+<span class="cmt">// Đóng channel (chỉ sender đóng)</span>
+<span class="fn">close</span>(<span class="chan">ch</span>)</pre>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SECTION 2: UNBUFFERED -->
+  <section class="section" id="s2">
+    <div class="section-label"><span></span> Synchronous Communication</div>
+    <h2 class="section-title"><span class="hi">02</span> — Unbuffered Channel</h2>
+
+    <p>Unbuffered channel (hay <em>synchronous channel</em>) là loại channel <strong>không có bộ đệm</strong>. Mỗi lần gửi sẽ <strong>block</strong> goroutine gửi cho đến khi có goroutine khác sẵn sàng nhận, và ngược lại.</p>
+
+    <div class="formula-box">
+      make(chan T) &nbsp;≡&nbsp; make(chan T, 0) &nbsp;&nbsp;|&nbsp;&nbsp; capacity = 0, len = 0
+    </div>
+
+    <!-- Unbuffered Flow Diagram -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">Cơ Chế Hoạt Động — Unbuffered Channel (Rendezvous)</div>
+      <svg width="100%" viewBox="0 0 820 340" role="img">
+        <title>Unbuffered Channel Rendezvous Pattern</title>
+        <defs>
+          <marker id="ua" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#6b8ec9" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+          <marker id="ga" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#3fb950" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+          <marker id="ra" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#f85149" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- Timeline labels -->
+        <text x="20" y="25" font-family="Space Grotesk,sans-serif" font-size="11" fill="#484f58" font-weight="600">THỜI GIAN →</text>
+        <line x1="80" y1="28" x2="800" y2="28" stroke="#30363d" stroke-width="1" marker-end="url(#ua)"/>
+
+        <!-- T1: Sender sends, Receiver not ready -->
+        <!-- Step 1 -->
+        <rect x="30" y="50" width="18" height="18" rx="3" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+        <text x="39" y="63" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8b949e">1</text>
+
+        <rect x="60" y="45" width="120" height="35" rx="6" fill="rgba(107,142,201,0.12)" stroke="rgba(107,142,201,0.4)" stroke-width="1"/>
+        <text x="120" y="66" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#6b8ec9">Sender: ch ← 42</text>
+
+        <text x="210" y="66" font-family="Space Grotesk,sans-serif" font-size="11" fill="#f85149">⚡ BLOCK — chờ receiver!</text>
+
+        <rect x="580" y="45" width="140" height="35" rx="6" fill="rgba(63,185,80,0.06)" stroke="rgba(63,185,80,0.2)" stroke-width="1" stroke-dasharray="4,2"/>
+        <text x="650" y="66" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3c4a3e">Receiver: đang làm việc</text>
+
+        <!-- Step 2 -->
+        <rect x="30" y="100" width="18" height="18" rx="3" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+        <text x="39" y="113" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8b949e">2</text>
+
+        <rect x="60" y="95" width="120" height="35" rx="6" fill="rgba(107,142,201,0.05)" stroke="rgba(107,142,201,0.2)" stroke-width="1" stroke-dasharray="4,2"/>
+        <text x="120" y="116" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3d4a5c">Sender: 🔒 suspended</text>
+
+        <rect x="580" y="95" width="140" height="35" rx="6" fill="rgba(63,185,80,0.12)" stroke="rgba(63,185,80,0.4)" stroke-width="1"/>
+        <text x="650" y="116" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3fb950">Receiver: ← ch</text>
+        <text x="760" y="116" font-family="Space Grotesk,sans-serif" font-size="11" fill="#3fb950">sẵn sàng!</text>
+
+        <!-- Rendezvous line -->
+        <line x1="300" y1="90" x2="300" y2="200" stroke="#e8aa53" stroke-width="1" stroke-dasharray="3,3"/>
+        <text x="300" y="88" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#e8aa53">RENDEZVOUS POINT</text>
+
+        <!-- Step 3 - Handoff -->
+        <rect x="30" y="165" width="18" height="18" rx="3" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+        <text x="39" y="178" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8b949e">3</text>
+
+        <text x="130" y="185" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#e8aa53" font-weight="600">⚡ Handoff tức thì! Giá trị 42 được chuyển trực tiếp</text>
+
+        <line x1="200" y1="205" x2="590" y2="205" stroke="#e8aa53" stroke-width="2" marker-end="url(#ua)"/>
+        <text x="395" y="198" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">value = 42</text>
+
+        <!-- Step 4 - Both resume -->
+        <rect x="30" y="230" width="18" height="18" rx="3" fill="#21262d" stroke="#484f58" stroke-width="1"/>
+        <text x="39" y="243" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#8b949e">4</text>
+
+        <rect x="60" y="225" width="160" height="35" rx="6" fill="rgba(107,142,201,0.15)" stroke="rgba(107,142,201,0.5)" stroke-width="1"/>
+        <text x="140" y="246" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#6b8ec9">Sender: tiếp tục chạy ✓</text>
+
+        <rect x="560" y="225" width="180" height="35" rx="6" fill="rgba(63,185,80,0.15)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+        <text x="650" y="246" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3fb950">Receiver: xử lý 42 ✓</text>
+
+        <!-- Key insight box -->
+        <rect x="60" y="285" width="700" height="40" rx="8" fill="rgba(232,170,83,0.08)" stroke="rgba(232,170,83,0.3)" stroke-width="1"/>
+        <text x="410" y="310" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#e8aa53">
+          💡 Unbuffered channel đảm bảo cả 2 goroutines gặp nhau tại cùng một điểm thời gian — đây là "synchronization guarantee"
+        </text>
+      </svg>
+    </div>
+
+    <h3>Khi nào Unbuffered Channel block?</h3>
+    <div class="two-col">
+      <div>
+        <div class="callout danger">
+          <div class="callout-icon">🔒</div>
+          <div class="callout-body">
+            <h4>Sender BLOCK khi:</h4>
+            <p>Không có goroutine nào đang chờ nhận (<code>&lt;-ch</code>). Sender sẽ bị treo cho đến khi receiver sẵn sàng.</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="callout warn">
+          <div class="callout-icon">🔒</div>
+          <div class="callout-body">
+            <h4>Receiver BLOCK khi:</h4>
+            <p>Không có goroutine nào đang gửi. Receiver sẽ bị treo cho đến khi sender gửi giá trị hoặc channel bị đóng.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Code Example — Unbuffered Channel</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">unbuffered_basic.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cmt">// Tạo unbuffered channel — capacity = 0</span>
+    <span class="chan">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">string</span>)
+
+    <span class="cmt">// Goroutine sender</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"[Sender] Chuẩn bị gửi..."</span>)
+        <span class="cmt">// Dòng này BLOCK cho đến khi receiver sẵn sàng nhận</span>
+        <span class="chan">ch</span> &lt;- <span class="str">"Hello, Goroutine!"</span>
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"[Sender] Đã gửi xong, tiếp tục..."</span>)
+    }()
+
+    <span class="cmt">// Giả lập main goroutine làm việc trước</span>
+    <span class="pkg">time</span>.<span class="fn">Sleep</span>(<span class="num">500</span> * <span class="pkg">time</span>.<span class="var">Millisecond</span>)
+
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"[Main] Bắt đầu nhận..."</span>)
+    <span class="cmt">// Tại đây, receiver sẵn sàng → handoff xảy ra</span>
+    <span class="var">msg</span> := &lt;-<span class="chan">ch</span>
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"[Main] Nhận được: %s\n"</span>, <span class="var">msg</span>)
+}
+
+<span class="cmt">// Output:
+// [Sender] Chuẩn bị gửi...
+// (500ms trôi qua — sender đang blocked)
+// [Main] Bắt đầu nhận...
+// [Sender] Đã gửi xong, tiếp tục...
+// [Main] Nhận được: Hello, Goroutine!</span></pre>
+    </div>
+
+    <h3>Ứng dụng thực tế: Synchronization Primitive</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">unbuffered_sync.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="cmt">// Sử dụng unbuffered channel như một "done signal"</span>
+<span class="kw">func</span> <span class="fn">processItems</span>(<span class="var">items</span> []<span class="type">int</span>, <span class="var">done</span> <span class="kw">chan</span>&lt;- <span class="type">bool</span>) {
+    <span class="kw">var</span> <span class="var">wg</span> <span class="pkg">sync</span>.<span class="type">WaitGroup</span>
+    <span class="var">results</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="fn">len</span>(<span class="var">items</span>))
+
+    <span class="kw">for</span> _, <span class="var">item</span> := <span class="kw">range</span> <span class="var">items</span> {
+        <span class="var">wg</span>.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(<span class="var">n</span> <span class="type">int</span>) {
+            <span class="kw">defer</span> <span class="var">wg</span>.<span class="fn">Done</span>()
+            <span class="var">results</span> &lt;- <span class="var">n</span> * <span class="var">n</span> <span class="cmt">// tính bình phương</span>
+        }(<span class="var">item</span>)
+    }
+
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="var">wg</span>.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(<span class="var">results</span>)
+    }()
+
+    <span class="var">sum</span> := <span class="num">0</span>
+    <span class="kw">for</span> <span class="var">r</span> := <span class="kw">range</span> <span class="var">results</span> {
+        <span class="var">sum</span> += <span class="var">r</span>
+    }
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Tổng bình phương: %d\n"</span>, <span class="var">sum</span>)
+
+    <span class="cmt">// Signal hoàn thành qua unbuffered channel</span>
+    <span class="cmt">// Goroutine này BLOCK cho đến khi main nhận</span>
+    <span class="var">done</span> &lt;- <span class="kw">true</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="var">done</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">bool</span>) <span class="cmt">// unbuffered!</span>
+    <span class="kw">go</span> <span class="fn">processItems</span>([]<span class="type">int</span>{<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>}, <span class="var">done</span>)
+
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Main đang chờ kết quả..."</span>)
+    &lt;-<span class="var">done</span> <span class="cmt">// Main BLOCK tại đây cho đến khi processItems xong</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Main tiếp tục sau khi nhận done signal"</span>)
+}</pre>
+    </div>
+
+  </section>
+
+  <!-- Visual comparison: Buffered vs Unbuffered -->
+  <div class="concept-img-wrapper" style="margin: 48px 0;">
+    <img src="../../public/images/go-buffered-vs-unbuffered.png" alt="So sánh Buffered và Unbuffered Channel trong Go" loading="lazy">
+    <div class="concept-img-caption">So sánh: Unbuffered Channel (synchronous, cap=0) vs Buffered Channel (asynchronous, cap=N)</div>
+  </div>
+
+  <!-- SECTION 3: BUFFERED -->
+  <section class="section" id="s3">
+    <div class="section-label"><span></span> Asynchronous Communication</div>
+    <h2 class="section-title"><span class="hi">03</span> — Buffered Channel</h2>
+
+    <p>Buffered channel có một <strong>internal queue</strong> với dung lượng xác định. Sender có thể gửi dữ liệu vào channel mà <strong>không cần block</strong> miễn là buffer chưa đầy. Receiver có thể nhận dữ liệu từ buffer bất kể sender có đang chạy hay không.</p>
+
+    <div class="formula-box">
+      make(chan T, N) &nbsp;|&nbsp; capacity = N &nbsp;|&nbsp; len(ch) = số phần tử hiện tại &nbsp;|&nbsp; cap(ch) = N
+    </div>
+
+    <!-- Buffer States Diagram -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">Các Trạng Thái của Buffered Channel (capacity = 3)</div>
+      <svg width="100%" viewBox="0 0 820 380" role="img">
+        <title>Buffered Channel States</title>
+        <defs>
+          <marker id="ba" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#8b949e" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- State 1: Empty -->
+        <text x="80" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8b949e" font-weight="600">EMPTY</text>
+        <text x="80" y="50" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">len=0, cap=3</text>
+        <rect x="25" y="60" width="110" height="50" rx="8" fill="rgba(232,170,83,0.08)" stroke="rgba(232,170,83,0.3)" stroke-width="1"/>
+        <rect x="30" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <rect x="64" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <rect x="98" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="80" y="125" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#3fb950">✓ Send: không block</text>
+        <text x="80" y="142" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#f85149">✗ Recv: BLOCK</text>
+
+        <!-- Arrow 1→2 -->
+        <line x1="145" y1="85" x2="195" y2="85" stroke="#30363d" stroke-width="1.5" marker-end="url(#ba)"/>
+        <text x="170" y="78" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">ch←1</text>
+
+        <!-- State 2: Partial (1/3) -->
+        <text x="280" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8b949e" font-weight="600">PARTIAL (1/3)</text>
+        <text x="280" y="50" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">len=1, cap=3</text>
+        <rect x="225" y="60" width="110" height="50" rx="8" fill="rgba(232,170,83,0.1)" stroke="rgba(232,170,83,0.4)" stroke-width="1"/>
+        <rect x="230" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.3)" stroke="rgba(232,170,83,0.6)" stroke-width="1"/>
+        <text x="245" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">1</text>
+        <rect x="264" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <rect x="298" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="280" y="125" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#3fb950">✓ Send: không block</text>
+        <text x="280" y="142" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#3fb950">✓ Recv: không block</text>
+
+        <!-- Arrow 2→3 -->
+        <line x1="345" y1="85" x2="395" y2="85" stroke="#30363d" stroke-width="1.5" marker-end="url(#ba)"/>
+        <text x="370" y="78" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">ch←2,3</text>
+
+        <!-- State 3: Full (3/3) -->
+        <text x="480" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8b949e" font-weight="600">FULL (3/3)</text>
+        <text x="480" y="50" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">len=3, cap=3</text>
+        <rect x="425" y="60" width="110" height="50" rx="8" fill="rgba(248,81,73,0.1)" stroke="rgba(248,81,73,0.4)" stroke-width="1"/>
+        <rect x="430" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.35)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <text x="445" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">1</text>
+        <rect x="464" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.35)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <text x="479" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">2</text>
+        <rect x="498" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.35)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <text x="513" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">3</text>
+        <text x="480" y="125" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#f85149">✗ Send: BLOCK</text>
+        <text x="480" y="142" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#3fb950">✓ Recv: không block</text>
+
+        <!-- Arrow 3→2 (recv) -->
+        <line x1="545" y1="85" x2="595" y2="85" stroke="#30363d" stroke-width="1.5" marker-end="url(#ba)"/>
+        <text x="570" y="78" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">&lt;-ch</text>
+
+        <!-- State 4: After recv -->
+        <text x="680" y="30" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#8b949e" font-weight="600">AFTER RECV</text>
+        <text x="680" y="50" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">len=2, cap=3</text>
+        <rect x="625" y="60" width="110" height="50" rx="8" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.3)" stroke-width="1"/>
+        <rect x="630" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.3)" stroke="rgba(232,170,83,0.6)" stroke-width="1"/>
+        <text x="645" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">2</text>
+        <rect x="664" y="65" width="30" height="38" rx="4" fill="rgba(232,170,83,0.3)" stroke="rgba(232,170,83,0.6)" stroke-width="1"/>
+        <text x="679" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">3</text>
+        <rect x="698" y="65" width="30" height="38" rx="4" fill="rgba(63,185,80,0.08)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <text x="713" y="89" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">free</text>
+        <text x="680" y="125" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#3fb950">✓ Send: không block</text>
+        <text x="680" y="142" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#3fb950">✓ Recv: không block</text>
+
+        <!-- FIFO explanation -->
+        <rect x="25" y="175" width="770" height="80" rx="10" fill="rgba(255,255,255,0.02)" stroke="#30363d" stroke-width="1"/>
+        <text x="410" y="198" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#e6edf3" font-weight="600">FIFO Queue — First In, First Out</text>
+        
+        <!-- FIFO Visual -->
+        <text x="70" y="235" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#6b8ec9">Sender →</text>
+        <rect x="120" y="220" width="35" height="28" rx="4" fill="rgba(107,142,201,0.2)" stroke="rgba(107,142,201,0.5)" stroke-width="1"/>
+        <text x="137" y="238" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#6b8ec9">D</text>
+        <rect x="160" y="220" width="35" height="28" rx="4" fill="rgba(232,170,83,0.25)" stroke="rgba(232,170,83,0.5)" stroke-width="1"/>
+        <text x="177" y="238" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">C</text>
+        <rect x="200" y="220" width="35" height="28" rx="4" fill="rgba(232,170,83,0.25)" stroke="rgba(232,170,83,0.5)" stroke-width="1"/>
+        <text x="217" y="238" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">B</text>
+        <rect x="240" y="220" width="35" height="28" rx="4" fill="rgba(232,170,83,0.25)" stroke="rgba(232,170,83,0.5)" stroke-width="1"/>
+        <text x="257" y="238" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#e8aa53">A</text>
+        <text x="310" y="235" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#3fb950">→ Receiver</text>
+        <text x="410" y="235" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#8b949e">A được gửi đầu tiên → A được nhận đầu tiên</text>
+
+        <!-- Blocking Rules Summary -->
+        <rect x="25" y="280" width="380" height="90" rx="10" fill="rgba(248,81,73,0.05)" stroke="rgba(248,81,73,0.25)" stroke-width="1"/>
+        <text x="215" y="302" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#f85149" font-weight="600">⚠ Blocking Rules</text>
+        <text x="45" y="322" font-family="JetBrains Mono,monospace" font-size="11" fill="#8b949e">Send blocks khi:  len(ch) == cap(ch) (buffer đầy)</text>
+        <text x="45" y="342" font-family="JetBrains Mono,monospace" font-size="11" fill="#8b949e">Recv blocks khi:  len(ch) == 0 (buffer trống)</text>
+        <text x="45" y="362" font-family="JetBrains Mono,monospace" font-size="11" fill="#8b949e">Recv from closed: trả về zero value, ok=false</text>
+
+        <!-- Benefits box -->
+        <rect x="420" y="280" width="375" height="90" rx="10" fill="rgba(63,185,80,0.05)" stroke="rgba(63,185,80,0.25)" stroke-width="1"/>
+        <text x="607" y="302" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="12" fill="#3fb950" font-weight="600">✓ Lợi ích so với Unbuffered</text>
+        <text x="440" y="322" font-family="Space Grotesk,sans-serif" font-size="11" fill="#8b949e">• Sender &amp; receiver không cần sync hoàn hảo</text>
+        <text x="440" y="342" font-family="Space Grotesk,sans-serif" font-size="11" fill="#8b949e">• Tăng throughput khi sender nhanh hơn receiver</text>
+        <text x="440" y="362" font-family="Space Grotesk,sans-serif" font-size="11" fill="#8b949e">• Có thể dùng như semaphore / rate limiter</text>
+      </svg>
+    </div>
+
+    <h3>Code Example — Buffered Channel</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">buffered_basic.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> <span class="str">"fmt"</span>
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cmt">// Tạo buffered channel với capacity = 3</span>
+    <span class="chan">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="num">3</span>)
+
+    <span class="cmt">// Gửi 3 giá trị mà KHÔNG cần goroutine receiver đang chạy</span>
+    <span class="cmt">// Vì buffer còn chỗ trống → KHÔNG BLOCK</span>
+    <span class="chan">ch</span> &lt;- <span class="num">10</span>
+    <span class="chan">ch</span> &lt;- <span class="num">20</span>
+    <span class="chan">ch</span> &lt;- <span class="num">30</span>
+
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"len=%d, cap=%d\n"</span>, <span class="fn">len</span>(<span class="chan">ch</span>), <span class="fn">cap</span>(<span class="chan">ch</span>)) <span class="cmt">// len=3, cap=3</span>
+
+    <span class="cmt">// Nhận giá trị (FIFO — lấy ra theo thứ tự gửi vào)</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(&lt;-<span class="chan">ch</span>) <span class="cmt">// 10</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(&lt;-<span class="chan">ch</span>) <span class="cmt">// 20</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(&lt;-<span class="chan">ch</span>) <span class="cmt">// 30</span>
+
+    <span class="cmt">// Kiểm tra len và cap sau khi nhận hết</span>
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"len=%d, cap=%d\n"</span>, <span class="fn">len</span>(<span class="chan">ch</span>), <span class="fn">cap</span>(<span class="chan">ch</span>)) <span class="cmt">// len=0, cap=3</span>
+
+    <span class="cmt">// Dòng này sẽ BLOCK vô hạn (buffer trống, không ai gửi)</span>
+    <span class="cmt">// &lt;-ch // deadlock!</span>
+}</pre>
+    </div>
+
+    <h3>Buffered Channel làm Semaphore</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">semaphore_pattern.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// Semaphore — giới hạn số goroutines chạy đồng thời</span>
+<span class="kw">type</span> <span class="type">Semaphore</span> <span class="kw">chan</span> <span class="kw">struct</span>{}
+
+<span class="kw">func</span> <span class="fn">NewSemaphore</span>(<span class="var">maxConcurrent</span> <span class="type">int</span>) <span class="type">Semaphore</span> {
+    <span class="kw">return</span> <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, <span class="var">maxConcurrent</span>)
+}
+
+<span class="kw">func</span> (<span class="var">s</span> <span class="type">Semaphore</span>) <span class="fn">Acquire</span>() { <span class="var">s</span> &lt;- <span class="kw">struct</span>{}{} }
+<span class="kw">func</span> (<span class="var">s</span> <span class="type">Semaphore</span>) <span class="fn">Release</span>() { &lt;-<span class="var">s</span> }
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="cmt">// Chỉ cho phép 3 goroutines chạy đồng thời</span>
+    <span class="var">sem</span> := <span class="fn">NewSemaphore</span>(<span class="num">3</span>)
+    <span class="kw">var</span> <span class="var">wg</span> <span class="pkg">sync</span>.<span class="type">WaitGroup</span>
+
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> &lt; <span class="num">10</span>; <span class="var">i</span>++ {
+        <span class="var">wg</span>.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(<span class="var">id</span> <span class="type">int</span>) {
+            <span class="kw">defer</span> <span class="var">wg</span>.<span class="fn">Done</span>()
+
+            <span class="var">sem</span>.<span class="fn">Acquire</span>() <span class="cmt">// Chiếm 1 slot trong buffer</span>
+            <span class="kw">defer</span> <span class="var">sem</span>.<span class="fn">Release</span>() <span class="cmt">// Trả lại slot khi xong</span>
+
+            <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Worker %d đang chạy\n"</span>, <span class="var">id</span>)
+            <span class="pkg">time</span>.<span class="fn">Sleep</span>(<span class="num">100</span> * <span class="pkg">time</span>.<span class="var">Millisecond</span>)
+        }(<span class="var">i</span>)
+    }
+
+    <span class="var">wg</span>.<span class="fn">Wait</span>()
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Tất cả workers đã hoàn thành"</span>)
+}</pre>
+    </div>
+
+  </section>
+
+  <!-- SECTION 4: COMPARISON -->
+  <section class="section" id="s4">
+    <div class="section-label"><span></span> Phân tích chi tiết</div>
+    <h2 class="section-title"><span class="hi">04</span> — So Sánh Chi Tiết</h2>
+
+    <div class="diagram-wrapper" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; background: var(--bg3); border-bottom: 1px solid var(--border);">
+        <div class="diagram-title" style="margin: 0;">So sánh Unbuffered vs Buffered Channel</div>
+      </div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="width:200px">Tiêu chí</th>
+            <th class="ub">🔵 Unbuffered Channel</th>
+            <th class="buf">🟡 Buffered Channel</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="attr">Khai báo</td>
+            <td><code>make(chan T)</code> hoặc <code>make(chan T, 0)</code></td>
+            <td><code>make(chan T, N)</code> với N &gt; 0</td>
+          </tr>
+          <tr>
+            <td class="attr">Capacity</td>
+            <td>0 (không có buffer)</td>
+            <td>N (số phần tử tối đa có thể chứa)</td>
+          </tr>
+          <tr>
+            <td class="attr">Send blocking</td>
+            <td><span class="tag tag-block">BLOCK ngay</span> — chờ receiver</td>
+            <td><span class="tag tag-block">BLOCK</span> chỉ khi buffer đầy</td>
+          </tr>
+          <tr>
+            <td class="attr">Receive blocking</td>
+            <td><span class="tag tag-block">BLOCK ngay</span> — chờ sender</td>
+            <td><span class="tag tag-block">BLOCK</span> chỉ khi buffer trống</td>
+          </tr>
+          <tr>
+            <td class="attr">Synchronization</td>
+            <td><span class="tag tag-sync">Synchronous</span> — cả 2 gặp nhau</td>
+            <td><span class="tag tag-async">Asynchronous</span> — không cần gặp nhau</td>
+          </tr>
+          <tr>
+            <td class="attr">Guarantee</td>
+            <td>Sender biết chắc receiver đã nhận</td>
+            <td>Sender chỉ biết data đã vào buffer</td>
+          </tr>
+          <tr>
+            <td class="attr">Memory usage</td>
+            <td>Rất thấp — không cấp phát buffer</td>
+            <td>Tỷ lệ với capacity × sizeof(T)</td>
+          </tr>
+          <tr>
+            <td class="attr">Throughput</td>
+            <td>Thấp hơn — cần sync mỗi lần</td>
+            <td>Cao hơn — giảm context switches</td>
+          </tr>
+          <tr>
+            <td class="attr">Use case</td>
+            <td>Signaling, sync primitives, handshake</td>
+            <td>Task queues, pipelines, semaphores</td>
+          </tr>
+          <tr>
+            <td class="attr">Deadlock risk</td>
+            <td>Cao — dễ bị deadlock nếu sender/receiver không khớp</td>
+            <td>Thấp hơn — buffer có thể hấp thụ burst</td>
+          </tr>
+          <tr>
+            <td class="attr">len(ch)</td>
+            <td>Luôn là 0</td>
+            <td>Số phần tử hiện đang trong buffer</td>
+          </tr>
+          <tr>
+            <td class="attr">cap(ch)</td>
+            <td>Luôn là 0</td>
+            <td>N (capacity đã khai báo)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Behavior under load diagram -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">Hành Vi Khi Sender Nhanh Hơn Receiver</div>
+      <svg width="100%" viewBox="0 0 820 280" role="img">
+        <title>Sender faster than receiver behavior comparison</title>
+        <defs>
+          <marker id="ca" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#484f58" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- Unbuffered side -->
+        <text x="200" y="25" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#6b8ec9" font-weight="600">UNBUFFERED</text>
+
+        <!-- Timeline -->
+        <text x="30" y="55" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Sender</text>
+        <text x="30" y="100" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Channel</text>
+        <text x="30" y="145" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Receiver</text>
+
+        <!-- Sender timeline (blocked most of the time) -->
+        <rect x="80" y="42" width="30" height="18" rx="3" fill="rgba(107,142,201,0.4)" stroke="rgba(107,142,201,0.7)" stroke-width="1"/>
+        <rect x="115" y="42" width="60" height="18" rx="3" fill="rgba(248,81,73,0.2)" stroke="rgba(248,81,73,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="145" y="55" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#f85149">blocked</text>
+        <rect x="180" y="42" width="20" height="18" rx="3" fill="rgba(107,142,201,0.4)" stroke="rgba(107,142,201,0.7)" stroke-width="1"/>
+        <rect x="205" y="42" width="60" height="18" rx="3" fill="rgba(248,81,73,0.2)" stroke="rgba(248,81,73,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="270" y="42" width="20" height="18" rx="3" fill="rgba(107,142,201,0.4)" stroke="rgba(107,142,201,0.7)" stroke-width="1"/>
+        <rect x="295" y="42" width="60" height="18" rx="3" fill="rgba(248,81,73,0.2)" stroke="rgba(248,81,73,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <rect x="360" y="42" width="20" height="18" rx="3" fill="rgba(107,142,201,0.4)" stroke="rgba(107,142,201,0.7)" stroke-width="1"/>
+
+        <!-- Rendezvous lines -->
+        <line x1="95" y1="60" x2="95" y2="135" stroke="#e8aa53" stroke-width="0.8" stroke-dasharray="3,3"/>
+        <line x1="185" y1="60" x2="185" y2="135" stroke="#e8aa53" stroke-width="0.8" stroke-dasharray="3,3"/>
+        <line x1="275" y1="60" x2="275" y2="135" stroke="#e8aa53" stroke-width="0.8" stroke-dasharray="3,3"/>
+        <line x1="365" y1="60" x2="365" y2="135" stroke="#e8aa53" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+        <!-- Channel -->
+        <rect x="80" y="88" width="300" height="22" rx="3" fill="rgba(232,170,83,0.05)" stroke="rgba(232,170,83,0.2)" stroke-width="0.5"/>
+        <text x="230" y="103" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">no buffer — direct handoff points</text>
+
+        <!-- Receiver (slow) -->
+        <rect x="80" y="132" width="90" height="18" rx="3" fill="rgba(63,185,80,0.2)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+        <text x="125" y="145" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#3fb950">process #1</text>
+        <rect x="180" y="132" width="90" height="18" rx="3" fill="rgba(63,185,80,0.2)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+        <text x="225" y="145" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#3fb950">process #2</text>
+        <rect x="275" y="132" width="90" height="18" rx="3" fill="rgba(63,185,80,0.2)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+        <text x="320" y="145" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#3fb950">process #3</text>
+
+        <rect x="80" y="175" width="310" height="30" rx="6" fill="rgba(248,81,73,0.08)" stroke="rgba(248,81,73,0.25)" stroke-width="1"/>
+        <text x="235" y="195" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#f85149">Sender bị block nhiều → throughput thấp</text>
+
+        <!-- Divider -->
+        <line x1="430" y1="20" x2="430" y2="260" stroke="#30363d" stroke-width="1" stroke-dasharray="4,4"/>
+
+        <!-- Buffered side -->
+        <text x="620" y="25" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="13" fill="#e8aa53" font-weight="600">BUFFERED (cap=3)</text>
+
+        <text x="450" y="55" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Sender</text>
+        <text x="450" y="100" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Buffer</text>
+        <text x="450" y="145" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Receiver</text>
+
+        <!-- Sender (fast, rarely blocked) -->
+        <rect x="500" y="42" width="20" height="18" rx="3" fill="rgba(232,170,83,0.4)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <rect x="525" y="42" width="15" height="18" rx="3" fill="rgba(232,170,83,0.4)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <rect x="545" y="42" width="15" height="18" rx="3" fill="rgba(232,170,83,0.4)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <rect x="565" y="42" width="35" height="18" rx="3" fill="rgba(248,81,73,0.15)" stroke="rgba(248,81,73,0.35)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="582" y="55" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="8" fill="#f85149">wait</text>
+        <rect x="605" y="42" width="15" height="18" rx="3" fill="rgba(232,170,83,0.4)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <rect x="625" y="42" width="15" height="18" rx="3" fill="rgba(232,170,83,0.4)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <rect x="645" y="42" width="15" height="18" rx="3" fill="rgba(232,170,83,0.4)" stroke="rgba(232,170,83,0.7)" stroke-width="1"/>
+        <rect x="665" y="42" width="100" height="18" rx="3" fill="rgba(232,170,83,0.2)" stroke="rgba(232,170,83,0.4)" stroke-width="1"/>
+        <text x="715" y="55" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e8aa53">tiếp tục...</text>
+
+        <!-- Buffer visualization -->
+        <rect x="500" y="86" width="270" height="26" rx="4" fill="rgba(232,170,83,0.05)" stroke="rgba(232,170,83,0.25)" stroke-width="1"/>
+        <rect x="503" y="89" width="55" height="20" rx="3" fill="rgba(232,170,83,0.2)" stroke="rgba(232,170,83,0.4)" stroke-width="1"/>
+        <text x="530" y="103" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e8aa53">[1][2][3]</text>
+        <rect x="562" y="89" width="55" height="20" rx="3" fill="rgba(232,170,83,0.12)" stroke="rgba(232,170,83,0.3)" stroke-width="1"/>
+        <text x="589" y="103" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e8aa53">[2][3][ ]</text>
+        <rect x="621" y="89" width="55" height="20" rx="3" fill="rgba(232,170,83,0.08)" stroke="rgba(232,170,83,0.2)" stroke-width="1"/>
+        <text x="648" y="103" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e8aa53">[3][ ][ ]</text>
+        <text x="695" y="103" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">→ draining</text>
+
+        <!-- Receiver (slow but consuming buffer) -->
+        <rect x="500" y="132" width="80" height="18" rx="3" fill="rgba(63,185,80,0.2)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+        <rect x="590" y="132" width="80" height="18" rx="3" fill="rgba(63,185,80,0.2)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+        <rect x="680" y="132" width="80" height="18" rx="3" fill="rgba(63,185,80,0.2)" stroke="rgba(63,185,80,0.5)" stroke-width="1"/>
+
+        <rect x="500" y="175" width="310" height="30" rx="6" fill="rgba(63,185,80,0.08)" stroke="rgba(63,185,80,0.25)" stroke-width="1"/>
+        <text x="655" y="195" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#3fb950">Buffer hấp thụ burst → throughput cao hơn</text>
+
+        <!-- Time legend -->
+        <rect x="500" y="225" width="16" height="10" rx="2" fill="rgba(107,142,201,0.4)" stroke="rgba(107,142,201,0.7)" stroke-width="1"/>
+        <text x="522" y="234" font-family="Space Grotesk,sans-serif" font-size="10" fill="#8b949e">Sender running</text>
+        <rect x="640" y="225" width="16" height="10" rx="2" fill="rgba(248,81,73,0.2)" stroke="rgba(248,81,73,0.5)" stroke-width="1" stroke-dasharray="3,2"/>
+        <text x="662" y="234" font-family="Space Grotesk,sans-serif" font-size="10" fill="#8b949e">Blocked</text>
+      </svg>
+    </div>
+
+  </section>
+
+  <!-- SECTION 5: INTERACTIVE DEMO -->
+  <section class="section" id="s5">
+    <div class="section-label"><span></span> Trực quan hoá</div>
+    <h2 class="section-title"><span class="hi">05</span> — Demo Tương Tác</h2>
+    <p>Thử nghiệm hành vi của channel theo thời gian thực. Nhấn các nút để gửi/nhận dữ liệu và quan sát trạng thái buffer thay đổi.</p>
+
+    <div id="demo-section">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px;">
+        <div style="font-family:var(--font-code);font-size:13px;color:var(--text);">
+          Channel Mode: <span id="mode-label" style="color:var(--channel-color);font-weight:600;">Buffered (cap=3)</span>
+        </div>
+        <button class="demo-btn btn-toggle" onclick="toggleMode()">⇄ Switch to Unbuffered</button>
+      </div>
+
+      <div class="demo-channel-vis">
+        <div class="demo-label" id="ch-label">ch (cap=3):</div>
+        <div class="demo-slots" id="demo-slots"></div>
+        <div style="font-family:var(--font-code);font-size:12px;color:var(--text3);margin-left:12px;" id="len-cap-display">len=0, cap=3</div>
+      </div>
+
+      <div class="demo-status">
+        Status: <span class="status-val" id="demo-status-text">Sẵn sàng — buffer trống</span>
+      </div>
+
+      <div class="demo-controls">
+        <button class="demo-btn btn-send" onclick="demoSend()">↑ Send (ch ← val)</button>
+        <button class="demo-btn btn-recv" onclick="demoRecv()">↓ Receive (← ch)</button>
+        <button class="demo-btn btn-reset" onclick="demoReset()">⟳ Reset</button>
+      </div>
+
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px;">Event Log:</div>
+      <div class="demo-log" id="demo-log">
+        <span class="log-info">// Nhấn "Send" để gửi giá trị vào channel...</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 6: ADVANCED PATTERNS -->
+  <section class="section" id="s6">
+    <div class="section-label"><span></span> Nâng cao</div>
+    <h2 class="section-title"><span class="hi">06</span> — Advanced Patterns</h2>
+
+    <div class="card-grid">
+      <div class="pattern-card blue-accent">
+        <div class="card-tag">unbuffered</div>
+        <div class="card-icon">🔄</div>
+        <h3>Pipeline Pattern</h3>
+        <p>Kết nối nhiều stages xử lý dữ liệu tuần tự, mỗi stage là một goroutine riêng biệt</p>
+      </div>
+      <div class="pattern-card green-accent">
+        <div class="card-tag">buffered</div>
+        <div class="card-icon">🏊</div>
+        <h3>Worker Pool</h3>
+        <p>Giới hạn số goroutines hoạt động đồng thời, phân phối công việc qua buffered channel</p>
+      </div>
+      <div class="pattern-card orange-accent">
+        <div class="card-tag">buffered</div>
+        <div class="card-icon">📡</div>
+        <h3>Fan-Out / Fan-In</h3>
+        <p>Phân tán công việc ra nhiều goroutines, sau đó tổng hợp kết quả vào một channel</p>
+      </div>
+      <div class="pattern-card purple-accent">
+        <div class="card-tag">unbuffered</div>
+        <div class="card-icon">🚦</div>
+        <h3>Done Channel</h3>
+        <p>Signal để graceful shutdown, hủy goroutines khi context bị cancel</p>
+      </div>
+      <div class="pattern-card red-accent">
+        <div class="card-tag">buffered</div>
+        <div class="card-icon">🔒</div>
+        <h3>Semaphore</h3>
+        <p>Rate limiter — kiểm soát số lượng concurrent operations tối đa</p>
+      </div>
+      <div class="pattern-card cyan-accent">
+        <div class="card-tag">both</div>
+        <div class="card-icon">⏱</div>
+        <h3>Timeout Pattern</h3>
+        <p>Kết hợp với select statement để implement timeouts và non-blocking operations</p>
+      </div>
+    </div>
+
+    <h3>Pipeline Pattern — End-to-End Example</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">pipeline.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"math"</span>
+)
+
+<span class="cmt">// Stage 1: Generate — tạo số nguyên từ 1 đến n</span>
+<span class="kw">func</span> <span class="fn">generate</span>(<span class="var">ctx</span> <span class="pkg">context</span>.<span class="type">Context</span>, <span class="var">n</span> <span class="type">int</span>) &lt;-<span class="kw">chan</span> <span class="type">int</span> {
+    <span class="var">out</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>) <span class="cmt">// unbuffered</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(<span class="var">out</span>)
+        <span class="kw">for</span> <span class="var">i</span> := <span class="num">1</span>; <span class="var">i</span> &lt;= <span class="var">n</span>; <span class="var">i</span>++ {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> <span class="var">out</span> &lt;- <span class="var">i</span>:
+            }
+        }
+    }()
+    <span class="kw">return</span> <span class="var">out</span>
+}
+
+<span class="cmt">// Stage 2: Square — tính bình phương</span>
+<span class="kw">func</span> <span class="fn">square</span>(<span class="var">ctx</span> <span class="pkg">context</span>.<span class="type">Context</span>, <span class="var">in</span> &lt;-<span class="kw">chan</span> <span class="type">int</span>) &lt;-<span class="kw">chan</span> <span class="type">int</span> {
+    <span class="var">out</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="num">5</span>) <span class="cmt">// buffered để giảm blocking</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(<span class="var">out</span>)
+        <span class="kw">for</span> <span class="var">n</span> := <span class="kw">range</span> <span class="var">in</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>(): <span class="kw">return</span>
+            <span class="kw">case</span> <span class="var">out</span> &lt;- <span class="var">n</span> * <span class="var">n</span>:
+            }
+        }
+    }()
+    <span class="kw">return</span> <span class="var">out</span>
+}
+
+<span class="cmt">// Stage 3: Filter — lọc số nguyên tố (bình phương của số nguyên tố)</span>
+<span class="kw">func</span> <span class="fn">filterPrimeSqrt</span>(<span class="var">ctx</span> <span class="pkg">context</span>.<span class="type">Context</span>, <span class="var">in</span> &lt;-<span class="kw">chan</span> <span class="type">int</span>) &lt;-<span class="kw">chan</span> <span class="type">int</span> {
+    <span class="var">out</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>)
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(<span class="var">out</span>)
+        <span class="kw">for</span> <span class="var">n</span> := <span class="kw">range</span> <span class="var">in</span> {
+            <span class="var">root</span> := <span class="type">int</span>(<span class="pkg">math</span>.<span class="fn">Sqrt</span>(<span class="type">float64</span>(<span class="var">n</span>)))
+            <span class="kw">if</span> <span class="fn">isPrime</span>(<span class="var">root</span>) {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>(): <span class="kw">return</span>
+                <span class="kw">case</span> <span class="var">out</span> &lt;- <span class="var">n</span>:
+                }
+            }
+        }
+    }()
+    <span class="kw">return</span> <span class="var">out</span>
+}
+
+<span class="kw">func</span> <span class="fn">isPrime</span>(<span class="var">n</span> <span class="type">int</span>) <span class="type">bool</span> {
+    <span class="kw">if</span> <span class="var">n</span> &lt; <span class="num">2</span> { <span class="kw">return</span> <span class="kw">false</span> }
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">2</span>; <span class="var">i</span>*<span class="var">i</span> &lt;= <span class="var">n</span>; <span class="var">i</span>++ {
+        <span class="kw">if</span> <span class="var">n</span>%<span class="var">i</span> == <span class="num">0</span> { <span class="kw">return</span> <span class="kw">false</span> }
+    }
+    <span class="kw">return</span> <span class="kw">true</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="var">ctx</span>, <span class="var">cancel</span> := <span class="pkg">context</span>.<span class="fn">WithCancel</span>(<span class="pkg">context</span>.<span class="fn">Background</span>())
+    <span class="kw">defer</span> <span class="var">cancel</span>()
+
+    <span class="cmt">// Xây dựng pipeline: generate → square → filter → print</span>
+    <span class="var">nums</span>   := <span class="fn">generate</span>(<span class="var">ctx</span>, <span class="num">20</span>)      <span class="cmt">// 1..20</span>
+    <span class="var">squares</span> := <span class="fn">square</span>(<span class="var">ctx</span>, <span class="var">nums</span>)   <span class="cmt">// bình phương</span>
+    <span class="var">primes</span> := <span class="fn">filterPrimeSqrt</span>(<span class="var">ctx</span>, <span class="var">squares</span>) <span class="cmt">// lọc</span>
+
+    <span class="kw">for</span> <span class="var">n</span> := <span class="kw">range</span> <span class="var">primes</span> {
+        <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Bình phương của số nguyên tố: %d\n"</span>, <span class="var">n</span>)
+    }
+}
+<span class="cmt">// Output: 4, 9, 25, 49, 121, 169, 289, 361</span></pre>
+    </div>
+
+    <!-- Pipeline diagram -->
+    <div class="diagram-wrapper">
+      <div class="diagram-title">Pipeline Flow — Kết hợp Unbuffered và Buffered</div>
+      <svg width="100%" viewBox="0 0 820 160" role="img">
+        <title>Pipeline with mixed channel types</title>
+        <defs>
+          <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M1 2L8 5L1 8" fill="none" stroke="#6b8ec9" stroke-width="1.5" stroke-linecap="round"/>
+          </marker>
+        </defs>
+
+        <!-- Stage 1: Generate -->
+        <rect x="20" y="45" width="140" height="70" rx="10" fill="rgba(107,142,201,0.12)" stroke="rgba(107,142,201,0.45)" stroke-width="1"/>
+        <text x="90" y="76" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#6b8ec9" font-weight="500">generate()</text>
+        <text x="90" y="94" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">1, 2, 3, ..., n</text>
+        <text x="90" y="26" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Stage 1</text>
+
+        <!-- Channel 1: unbuffered -->
+        <line x1="160" y1="80" x2="220" y2="80" stroke="#6b8ec9" stroke-width="2" marker-end="url(#pa)"/>
+        <text x="190" y="70" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e8aa53">unbuffered</text>
+        <text x="190" y="95" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">chan int</text>
+
+        <!-- Stage 2: Square -->
+        <rect x="220" y="45" width="140" height="70" rx="10" fill="rgba(232,170,83,0.1)" stroke="rgba(232,170,83,0.45)" stroke-width="1"/>
+        <text x="290" y="76" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#e8aa53" font-weight="500">square()</text>
+        <text x="290" y="94" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">n² cho mỗi n</text>
+        <text x="290" y="26" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Stage 2</text>
+
+        <!-- Channel 2: buffered -->
+        <line x1="360" y1="80" x2="420" y2="80" stroke="#e8aa53" stroke-width="2" marker-end="url(#pa)"/>
+        <text x="390" y="70" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#3fb950">buffered(5)</text>
+        <text x="390" y="95" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">chan int</text>
+
+        <!-- Stage 3: Filter -->
+        <rect x="420" y="45" width="140" height="70" rx="10" fill="rgba(188,140,255,0.1)" stroke="rgba(188,140,255,0.4)" stroke-width="1"/>
+        <text x="490" y="76" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="11" fill="#bc8cff" font-weight="500">filterPrime()</text>
+        <text x="490" y="94" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">√n là nguyên tố</text>
+        <text x="490" y="26" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Stage 3</text>
+
+        <!-- Channel 3: unbuffered -->
+        <line x1="560" y1="80" x2="620" y2="80" stroke="#bc8cff" stroke-width="2" marker-end="url(#pa)"/>
+        <text x="590" y="70" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#e8aa53">unbuffered</text>
+        <text x="590" y="95" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="9" fill="#484f58">chan int</text>
+
+        <!-- Stage 4: Consumer -->
+        <rect x="620" y="45" width="140" height="70" rx="10" fill="rgba(63,185,80,0.1)" stroke="rgba(63,185,80,0.4)" stroke-width="1"/>
+        <text x="690" y="76" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="12" fill="#3fb950" font-weight="500">consumer</text>
+        <text x="690" y="94" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10" fill="#484f58">print kết quả</text>
+        <text x="690" y="26" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="10" fill="#484f58">Stage 4</text>
+
+        <!-- Context cancellation -->
+        <text x="410" y="140" text-anchor="middle" font-family="Space Grotesk,sans-serif" font-size="11" fill="#484f58">
+          context.Cancel() → tất cả stages dừng lại qua ctx.Done()
+        </text>
+      </svg>
+    </div>
+
+    <h3>Worker Pool — Production Pattern</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">worker_pool.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">type</span> <span class="type">Job</span> <span class="kw">struct</span> {
+    <span class="var">ID</span>   <span class="type">int</span>
+    <span class="var">Data</span> <span class="type">string</span>
+}
+
+<span class="kw">type</span> <span class="type">Result</span> <span class="kw">struct</span> {
+    <span class="var">JobID</span>  <span class="type">int</span>
+    <span class="var">Output</span> <span class="type">string</span>
+    <span class="var">Err</span>    <span class="type">error</span>
+}
+
+<span class="cmt">// WorkerPool: buffered channel cho job queue + result queue</span>
+<span class="kw">func</span> <span class="fn">WorkerPool</span>(
+    <span class="var">ctx</span> <span class="pkg">context</span>.<span class="type">Context</span>,
+    <span class="var">numWorkers</span> <span class="type">int</span>,
+    <span class="var">jobs</span> &lt;-<span class="kw">chan</span> <span class="type">Job</span>,
+) &lt;-<span class="kw">chan</span> <span class="type">Result</span> {
+    <span class="cmt">// Buffered result channel — không block workers khi kết quả nhiều</span>
+    <span class="var">results</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">Result</span>, <span class="var">numWorkers</span>*<span class="num">2</span>)
+    <span class="kw">var</span> <span class="var">wg</span> <span class="pkg">sync</span>.<span class="type">WaitGroup</span>
+
+    <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> &lt; <span class="var">numWorkers</span>; <span class="var">i</span>++ {
+        <span class="var">wg</span>.<span class="fn">Add</span>(<span class="num">1</span>)
+        <span class="kw">go</span> <span class="kw">func</span>(<span class="var">workerID</span> <span class="type">int</span>) {
+            <span class="kw">defer</span> <span class="var">wg</span>.<span class="fn">Done</span>()
+            <span class="kw">for</span> {
+                <span class="kw">select</span> {
+                <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>():
+                    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Worker %d: context cancelled\n"</span>, <span class="var">workerID</span>)
+                    <span class="kw">return</span>
+                <span class="kw">case</span> <span class="var">job</span>, <span class="var">ok</span> := &lt;-<span class="var">jobs</span>:
+                    <span class="kw">if</span> !<span class="var">ok</span> { <span class="kw">return</span> } <span class="cmt">// channel đã đóng</span>
+                    <span class="var">results</span> &lt;- <span class="fn">processJob</span>(<span class="var">workerID</span>, <span class="var">job</span>)
+                }
+            }
+        }(<span class="var">i</span>)
+    }
+
+    <span class="cmt">// Goroutine để đóng results khi tất cả workers xong</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="var">wg</span>.<span class="fn">Wait</span>()
+        <span class="fn">close</span>(<span class="var">results</span>)
+    }()
+
+    <span class="kw">return</span> <span class="var">results</span>
+}
+
+<span class="kw">func</span> <span class="fn">processJob</span>(<span class="var">workerID</span> <span class="type">int</span>, <span class="var">job</span> <span class="type">Job</span>) <span class="type">Result</span> {
+    <span class="pkg">time</span>.<span class="fn">Sleep</span>(<span class="num">10</span> * <span class="pkg">time</span>.<span class="var">Millisecond</span>) <span class="cmt">// giả lập xử lý</span>
+    <span class="kw">return</span> <span class="type">Result</span>{
+        <span class="var">JobID</span>:  <span class="var">job</span>.<span class="var">ID</span>,
+        <span class="var">Output</span>: <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"worker%d processed: %s"</span>, <span class="var">workerID</span>, <span class="var">job</span>.<span class="var">Data</span>),
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="var">ctx</span>, <span class="var">cancel</span> := <span class="pkg">context</span>.<span class="fn">WithTimeout</span>(<span class="pkg">context</span>.<span class="fn">Background</span>(), <span class="num">5</span>*<span class="pkg">time</span>.<span class="var">Second</span>)
+    <span class="kw">defer</span> <span class="var">cancel</span>()
+
+    <span class="cmt">// Buffered job channel — producer không block ngay</span>
+    <span class="var">jobs</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">Job</span>, <span class="num">100</span>)
+
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="kw">defer</span> <span class="fn">close</span>(<span class="var">jobs</span>)
+        <span class="kw">for</span> <span class="var">i</span> := <span class="num">0</span>; <span class="var">i</span> &lt; <span class="num">20</span>; <span class="var">i</span>++ {
+            <span class="var">jobs</span> &lt;- <span class="type">Job</span>{<span class="var">ID</span>: <span class="var">i</span>, <span class="var">Data</span>: <span class="pkg">fmt</span>.<span class="fn">Sprintf</span>(<span class="str">"task-%d"</span>, <span class="var">i</span>)}
+        }
+    }()
+
+    <span class="var">results</span> := <span class="fn">WorkerPool</span>(<span class="var">ctx</span>, <span class="num">5</span>, <span class="var">jobs</span>) <span class="cmt">// 5 workers</span>
+
+    <span class="kw">for</span> <span class="var">r</span> := <span class="kw">range</span> <span class="var">results</span> {
+        <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Result[%d]: %s\n"</span>, <span class="var">r</span>.<span class="var">JobID</span>, <span class="var">r</span>.<span class="var">Output</span>)
+    }
+}</pre>
+    </div>
+
+    <h3>Select Statement — Multiplexing Channels</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">select_patterns.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"context"</span>
+    <span class="str">"fmt"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="kw">func</span> <span class="fn">selectPatterns</span>() {
+    <span class="var">ch1</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">string</span>, <span class="num">1</span>)
+    <span class="var">ch2</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">string</span>, <span class="num">1</span>)
+
+    <span class="cmt">// ===== Pattern 1: Timeout =====</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="var">msg</span> := &lt;-<span class="var">ch1</span>:
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Nhận từ ch1:"</span>, <span class="var">msg</span>)
+    <span class="kw">case</span> &lt;-<span class="pkg">time</span>.<span class="fn">After</span>(<span class="num">1</span> * <span class="pkg">time</span>.<span class="var">Second</span>):
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Timeout! Không nhận được sau 1s"</span>)
+    }
+
+    <span class="cmt">// ===== Pattern 2: Non-blocking send/receive =====</span>
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="var">ch1</span> &lt;- <span class="str">"hello"</span>:
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Gửi thành công"</span>)
+    <span class="kw">default</span>:
+        <span class="cmt">// default branch — không block nếu ch1 đầy</span>
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Channel đầy, bỏ qua"</span>)
+    }
+
+    <span class="cmt">// ===== Pattern 3: Multiplexing 2 channels =====</span>
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <span class="var">msg</span> := &lt;-<span class="var">ch1</span>:
+            <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"ch1:"</span>, <span class="var">msg</span>)
+        <span class="kw">case</span> <span class="var">msg</span> := &lt;-<span class="var">ch2</span>:
+            <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"ch2:"</span>, <span class="var">msg</span>)
+        }
+    }
+}
+
+<span class="cmt">// Context cancellation với channel</span>
+<span class="kw">func</span> <span class="fn">longRunningTask</span>(<span class="var">ctx</span> <span class="pkg">context</span>.<span class="type">Context</span>) <span class="type">error</span> {
+    <span class="kw">for</span> {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>():
+            <span class="cmt">// Context bị cancel/timeout — dừng ngay</span>
+            <span class="kw">return</span> <span class="var">ctx</span>.<span class="fn">Err</span>()
+        <span class="kw">default</span>:
+            <span class="cmt">// Tiếp tục làm việc</span>
+            <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Đang xử lý..."</span>)
+            <span class="pkg">time</span>.<span class="fn">Sleep</span>(<span class="num">100</span> * <span class="pkg">time</span>.<span class="var">Millisecond</span>)
+        }
+    }
+}</pre>
+    </div>
+  </section>
+
+  <!-- SECTION 7: DEADLOCK & PITFALLS -->
+  <section class="section" id="s7">
+    <div class="section-label"><span></span> Phòng tránh lỗi</div>
+    <h2 class="section-title"><span class="hi">07</span> — Deadlock & Pitfalls</h2>
+
+    <div class="callout danger">
+      <div class="callout-icon">☠️</div>
+      <div class="callout-body">
+        <h4>Deadlock — Kẻ thù số 1 của Channels</h4>
+        <p>Deadlock xảy ra khi tất cả goroutines đều bị block — không ai có thể tiếp tục. Go runtime sẽ detect và panic với message: <code>fatal error: all goroutines are asleep - deadlock!</code></p>
+      </div>
+    </div>
+
+    <!-- Deadlock Scenarios -->
+    <h3>Các tình huống Deadlock phổ biến</h3>
+
+    <div class="two-col">
+      <div>
+        <h4>❌ Deadlock: Gửi không có receiver</h4>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+            <span class="code-title">deadlock_1.go</span>
+            <span class="code-lang">Go</span>
+          </div>
+          <pre><span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="chan">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>)
+    <span class="cmt">// ❌ Gửi trong main goroutine</span>
+    <span class="cmt">// Không ai nhận → DEADLOCK!</span>
+    <span class="chan">ch</span> &lt;- <span class="num">42</span>
+}</pre>
+        </div>
+        <div class="callout success" style="margin-top:8px">
+          <div class="callout-icon">✅</div>
+          <div class="callout-body">
+            <h4>Fix:</h4>
+            <p>Gửi trong một goroutine riêng: <code>go func() { ch &lt;- 42 }()</code></p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <h4>❌ Deadlock: Buffer đầy, không có receiver</h4>
+        <div class="code-wrapper">
+          <div class="code-header">
+            <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+            <span class="code-title">deadlock_2.go</span>
+            <span class="code-lang">Go</span>
+          </div>
+          <pre><span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="chan">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="num">2</span>)
+    <span class="chan">ch</span> &lt;- <span class="num">1</span> <span class="cmt">// OK</span>
+    <span class="chan">ch</span> &lt;- <span class="num">2</span> <span class="cmt">// OK</span>
+    <span class="cmt">// ❌ Buffer đầy (cap=2)</span>
+    <span class="chan">ch</span> &lt;- <span class="num">3</span> <span class="cmt">// DEADLOCK!</span>
+}</pre>
+        </div>
+        <div class="callout success" style="margin-top:8px">
+          <div class="callout-icon">✅</div>
+          <div class="callout-body">
+            <h4>Fix:</h4>
+            <p>Tăng capacity hoặc có goroutine nhận trước khi buffer đầy.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3>Goroutine Leak — Deadlock ẩn</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">goroutine_leak.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="cmt">// ❌ Goroutine leak — goroutine bị block mãi mãi</span>
+<span class="kw">func</span> <span class="fn">badExample</span>() {
+    <span class="var">results</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">string</span>) <span class="cmt">// unbuffered!</span>
+
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="cmt">// Goroutine này sẽ bị block nếu caller thoát sớm</span>
+        <span class="var">result</span>, <span class="var">err</span> := <span class="fn">doWork</span>()
+        <span class="kw">if</span> <span class="var">err</span> != <span class="kw">nil</span> {
+            <span class="kw">return</span> <span class="cmt">// Trả về sớm → goroutine treo mãi tại results &lt;-</span>
+        }
+        <span class="var">results</span> &lt;- <span class="var">result</span> <span class="cmt">// ⚠ Nếu không ai nhận → LEAK!</span>
+    }()
+
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="var">r</span> := &lt;-<span class="var">results</span>:
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="var">r</span>)
+    <span class="kw">case</span> &lt;-<span class="pkg">time</span>.<span class="fn">After</span>(<span class="num">1</span> * <span class="pkg">time</span>.<span class="var">Second</span>):
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Timeout"</span>)
+        <span class="kw">return</span> <span class="cmt">// ← function thoát, goroutine trên bị leak!</span>
+    }
+}
+
+<span class="cmt">// ✅ Fix: Dùng buffered channel hoặc context</span>
+<span class="kw">func</span> <span class="fn">goodExample</span>(<span class="var">ctx</span> <span class="pkg">context</span>.<span class="type">Context</span>) {
+    <span class="cmt">// Buffered(1) — goroutine có thể gửi ngay cả khi caller không nhận</span>
+    <span class="var">results</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">string</span>, <span class="num">1</span>)
+
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="var">result</span>, <span class="var">err</span> := <span class="fn">doWork</span>()
+        <span class="kw">if</span> <span class="var">err</span> != <span class="kw">nil</span> {
+            <span class="kw">return</span>
+        }
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <span class="var">results</span> &lt;- <span class="var">result</span>: <span class="cmt">// gửi nếu có chỗ</span>
+        <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>(): <span class="cmt">// hoặc dừng nếu context cancel</span>
+            <span class="kw">return</span>
+        }
+    }()
+
+    <span class="kw">select</span> {
+    <span class="kw">case</span> <span class="var">r</span> := &lt;-<span class="var">results</span>:
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="var">r</span>)
+    <span class="kw">case</span> &lt;-<span class="var">ctx</span>.<span class="fn">Done</span>():
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"Context cancelled"</span>)
+    }
+}</pre>
+    </div>
+
+    <h3>Gửi vào Closed Channel — Panic!</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">closed_channel.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="chan">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="num">3</span>)
+    <span class="fn">close</span>(<span class="chan">ch</span>)
+
+    <span class="cmt">// ❌ PANIC: send on closed channel</span>
+    <span class="chan">ch</span> &lt;- <span class="num">42</span>
+
+    <span class="cmt">// ✅ Nhận từ closed channel (trả về zero value + ok=false)</span>
+    <span class="var">v</span>, <span class="var">ok</span> := &lt;-<span class="chan">ch</span>
+    <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"v=%d, ok=%v\n"</span>, <span class="var">v</span>, <span class="var">ok</span>) <span class="cmt">// v=0, ok=false</span>
+
+    <span class="cmt">// ✅ Range tự dừng khi channel đóng và trống</span>
+    <span class="var">ch2</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">int</span>, <span class="num">3</span>)
+    <span class="var">ch2</span> &lt;- <span class="num">1</span>; <span class="var">ch2</span> &lt;- <span class="num">2</span>; <span class="var">ch2</span> &lt;- <span class="num">3</span>
+    <span class="fn">close</span>(<span class="var">ch2</span>)
+
+    <span class="kw">for</span> <span class="var">v</span> := <span class="kw">range</span> <span class="var">ch2</span> {  <span class="cmt">// tự dừng khi channel closed và empty</span>
+        <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="var">v</span>) <span class="cmt">// 1, 2, 3</span>
+    }
+}</pre>
+    </div>
+
+    <div class="callout tip">
+      <div class="callout-icon">⚡</div>
+      <div class="callout-body">
+        <h4>Quy tắc vàng về Channel</h4>
+        <p><strong>Chỉ người gửi mới được đóng channel.</strong> Receiver KHÔNG BAO GIỜ đóng channel. Nếu có nhiều senders, dùng <code>sync.Once</code> hoặc một goroutine coordinator để đóng channel.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SECTION 8: REAL-WORLD -->
+  <section class="section" id="s8">
+    <div class="section-label"><span></span> Thực tế</div>
+    <h2 class="section-title"><span class="hi">08</span> — Real-world Examples</h2>
+
+    <h3>HTTP Server với Rate Limiting qua Channel</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">rate_limiter.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"net/http"</span>
+    <span class="str">"time"</span>
+)
+
+<span class="cmt">// RateLimiter sử dụng buffered channel + ticker</span>
+<span class="kw">type</span> <span class="type">RateLimiter</span> <span class="kw">struct</span> {
+    <span class="var">tokens</span> <span class="kw">chan</span> <span class="kw">struct</span>{}
+}
+
+<span class="kw">func</span> <span class="fn">NewRateLimiter</span>(<span class="var">rps</span> <span class="type">int</span>) *<span class="type">RateLimiter</span> {
+    <span class="var">rl</span> := &amp;<span class="type">RateLimiter</span>{
+        <span class="cmt">// Buffer size = burst size (cho phép burst ngắn hạn)</span>
+        <span class="var">tokens</span>: <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, <span class="var">rps</span>),
+    }
+
+    <span class="cmt">// Refill tokens theo tốc độ rps mỗi giây</span>
+    <span class="kw">go</span> <span class="kw">func</span>() {
+        <span class="var">ticker</span> := <span class="pkg">time</span>.<span class="fn">NewTicker</span>(<span class="pkg">time</span>.<span class="var">Second</span> / <span class="pkg">time</span>.<span class="type">Duration</span>(<span class="var">rps</span>))
+        <span class="kw">defer</span> <span class="var">ticker</span>.<span class="fn">Stop</span>()
+        <span class="kw">for</span> <span class="kw">range</span> <span class="var">ticker</span>.<span class="var">C</span> {
+            <span class="kw">select</span> {
+            <span class="kw">case</span> <span class="var">rl</span>.<span class="var">tokens</span> &lt;- <span class="kw">struct</span>{}{}:
+                <span class="cmt">// Thêm token vào buffer</span>
+            <span class="kw">default</span>:
+                <span class="cmt">// Buffer đầy — bỏ qua (không block)</span>
+            }
+        }
+    }()
+
+    <span class="kw">return</span> <span class="var">rl</span>
+}
+
+<span class="cmt">// Wait blocks cho đến khi có token sẵn sàng</span>
+<span class="kw">func</span> (<span class="var">rl</span> *<span class="type">RateLimiter</span>) <span class="fn">Wait</span>() {
+    &lt;-<span class="var">rl</span>.<span class="var">tokens</span> <span class="cmt">// Block nếu không có token (rate limit hit)</span>
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="var">limiter</span> := <span class="fn">NewRateLimiter</span>(<span class="num">10</span>) <span class="cmt">// 10 requests/second</span>
+
+    <span class="var">http</span>.<span class="fn">HandleFunc</span>(<span class="str">"/api"</span>, <span class="kw">func</span>(<span class="var">w</span> <span class="pkg">http</span>.<span class="type">ResponseWriter</span>, <span class="var">r</span> *<span class="pkg">http</span>.<span class="type">Request</span>) {
+        <span class="var">limiter</span>.<span class="fn">Wait</span>() <span class="cmt">// Chờ token — throttle request</span>
+        <span class="pkg">fmt</span>.<span class="fn">Fprint</span>(<span class="var">w</span>, <span class="str">"OK"</span>)
+    })
+
+    <span class="var">http</span>.<span class="fn">ListenAndServe</span>(<span class="str">":8080"</span>, <span class="kw">nil</span>)
+}</pre>
+    </div>
+
+    <h3>Event Bus với Pub/Sub</h3>
+    <div class="code-wrapper">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">event_bus.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="kw">package</span> <span class="pkg">main</span>
+
+<span class="kw">import</span> (
+    <span class="str">"fmt"</span>
+    <span class="str">"sync"</span>
+)
+
+<span class="kw">type</span> <span class="type">Event</span> <span class="kw">struct</span> {
+    <span class="var">Topic</span>   <span class="type">string</span>
+    <span class="var">Payload</span> <span class="kw">any</span>
+}
+
+<span class="cmt">// EventBus: Pub/Sub pattern với buffered channels</span>
+<span class="kw">type</span> <span class="type">EventBus</span> <span class="kw">struct</span> {
+    <span class="var">mu</span>          <span class="pkg">sync</span>.<span class="type">RWMutex</span>
+    <span class="var">subscribers</span> <span class="kw">map</span>[<span class="type">string</span>][]<span class="kw">chan</span> <span class="type">Event</span>
+}
+
+<span class="kw">func</span> <span class="fn">NewEventBus</span>() *<span class="type">EventBus</span> {
+    <span class="kw">return</span> &amp;<span class="type">EventBus</span>{
+        <span class="var">subscribers</span>: <span class="fn">make</span>(<span class="kw">map</span>[<span class="type">string</span>][]<span class="kw">chan</span> <span class="type">Event</span>),
+    }
+}
+
+<span class="kw">func</span> (<span class="var">eb</span> *<span class="type">EventBus</span>) <span class="fn">Subscribe</span>(<span class="var">topic</span> <span class="type">string</span>) &lt;-<span class="kw">chan</span> <span class="type">Event</span> {
+    <span class="var">eb</span>.<span class="var">mu</span>.<span class="fn">Lock</span>()
+    <span class="kw">defer</span> <span class="var">eb</span>.<span class="var">mu</span>.<span class="fn">Unlock</span>()
+
+    <span class="cmt">// Buffered channel = subscriber không block publisher</span>
+    <span class="var">ch</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">Event</span>, <span class="num">100</span>)
+    <span class="var">eb</span>.<span class="var">subscribers</span>[<span class="var">topic</span>] = <span class="fn">append</span>(<span class="var">eb</span>.<span class="var">subscribers</span>[<span class="var">topic</span>], <span class="var">ch</span>)
+    <span class="kw">return</span> <span class="var">ch</span>
+}
+
+<span class="kw">func</span> (<span class="var">eb</span> *<span class="type">EventBus</span>) <span class="fn">Publish</span>(<span class="var">event</span> <span class="type">Event</span>) {
+    <span class="var">eb</span>.<span class="var">mu</span>.<span class="var">RLock</span>()
+    <span class="kw">defer</span> <span class="var">eb</span>.<span class="var">mu</span>.<span class="fn">RUnlock</span>()
+
+    <span class="kw">for</span> _, <span class="var">ch</span> := <span class="kw">range</span> <span class="var">eb</span>.<span class="var">subscribers</span>[<span class="var">event</span>.<span class="var">Topic</span>] {
+        <span class="kw">select</span> {
+        <span class="kw">case</span> <span class="var">ch</span> &lt;- <span class="var">event</span>: <span class="cmt">// Non-blocking send</span>
+        <span class="kw">default</span>:
+            <span class="pkg">fmt</span>.<span class="fn">Printf</span>(<span class="str">"Subscriber buffer đầy, bỏ qua event trên topic: %s\n"</span>, <span class="var">event</span>.<span class="var">Topic</span>)
+        }
+    }
+}
+
+<span class="kw">func</span> <span class="fn">main</span>() {
+    <span class="var">bus</span> := <span class="fn">NewEventBus</span>()
+
+    <span class="var">orderEvents</span> := <span class="var">bus</span>.<span class="fn">Subscribe</span>(<span class="str">"order.created"</span>)
+    <span class="var">emailEvents</span> := <span class="var">bus</span>.<span class="fn">Subscribe</span>(<span class="str">"order.created"</span>)
+
+    <span class="var">bus</span>.<span class="fn">Publish</span>(<span class="type">Event</span>{<span class="var">Topic</span>: <span class="str">"order.created"</span>, <span class="var">Payload</span>: <span class="str">"order#123"</span>})
+
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(&lt;-<span class="var">orderEvents</span>) <span class="cmt">// {order.created order#123}</span>
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(&lt;-<span class="var">emailEvents</span>) <span class="cmt">// {order.created order#123}</span>
+}</pre>
+    </div>
+
+  </section>
+
+  <!-- SECTION 9: BEST PRACTICES -->
+  <section class="section" id="s9">
+    <div class="section-label"><span></span> Hướng dẫn</div>
+    <h2 class="section-title"><span class="hi">09</span> — Best Practices</h2>
+
+    <div class="bp-grid">
+      <div class="bp-card do">
+        <div class="bp-header"><span class="bp-icon">✅</span><span>NÊN LÀM</span></div>
+        <ul class="bp-list">
+          <li>Luôn có exit path cho goroutines dùng channel</li>
+          <li>Chỉ sender được đóng channel</li>
+          <li>Dùng context để cancel goroutines</li>
+          <li>Dùng buffered(1) khi muốn non-blocking fire-and-forget</li>
+          <li>Race detector: <code>go test -race</code></li>
+          <li>Kiểm tra <code>ok</code> khi nhận: <code>v, ok := &lt;-ch</code></li>
+        </ul>
+      </div>
+      <div class="bp-card dont">
+        <div class="bp-header"><span class="bp-icon">❌</span><span>KHÔNG NÊN LÀM</span></div>
+        <ul class="bp-list">
+          <li>Receiver không được đóng channel</li>
+          <li>Không gửi vào closed channel (panic!)</li>
+          <li>Không để goroutines leak (block mãi mãi)</li>
+          <li>Không dùng <code>time.Sleep</code> để sync</li>
+          <li>Không share memory qua nhiều goroutines không có mutex/channel</li>
+          <li>Không ignore context cancellation</li>
+        </ul>
+      </div>
+      <div class="bp-card do">
+        <div class="bp-header"><span class="bp-icon">🎯</span><span>KHI CHỌN UNBUFFERED</span></div>
+        <ul class="bp-list">
+          <li>Cần guarantee rằng sender biết receiver đã nhận</li>
+          <li>Signaling / synchronization (done channels)</li>
+          <li>Handshake protocol giữa 2 goroutines</li>
+          <li>Khi latency quan trọng hơn throughput</li>
+        </ul>
+      </div>
+      <div class="bp-card do">
+        <div class="bp-header"><span class="bp-icon">🎯</span><span>KHI CHỌN BUFFERED</span></div>
+        <ul class="bp-list">
+          <li>Job queues / task distribution</li>
+          <li>Khi sender nhanh hơn receiver</li>
+          <li>Semaphore / rate limiting</li>
+          <li>Giảm số context switches</li>
+          <li>Non-blocking fire-and-forget (cap=1)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout info">
+      <div class="callout-icon">🔬</div>
+      <div class="callout-body">
+        <h4>Công thức chọn buffer size</h4>
+        <p>Không có công thức tuyệt đối. Nguyên tắc chung: buffer size = số goroutines sender × burst factor. Profiling với <code>go tool pprof</code> và thử nghiệm với <code>runtime.NumGoroutine()</code> để tìm điểm tối ưu.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- SECTION 10: CHEATSHEET -->
+  <section class="section" id="s10">
+    <div class="section-label"><span></span> Tham khảo nhanh</div>
+    <h2 class="section-title"><span class="hi">10</span> — Cheatsheet</h2>
+
+    <div class="diagram-wrapper" style="padding: 0; overflow: hidden;">
+      <div style="padding: 16px 20px; background: var(--bg3); border-bottom: 1px solid var(--border);">
+        <div class="diagram-title" style="margin: 0;">Channel Quick Reference</div>
+      </div>
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Operation</th>
+            <th>Unbuffered</th>
+            <th>Buffered (not full/empty)</th>
+            <th>Buffered (full)</th>
+            <th>Closed channel</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="attr">Send (ch &lt;- v)</td>
+            <td><span class="tag tag-block">BLOCK</span></td>
+            <td><span class="tag tag-noblock">OK</span></td>
+            <td><span class="tag tag-block">BLOCK</span></td>
+            <td><span class="tag" style="background:rgba(248,81,73,0.15);color:var(--red)">PANIC</span></td>
+          </tr>
+          <tr>
+            <td class="attr">Receive (&lt;-ch)</td>
+            <td><span class="tag tag-block">BLOCK</span></td>
+            <td><span class="tag tag-noblock">OK</span></td>
+            <td><span class="tag tag-noblock">OK</span></td>
+            <td><span class="tag tag-noblock">zero value, ok=false</span></td>
+          </tr>
+          <tr>
+            <td class="attr">close(ch)</td>
+            <td><span class="tag tag-noblock">OK (1 lần)</span></td>
+            <td><span class="tag tag-noblock">OK (1 lần)</span></td>
+            <td><span class="tag tag-noblock">OK (1 lần)</span></td>
+            <td><span class="tag" style="background:rgba(248,81,73,0.15);color:var(--red)">PANIC</span></td>
+          </tr>
+          <tr>
+            <td class="attr">len(ch)</td>
+            <td>Luôn = 0</td>
+            <td>Số phần tử hiện tại</td>
+            <td>= cap(ch)</td>
+            <td>Số phần tử còn lại</td>
+          </tr>
+          <tr>
+            <td class="attr">cap(ch)</td>
+            <td>Luôn = 0</td>
+            <td>N (khai báo)</td>
+            <td>N (khai báo)</td>
+            <td>N (khai báo)</td>
+          </tr>
+          <tr>
+            <td class="attr">for range</td>
+            <td>Nhận cho đến khi close</td>
+            <td>Nhận cho đến khi close</td>
+            <td>Drain buffer rồi dừng</td>
+            <td>Dừng ngay khi trống</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="code-wrapper" style="margin-top:24px">
+      <div class="code-header">
+        <div class="code-dots"><span class="d1"></span><span class="d2"></span><span class="d3"></span></div>
+        <span class="code-title">channel_cheatsheet.go</span>
+        <span class="code-lang">Go</span>
+      </div>
+      <pre><span class="cmt">// ====== CHANNEL CHEATSHEET ======</span>
+
+<span class="cmt">// Tạo channel</span>
+<span class="var">ub</span>  := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">T</span>)       <span class="cmt">// unbuffered</span>
+<span class="var">buf</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="type">T</span>, <span class="var">N</span>)    <span class="cmt">// buffered</span>
+
+<span class="cmt">// Directional channels (type safety)</span>
+<span class="kw">var</span> <span class="var">send</span> <span class="kw">chan</span>&lt;- <span class="type">T</span>          <span class="cmt">// send-only</span>
+<span class="kw">var</span> <span class="var">recv</span> &lt;-<span class="kw">chan</span> <span class="type">T</span>          <span class="cmt">// receive-only</span>
+
+<span class="cmt">// Gửi / Nhận</span>
+<span class="chan">ch</span> &lt;- <span class="var">value</span>               <span class="cmt">// gửi</span>
+<span class="var">v</span>  := &lt;-<span class="chan">ch</span>               <span class="cmt">// nhận (block)</span>
+<span class="var">v</span>, <span class="var">ok</span> := &lt;-<span class="chan">ch</span>            <span class="cmt">// nhận + check closed</span>
+
+<span class="cmt">// Non-blocking operations (select + default)</span>
+<span class="kw">select</span> {
+<span class="kw">case</span> <span class="chan">ch</span> &lt;- <span class="var">v</span>: <span class="cmt">// gửi nếu được</span>
+<span class="kw">default</span>:       <span class="cmt">// không block nếu đầy</span>
+}
+
+<span class="cmt">// Drain một channel đã closed</span>
+<span class="kw">for</span> <span class="var">v</span> := <span class="kw">range</span> <span class="chan">ch</span> { <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="var">v</span>) }
+
+<span class="cmt">// Đóng an toàn với sync.Once</span>
+<span class="kw">var</span> <span class="var">once</span> <span class="pkg">sync</span>.<span class="type">Once</span>
+<span class="var">once</span>.<span class="fn">Do</span>(<span class="kw">func</span>() { <span class="fn">close</span>(<span class="chan">ch</span>) })
+
+<span class="cmt">// Done channel pattern</span>
+<span class="var">done</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{})
+<span class="kw">go</span> <span class="kw">func</span>() { <span class="fn">doWork</span>(); <span class="fn">close</span>(<span class="var">done</span>) }()
+&lt;-<span class="var">done</span> <span class="cmt">// wait for work</span>
+
+<span class="cmt">// Semaphore pattern</span>
+<span class="var">sem</span> := <span class="fn">make</span>(<span class="kw">chan</span> <span class="kw">struct</span>{}, <span class="num">5</span>) <span class="cmt">// max 5 concurrent</span>
+<span class="var">sem</span> &lt;- <span class="kw">struct</span>{}{}              <span class="cmt">// acquire</span>
+<span class="kw">defer</span> <span class="kw">func</span>() { &lt;-<span class="var">sem</span> }()     <span class="cmt">// release</span>
+
+<span class="cmt">// Timer channel</span>
+<span class="kw">select</span> {
+<span class="kw">case</span> &lt;-<span class="pkg">time</span>.<span class="fn">After</span>(<span class="num">5</span> * <span class="pkg">time</span>.<span class="var">Second</span>):
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"timeout"</span>)
+<span class="kw">case</span> <span class="var">v</span> := &lt;-<span class="chan">ch</span>:
+    <span class="pkg">fmt</span>.<span class="fn">Println</span>(<span class="str">"received"</span>, <span class="var">v</span>)
+}</pre>
+    </div>
+
+    <!-- Footer -->
+    <div style="border-top: 1px solid var(--border); margin-top: 48px; padding-top: 32px; text-align: center;">
+      <p style="color:var(--text3);font-size:13px;">Tài liệu tham khảo: <a href="https://go.dev/doc/effective_go" style="color:var(--blue);text-decoration:none;">Effective Go</a> · <a href="https://go.dev/blog/pipelines" style="color:var(--blue);text-decoration:none;">Go Blog: Pipelines</a> · <a href="https://go.dev/ref/spec#Channel_types" style="color:var(--blue);text-decoration:none;">Go Spec: Channels</a></p>
+      <p style="color:var(--text3);font-size:12px;margin-top:8px;">Go Channels Guideline — Buffered &amp; Unbuffered · Viết bằng tiếng Việt</p>
+    </div>
+  </section>
+
+</div>
+
+<!-- INTERACTIVE DEMO SCRIPT -->
+<script>
+  let isBuffered = true;
+  let capacity = 3;
+  let buffer = [];
+  let sendCount = 0;
+  const maxLog = 30;
+  let logEntries = [];
+  let senderWaiting = []; // Hàng đợi các giá trị của sender bị block (unbuffered)
+  let receiverWaitingCount = 0; // Số lượng receiver đang block chờ (unbuffered)
+
+  function renderSlots() {
+    const container = document.getElementById('demo-slots');
+    const lenCap = document.getElementById('len-cap-display');
+    container.innerHTML = '';
+
+    if (isBuffered) {
+      for (let i = 0; i < capacity; i++) {
+        const slot = document.createElement('div');
+        slot.className = 'demo-slot' + (i < buffer.length ? ' has-val' : '');
+        slot.textContent = i < buffer.length ? buffer[i] : '·';
+        container.appendChild(slot);
+      }
+      lenCap.textContent = `len=${buffer.length}, cap=${capacity}`;
+    } else {
+      // Unbuffered Rendezvous visualization
+      if (senderWaiting.length > 0) {
+        senderWaiting.forEach(val => {
+          const slot = document.createElement('div');
+          slot.className = 'demo-slot has-val';
+          slot.style.borderColor = 'var(--red)';
+          slot.textContent = `⚡${val}`;
+          slot.title = `Sender bị block khi đang gửi giá trị ${val}`;
+          container.appendChild(slot);
+        });
+        lenCap.textContent = `blocked senders = ${senderWaiting.length}`;
+      } else if (receiverWaitingCount > 0) {
+        for (let i = 0; i < receiverWaitingCount; i++) {
+          const slot = document.createElement('div');
+          slot.className = 'demo-slot';
+          slot.style.borderStyle = 'dashed';
+          slot.style.borderColor = 'var(--blue)';
+          slot.textContent = '?';
+          slot.title = `Receiver bị block chờ dữ liệu`;
+          container.appendChild(slot);
+        }
+        lenCap.textContent = `blocked receivers = ${receiverWaitingCount}`;
+      } else {
+        const slot = document.createElement('div');
+        slot.className = 'demo-slot';
+        slot.textContent = '∅';
+        slot.title = 'Unbuffered: Không có bộ lưu trữ';
+        container.appendChild(slot);
+        lenCap.textContent = 'len=0, cap=0';
+      }
+    }
+  }
+
+  function addLog(type, msg) {
+    logEntries.unshift({ type, msg });
+    if (logEntries.length > maxLog) logEntries.pop();
+    const log = document.getElementById('demo-log');
+    log.innerHTML = logEntries.map(e => `<div class="log-${e.type}">${e.msg}</div>`).join('');
+  }
+
+  function updateStatus() {
+    const el = document.getElementById('demo-status-text');
+    if (isBuffered) {
+      if (buffer.length === 0) el.textContent = 'Buffer trống — Send: không block | Receive: BLOCK';
+      else if (buffer.length === capacity) el.textContent = `Buffer đầy (${capacity}/${capacity}) — Send: BLOCK | Receive: không block`;
+      else el.textContent = `Buffer ${buffer.length}/${capacity} — Send: không block | Receive: không block`;
+    } else {
+      if (senderWaiting.length > 0) {
+        el.textContent = `Có ${senderWaiting.length} sender bị BLOCK chờ receiver nhận hàng`;
+      } else if (receiverWaitingCount > 0) {
+        el.textContent = `Có ${receiverWaitingCount} receiver bị BLOCK chờ sender gửi hàng`;
+      } else {
+        el.textContent = 'Unbuffered (Rendezvous) — Sẵn sàng: chưa có sender hay receiver nào';
+      }
+    }
+  }
+
+  function demoSend() {
+    sendCount++;
+    const val = sendCount;
+    if (isBuffered) {
+      if (buffer.length < capacity) {
+        buffer.push(val);
+        addLog('send', `← ch ← ${val}  ✓ (buffer: ${buffer.length}/${capacity})`);
+      } else {
+        addLog('block', `← ch ← ${val}  ✗ BLOCK! Buffer đầy (${capacity}/${capacity})`);
+      }
+    } else {
+      // Unbuffered Rendezvous logic
+      if (receiverWaitingCount > 0) {
+        receiverWaitingCount--;
+        addLog('send', `← ch ← ${val}  🤝 Rendezvous! Gặp receiver đang chờ — Truyền dữ liệu trực tiếp thành công!`);
+      } else {
+        senderWaiting.push(val);
+        addLog('block', `← ch ← ${val}  ⚡ BLOCK! Không có receiver nào sẵn sàng — Sender phải đợi...`);
+      }
+    }
+    renderSlots();
+    updateStatus();
+  }
+
+  function demoRecv() {
+    if (isBuffered) {
+      if (buffer.length > 0) {
+        const val = buffer.shift();
+        addLog('recv', `→ v := ←ch  = ${val} ✓ (buffer: ${buffer.length}/${capacity})`);
+      } else {
+        addLog('block', `→ v := ←ch  ✗ BLOCK! Buffer trống — chờ sender...`);
+      }
+    } else {
+      // Unbuffered Rendezvous logic
+      if (senderWaiting.length > 0) {
+        const val = senderWaiting.shift();
+        addLog('recv', `→ v := ←ch  🤝 Rendezvous! Nhận trực tiếp giá trị ${val} từ blocked sender đang chờ!`);
+      } else {
+        receiverWaitingCount++;
+        addLog('block', `→ v := ←ch  ⚡ BLOCK! Không có sender nào sẵn sàng — Receiver phải đợi...`);
+      }
+    }
+    renderSlots();
+    updateStatus();
+  }
+
+  function demoReset() {
+    buffer = [];
+    sendCount = 0;
+    senderWaiting = [];
+    receiverWaitingCount = 0;
+    logEntries = [];
+    document.getElementById('demo-log').innerHTML = '<span class="log-info">// Reset — bắt đầu lại...</span>';
+    renderSlots();
+    updateStatus();
+  }
+
+  function toggleMode() {
+    isBuffered = !isBuffered;
+    buffer = [];
+    sendCount = 0;
+    senderWaiting = [];
+    receiverWaitingCount = 0;
+    const btn = document.querySelector('.btn-toggle');
+    const label = document.getElementById('mode-label');
+    const chLabel = document.getElementById('ch-label');
+    if (isBuffered) {
+      btn.textContent = '⇄ Switch to Unbuffered';
+      label.textContent = 'Buffered (cap=3)';
+      chLabel.textContent = 'ch (cap=3):';
+    } else {
+      btn.textContent = '⇄ Switch to Buffered';
+      label.textContent = 'Unbuffered';
+      chLabel.textContent = 'ch:';
+    }
+    addLog('info', `// Mode đổi thành: ${isBuffered ? 'Buffered (cap=3)' : 'Unbuffered'}`);
+    renderSlots();
+    updateStatus();
+  }
+
+  // Smooth scroll for Table of Contents
+  document.querySelectorAll('.toc-item').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const href = a.getAttribute('href');
+      if (href === '#') return;
+      const target = document.querySelector(href);
+      if (target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update browser hash cleanly
+        history.pushState(null, null, href);
+      }
+    });
+  });
+
+  // Init
+  renderSlots();
+  updateStatus();
+</script>
+
+</body>
+</html>

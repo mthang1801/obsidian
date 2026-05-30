@@ -1,0 +1,68 @@
+version: 1
+kind: algorithm-playground
+
+meta:
+  id: leetcode-two-pointers
+  title: Two Pointers
+  family: two-pointers
+  difficulty: foundation
+
+dataset:
+  type: int-array
+  params:
+    - name: nums
+      required: true
+    - name: target
+      required: true
+
+ui:
+  renderer: indexed-array
+  controls: [play, pause, next, reset, speed]
+  panels: [visual, variables, code, explanation]
+
+examples:
+  - id: pair-found
+    label: Pair found
+    input:
+      nums: [2, 7, 11, 15]
+      target: 9
+  - id: shrink-right
+    label: Shrink from the right
+    input:
+      nums: [2, 7, 11, 15]
+      target: 18
+
+bindings:
+  variables: [left, right, sum, target]
+  pointers:
+    - name: left
+      variable: left
+      style: left-bound
+    - name: right
+      variable: right
+      style: right-bound
+  code:
+    style: pseudocode
+    lines:
+      - id: init
+        text: left = 0, right = n - 1
+      - id: read
+        text: sum = nums[left] + nums[right]
+      - id: move-left
+        text: left++
+      - id: move-right
+        text: right--
+      - id: match
+        text: return pair
+      - id: not-found
+        text: return no pair
+
+program:
+  entry: two_sum_sorted
+  macros:
+    - init_two_ends
+    - read_pair
+    - compare_sum_to_target
+    - move_left
+    - move_right
+    - record_match

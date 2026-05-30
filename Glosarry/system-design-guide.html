@@ -653,6 +653,12 @@
 				<button class="nav-item" data-section="bff" onclick="showSection('bff')">📝 14 Backend For Frontend</button>
 			</div>
 			<div class="nav-section">
+				<div class="nav-section-title">Traffic Flow Control</div>
+				<button class="nav-item" data-section="bp" onclick="showSection('bp')">📝 15 Backpressure</button>
+				<button class="nav-item" data-section="thr" onclick="showSection('thr')">📝 16 Throttling</button>
+				<button class="nav-item" data-section="dt" onclick="showSection('dt')">📝 17 Debounce/Throttle</button>
+			</div>
+			<div class="nav-section">
 				<div class="nav-section-title">Appendix</div>
 				<button class="nav-item" data-section="refs" onclick="showSection('refs')">📚 References</button>
 			</div>
@@ -673,6 +679,9 @@
 			<button class="topnav-item" data-section="servicemesh" onclick="showSection('servicemesh')">Svc Mesh</button>
 			<button class="topnav-item" data-section="apigateway" onclick="showSection('apigateway')">API GW</button>
 			<button class="topnav-item" data-section="bff" onclick="showSection('bff')">BFF</button>
+			<button class="topnav-item" data-section="bp" onclick="showSection('bp')">Backpressure</button>
+			<button class="topnav-item" data-section="thr" onclick="showSection('thr')">Throttling</button>
+			<button class="topnav-item" data-section="dt" onclick="showSection('dt')">Debounce/Throttle</button>
 			<button class="topnav-item" data-section="refs" onclick="showSection('refs')">Refs</button>
 		</nav>
 		<main id="main">
@@ -2900,6 +2909,465 @@
 						<li>BFF endpoints nên được thiết kế theo <strong>screen/feature</strong>, không theo domain model.</li>
 					</ul>
 				</section>
+				<!-- ==================== 15 BACKPRESSURE ==================== -->
+				<section class="page-section" id="s-bp">
+					<div class="section-header">
+						<div class="section-number">15</div>
+						<div>
+							<div class="section-title">Backpressure Pattern</div>
+							<div class="section-subtitle">Consumer báo hiệu producer chậm lại — tránh tràn bộ nhớ</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div style="margin-bottom: 24px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border);">
+						<img src="../public/images/sys_design_s05_flow_control.png" alt="Traffic Flow Control Patterns: Backpressure, Throttling, and Debounce vs Throttle" style="width: 100%; display: block; object-fit: cover;">
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Backpressure là gì?</div>
+						<p class="prose">
+							<strong>Backpressure</strong> (Áp lực ngược) là cơ chế kiểm soát dòng chảy dữ liệu (flow control), cho phép <em>consumer (bên tiêu thụ)</em> đang bị quá tải báo hiệu ngược lên <em>producer (bên sản xuất)</em> để tạm dừng hoặc giảm tốc độ gửi dữ liệu.
+						</p>
+						<p class="prose">
+							Nếu không có Backpressure, khi tốc độ sản xuất nhanh hơn tốc độ tiêu thụ, dữ liệu sẽ tích tụ trong queue/buffer vô giới hạn, dẫn đến cạn kiệt tài nguyên bộ nhớ (OOM - Out of Memory) và crash hệ thống. Ẩn dụ thực tế: vòi nước chảy vào bồn nhanh hơn tốc độ thoát nước ở lỗ đáy → bồn sẽ tràn. Giải pháp Backpressure là vặn nhỏ vòi nước lại khi bồn gần đầy.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Bounded Queue</div>
+							<div class="gl-def">
+								Queue có giới hạn kích thước tối đa. Khi queue đầy, producer bị chặn (blocked) hoặc request bị reject, ngăn chặn tràn bộ nhớ.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Reactive Streams</div>
+							<div class="gl-def">
+								Chuẩn đặc tả cho lập trình bất đồng bộ với cơ chế non-blocking backpressure (ví dụ: RxJava, Project Reactor, Akka Streams).
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">High/Low Watermarks</div>
+							<div class="gl-def">
+								Các mốc giới hạn để phát tín hiệu. Vượt qua High Watermark → phát tín hiệu dừng; xuống dưới Low Watermark → phát tín hiệu resume.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Pull-based Flow</div>
+							<div class="gl-def">
+								Consumer chủ động yêu cầu số lượng item muốn nhận (demand-driven) thay vì producer tự động đẩy (push) dữ liệu vô hạn.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Backpressure — Các Chiến Lược Kiểm Soát Dòng Chảy</div>
+						<svg width="100%" viewBox="0 0 820 220" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="bpa" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+									<path d="M2 2L8 5L2 8" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
+								</marker>
+								<marker id="bpg" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+									<path d="M2 2L8 5L2 8" fill="none" stroke="#00ff88" stroke-width="1.5" stroke-linecap="round"/>
+								</marker>
+								<marker id="bpr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+									<path d="M2 2L8 5L2 8" fill="none" stroke="#ff6b6b" stroke-width="1.5" stroke-linecap="round"/>
+								</marker>
+							</defs>
+							<!-- WITHOUT -->
+							<text x="180" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#ff6b6b" font-family="JetBrains Mono">❌ Không có Backpressure</text>
+							<rect x="20" y="30" width="90" height="36" rx="6" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.25)" stroke-width="1.2"/>
+							<text x="65" y="48" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">Producer</text>
+							<text x="65" y="61" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">1000/s</text>
+							<rect x="140" y="24" width="80" height="48" rx="4" fill="rgba(255,107,107,.15)" stroke="rgba(255,107,107,.4)" stroke-width="1.5"/>
+							<text x="180" y="46" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">Buffer</text>
+							<text x="180" y="62" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">OVERFLOW</text>
+							<rect x="250" y="30" width="90" height="36" rx="6" fill="rgba(255,107,107,.08)" stroke="rgba(255,107,107,.25)" stroke-width="1.2"/>
+							<text x="295" y="48" text-anchor="middle" font-size="10" fill="#ff6b6b" font-family="JetBrains Mono">Consumer</text>
+							<text x="295" y="61" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">10/s</text>
+							<line x1="110" y1="48" x2="140" y2="48" stroke="#ff6b6b" stroke-width="1.5" marker-end="url(#bpr)"/>
+							<text x="180" y="96" text-anchor="middle" font-size="9" fill="#ff6b6b" font-family="JetBrains Mono">→ OOM crash, data loss</text>
+
+							<!-- WITH -->
+							<text x="560" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">✅ Chiến Lược Có Flow Control</text>
+							<rect x="400" y="30" width="70" height="30" rx="4" fill="rgba(59,130,246,.08)" stroke="rgba(59,130,246,.2)" stroke-width="1"/>
+							<text x="435" y="49" text-anchor="middle" font-size="9" fill="#3b82f6" font-family="JetBrains Mono">Producer</text>
+							<rect x="500" y="30" width="80" height="30" rx="4" fill="rgba(59,130,246,.08)" stroke="rgba(59,130,246,.2)" stroke-width="1"/>
+							<text x="540" y="45" text-anchor="middle" font-size="9" fill="#3b82f6" font-family="JetBrains Mono">Consumer</text>
+							<text x="540" y="55" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="JetBrains Mono">"ready" sig</text>
+							<line x1="540" y1="60" x2="475" y2="48" stroke="#00ff88" stroke-width="1.3" marker-end="url(#bpg)"/>
+							<text x="400" y="76" font-size="8" fill="#64748b" font-family="JetBrains Mono">① Pull: Request khi consumer sẵn sàng</text>
+
+							<!-- Strategy 2 -->
+							<rect x="400" y="94" width="70" height="30" rx="4" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.2)" stroke-width="1"/>
+							<text x="435" y="113" text-anchor="middle" font-size="9" fill="#f59e0b" font-family="JetBrains Mono">Producer</text>
+							<rect x="490" y="94" width="50" height="30" rx="4" fill="rgba(245,158,11,.08)" stroke="rgba(245,158,11,.2)" stroke-width="1"/>
+							<text x="515" y="109" text-anchor="middle" font-size="8" fill="#f59e0b" font-family="JetBrains Mono">Buffer</text>
+							<text x="515" y="119" text-anchor="middle" font-size="7" fill="#f59e0b" font-family="JetBrains Mono">max=100</text>
+							<line x1="490" y1="109" x2="400" y2="109" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#bpa)"/>
+							<text x="400" y="140" font-size="8" fill="#64748b" font-family="JetBrains Mono">② Bounded buffer → block producer khi đầy</text>
+
+							<!-- Strategy 3 -->
+							<rect x="400" y="158" width="70" height="30" rx="4" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.2)" stroke-width="1"/>
+							<text x="435" y="177" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">Producer</text>
+							<line x1="470" y1="173" x2="530" y2="173" stroke="#a855f7" stroke-width="1" marker-end="url(#bpa)"/>
+							<text x="500" y="167" font-size="8" fill="#a855f7" font-family="JetBrains Mono">DROP oldest</text>
+							<rect x="550" y="158" width="70" height="30" rx="4" fill="rgba(168,85,247,.08)" stroke="rgba(168,85,247,.2)" stroke-width="1"/>
+							<text x="585" y="177" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">Consumer</text>
+							<text x="400" y="200" font-size="8" fill="#64748b" font-family="JetBrains Mono">③ Drop khi overload (loss OK — metrics, logs)</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">15.1 — File Processing Pipeline: Tránh OOM khi 1000 uploads/giây vào processor 50/giây</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Một hệ thống xử lý dữ liệu (data pipeline): 1000 file uploads/giây → Queue → AI Processor (tốc độ xử lý tối đa là 50/giây do giới hạn phần cứng và external APIs). Nếu không có backpressure, queue sẽ phình to vô hạn → RAM tăng liên tục → crash hệ thống (OOM) chỉ trong 20 phút.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Bounded Queue + Consumer-driven Pull:</strong><br>
+								1. <strong>Bounded Queue:</strong> Giới hạn queue tối đa 500 items. Khi đầy, API Gateway trả về <code>503 Service Unavailable</code> hoặc <code>202 Accepted</code> với thông tin queue position.<br>
+								2. <strong>Consumer-driven flow:</strong> AI Processor chủ động "kéo" (pull) data từ queue chỉ khi có tài nguyên trống, thay vì queue đẩy (push) tự động.<br>
+								3. <strong>Adaptive throttle:</strong> Giám sát queue depth. &lt; 100 → accept all. 100-400 → throttle 200/giây. &gt; 400 → throttle 50/giây để khớp với consumer.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Nguyên tắc cốt lõi:</strong> <em>Degrade gracefully, not catastrophically</em> (Giảm cấp hệ thống một cách mượt mà thay vì sụp đổ hoàn toàn). Bounded Queue là ranh giới phòng ngự cơ bản nhất trong distributed systems. Go channels có bounded backpressure tự nhiên — send vào full buffered channel block goroutine. Reactive Streams (RxJava, Reactor, Akka) chuẩn hóa backpressure API.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>Luôn luôn sử dụng <strong>Bounded Queues</strong> cho các kênh giao tiếp bất đồng bộ để tránh buffer overflow.</li>
+						<li>Ứng dụng mô hình <strong>Pull-based (Consumer-driven)</strong> thay vì Push-based khi tốc độ xử lý của consumer không ổn định.</li>
+						<li>Sử dụng các thư viện chuẩn hóa của <strong>Reactive Streams</strong> (Project Reactor, RxJava) khi build data streaming pipeline phức tạp.</li>
+						<li>Kết hợp giám sát chỉ số <strong>Consumer Lag</strong> để tự động scale số lượng consumer instances khi cần thiết.</li>
+					</ul>
+				</section>
+				<!-- ==================== 16 THROTTLING ==================== -->
+				<section class="page-section" id="s-thr">
+					<div class="section-header">
+						<div class="section-number">16</div>
+						<div>
+							<div class="section-title">Throttling & Rate Limiting</div>
+							<div class="section-subtitle">Kiểm soát tần suất request — bảo vệ service và đảm bảo tính công bằng</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Throttling & Rate Limiting là gì?</div>
+						<p class="prose">
+							<strong>Throttling & Rate Limiting</strong> là kỹ thuật giới hạn số lượng request mà một client hoặc một hệ thống có thể thực hiện trong một khoảng thời gian nhất định (ví dụ: 100 requests/phút).
+						</p>
+						<p class="prose">
+							Mục tiêu chính là bảo vệ tài nguyên hệ thống (CPU, database) khỏi tình trạng quá tải, ngăn chặn các cuộc tấn công DDoS/Brute-force, đảm bảo tính công bằng (fairness) giữa các tenant trong mô hình SaaS, và làm cơ sở để phân hạng dịch vụ (monetization).
+						</p>
+						<p class="prose">
+							<strong>Khác Backpressure:</strong> Throttling là server chủ động ép (impose) lên client; Backpressure là consumer gửi tín hiệu ngược lên báo producer chủ động chậm lại.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Token Bucket</div>
+							<div class="gl-def">
+								Thuật toán cho phép xử lý các đợt request đột biến (burst). Token được sinh ra định kỳ vào một bucket có dung lượng tối đa. Mỗi request tiêu thụ 1 token.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Leaky Bucket</div>
+							<div class="gl-def">
+								Thuật toán ép luồng request đầu ra luôn ổn định và mượt mà. Request đi vào một cái phễu (phễu có dung lượng giới hạn) và chảy ra với tốc độ cố định.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Sliding Window Counter</div>
+							<div class="gl-def">
+								Thuật toán tính toán số lượng request trong một cửa sổ trượt động bằng cách kết hợp số lượng request của cửa sổ hiện tại và cửa sổ trước đó. Rất chính xác và tiết kiệm RAM.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">HTTP 429 Too Many Requests</div>
+							<div class="gl-def">
+								Mã trạng thái HTTP chuẩn được trả về khi client vượt quá rate limit. Đi kèm header <code>Retry-After</code> thông báo số giây cần chờ trước khi thử lại.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">Các Thuật Toán Rate Limiting Phổ Biến</div>
+						<svg width="100%" viewBox="0 0 820 230" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="tha" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+									<path d="M2 2L8 5L2 8" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
+								</marker>
+							</defs>
+							<!-- Token Bucket -->
+							<text x="120" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">Token Bucket</text>
+							<rect x="70" y="28" width="100" height="100" rx="6" fill="rgba(59,130,246,.06)" stroke="rgba(59,130,246,.2)" stroke-width="1.3"/>
+							<circle cx="92"  cy="58"  r="8" fill="rgba(59,130,246,.35)" stroke="rgba(59,130,246,.7)" stroke-width="1"/>
+							<circle cx="120" cy="58"  r="8" fill="rgba(59,130,246,.35)" stroke="rgba(59,130,246,.7)" stroke-width="1"/>
+							<circle cx="148" cy="58"  r="8" fill="rgba(59,130,246,.35)" stroke="rgba(59,130,246,.7)" stroke-width="1"/>
+							<circle cx="92"  cy="82"  r="8" fill="rgba(59,130,246,.35)" stroke="rgba(59,130,246,.7)" stroke-width="1"/>
+							<circle cx="120" cy="82"  r="8" fill="rgba(59,130,246,.15)" stroke="rgba(59,130,246,.3)" stroke-width="1" stroke-dasharray="3,2"/>
+							<text x="120" y="112" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">4/10 tokens</text>
+							<text x="120" y="124" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="JetBrains Mono">+1 token/sec refill</text>
+							<line x1="120" y1="128" x2="120" y2="145" stroke="#3b82f6" stroke-width="1" marker-end="url(#tha)"/>
+							<text x="120" y="160" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Request uses 1 token</text>
+							<text x="120" y="175" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">✅ Allows burst</text>
+							<text x="120" y="188" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Stripe, Shopify API</text>
+
+							<!-- Leaky Bucket -->
+							<text x="340" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">Leaky Bucket</text>
+							<rect x="295" y="28" width="90" height="100" rx="6" fill="rgba(0,255,136,.05)" stroke="rgba(0,255,136,.2)" stroke-width="1.3"/>
+							<rect x="303" y="36" width="74" height="58" rx="3" fill="rgba(0,255,136,.12)"/>
+							<text x="340" y="78" text-anchor="middle" font-size="9" fill="#00ff88" font-family="JetBrains Mono">Queue</text>
+							<text x="340" y="90" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">overflows → drop</text>
+							<line x1="340" y1="128" x2="340" y2="145" stroke="#00ff88" stroke-width="2" marker-end="url(#tha)"/>
+							<text x="340" y="160" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Fixed drip: 10/sec</text>
+							<text x="340" y="175" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">✅ Smooth output</text>
+							<text x="340" y="188" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Network QoS</text>
+
+							<!-- Sliding Window -->
+							<text x="580" y="18" text-anchor="middle" font-size="11" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">Sliding Window Counter</text>
+							<rect x="450" y="28" width="260" height="100" rx="6" fill="rgba(168,85,247,.05)" stroke="rgba(168,85,247,.18)" stroke-width="1.3"/>
+							<rect x="460" y="38" width="55" height="32" rx="3" fill="rgba(168,85,247,.15)"/>
+							<text x="487" y="59" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">prev: 8</text>
+							<rect x="524" y="38" width="55" height="32" rx="3" fill="rgba(168,85,247,.25)"/>
+							<text x="551" y="59" text-anchor="middle" font-size="10" fill="#a855f7" font-family="JetBrains Mono">curr: 5</text>
+							<rect x="590" y="38" width="110" height="18" rx="3" fill="rgba(245,158,11,.12)"/>
+							<text x="645" y="51" text-anchor="middle" font-size="8" fill="#f59e0b" font-family="JetBrains Mono">70% into window</text>
+							<text x="580" y="90" text-anchor="middle" font-size="9" fill="#a855f7" font-family="JetBrains Mono">count = 8×0.3 + 5 = 7.4</text>
+							<text x="580" y="106" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Limit 10 → 2.6 more allowed</text>
+							<text x="580" y="160" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">✅ Accurate, low memory</text>
+							<text x="580" y="175" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">Nginx, Cloudflare, Redis</text>
+
+							<!-- HTTP 429 -->
+							<rect x="20" y="200" width="780" height="26" rx="6" fill="rgba(255,255,255,.02)" stroke="rgba(255,255,255,.04)" stroke-width="1"/>
+							<text x="410" y="218" text-anchor="middle" font-size="8" fill="#64748b" font-family="JetBrains Mono">HTTP 429 Too Many Requests · Retry-After: 15 · X-RateLimit-Limit: 100 · X-RateLimit-Remaining: 0 · X-RateLimit-Reset: timestamp</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">16.1 — API Platform: Multi-tier Rate Limiting (per-user, per-endpoint, per-tenant)</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Một API Platform phục vụ nhiều phân khúc khách hàng: Free (1000 req/ngày), Pro (50k/ngày), Enterprise (không giới hạn). Một Pro user chạy script bị lỗi gửi 500 requests/giây làm nghẽn toàn bộ database, gây ảnh hưởng trực tiếp đến các Enterprise users khác.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Multi-dimensional Rate Limiting (Throttling đa tầng):</strong><br>
+								1. <strong>Tầng 1 — User (Token Bucket):</strong> Free giới hạn 10 req/phút; Pro giới hạn 100 req/phút, burst tối đa 200; Enterprise giới hạn 10,000 req/phút.<br>
+								2. <strong>Tầng 2 — Endpoint:</strong> Các endpoint nặng như <code>GET /search</code> giới hạn Pro là 10 req/giây; các endpoint nhẹ như <code>GET /items/{id}</code> giới hạn 200 req/giây; endpoint write như <code>POST /orders</code> giới hạn 5 req/giây.<br>
+								3. <strong>Tầng 3 — Tenant Isolation:</strong> Đảm bảo khách hàng Enterprise chạy trên dedicated database/server pools để tránh bị ảnh hưởng bởi Free/Pro users (noisy neighbor problem).<br>
+								4. <strong>Headers standard:</strong> API trả về đầy đủ <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, và <code>X-RateLimit-Reset</code>.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Rate limiting là tính năng sản phẩm, không chỉ để bảo vệ:</strong> Users muốn biết quota và usage của họ. Trong môi trường phân tán (nhiều API gateway nodes), ta lưu trữ token/bucket state trong <strong>Redis</strong> và dùng <strong>Lua script</strong> để thực hiện thao tác check-and-decrement một cách atomic (ngăn race condition). Libraries phổ biến: resilience4j-ratelimiter (Java), golang.org/x/time/rate (Go), nginx limit_req_module, Kong rate-limiting plugin.
+							</p>
+						</div>
+					</div>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>Luôn trả về standard HTTP headers (<code>X-RateLimit-*</code> và <code>Retry-After</code>) để client biết cách tự điều chỉnh tốc độ gọi API.</li>
+						<li>Sử dụng **Redis + Lua script** hoặc **Redis Cell (module)** để triển khai distributed rate limiting an toàn, tránh race conditions.</li>
+						<li>Áp dụng **Token Bucket** khi muốn hỗ trợ burst traffic hợp lệ (ví dụ: tải trang nhanh), và **Leaky Bucket** cho backend services xử lý tuần tự.</li>
+						<li>Đặt rate limit thấp hơn cho các endpoints nặng (search, report, write) để bảo vệ database.</li>
+					</ul>
+				</section>
+				<!-- ==================== 17 DEBOUNCE VS THROTTLE ==================== -->
+				<section class="page-section" id="s-dt">
+					<div class="section-header">
+						<div class="section-number">17</div>
+						<div>
+							<div class="section-title">Debounce vs Throttle</div>
+							<div class="section-subtitle">Tối ưu hóa tần suất thực thi function — sự khác biệt cốt lõi</div>
+						</div>
+						<span class="badge badge-advanced">ADVANCED</span>
+					</div>
+					<div class="concept-box">
+						<div class="label">💡 Định nghĩa</div>
+						<div class="title">Debounce và Throttle là gì?</div>
+						<p class="prose">
+							Dù đều dùng để kiểm soát và giới hạn tần suất thực thi của một hành động/function, <strong>Debounce</strong> và <strong>Throttle</strong> hoạt động theo triết lý hoàn toàn khác nhau:
+						</p>
+						<p class="prose">
+							- <strong>Throttle (Tiết lưu):</strong> Đảm bảo function chỉ được chạy <em>tối đa một lần trong mỗi khoảng thời gian T</em>. Dù có hàng nghìn event liên tiếp, function vẫn sẽ chạy đều đặn theo chu kỳ cố định. Ưu tiên <strong>tần suất cập nhật đều đặn</strong>.
+						</p>
+						<p class="prose">
+							- <strong>Debounce (Chống rung):</strong> Trì hoãn thực thi function cho đến khi <em>không còn event nào phát sinh trong khoảng thời gian T</em>. Mỗi event mới xuất hiện sẽ reset lại bộ đếm thời gian (timer). Function chỉ chạy một lần duy nhất sau khoảng lặng đó. Ưu tiên <strong>kết quả cuối cùng</strong>.
+						</p>
+					</div>
+					<h3>Glossary chuyên sâu</h3>
+					<div class="glossary-grid">
+						<div class="gl-item">
+							<div class="gl-term">Quiet Period / Silence</div>
+							<div class="gl-def">
+								Khoảng thời gian không có bất kỳ event nào phát sinh, điều kiện cần để Debounce kích hoạt function thực thi.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Max Wait Time</div>
+							<div class="gl-def">
+								Cơ chế nâng cao của Debounce: giới hạn thời gian chờ tối đa. Đảm bảo function được chạy ít nhất một lần sau khoảng Max Wait kể cả khi event phát sinh liên tục không dừng.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Immediate execution (Leading edge)</div>
+							<div class="gl-def">
+								Tùy chọn cho phép function chạy ngay lập tức khi event đầu tiên xuất hiện, sau đó mới tiến hành lock/chờ trong khoảng thời gian T.
+							</div>
+						</div>
+						<div class="gl-item">
+							<div class="gl-term">Trailing edge</div>
+							<div class="gl-def">
+								Tùy chọn chạy function vào thời điểm kết thúc chu kỳ (sau khoảng lặng của Debounce hoặc cuối chu kỳ của Throttle). Đây là hành vi mặc định.
+							</div>
+						</div>
+					</div>
+					<div class="diagram-container">
+						<div class="diagram-title">So Sánh Trực Quan Trục Thời Gian (Timeline Visualization)</div>
+						<svg width="100%" viewBox="0 0 820 300" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<marker id="dta" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+									<path d="M2 2L8 5L2 8" fill="none" stroke="#64748b" stroke-width="1.5" stroke-linecap="round"/>
+								</marker>
+							</defs>
+							<!-- Events row -->
+							<text x="20" y="20" font-size="10" font-weight="700" fill="#94a3b8" font-family="JetBrains Mono">User Events (keystrokes):</text>
+							<line x1="20" y1="32" x2="800" y2="32" stroke="#334155" stroke-width="1.5"/>
+							<circle cx="70"  cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="120" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="160" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="195" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="340" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="380" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="415" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="570" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="610" cy="32" r="5" fill="#94a3b8"/>
+							<circle cx="695" cy="32" r="5" fill="#94a3b8"/>
+							<text x="410" y="50" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Rapid typing in bursts with pauses</text>
+
+							<!-- THROTTLE -->
+							<text x="20" y="80" font-size="10" font-weight="700" fill="#3b82f6" font-family="JetBrains Mono">Throttle (max 1 call / 200ms):</text>
+							<line x1="20" y1="94" x2="800" y2="94" stroke="#334155" stroke-width="1.5"/>
+							<circle cx="70"  cy="94" r="8" fill="rgba(59,130,246,.3)" stroke="rgba(59,130,246,.8)" stroke-width="1.5"/>
+							<text x="70"  y="114" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="JetBrains Mono">exec</text>
+							<circle cx="270" cy="94" r="8" fill="rgba(59,130,246,.3)" stroke="rgba(59,130,246,.8)" stroke-width="1.5"/>
+							<text x="270" y="114" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="JetBrains Mono">exec</text>
+							<circle cx="470" cy="94" r="8" fill="rgba(59,130,246,.3)" stroke="rgba(59,130,246,.8)" stroke-width="1.5"/>
+							<text x="470" y="114" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="JetBrains Mono">exec</text>
+							<circle cx="650" cy="94" r="8" fill="rgba(59,130,246,.3)" stroke="rgba(59,130,246,.8)" stroke-width="1.5"/>
+							<text x="650" y="114" text-anchor="middle" font-size="8" fill="#3b82f6" font-family="JetBrains Mono">exec</text>
+							<rect x="70" y="86" width="200" height="16" fill="rgba(59,130,246,.06)"/>
+							<rect x="270" y="86" width="200" height="16" fill="rgba(59,130,246,.06)"/>
+							<rect x="470" y="86" width="180" height="16" fill="rgba(59,130,246,.06)"/>
+							<text x="170" y="132" text-anchor="middle" font-size="9" fill="#3b82f6" font-family="JetBrains Mono">← 200ms window →</text>
+							<text x="410" y="148" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Fires regularly — user thấy kết quả trung gian, consistent updates</text>
+
+							<!-- DEBOUNCE -->
+							<text x="20" y="175" font-size="10" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">Debounce (wait 300ms after last event):</text>
+							<line x1="20" y1="190" x2="800" y2="190" stroke="#334155" stroke-width="1.5"/>
+							<rect x="70" y="182" width="155" height="16" rx="3" fill="rgba(0,255,136,.06)" stroke="rgba(0,255,136,.2)" stroke-width="1" stroke-dasharray="3,2"/>
+							<text x="147" y="194" text-anchor="middle" font-size="7" fill="#00ff88" font-family="JetBrains Mono">reset, reset, reset...</text>
+							<rect x="340" y="182" width="165" height="16" rx="3" fill="rgba(0,255,136,.1)" stroke="rgba(0,255,136,.3)" stroke-width="1"/>
+							<text x="422" y="194" text-anchor="middle" font-size="7" fill="#00ff88" font-family="JetBrains Mono">← 300ms silence →</text>
+							<circle cx="505" cy="190" r="8" fill="rgba(0,255,136,.3)" stroke="rgba(0,255,136,.8)" stroke-width="1.5"/>
+							<text x="505" y="210" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">exec</text>
+							<rect x="570" y="182" width="155" height="16" rx="3" fill="rgba(0,255,136,.06)" stroke="rgba(0,255,136,.2)" stroke-width="1" stroke-dasharray="3,2"/>
+							<text x="647" y="194" text-anchor="middle" font-size="7" fill="#00ff88" font-family="JetBrains Mono">reset... 300ms silence...</text>
+							<circle cx="795" cy="190" r="8" fill="rgba(0,255,136,.3)" stroke="rgba(0,255,136,.8)" stroke-width="1.5"/>
+							<text x="795" y="210" text-anchor="middle" font-size="8" fill="#00ff88" font-family="JetBrains Mono">exec</text>
+							<text x="410" y="228" text-anchor="middle" font-size="9" fill="#64748b" font-family="JetBrains Mono">Chỉ fires sau khi user dừng — perfect cho search API, form validation</text>
+
+							<!-- Use cases -->
+							<rect x="20"  y="246" width="380" height="48" rx="7" fill="rgba(59,130,246,.05)" stroke="rgba(59,130,246,.15)" stroke-width="1"/>
+							<text x="210" y="265" text-anchor="middle" font-size="10" font-weight="700" fill="#3b82f6" font-family="JetBrains Mono">Throttle — updates đều đặn:</text>
+							<text x="210" y="282" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="JetBrains Mono">scroll analytics · mouse tracking · game loop · real-time prices</text>
+							<rect x="420" y="246" width="380" height="48" rx="7" fill="rgba(0,255,136,.04)" stroke="rgba(0,255,136,.12)" stroke-width="1"/>
+							<text x="610" y="265" text-anchor="middle" font-size="10" font-weight="700" fill="#00ff88" font-family="JetBrains Mono">Debounce — chỉ lấy kết quả cuối:</text>
+							<text x="610" y="282" text-anchor="middle" font-size="8" fill="#94a3b8" font-family="JetBrains Mono">search-as-you-type · form validate · auto-save · window resize done</text>
+						</svg>
+					</div>
+					<div class="case-study">
+						<div class="case-header">
+							<div class="case-badge expert">USE CASE EXPERT</div>
+							<div class="case-title">17.1 — Search-as-you-type: Áp dụng Debounce giảm 98% số lượng API requests</div>
+						</div>
+						<div class="case-body">
+							<div class="case-label problem">🔴 Problem Statement</div>
+							<p class="prose">
+								Một ô tìm kiếm (Search Box) gọi API tìm kiếm mỗi khi người dùng gõ phím (keystroke). Từ khóa "laptop gaming" có 14 ký tự. Nếu gõ trong 3 giây, client sẽ bắn liên tiếp 14 API requests. Với 1000 người dùng gõ cùng lúc, hệ thống chịu 14,000 API requests dư thừa thay vì 1,000 requests thực tế, gây quá tải ElasticSearch/Database.
+							</p>
+							<hr class="divider" />
+							<div class="case-label solution">🟢 Solution</div>
+							<p class="prose">
+								<strong>Debounce 300ms + Request Cancellation:</strong><br>
+								1. <strong>Debounce 300ms:</strong> Khi user gõ phím, ta trì hoãn gọi API. Nếu gõ tiếp trong vòng 300ms, hủy timer cũ và tạo timer mới. Khi user dừng gõ phím quá 300ms (tức là đã gõ xong từ khóa "laptop gaming"), API mới thực sự được gọi. Số request giảm từ 14 xuống còn 1. Giảm tải 98.6% cho DB!<br>
+								2. <strong>Request Cancellation (AbortController):</strong> Nếu request trước đó vẫn đang chạy và người dùng gõ tiếp ký tự mới, hủy ngay request cũ để tránh race condition (kết quả cũ phản hồi chậm hơn kết quả mới đè lên dữ liệu).<br>
+								3. <strong>Min Length Check:</strong> Chỉ kích hoạt tìm kiếm khi từ khóa có độ dài từ 2 ký tự trở lên.
+							</p>
+							<hr class="divider" />
+							<div class="case-label note">📝 Note & Conclusion</div>
+							<p class="prose">
+								<strong>Quy tắc chọn:</strong> "Cần updates đều đặn?" → Throttle. "Chỉ cần kết quả sau khi action xong?" → Debounce. <strong>Kết hợp:</strong> lodash <code>debounce(fn, 300, {maxWait: 1000})</code> — debounce nhưng tối đa 1s. <strong>Backend cũng cần:</strong> Debounce cho auto-save draft, Throttle cho metrics logging. <em>Không chỉ là frontend concern.</em>
+							</p>
+						</div>
+					</div>
+					<h3>📊 So sánh 3 cơ chế Flow Control</h3>
+					<table class="tbl" style="width: 100%; border-collapse: collapse; margin-bottom: 24px; border: 1px solid var(--border); font-size: 13px;">
+						<thead>
+							<tr style="background: var(--bg-secondary); border-bottom: 1px solid var(--border);">
+								<th style="padding: 12px; text-align: left; font-weight: 700; color: var(--accent-cyan);">Cơ chế</th>
+								<th style="padding: 12px; text-align: left; font-weight: 700; color: var(--text-primary);">Tác nhân kiểm soát</th>
+								<th style="padding: 12px; text-align: left; font-weight: 700; color: var(--text-primary);">Nguyên lý hoạt động</th>
+								<th style="padding: 12px; text-align: left; font-weight: 700; color: var(--text-primary);">Phù hợp nhất</th>
+								<th style="padding: 12px; text-align: left; font-weight: 700; color: var(--text-primary);">Không phù hợp</th>
+							</tr>
+						</thead>
+						<tbody>
+							<tr style="border-bottom: 1px solid var(--border);">
+								<td style="padding: 12px; font-weight: 700; color: var(--accent-blue);">Throttle</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Server → Client</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Tối đa N request trong mỗi cửa sổ thời gian T. Xử lý đều đặn.</td>
+								<td style="padding: 12px; color: var(--text-secondary);">API Rate Limit, scroll/resize event, game loop.</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Chỉ cần kết quả cuối cùng (Search box).</td>
+							</tr>
+							<tr style="border-bottom: 1px solid var(--border);">
+								<td style="padding: 12px; font-weight: 700; color: var(--accent-green);">Debounce</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Client tự điều chỉnh</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Chờ khoảng lặng T ms sau event cuối cùng mới thực thi.</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Search input, form validation, auto-save draft.</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Cần cập nhật trạng thái liên tục trong quá trình gõ.</td>
+							</tr>
+							<tr>
+								<td style="padding: 12px; font-weight: 700; color: var(--accent-purple);">Backpressure</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Consumer → Producer</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Consumer gửi tín hiệu báo Producer chậm lại khi buffer đầy.</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Streaming pipelines, queue processing, data ingestion.</td>
+								<td style="padding: 12px; color: var(--text-secondary);">Mô hình stateless request/response thông thường.</td>
+							</tr>
+						</tbody>
+					</table>
+					<h3>Best Practices</h3>
+					<ul class="bp-list">
+						<li>Dùng <strong>Debounce</strong> cho các hành động cần sự yên lặng: search-as-you-type, auto-save draft (sau khi dừng gõ), form validation.</li>
+						<li>Dùng <strong>Throttle</strong> cho các hành động cần cập nhật liên tục nhưng giới hạn tần suất: scroll event, window resizing (để cập nhật giao diện mượt mà), click spamming protection.</li>
+						<li>Trong frontend, tận dụng các hàm build-in chất lượng cao của **lodash** (<code>_.debounce</code>, <code>_.throttle</code>) để đảm bảo độ tin cậy và hiệu năng.</li>
+						<li>Kết hợp **AbortController** trong JavaScript để hủy (cancel) các HTTP request cũ nếu click hoặc gõ phím mới phát sinh liên tiếp.</li>
+					</ul>
+				</section>
 				<!-- ==================== REFERENCES ==================== -->
 				<section class="page-section" id="s-refs">
 					<div class="section-header">
@@ -3071,11 +3539,7 @@
 					<div class="note note-success">
 						<div class="note-icon">✅</div>
 						<p>
-							<strong>Tóm tắt toàn bộ guide:</strong> 14 patterns được chia thành 4 nhóm: <strong>Foundations</strong> (Idempotency, Eventual
-							Consistency, CAP) → hiểu nền tảng lý thuyết. <strong>Data Patterns</strong> (Saga, CQRS, Event Sourcing, Outbox) → quản lý data trong
-							distributed systems. <strong>Resilience</strong> (Strangler Fig, Circuit Breaker, Bulkhead) → bảo vệ hệ thống khỏi failures.
-							<strong>Infrastructure</strong> (Sidecar, Service Mesh, API Gateway, BFF) → kiến trúc infrastructure layer. Mỗi pattern giải quyết một
-							vấn đề cụ thể — không dùng tất cả, chỉ dùng khi cần.
+							<strong>Tóm tắt toàn bộ guide:</strong> 17 patterns được chia thành 5 nhóm: <strong>Foundations</strong> (Idempotency, Eventual Consistency, CAP) → hiểu nền tảng lý thuyết. <strong>Data Patterns</strong> (Saga, CQRS, Event Sourcing, Outbox) → quản lý data trong distributed systems. <strong>Resilience</strong> (Strangler Fig, Circuit Breaker, Bulkhead) → bảo vệ hệ thống khỏi failures. <strong>Infrastructure</strong> (Sidecar, Service Mesh, API Gateway, BFF) → kiến trúc infrastructure layer. <strong>Flow Control & Traffic Management</strong> (Backpressure, Throttling, Debounce vs Throttle) → kiểm soát lưu lượng và dòng chảy dữ liệu. Mỗi pattern giải quyết một vấn đề cụ thể — không dùng tất cả, chỉ dùng khi cần.
 						</p>
 					</div>
 				</section>
