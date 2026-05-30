@@ -1,5 +1,13 @@
 {
   "alwaysUpdateLinks": true,
   "showUnsupportedFiles": true,
-  "newLinkFormat": "shortest"
+  "newLinkFormat": "shortest",
+  "userIgnoreFilters": [
+    "public/",
+    "scripts/",
+    "skills/"
+  ],
+  "snippets": [
+    "hide-folders"
+  ]
 }

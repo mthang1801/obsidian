@@ -1,4 +1,7 @@
 {
   "textFontFamily": "SF Pro Display,JetBrains Mono",
-  "cssTheme": ""
+  "cssTheme": "",
+  "enabledCssSnippets": [
+    "hide-folders"
+  ]
 }

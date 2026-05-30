@@ -1,0 +1,979 @@
+ADR
+Agile
+BDD
+BRS
+CICD
+Common
+Critical
+DDD
+DESIGN
+DRY KISS YAGNI
+DevOps
+ERD
+FRS
+Fatal
+GitFlow
+HLD
+LLD
+Minor
+NFRS
+Observability
+PRD
+QA
+SOLID
+SRE
+SRS
+Scenario
+Scrum
+TDD
+UAT
+UML
+Use Case
+User Story
+Vivid Scenario
+Warning
+ab test
+abac
+access token
+acid
+advanced
+advanced export formats
+affordance
+agency
+agent communication protocol
+agent registry
+agent role
+agent runtime
+agent sandbox
+agent shell
+agentic ai llm engineering
+agentic core
+agentic loop
+ai agent
+ai orchestrator
+alerting slos runbooks
+alignment
+anonymous field
+anonymous fields
+ants
+any
+api design
+api gateway
+api gateway bff
+app context handlers
+architecture design
+array
+array pipeline
+arrays
+association
+associations
+async
+async/await
+asynq
+atlas
+atomic
+atomic action
+audit log
+auth rate limit incidents
+auth rate limit production
+authentication jwt
+authorization rbac
+automigrate
+automigration
+autonomy level
+await
+backend for frontend
+background export jobs incidents
+background jobs
+backoff
+backpressure
+backup and pitr
+base
+basics
+batch insert
+batch inserts
+batch operations copy
+behavioral
+belongs to
+benchmark
+benchmark fuzz
+benchmark strategy and benchstat
+benchmarks
+bff
+bikeshedding
+binding
+blameless post mortem
+blue green deployment
+broker dead letter incidents
+browser use
+buffer stats monitoring
+buffered channel
+builtin custom
+bulk insert
+bulk inserts
+bulkhead
+bulkhead pattern
+bus factor
+cache aside
+cache eviction
+cache hit miss
+cache stampede
+caching
+callback
+callbacks
+canary deployment
+canary test
+cap theorem
+capability discovery
+cdn
+chain of thought
+channel
+channels
+chaos test
+checkpoint
+chunking
+cicd github actions
+circuit breaker
+circuit breaker resilience
+claims
+class struct
+clause.OnConflict
+clean architecture
+cli
+cli operations incidents
+cli production patterns
+closure
+closures
+closures methods
+cloud infra
+cloud infra foundations
+cloud infrastructure incidents
+cobra viper
+code interpreter
+code readability
+code readability comprehension
+code smell
+code smells
+cognitive load
+cognitive mental model
+cold start
+collective code ownership
+commit
+comparable
+composable skills
+composite index
+composite indexes
+composite key
+composite keys
+composition embedding
+composition over inheritance
+computer use
+conc
+concurrency
+concurrency async
+concurrency foundations
+concurrency incidents
+cond
+conditional branching
+conditional expressions
+config layering and secrets
+config secrets feature flags
+configmaps secrets runtime config
+configuration
+connection pool
+connection pooling
+connection pools
+connmaxidletime
+connmaxlifetime
+constitutional ai
+constrained decoding
+constructors and functional options
+consumer driven contract
+context
+context cancellation
+context deadline
+context switching
+context timeout
+context window
+contexts
+contract test
+control flow loops
+conways law
+cookie
+cookies
+core llm concepts
+cors
+cors csrf helmet
+cqrs
+creational
+critic agent
+cross join
+crud
+csrf
+csv
+csv stream writer http download
+cte recursive lateral
+curse of knowledge
+cursor pagination
+custom error
+custom errors
+dag
+dark launch
+data conversion
+data database
+data race
+data types
+database migration
+database orm
+database per tenant
+date time
+datetime
+dbresolver
+ddd
+ddl constraints
+dead code
+dead letter queue
+deadlock
+deadlock locking
+debate pattern
+debounce
+debounce vs throttle
+decision making trade offs
+deep pprof and trace workflow
+deep work
+defer
+defer panic recover
+deletedat
+dependency injection
+dependency inversion
+deployment
+deployment foundations
+deployment runtime
+deployment runtime incidents
+design for humans
+design patterns
+design patterns go way
+developer cognition team dynamics
+developer experience
+di
+di mocking patterns
+distributed tracing
+dml transactions
+docker
+docs
+domain driven design
+dora metrics
+dry
+dryrun
+dunning kruger effect
+e2e test
+embedding
+encapsulation visibility
+end to end test
+end-to-end test
+engine
+engine context handlers
+enum union types
+episodic memory
+errgroup
+error budget
+error handling
+error wrapping
+errors
+errors concurrency context
+evals
+evaluation observability
+event driven agent
+event listener
+event sourcing
+eventual consistency
+excel
+excelize multi sheet styling
+execution environment
+explain analyze
+explicit knowledge
+explicit over implicit
+export
+export foundations
+export pipeline incidents
+external memory
+fake
+fakes
+fan out fan in
+feature flag
+few shot prompting
+fiber
+file upload
+file upload multipart
+find
+findinbatches
+fine tuning
+first
+flaky test
+flow state
+fmt
+for share
+for update
+foreign key
+foreign keys
+form value
+form values
+format
+formatter
+foundation model
+full table scan
+function
+functions
+fundamental
+fundamental quick check
+fuzz test
+fuzz testing
+garbage collector
+generator
+generic
+generics
+gin
+gin vs fiber
+go 124 features
+go concurrency leetcode
+go runtime and performance
+go runtime incidents
+goal directed behavior
+golang-migrate
+golden signals
+goose
+goreleaser release pipeline
+gorm
+gorm foundations
+gorm production incidents
+gorm production patterns
+gorm.Config
+gorm.Model
+goroutine
+goroutine leak
+goroutine leak detection and containment
+goroutine leakage
+goroutine leaks
+goroutines
+goroutines and channels
+graceful cqrs
+graceful shutdown
+graceful shutdown connection draining
+grafana
+graphql
+grounding
+group by
+grouping aggregation
+groups params
+grpc
+grpc discovery incidents
+grpc protobuf
+guardrail
+guards interceptors
+hallucination
+handler
+handlerfunc
+handlers
+handoff
+hard delete
+hard deletes
+harness
+has many
+has one
+having clause
+health check
+health checks readiness liveness
+helmet
+helper
+hexagonal architecture
+hook
+hooks middleware
+horizontal scaling queue workers
+hot path
+hotfix
+human in the loop
+hybrid search
+iac
+idempotency
+idempotency key
+idempotency retry consumers
+idioms
+immutable infrastructure
+implicit io patterns
+index
+index deep dive
+index scan
+index seek
+indexes
+indexing strategies
+indices
+inference
+infrastructure as code
+inner join
+input guard
+instruction tuning
+integration test
+integration testcontainers
+integration testing
+interceptor
+interface
+interface embedding
+interface segregation
+interfaces
+interfaces decorators and middleware
+interfaces polymorphism
+interrupt escalation
+inverse conway maneuver
+inversion of control
+ioc
+iota
+iterator
+iterators
+jaeger
+jailbreak
+join
+joins
+joins subqueries
+json form validation
+json html streaming
+jsonb array
+jsonwebtoken
+jwt
+kafka
+keyset pagination
+kiss
+knowledge learning
+kubernetes
+large pagination and batch processing
+large workbook pdf memory incidents
+last
+latency budget
+law of leaky abstractions
+leaky abstraction
+left join
+lfu
+lifecycle hooks
+limit
+linter
+linter formatter
+liskov substitution
+liveness
+liveness vs readiness
+llm
+llm as judge
+llm observability
+load test
+locks bloat replica lag incidents
+logging
+logical replication
+logical replication and cdc
+logrus
+long term memory
+lru
+magic number magic string
+maladaptive daydreaming
+many to many
+map
+math
+math date functions
+maxidleconns
+maxopenconns
+mcp
+memory architecture
+memory compression
+memory model
+memory retrieval
+memory systems
+mental model
+mental model runtime
+messaging
+messaging foundations
+meta prompt
+method
+methods
+metrics
+microservices
+microservices foundations
+microservices messaging incidents
+middleware
+middlewares
+migration
+migration and advanced
+migration playbook
+migrations
+migrator
+migrators
+mock
+mocking
+mocks
+models and connection
+module
+modules layout
+mtbf
+mtls
+mttr
+multi agent system
+multi agent systems
+multi tenant patterns
+multi-tenancy
+multi-tenant
+multipart form
+mustbind
+mutation test
+mutex
+mutex and race condition
+mutex rwmutex
+mutexes
+mvcc rls internals
+n plus one problem
+n+1 problem
+n+1 queries
+n+1 query
+naming convention
+negative prompting
+nested transaction
+nested transactions
+nil
+oauth 2 oidc
+oauth2
+object map utils
+object storage signed url background jobs
+observability
+observability foundations
+observability incidents
+observability operations
+observability tracing
+offset
+offset pagination
+oidc
+oltp olap
+once
+onconflict
+one shot prompting
+onion architecture
+oop
+oop mental model
+open closed
+open telemetry tracing
+openapi
+openapi swagger
+opentelemetry
+opportunity cost
+optimistic locking
+optimizer
+optional nullable
+or done tee channels
+order by
+orm
+otel
+outbox pattern
+outer join
+output parser
+package
+packages
+pagination
+pagination techniques
+panic
+parallel execution
+parallelism
+partitioning sharding
+path parameter
+path parameters
+patroni ha orchestration
+pdf
+pdf report layout generation
+performance
+performance caching
+performance pprof
+performance tuning and query observability
+permission scoping
+pessimistic locking
+pgbouncer transaction pooling
+pictures
+pii detection
+pipeline
+pipelines worker pools and cancellation
+pit of success
+pitr failover cutover incidents
+planning
+plpgsql
+pluck
+plugin
+plugin and external subcommands
+pointer
+pointers
+pointers memory
+polling long polling
+polymorphic
+polymorphic association
+polymorphic associations
+pool
+post hook
+post mortem
+post-mortem
+postgresql
+postgresql fundamentals
+pprof
+pprof runtime profiling
+pre hook
+preload
+preloading
+premature optimization
+prepared statement
+prepared statements
+preparestmt
+primary database
+primary key
+primary keys
+principle of least surprise
+process delivery
+production dba triage playbook
+profiling
+progressive rollout and rollback
+project layout tooling testing
+project structure
+prometheus
+prometheus red metrics
+promise
+promise async
+promises
+prompt
+prompt chaining
+prompt engineering
+prompt injection
+prompt template
+prompt versioning
+psychological safety
+queries
+query
+query analysis workflow
+query optimization
+query parameter
+query parameters
+query plans performance and maintenance
+querying
+queue progress retry
+quiz
+quiz template
+rabbitmq nats
+race condition
+race conditions
+rag
+rate limit
+rate limiter
+rate limiting
+raw sql
+rbac
+react
+react loop
+read splitted
+read splitting
+read write splitting replicas
+read-write splitting
+readiness
+receiver
+receivers
+recipes
+recover
+red teaming
+redoc
+refactoring
+refresh token
+regex
+regex templates
+regression test
+regression testing for ai
+regular expression
+release distribution and shell completion
+replica
+replica database
+replicas
+replication
+replication and ha
+request
+requests
+requirements product
+resolver
+resolvers
+response
+responses
+rest
+retry policy
+right join
+rlhf
+roadmap
+role prompting
+rollback
+rolling deployment
+router
+routers
+routing
+row locking
+row locking and concurrency control
+row locks
+rpo
+rto
+rubber duck debugging
+runbook
+runtime hardening and image security
+runtime scheduler
+rwmutex
+safety alignment
+safety layer
+saga outbox incidents
+saga outbox microservices
+saga pattern
+sample data generation
+sandboxing
+sanity test
+savepoint
+savepoints
+scaffolding
+scaffolding harness
+scenario
+schema
+schema design patterns
+schema drift
+schema drifts
+schema per tenant
+schemas
+scope
+scopes
+second system effect
+secret management
+secure header
+secure headers
+security
+security access control
+select
+select clause
+select statement
+self consistency
+self critique
+self documenting code
+self join
+self reflection
+semantic memory
+semantic search
+semantic versioning
+semaphore
+semaphores
+semver
+sentinel error
+sentinel errors
+sentinel wrapping join
+separation of concerns
+server-sent events
+service discovery
+service mesh
+session
+session cookies
+sessions
+set concurrent map
+shadow deployment
+sharding
+shared database
+shared memory
+short term memory
+shouldbind
+shouldbindjson
+sidecar
+sidecar pattern
+signed url storage incidents
+single responsibility
+single source of truth
+singleflight
+singletable
+skill
+skill library
+skill routing
+skills plugins
+sla
+sli
+slice
+slices
+slices maps
+slices maps strings
+slo
+slog
+smoke test
+soft delete
+soft deletes
+software engineering fundamentals
+solid
+solid in go
+span
+spies
+spy
+sql builder
+sql injection
+sql injections
+sse
+sse websocket
+sse websocket real time
+status code
+status codes
+step node
+storage delivery
+strangler fig pattern
+strconv
+stream pipeline large export
+streaming
+streaming ha
+stress test
+string functions
+strings
+struct
+struct embedding
+structs
+structural
+structured logging
+structured logging slog
+structured output
+stub
+stubs
+sub agent worker agent
+subqueries
+subquery
+sunk cost fallacy
+supervisor agent
+swagger
+swagger openapi
+swarm intelligence
+sync
+sync pool
+sync.Cond
+sync.Map
+sync.Mutex
+sync.Once
+sync.Pool
+sync.RWMutex
+sync.WaitGroup
+sync/atomic
+syntax variables
+system design architecture
+system prompt
+t shaped developer
+table driven mocking
+table per class
+table per concrete class
+tacit knowledge
+tags options builder
+take
+task decomposition
+team collaboration dynamics
+technical debt
+techniques
+temperature
+ten x developer
+tenant
+tenant filtration
+tenant id
+tenants
+test coverage
+testcontainers
+testing
+testing production
+testing quality
+thread per request vs event loop
+thread safety
+thread-safe
+throttle
+throttling
+thundering herd
+timestamp
+timestamps
+token
+token budget
+tokens
+tool registry
+tool schema
+tool use function calling
+tools capabilities
+top p top k
+trace
+tracing
+transaction
+transaction patterns
+transactions
+transactions and hooks
+translation atlas
+tree of thought
+trigger
+triggers plpgsql
+truck factor
+ttl
+twelve factor
+twelve factor app
+two pizza rule
+type assertion embedding
+types
+types data modeling
+typescript to go
+ubiquitous language
+unbuffered channel
+unique index
+unique indexes
+unit test
+unit testing
+unscoped
+upload download streaming
+upsert
+user prompt
+vacuum analyze
+vacuum wal checkpoint
+validation
+validation dto
+validator
+vector database
+vendoring
+version column
+versioning
+versioning redirect
+views
+waitgroup
+waitgroups
+wal checkpoint
+warm start
+warm up
+web framework incidents
+web framework production
+web realtime upload incidents
+web search tool
+webhook
+websocket
+websockets
+when to choose go vs typescript
+where clause
+window functions
+withcancel
+withdeadline
+withtimeout
+withvalue
+worker pool
+worker pool tunny
+worker pools
+workerpool
+workflow
+workflow orchestration
+working memory
+workspace
+workspaces vendoring
+wrapping custom
+write behind
+write splitting
+write through
+write through write behind
+yagni
+yak shaving
+zap
+zero shot cot
+zero shot prompting
+zero trust
+zero value
+zero values
+🔴 Critical
+🔴 Fatal
+🔵 Minor
+🟡 Common
+🟡 Warning

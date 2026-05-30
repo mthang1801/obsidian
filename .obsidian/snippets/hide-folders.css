@@ -1,0 +1,12 @@
+/* Hide public, scripts, and skills folders from Obsidian File Explorer sidebar */
+.nav-folder:has(> .nav-folder-title[data-path="public"]),
+.nav-folder:has(> .nav-folder-title[data-path="scripts"]),
+.nav-folder:has(> .nav-folder-title[data-path="skills"]),
+.nav-folder-title[data-path="public"],
+.nav-folder-title[data-path="public"] + .nav-folder-children,
+.nav-folder-title[data-path="scripts"],
+.nav-folder-title[data-path="scripts"] + .nav-folder-children,
+.nav-folder-title[data-path="skills"],
+.nav-folder-title[data-path="skills"] + .nav-folder-children {
+    display: none !important;
+}
