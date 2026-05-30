@@ -1,34 +1,27 @@
-<!-- tags: golang -->
-# 🏥 Health Check — NestJS Terminus → Gin Health Endpoints
+<!-- tags: golang --> # 🏥 Kiểm tra sức khỏe — Điểm cuối NestJS → Điểm cuối sức khỏe Gin
 
-> **Library**: Liveness and readiness probes via custom Gin handlers checking DB, Redis, and external services.
+> **Thư viện**: Thăm dò hoạt động và mức độ sẵn sàng thông qua trình xử lý Gin tùy chỉnh kiểm tra DB, Redis và các dịch vụ bên ngoài.
 
-📅 Updated: 2026-04-19 · ⏱️ 8 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 8 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Kubernetes needs two probe types: **liveness** (is the process alive?) and **readiness** (can it accept traffic?). NestJS uses Terminus. In Gin, you write handler functions that ping each dependency and return a structured JSON response.
+Kubernetes cần hai loại thăm dò: **sự sống động** (quy trình có hoạt động không?) và **sẵn sàng** (nó có thể chấp nhận lưu lượng truy cập không?). NestJS sử dụng Terminus. Trong Gin, bạn viết các hàm xử lý ping từng phần phụ thuộc và trả về phản hồi JSON có cấu trúc.
 
-| NestJS                               | Gin / Go                          |
+| NestJS | Gin / Đi |
 | ------------------------------------ | --------------------------------- |
-| `TerminusModule`                     | Custom handler functions          |
-| `@HealthCheck()` decorator           | `r.GET("/health", healthHandler)` |
-| `HealthCheckService.check([])`       | Check each dependency manually    |
-| `TypeOrmHealthIndicator.pingCheck()` | `db.Ping()`                       |
-| `HttpHealthIndicator.pingCheck()`    | `http.Get(url)`                   |
+| `TerminusModule` | Chức năng xử lý tùy chỉnh |
+| `@HealthCheck()` trang trí | `r.GET("/health", healthHandler)` |
+| `HealthCheckService.check([])` | Kiểm tra từng phần phụ thuộc theo cách thủ công |
+| `TypeOrmHealthIndicator.pingCheck()` | `db.Ping()` |
+| `HttpHealthIndicator.pingCheck()` | `http.Get(url)` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Liveness must be instant.** Never put DB checks in liveness — a slow DB causes unnecessary pod restarts.
-- **Readiness checks all dependencies.** Return 503 if any critical dependency (DB, Redis, queue) is unreachable.
+- **Tính năng hoạt động phải ngay lập tức.** Không bao giờ đưa các bước kiểm tra DB vào tính năng hoạt động — DB chậm sẽ khiến nhóm khởi động lại không cần thiết.
+- **Tính sẵn sàng kiểm tra tất cả các phần phụ thuộc.** Trả về 503 nếu không thể truy cập được bất kỳ phần phụ thuộc quan trọng nào (DB, Redis, hàng đợi).
 
-## 2. VISUAL
-
-![Health check probes — liveness vs readiness with parallel dependency checks](./images/02-health-check.png)
-
-*Figure: Liveness (/health/live) = process alive, K8s restarts if fails. Readiness (/health/ready) = can serve traffic, checks DB/Redis/external via errgroup, K8s removes from LB if fails.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Health check probes — liveness vs readiness with parallel dependency checks](./images/02-health-check.png) *Hình: Liveness (/health/live) = quá trình đang hoạt động, K8 sẽ khởi động lại nếu thất bại. Sẵn sàng (/health/ready) = có thể phục vụ lưu lượng truy cập, kiểm tra DB/Redis/external thông qua errgroup, K8 sẽ xóa khỏi LB nếu thất bại.*```mermaid
 flowchart TD
     K["Kubelet"] -->|"GET /livez"| A["Liveness Handler"]
     A --> B["200 alive"]
@@ -36,23 +29,15 @@ flowchart TD
     C --> D{"DB.Ping()\nRedis.Ping()"}
     D -->|"all ok"| E["200 ok + checks"]
     D -->|"any fail"| F["503 degraded"]
-```
+```*Hình: Đầu dò Kubelet — hoạt động trở lại ngay lập tức; mức độ sẵn sàng kiểm tra tất cả các phần phụ thuộc và trả về 503 nếu có phần phụ thuộc nào bị hỏng.*
 
-*Figure: Kubelet probes — liveness returns immediately; readiness checks all dependencies and returns 503 if any are down.*
-
-### Probe Types
-
-```text
+### Các loại đầu dò```text
 /livez    → always 200 (process is alive)
 /readyz   → 200 if DB + Redis + queue reachable, 503 otherwise
 /health   → comprehensive status with per-dependency results
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Simple Health Check
-
-```go
+### Ví dụ 1: Cơ bản — Kiểm tra sức khỏe đơn giản```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Simple health check: return 200 with uptime.
     // Mount at /health or /livez.
@@ -79,11 +64,7 @@ flowchart TD
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — Comprehensive Health Check
-
-```go
+```### Ví dụ 2: Trung cấp — Kiểm tra sức khỏe toàn diện```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Comprehensive health checker: checks DB + Redis.
     // Returns per-dependency status with duration.
@@ -178,29 +159,27 @@ flowchart TD
     func (h *Checker) ReadinessHandler() gin.HandlerFunc {
         return h.Handler(time.Now()) 
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Putting DB checks in the liveness probe | Slow DB query causes Kubelet to restart healthy pods | Use instant liveness; put dependency checks in readiness only |
-| 2 | 🟡 Common | Health check without timeout on dependency pings | One slow dependency blocks the entire health response | Use `context.WithTimeout(ctx, 5*time.Second)` |
+| 1 | 🔴 Gây tử vong | Đưa kiểm tra DB vào thăm dò độ sống | Truy vấn DB chậm khiến Kubelet khởi động lại các nhóm khỏe mạnh | Sử dụng sự sống động ngay lập tức; chỉ đặt kiểm tra phụ thuộc ở trạng thái sẵn sàng |
+| 2 | 🟡 Chung | Kiểm tra tình trạng mà không hết thời gian chờ trên ping phụ thuộc | Một sự phụ thuộc chậm sẽ chặn toàn bộ phản ứng về sức khỏe | Sử dụng `context.WithTimeout(ctx, 5*time.Second)` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Kubernetes Probes | [kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) |
+| Đầu dò Kubernetes | [kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/](https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| CQRS Pattern | When read and write loads diverge | Separate read/write models allow independent scaling | [./03-graceful-cqrs.md](./03-graceful-cqrs.md) |
+| Mẫu CQRS | Khi đọc và ghi tải phân kỳ | Các mô hình đọc/ghi riêng biệt cho phép chia tỷ lệ độc lập | [./03-graceful-cqrs.md](./03-graceful-cqrs.md) |

@@ -1,59 +1,52 @@
-<!-- tags: golang, comparable, generics, constraints -->
-# 🔑 Comparable — The Gatekeeper for == and Map Keys
+<!-- tags: golang, comparable, generics, constraints --> # 🔑 Comparable — Người gác cổng cho các phím == và Map > Hiểu comparable : loại nào đủ điều kiện, bẫy interface và mẫu generic thực tế
 
-> Understanding comparable: which types qualify, the interface trap, and practical generic patterns
+📅 Đã tạo: 23-04-2026 · 🔄 Đã cập nhật: 23-04-2026 · ⏱️ 12 phút đọc
 
-📅 Created: 2026-04-23 · 🔄 Updated: 2026-04-23 · ⏱️ 12 min read
-
-| Aspect            | Detail                                                                      |
-| ----------------- | --------------------------------------------------------------------------- |
-| **Version**       | Go 1.18+ (refined in Go 1.20)                                              |
-| **Use case**      | Map keys, generic `==` operations, Set/Cache/Index patterns                 |
-| **Key insight**   | `comparable` is a compile-time gate — but interfaces can bypass it and panic |
-| **Go philosophy** | Explicit constraints over implicit runtime checks                           |
+| Khía cạnh | Chi tiết |
+| ----------------- | ----------------------------------------------------------------------------- |
+| **Phiên bản** | Go 1.18+ (được tinh chỉnh trong Go 1.20) |
+| **Trường hợp sử dụng** | Phím Map , thao tác generic `==` , mẫu Set/Cache/Index |
+| **Thông tin chi tiết quan trọng** | `comparable` là một cổng biên dịch- time - nhưng interfaces có thể bỏ qua nó và panic |
+| ** Go triết lý** | Ràng buộc rõ ràng đối với kiểm tra runtime ngầm định |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Your first generic `Contains[T any]` function — you try `if v == target` and the compiler screams: *"cannot compare v == target (T is not comparable)"*. You change `any` to `comparable` and it compiles. Then a colleague passes `any` holding a `[]int` and the program panics at runtime. Welcome to `comparable`.
+Hàm generic `Contains[T any]` đầu tiên của bạn — bạn thử `if v == target` và trình biên dịch hét lên: *"không thể so sánh v == target (T không phải là comparable )"*. Bạn thay đổi `any` thành `comparable` và nó sẽ biên dịch. Sau đó, một đồng nghiệp vượt qua `any` đang cầm `[]int` và chương trình hoảng sợ tại runtime . Chào mừng đến với `comparable` .
 
-> *You need a generic Set, a generic Cache, a generic `Contains` function — any pattern that requires `==` on a type parameter. The `any` constraint is too broad: it accepts slices, maps, and functions — none of which support `==`. The `cmp.Ordered` constraint is too narrow: it excludes `bool`, `struct`, `*T`, and `chan`. `comparable` sits precisely in the middle — it admits exactly the types that the `==` operator accepts.*
+> *Bạn cần một Bộ generic , một bộ đệm generic , một hàm generic `Contains` — mẫu any yêu cầu `==` trên một tham số loại. Ràng buộc `any` quá rộng: nó chấp nhận slices , maps và các hàm - không có hàm nào hỗ trợ `==` . Ràng buộc `cmp.Ordered` quá hẹp: nó loại trừ `bool` , `struct` , `*T` và `chan` . `comparable` nằm chính xác ở giữa — nó thừa nhận chính xác các loại mà toán tử `==` chấp nhận.*
 >
-> *But there is a trap. Since Go 1.20, `any` (and all interfaces) satisfy `comparable` at compile time. If the dynamic value inside the interface is a slice or map, the `==` comparison panics at runtime. This paradox — compile-time safety with a runtime escape hatch — is the single most important subtlety of `comparable`.*
+> *Nhưng có một cái bẫy. Vì Go 1.20, `any` (và tất cả interfaces ) thỏa mãn `comparable` khi biên dịch time . Nếu giá trị động bên trong interface là slice hoặc map , thì so sánh `==` sẽ hoảng loạn ở runtime . Nghịch lý này — biên dịch- time an toàn với một cửa thoát hiểm runtime — là điểm tinh tế quan trọng nhất của `comparable` .*
 
-### What `comparable` Means
+### `comparable` nghĩa là gì `comparable` là **ràng buộc interface tích hợp**. Nó giới hạn tham số loại đối với các loại hỗ trợ `==` và `!=` .
 
-`comparable` is a **built-in interface constraint**. It restricts a type parameter to types that support `==` and `!=`.
+| Ràng buộc | Được phép khai thác | Package | Các loại ví dụ |
+| -------------- | -------------- | --------- | ---------------------------------- |
+| `any` | Không có (không có toán tử) | dựng sẵn | Mọi thứ bao gồm slices , funcs |
+| `comparable` | `==` , `!=` | dựng sẵn | int, chuỗi, struct , *T, [N]T |
+| `cmp.Ordered` | `==` , `!=` , `<` , `>` , `<=` , `>=` | `cmp` | int, float64, chuỗi (không có bool, struct ) |
 
-| Constraint     | Operators Allowed       | Package   | Example Types                      |
-| -------------- | ----------------------- | --------- | ---------------------------------- |
-| `any`          | None (no operators)     | builtin   | Everything including slices, funcs |
-| `comparable`   | `==`, `!=`              | builtin   | int, string, struct, *T, [N]T     |
-| `cmp.Ordered`  | `==`, `!=`, `<`, `>`, `<=`, `>=` | `cmp` | int, float64, string (no bool, struct) |
+### Comparable Loại Danh sách
 
-### Comparable Type Roster
+| Loại | Comparable ? | Tại sao |
+| ----------------------------- | ----------- | ------------------------------------------------ |
+| `int` , `int8` ... `int64` | ✅ | Giá trị bình đẳng |
+| `uint` , `byte` , `rune` | ✅ | Giá trị bình đẳng |
+| `float32` , `float64` | ✅ | ⚠️ `NaN != NaN` (IEEE 754) |
+| `complex64` , `complex128` | ✅ | Thực + ảo so sánh |
+| `bool` | ✅ | `true == true` , `false == false` |
+| `string` | ✅ | So sánh từng byte |
+| `*T` ( pointers ) | ✅ | So sánh **địa chỉ**, không phải giá trị trỏ tới |
+| `chan T` | ✅ | So sánh danh tính channel |
+| `[N]T` ( arrays ) | ✅ | Từng phần tử, chỉ khi `T` là comparable |
+| `struct{...}` | ✅ | Theo từng trường, chỉ khi TẤT CẢ các trường là comparable |
+| `[]T` ( slices ) | ❌ | Chỉ có thể so sánh với `nil` |
+| `map[K]V` | ❌ | Chỉ có thể so sánh với `nil` |
+| `func(...)` | ❌ | Chỉ có thể so sánh với `nil` |
+| `interface{}` / `any` | ⚠️ Đặc biệt | Biên dịch, nhưng có thể panic tại runtime |
 
-| Type                        | Comparable? | Why                                             |
-| --------------------------- | ----------- | ------------------------------------------------ |
-| `int`, `int8`...`int64`     | ✅           | Value equality                                   |
-| `uint`, `byte`, `rune`      | ✅           | Value equality                                   |
-| `float32`, `float64`        | ✅           | ⚠️ `NaN != NaN` (IEEE 754)                       |
-| `complex64`, `complex128`   | ✅           | Real + imaginary compared                        |
-| `bool`                      | ✅           | `true == true`, `false == false`                 |
-| `string`                    | ✅           | Byte-by-byte comparison                          |
-| `*T` (pointers)             | ✅           | Compares **address**, not pointed-to value       |
-| `chan T`                     | ✅           | Compares channel identity                        |
-| `[N]T` (arrays)             | ✅           | Element-by-element, only if `T` is comparable    |
-| `struct{...}`               | ✅           | Field-by-field, only if ALL fields are comparable |
-| `[]T` (slices)              | ❌           | Can only compare to `nil`                        |
-| `map[K]V`                   | ❌           | Can only compare to `nil`                        |
-| `func(...)`                 | ❌           | Can only compare to `nil`                        |
-| `interface{}` / `any`       | ⚠️ Special  | Compiles, but may panic at runtime               |
-
-### The Constraint Hierarchy
-
-```text
+### Hệ thống phân cấp ràng buộc```text
 ┌─────────────────────────────────────────────────────────┐
 │  any                                                     │
 │  Accepts everything. Cannot use ==, <, > on T.           │
@@ -69,35 +62,27 @@ Your first generic `Contains[T any]` function — you try `if v == target` and t
 │  │  └─────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────┘
-```
-
-The definitions are set. The visual below maps these rules into a decision flow to prevent choosing the wrong constraint.
+```Các định nghĩa được thiết lập. Hình ảnh trực quan bên dưới maps các quy tắc này thành luồng quyết định nhằm ngăn chặn việc chọn sai ràng buộc.
 
 ---
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The main risk with `comparable` is not syntax — it is choosing `any` when you meant `comparable`, or trusting `comparable` when the value hides behind an interface. The decision map below forces that check.
+Rủi ro chính với `comparable` không phải là cú pháp - đó là việc chọn `any` khi ý bạn là `comparable` hoặc tin tưởng `comparable` khi giá trị ẩn sau interface . Quyết định map bên dưới buộc phải kiểm tra. ![Comparable decision map](./images/04-comparable-decision-map.png) *Hình: Quyết định comparable map phân loại Go thành bốn vùng: an toàn comparable , không bao giờ comparable , bẫy interface và hệ thống phân cấp ràng buộc. Vùng 3 ( Interface Bẫy) là nguồn gốc của hầu hết các cuộc khủng hoảng sản xuất.*
 
-![Comparable decision map](./images/04-comparable-decision-map.png)
-
-*Figure: The comparable decision map classifies Go types into four zones: safe comparable, never comparable, the interface trap, and the constraint hierarchy. Zone 3 (Interface Trap) is the source of most production panics.*
-
-The visual is established. The code section below demonstrates each zone in action — from basic equality checks to the interface trap to production-grade generic patterns.
+Hình ảnh được thiết lập. Phần mã bên dưới minh họa hoạt động của từng vùng — từ kiểm tra đẳng thức cơ bản đến bẫy interface đến mẫu generic cấp sản xuất.
 
 ---
 
-## 3. CODE
+## 3. MÃ
 
-With **Comparable — The Gatekeeper for == and Map Keys**, the rules and zones are defined. Now let us see how each one behaves in actual code — starting from basic generic equality, through the interface trap, to full production patterns.
+Với ** Comparable — Người gác cổng cho các phím == và Map **, các quy tắc và vùng được xác định. Bây giờ chúng ta hãy xem cách mỗi cái hoạt động trong mã thực tế - bắt đầu từ đẳng thức generic cơ bản, thông qua bẫy interface , đến các mẫu sản xuất đầy đủ.
 
-### Example 1: Basic — Why `comparable` Exists
+### Ví dụ 1: Cơ bản — Tại sao `comparable` Tồn tại
 
-> **Goal**: Demonstrate the compiler's enforcement of `comparable`
-> **Requires**: Go 1.18+
-> **Outcome**: Understanding when `==` is allowed in generic code
-
-```go
+> **Mục tiêu**: Chứng minh việc thực thi `comparable` của trình biên dịch 
+> **Yêu cầu**: Go 1.18+
+> **Kết quả**: Hiểu khi nào `==` được phép trong mã generic```go
 package main
 
 import "fmt"
@@ -147,19 +132,11 @@ func main() {
     // ❌ Compile error — slices are not comparable:
     // Contains([][]int{{1}, {2}}, []int{1})
 }
-```
+```> **Takeaway**: `comparable` là ràng buộc tối thiểu cho `==` . Không có nó, trình biên dịch sẽ từ chối so sánh các tham số kiểu. Với nó, bạn có thể xây dựng mẫu `Contains` , `Index` , `Deduplicate` , `Set` , `Cache` — any yêu cầu kiểm tra sự bằng nhau.
 
-> **Takeaway**: `comparable` is the minimum constraint for `==`. Without it, the compiler refuses to compare type parameters. With it, you can build `Contains`, `Index`, `Deduplicate`, `Set`, `Cache` — any pattern that requires equality checking.
+Bình đẳng cơ bản được bảo hiểm. Ví dụ tiếp theo cho thấy khía cạnh nguy hiểm nhất: điều gì xảy ra khi interfaces gặp `comparable` .
 
-Basic equality is covered. The next example exposes the most dangerous edge: what happens when interfaces meet `comparable`.
-
-### Example 2: Intermediate — The Interface Trap
-
-> **Goal**: Demonstrate the compile-time vs runtime gap
-> **Requires**: Understanding of Go interfaces
-> **Outcome**: Knowing when `comparable` can still panic
-
-```go
+### Ví dụ 2: Trung cấp — Bẫy Interface > **Mục tiêu**: Thể hiện khoảng cách biên dịch- time so với runtime > **Yêu cầu**: Hiểu biết về Go interfaces > **Kết quả**: Biết khi nào `comparable` vẫn có thể panic```go
 package main
 
 import "fmt"
@@ -213,21 +190,16 @@ func safeEqual[T comparable](a, b T) (result bool) {
     }()
     return a == b
 }
-```
+```> **Tại sao Go cho phép điều này?** Trước Go 1.20, `any` KHÔNG đáp ứng `comparable` — phiên bản này an toàn nhưng quá hạn chế. Bạn không thể sử dụng `map[any]int` trong mã generic . Go 1.20 đã nới lỏng quy tắc vì những lý do thực tế, chấp nhận đánh đổi những cơn hoảng loạn runtime có thể xảy ra.
 
-> **Why does Go allow this?** Before Go 1.20, `any` did NOT satisfy `comparable` — which was safe but too restrictive. You couldn't use `map[any]int` in generic code. Go 1.20 relaxed the rule for practical reasons, accepting the trade-off of possible runtime panics.
+> **Bài học rút ra**: Ràng buộc `comparable` đảm bảo an toàn biên dịch- time cho các loại bê tông. Nhưng khi loại cụ thể là `any` (hoặc any khác interface ), mức bảo đảm sẽ hạ cấp xuống "biên dịch, nhưng có thể panic ." Phòng thủ bằng các loại cụ thể hoặc `recover` .
 
-> **Takeaway**: The `comparable` constraint guarantees compile-time safety for concrete types. But when the concrete type is `any` (or any other interface), the guarantee downgrades to "compiles, but may panic." Defend with concrete types or `recover`.
+Bẫy interface được hiểu rõ. Ví dụ tiếp theo đặt `comparable` hoạt động trong cấu trúc dữ liệu generic cấp sản xuất.
 
-The interface trap is understood. The next example puts `comparable` to work in production-grade generic data structures.
+### Ví dụ 3: Nâng cao — Mẫu sản xuất
 
-### Example 3: Advanced — Production Patterns
-
-> **Goal**: Generic Set, Cache, Frequency, Deduplicate, GroupBy
-> **Requires**: Generics + comparable constraint
-> **Outcome**: Reusable, type-safe utility library
-
-```go
+> **Mục tiêu**: Generic Đặt, Bộ nhớ đệm, Tần suất, Loại bỏ trùng lặp, GroupBy
+> **Yêu cầu**: ràng buộc Generics + comparable > **Kết quả**: Thư viện tiện ích an toàn, có thể tái sử dụng```go
 package main
 
 import (
@@ -405,90 +377,74 @@ func main() {
     label, _ := grid.Get(Coord{1, 2})
     fmt.Println("Grid:", label)  // "point A"
 }
-```
+```> **Tại sao `Set` yêu cầu `comparable` ?** Bởi vì `Set` được hỗ trợ bởi `map[T]struct{}` , và ** map các phím phải là comparable **. Đây là kết nối cơ bản: `comparable` là ràng buộc cho phép các phím map và các phím map cho phép Đặt, Bộ nhớ đệm, Tần suất và Loại bỏ trùng lặp.
 
-> **Why does `Set` require `comparable`?** Because `Set` is backed by `map[T]struct{}`, and **map keys must be comparable**. This is the fundamental connection: `comparable` is the constraint that enables map keys, and map keys enable Set, Cache, Frequency, and Deduplicate.
-
-> **Takeaway**: `comparable` is the foundation for Go's most common generic patterns. Set, Cache, GroupBy, Deduplicate, Frequency — all require the `==` operator and therefore the `comparable` constraint. The `K comparable, V any` pair is the most common generic signature in production Go code.
+> **Takeaway**: `comparable` là nền tảng cho các mẫu Go phổ biến nhất của generic . Set, Cache, GroupBy, Dedulicate, Frequency - tất cả đều yêu cầu toán tử `==` và do đó có ràng buộc `comparable` . Cặp `K comparable, V any` là cặp generic signature phổ biến nhất trong mã Go sản xuất.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The mechanics of **Comparable — The Gatekeeper for == and Map Keys** are clear. What remains is avoiding the traps that compile successfully but fail at runtime or produce incorrect results.
+Cơ chế của ** Comparable — Người gác cổng cho các phím == và Map ** rất rõ ràng. Điều còn lại là tránh các bẫy biên dịch thành công nhưng thất bại ở runtime hoặc tạo ra kết quả không chính xác.
 
-| # | Severity | Error | Consequence | Fix |
-|---|----------|-------|-------------|-----|
-| 1 | 🔴 Fatal | Passing interface holding non-comparable value | Runtime panic: `comparing uncomparable type []int` | Only pass concrete comparable types to `comparable` generics; use `recover` at boundaries |
-| 2 | 🔴 Fatal | `NaN != NaN` in float comparisons | Set/Map cannot find NaN; duplicates accumulate | Filter NaN with `math.IsNaN()` before inserting into Set/Map |
-| 3 | 🟡 Common | Pointer equality checks address, not value | `&Point{1,2} != &Point{1,2}` — same data, different pointers | Dereference and compare the value, or use the value type directly |
-| 4 | 🟡 Common | Adding a `[]byte` or `map` field to a struct | Entire struct becomes non-comparable — breaks all generic uses | Use `[N]byte` (array) instead, or redesign |
-| 5 | 🟡 Common | Confusing `comparable` with `cmp.Ordered` | `comparable` allows `==` only — no `<`, `>`, sorting | Use `cmp.Ordered` when you need ordering operations |
-| 6 | 🔵 Minor | `comparable` does not include `bool` in `cmp.Ordered` | Cannot sort booleans | `bool` satisfies `comparable` but not `cmp.Ordered` — this is correct |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|-------|-------------|------|
+| 1 | 🔴 Gây tử vong | Truyền interface giữ giá trị không phải comparable | Runtime panic : `comparing uncomparable type []int` | Chỉ chuyển các loại bê tông comparable sang `comparable` generics ; sử dụng `recover` tại ranh giới |
+| 2 | 🔴 Gây tử vong | `NaN != NaN` trong so sánh float | Set/ Map không thể tìm thấy NaN; tích lũy trùng lặp | Lọc NaN bằng `math.IsNaN()` trước khi chèn vào Set/ Map |
+| 3 | 🟡 Chung | Pointer địa chỉ kiểm tra đẳng thức, không phải giá trị | `&Point{1,2} != &Point{1,2}` — cùng một dữ liệu, khác nhau pointers | Dereference và so sánh giá trị hoặc sử dụng trực tiếp loại giá trị |
+| 4 | 🟡 Chung | Thêm trường `[]byte` hoặc `map` vào struct | Toàn bộ struct trở thành không- comparable — phá vỡ tất cả các lần sử dụng generic | Thay vào đó, hãy sử dụng `[N]byte` ( array ) hoặc thiết kế lại |
+| 5 | 🟡 Chung | Khó hiểu `comparable` với `cmp.Ordered` | `comparable` chỉ cho phép `==` — không `<` , `>` , sắp xếp | Sử dụng `cmp.Ordered` khi bạn cần thao tác đặt hàng |
+| 6 | 🔵 Nhỏ | `comparable` không bao gồm `bool` trong `cmp.Ordered` | Không thể sắp xếp booleans | `bool` thỏa mãn `comparable` nhưng không thỏa mãn `cmp.Ordered` - điều này đúng |
 
-### 🔴 Pitfall #1 — The Interface Trap
-
-This is the most dangerous pitfall. Since Go 1.20, `any` satisfies `comparable` at compile time. But if the runtime value inside the interface is a slice, map, or function — the `==` operator panics.
-
-```go
+### 🔴 Cạm bẫy #1 — Cái bẫy Interface Đây chính là cạm bẫy nguy hiểm nhất. Vì Go 1.20, `any` đáp ứng `comparable` lúc biên dịch time . Nhưng nếu giá trị runtime bên trong interface là một slice , map hoặc hàm — toán tử `==` sẽ hoảng sợ.```go
 // This code COMPILES but PANICS:
 var a, b any = []int{1, 2}, []int{1, 2}
 fmt.Println(a == b)  // 💥 panic: comparing uncomparable type []int
 
 // Defense: never pass interface values to comparable generics
 // unless you control the dynamic type.
-```
+```**Quy tắc**: Coi `Equal [any](x, y) ` là "biên dịch- time không an toàn" — xem lại mọi trang web cuộc gọi để đảm bảo các loại động là comparable ​​.
 
-**Rule**: Treat `Equal[any](x, y)` as "compile-time unsafe" — review every call site to ensure the dynamic types are comparable.
-
-### 🔴 Pitfall #2 — NaN Breaks Everything
-
-```go
+### 🔴 Cạm bẫy #2 — NaN phá vỡ mọi thứ```go
 nan := math.NaN()
 set := NewSet(nan, nan, nan)
 fmt.Println(set.Len())   // 3 — each NaN is "different" (NaN != NaN)
 fmt.Println(set.Has(nan)) // false — can never find NaN
-```
+```**Quy tắc**: Lọc các giá trị `NaN` trước khi chèn vào cấu trúc dữ liệu dựa trên any `comparable` -.
 
-**Rule**: Filter `NaN` values before inserting into any `comparable`-based data structure.
-
-### 🟡 Pitfall #3 — Pointer Equality ≠ Value Equality
-
-```go
+### 🟡 Cạm bẫy #3 — Pointer ​​Bình đẳng ≠ Bình đẳng về giá trị```go
 a := &User{Name: "Alice"}
 b := &User{Name: "Alice"}
 fmt.Println(a == b)  // false — different memory addresses
 
 set := NewSet(a, b)
 fmt.Println(set.Len())  // 2 — two entries for "same" user
-```
-
-**Rule**: Use value types (not pointers) as Set/Map keys when you want value-based equality. If you must use pointers, create a custom key type (e.g., `UserID string`).
+```**Quy tắc**: Sử dụng loại giá trị (không phải pointers ) làm khóa Set/ Map khi bạn muốn sự bình đẳng dựa trên giá trị. Nếu bạn phải sử dụng pointers , hãy tạo loại khóa tùy chỉnh (ví dụ: `UserID string` ).
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | --- | --- | --- | --- |
-| Go Spec — Comparable | Official | [go.dev/ref/spec#Comparison_operators](https://go.dev/ref/spec#Comparison_operators) | Source of truth for which types support `==` |
-| Go 1.20 Release — Comparable change | Official | [go.dev/doc/go1.20#language](https://go.dev/doc/go1.20#language) | The spec change that made `any` satisfy `comparable` |
-| Go Blog — Intro to Generics | Official | [go.dev/blog/intro-generics](https://go.dev/blog/intro-generics) | Covers constraints including `comparable` |
-| cmp package | Official | [pkg.go.dev/cmp](https://pkg.go.dev/cmp) | `cmp.Ordered` — the ordering constraint built on top of `comparable` |
+| Go Thông số — Comparable | Chính thức | [go.dev/ref/spec#Comparison_operators](https://go.dev/ref/spec#Comparison_operators) | Nguồn sự thật về loại hỗ trợ `==` |
+| Go Bản phát hành 1.20 — Comparable thay đổi | Chính thức | [go.dev/doc/go1.20#language](https://go.dev/doc/go1.20#language) | Sự thay đổi thông số kỹ thuật khiến `any` thỏa mãn `comparable` |
+| Go Blog — Giới thiệu về Generics | Chính thức | [go.dev/blog/intro-generics](https://go.dev/blog/intro-generics) | Bao gồm các ràng buộc bao gồm `comparable` |
+| cmp package | Chính thức | [pkg.go.dev/cmp](https://pkg.go.dev/cmp) | `cmp.Ordered` — ràng buộc đặt hàng được xây dựng dựa trên `comparable` |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Comparable — The Gatekeeper for == and Map Keys** is clear. The branches below connect `comparable` to its adjacent topics.
+Cốt lõi của ** Comparable — Người gác cổng cho các phím == và Map ** rất rõ ràng. Các nhánh bên dưới kết nối `comparable` với các chủ đề liền kề của nó.
 
-| Extension | When to Read Next | Rationale | File/Link |
+| Gia hạn | Khi nào nên đọc tiếp | Cơ sở lý luận | Tệp/Liên kết |
 | --- | --- | --- | --- |
-| Generics — Type Parameters | When you need the full generics picture | `comparable` is one constraint within the broader generics system | [02-generics.md](./02-generics.md) |
-| Type Assertion & Embedding | When interfaces interact with comparable | The interface trap lives at the intersection of interfaces and comparable | [03-type-assertion-embedding.md](./03-type-assertion-embedding.md) |
-| Slices, Maps, Strings | When you need to understand why slices aren't comparable | Slice internals explain why `==` is impossible for slices | [01-slices-maps-strings.md](./01-slices-maps-strings.md) |
-| cmp package | When you need ordering, not just equality | `cmp.Ordered` extends `comparable` with `<`, `>` operators | [pkg.go.dev/cmp](https://pkg.go.dev/cmp) |
+| Generics — Tham số loại | Khi bạn cần ảnh generics đầy đủ | `comparable` là một hạn chế trong hệ thống generics rộng hơn | [02-generics.md](./02-generics.md) |
+| Type Assertion & Embedding | Khi interfaces tương tác với comparable | Bẫy interface tồn tại ở giao điểm của interfaces và comparable | [03-type-assertion-embedding.md](./03-type-assertion-embedding.md) |
+| Slices , Maps , Chuỗi | Khi bạn cần hiểu tại sao slices không comparable | Slice nội bộ giải thích tại sao `==` là không thể đối với slices | [01-slices-maps-strings.md](./01-slices-maps-strings.md) |
+| cmp package | Khi bạn cần đặt hàng, không chỉ bình đẳng | `cmp.Ordered` mở rộng `comparable` với các toán tử `<` , `>` | [pkg.go.dev/cmp](https://pkg.go.dev/cmp) |
 
 ---
 
-**Sequential Navigation**: [← Type Assertion & Embedding](./03-type-assertion-embedding.md) · [→ Generics](./02-generics.md)
+**Điều hướng tuần tự**: [← Type Assertion & Embedding](./03-type-assertion-embedding.md) · [→ Generics](./02-generics.md)

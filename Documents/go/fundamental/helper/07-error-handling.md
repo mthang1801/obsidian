@@ -1,52 +1,43 @@
-<!-- tags: golang, error-handling -->
-# ⚠️ Error Handling — TS try/catch → Go error patterns
+<!-- tags: golang, error-handling --> # ⚠️ Xử lý lỗi - TS try/catch → Go mẫu lỗi
 
-> TypeScript wraps entire call stacks in one `try/catch`. Go returns errors as values — every function call gets its own `if err != nil` check. This is verbose by design: errors are handled at the exact point they occur, not at some distant catch block.
+> TypeScript gói toàn bộ ngăn xếp cuộc gọi trong một `try/catch` . Go trả về lỗi dưới dạng giá trị - mọi lệnh gọi hàm đều có kiểm tra `if err != nil` riêng. Đây là chi tiết theo thiết kế: lỗi được xử lý tại thời điểm chính xác mà chúng xảy ra, không phải ở một khối bắt xa nào đó.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 16 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A frontend engineer replaces `throw new Error("invalid")` with `panic("invalid")` and wraps the caller in `defer/recover`. The code works in tests. In production, the panic kills the entire goroutine stack — including unrelated concurrent work sharing that goroutine.
+Một kỹ sư giao diện người dùng thay thế `throw new Error("invalid")` bằng `panic("invalid")` và gói người gọi trong `defer/recover` . Mã hoạt động trong các thử nghiệm. Trong quá trình sản xuất, panic loại bỏ toàn bộ goroutine stack - bao gồm cả việc chia sẻ công việc đồng thời không liên quan goroutine . Go xử lý lỗi dưới dạng **giá trị** chứ không phải ngoại lệ. Các hàm trả về bộ dữ liệu `(T, error)` . Người gọi kiểm tra `err != nil` ngay lập tức — không tháo stack , không có khối bắt ở xa. `panic` được dành riêng cho các lỗi không thể khôi phục ( nil pointer , trạng thái không thể khắc phục) sẽ làm hỏng chương trình. Lỗi thường xuyên (không tìm thấy tệp, đầu vào không hợp lệ, thời gian chờ mạng) trả về lỗi.
 
-Go treats errors as **values**, not exceptions. Functions return `(T, error)` tuples. The caller checks `err != nil` immediately — no stack unwinding, no distant catch blocks. `panic` is reserved for unrecoverable bugs (nil pointer, impossible state) that should crash the program. Routine failures (file not found, invalid input, network timeout) return errors.
+### 1.1 Các kiểu bất biến và lỗi
 
-### 1.1 Invariants & Failure Modes
-
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **`(T, error)` returns** | Every fallible function returns an error. The caller checks `err != nil` before using `T`. |
-| **`errors.Is` / `errors.As`** | `Is` matches sentinel values through wrapped chains. `As` extracts typed errors for field access. |
+| ** `(T, error)` trả về** | Mọi hàm có thể sai đều trả về một lỗi. Người gọi kiểm tra `err != nil` trước khi sử dụng `T` . |
+| ** `errors.Is` / `errors.As` ** | `Is` khớp với các giá trị trọng điểm thông qua các chuỗi được bao bọc. `As` trích xuất các lỗi đánh máy để truy cập trường. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Never use `panic` for control flow** | `panic` unwinds the entire goroutine stack. Use it only for programmer bugs, not runtime errors. |
-| **Wrap with `%w`, not `%v`** | `fmt.Errorf("context: %w", err)` preserves the error chain. `%v` converts to a string — `errors.Is` stops working. |
+| **Không bao giờ sử dụng `panic` cho luồng điều khiển** | `panic` giải phóng toàn bộ goroutine stack . Chỉ sử dụng nó cho các lỗi lập trình viên, không sử dụng lỗi runtime . |
+| **Gói bằng `%w` , không phải `%v` ** | `fmt.Errorf("context: %w", err)` bảo tồn chuỗi lỗi. `%v` chuyển đổi thành một chuỗi — `errors.Is` ngừng hoạt động. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The lost chain:** You wrap an error with `fmt.Errorf("failed: %v", err)`. The `%v` verb formats the error as a string and discards the original. Downstream `errors.Is(err, ErrNotFound)` returns `false` because the chain is broken.
-- **The ignored tuple:** You write `result, _ := Execute()`. If `Execute` returns an error, `result` is a zero value. You insert an empty record into the database without noticing.
+- **Chuỗi bị mất:** Bạn gói một lỗi bằng `fmt.Errorf("failed: %v", err)` . Động từ `%v` định dạng lỗi dưới dạng chuỗi và loại bỏ lỗi gốc. Hạ lưu `errors.Is(err, ErrNotFound)` trả về `false` vì chuỗi bị hỏng.
+- **Bộ dữ liệu bị bỏ qua:** Bạn viết `result, _ := Execute()` . Nếu `Execute` trả về lỗi, `result` là giá trị bằng 0. Bạn chèn một bản ghi trống vào database mà không để ý.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-JavaScript catches errors at a distance. Go catches them at the source. The visual compares both flows.
+JavaScript bắt lỗi từ xa. Go bắt chúng tại nguồn. Hình ảnh so sánh cả hai luồng. ![Error Flow Mapping](./images/07-error-handling-compare.png) *Hình: JS `try/catch` kết thúc nhiều lệnh gọi. Go kiểm tra `err != nil` sau mỗi cuộc gọi. Mẫu Go dài dòng nhưng xác định chính xác thao tác nào không thành công.*
 
-![Error Flow Mapping](./images/07-error-handling-compare.png)
+## 3. MÃ
 
-*Figure: JS `try/catch` wraps multiple calls. Go checks `err != nil` after each call. The Go pattern is verbose but pinpoints exactly which operation failed.*
+Với triết lý lỗi đã được thiết lập, mã bên dưới thể hiện ba mẫu: bao gồm các lỗi trọng điểm, các loại lỗi miền tùy chỉnh và tổng hợp nhiều lỗi với `errors.Join` .
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Gói lỗi trọng điểm
 
-With the error philosophy established, the code below demonstrates three patterns: wrapping sentinel errors, custom domain error types, and multi-error aggregation with `errors.Join`.
-
-### Example 1: Basic — Wrapping sentinel errors
-
-> **Goal**: Return domain-specific errors that callers can match with `errors.Is`.
-> **Approach**: Define sentinels with `errors.New`. Wrap with `fmt.Errorf("context: %w", err)` to add context while preserving the chain.
-> **Complexity**: O(1) per wrap/check.
-
-```go
+> **Mục tiêu**: Trả về các lỗi cụ thể theo miền mà người gọi có thể khớp với `errors.Is` .
+> **Cách tiếp cận**: Xác định trọng điểm bằng `errors.New` . Gói bằng `fmt.Errorf("context: %w", err)` để thêm ngữ cảnh trong khi bảo toàn chuỗi.
+> **Độ phức tạp**: O(1) mỗi gói/kiểm tra.```go
 // sentinel_wrapping.go
 package errors
 
@@ -80,19 +71,15 @@ func ExecuteLookup() {
 		fmt.Println("Unhandled error:", err)
 	}
 }
-```
-
-> **Takeaway**: `%w` is the only format verb that preserves the error chain. Replace every `%v` in error wrapping with `%w`.
+```> **Takeaway**: `%w` là động từ format duy nhất giữ lại chuỗi lỗi. Thay thế mọi `%v` trong error wrapping bằng `%w` .
 
 ---
 
-### Example 2: Intermediate — Custom domain error types
+### Ví dụ 2: Trung cấp — Các loại lỗi miền tùy chỉnh
 
-> **Goal**: Attach structured metadata (HTTP status code, domain message) to errors for API responses.
-> **Approach**: Implement `error` and `Unwrap()` interfaces on a struct. Use `errors.As` to extract fields.
-> **Complexity**: O(1) per type assertion.
-
-```go
+> **Mục tiêu**: Đính kèm siêu dữ liệu có cấu trúc (mã trạng thái HTTP, thông báo tên miền) vào các lỗi về phản hồi API.
+> **Phương pháp tiếp cận**: Triển khai `error` và `Unwrap()` interfaces trên struct . Sử dụng `errors.As` để trích xuất các trường.
+> **Độ phức tạp**: O(1) trên type assertion .```go
 // custom_domains.go
 package errors
 
@@ -127,19 +114,15 @@ func ExtractDomain(err error) {
 		return
 	}
 }
-```
-
-> **Takeaway**: `errors.As` walks the error chain and extracts the first match. `Unwrap()` enables this traversal. Without `Unwrap`, wrapped errors are opaque to `errors.As`.
+```> **Takeaway**: `errors.As` duyệt chuỗi lỗi và trích xuất kết quả khớp đầu tiên. `Unwrap()` cho phép việc truyền tải này. Nếu không có `Unwrap` , các lỗi được gói sẽ mờ đối với `errors.As` .
 
 ---
 
-### Example 3: Advanced — Multi-error aggregation
+### Ví dụ 3: Nâng cao — Tập hợp nhiều lỗi
 
-> **Goal**: Collect all validation failures instead of stopping at the first one, like a form validator.
-> **Approach**: Accumulate errors in a slice and combine with `errors.Join` (Go 1.20+). Each individual error is still matchable with `errors.Is`.
-> **Complexity**: O(N) — one error per validation rule.
-
-```go
+> **Mục tiêu**: Thu thập tất cả các lỗi xác thực thay vì dừng ở lỗi đầu tiên, giống như trình xác thực biểu mẫu.
+> **Phương pháp tiếp cận**: Tích lũy lỗi trong slice và kết hợp với `errors.Join` ( Go 1.20+). Mỗi lỗi riêng lẻ vẫn có thể khớp với `errors.Is` .
+> **Độ phức tạp**: O(N) — một lỗi cho mỗi quy tắc xác thực.```go
 // aggregate_joins.go
 package errors
 
@@ -172,30 +155,28 @@ func VerifyAggregates() {
 		fmt.Println("Validation errors:", err)
 	}
 }
-```
+```> **Takeaway**: `errors.Join` giữ nguyên từng lỗi riêng lẻ — `errors.Is(joined, ErrSpecific)` hoạt động nếu lỗi phụ any khớp. Đây là Go tương đương với việc thu thập các lỗi xác thực trong array .
 
-> **Takeaway**: `errors.Join` preserves each error individually — `errors.Is(joined, ErrSpecific)` works if any sub-error matches. This is the Go equivalent of collecting validation errors in an array.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Passing wrong pointer type to `errors.As` | Pass `&target` where `target` is a `*DomainError`. Double pointer is required. |
-| 2 | Using `recover` for routine error handling | `recover` is for panics only. Use `if err != nil` for normal errors. |
-| 3 | Returning raw errors without context | Wrap with `fmt.Errorf("functionName: %w", err)` to add call-site context. |
+| 1 | Chuyển sai loại pointer sang `errors.As` | Vượt qua `&target` trong đó `target` là một `*DomainError` . Cần có pointer kép. |
+| 2 | Sử dụng `recover` để xử lý lỗi thông thường | `recover` chỉ dành cho sự hoảng loạn. Sử dụng `if err != nil` cho các lỗi thông thường. |
+| 3 | Trả về lỗi thô không có ngữ cảnh | Bao bọc bằng `fmt.Errorf("functionName: %w", err)` để thêm ngữ cảnh trang web cuộc gọi. |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | `errors` package | [pkg.go.dev/errors](https://pkg.go.dev/errors) |
-| Effective Go: Errors | [go.dev/doc/effective_go#errors](https://go.dev/doc/effective_go#errors) |
+| Hiệu lực Go : Lỗi | [go.dev/doc/effective_go#errors](https://go.dev/doc/effective_go#errors) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Custom Error Wrappers](../errors/01-wrapping-custom.md) | When building multi-layer microservice error hierarchies | Domain-specific error types with HTTP codes and metadata |
-| [Defer/Panic/Recover](../basics/03-defer-panic-recover.md) | When handling truly unrecoverable states | `defer`/`recover` patterns for panic-safe goroutines |
+| [Custom Error Wrappers](../errors/01-wrapping-custom.md) | Khi xây dựng hệ thống phân cấp lỗi microservice nhiều lớp | Các loại lỗi dành riêng cho tên miền với mã HTTP và siêu dữ liệu |
+| [Defer/Panic/Recover](../basics/03-defer-panic-recover.md) | Khi xử lý các trạng thái thực sự không thể phục hồi | Các mẫu `defer` / `recover` cho panic -safe goroutines |
 
-**Navigation**: [← Enum Types](./06-enum-union-types.md) · [→ Regex & Templates](./08-regex-templates.md)
+**Điều hướng**: [← Enum Types](./06-enum-union-types.md) · [→ Regex & Templates](./08-regex-templates.md)

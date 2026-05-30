@@ -1,53 +1,38 @@
-<!-- tags: golang -->
-# 📡 SSE & WebSocket — NestJS Events → Gin Real-time
+<!-- tags: golang --> # 📡 SSE & WebSocket — Sự kiện NestJS → Gin Real-time
 
-> **Library**: Server-Sent Events via `c.Stream`/`c.SSEvent`, and full-duplex WebSocket via `gorilla/websocket`.
+> **Thư viện**: Sự kiện do máy chủ gửi qua `c.Stream` / `c.SSEvent` và WebSocket song công hoàn toàn qua `gorilla/websocket` .
 
-📅 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 14 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-SSE is one-way (server → client) over HTTP/1.1. WebSocket is bidirectional over a persistent TCP connection. Gin supports SSE natively via `c.Stream()`. For WebSocket, use `gorilla/websocket` to upgrade the HTTP connection.
+SSE là một chiều (máy chủ → máy khách) qua HTTP/1.1. WebSocket hoạt động hai chiều qua kết nối TCP liên tục. Gin hỗ trợ SSE nguyên bản thông qua `c.Stream()` . Đối với WebSocket, hãy sử dụng `gorilla/websocket` để nâng cấp kết nối HTTP.
 
-| NestJS                              | Gin Equivalent                           |
+| NestJS | Tương đương Gin |
 | ----------------------------------- | ---------------------------------------- |
-| `@Sse('events')`                    | `c.Stream()` + `c.SSEvent()`             |
-| `@WebSocketGateway()`               | `gorilla/websocket.Upgrader`             |
-| `@SubscribeMessage('chat')`         | Manual `conn.ReadMessage()` loop         |
-| `server.emit('event', data)`        | `hub.Broadcast(msg)` to all clients      |
+| `@Sse('events')` | `c.Stream()` + `c.SSEvent()` |
+| `@WebSocketGateway()` | `gorilla/websocket.Upgrader` |
+| `@SubscribeMessage('chat')` | Vòng lặp `conn.ReadMessage()` thủ công |
+| `server.emit('event', data)` | `hub.Broadcast(msg)` tới tất cả khách hàng |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always `defer conn.Close()`** after WebSocket upgrade. Leaked connections exhaust file descriptors.
-- **Use `sync.RWMutex` for the client map.** Concurrent register/unregister/broadcast without a lock causes data races.
+- **Luôn luôn `defer conn.Close()` ** sau khi nâng cấp WebSocket. Bộ mô tả tập tin xả kết nối bị rò rỉ.
+- **Sử dụng `sync.RWMutex` cho bản đồ khách hàng.** Đăng ký/hủy đăng ký/phát sóng đồng thời mà không khóa sẽ gây ra xung đột dữ liệu.
 
-## 2. VISUAL
-
-![SSE vs WebSocket transport comparison with Hub pattern](./images/02-sse-websocket-transport.png)
-
-*Figure: SSE = one-way server push (c.Stream + c.SSEvent), WebSocket = full-duplex persistent TCP (gorilla/websocket). Hub pattern manages concurrent clients with sync.RWMutex for thread-safe register/unregister/broadcast.*
-
-```mermaid
+## 2. HÌNH ẢNH ![SSE vs WebSocket transport comparison with Hub pattern](./images/02-sse-websocket-transport.png) *Hình: SSE = đẩy máy chủ một chiều (c.Stream + c.SSEvent), WebSocket = TCP liên tục song công hoàn toàn (gorilla/websocket). Mẫu Hub quản lý các máy khách đồng thời với sync.RWMutex để đăng ký/hủy đăng ký/phát sóng an toàn theo luồng.*```mermaid
 flowchart LR
     A["SSE"] -->|"Server → Client only"| B["text/event-stream"]
     C["WebSocket"] -->|"Full duplex"| D["ws:// upgrade"]
     E["Long Polling"] -->|"Client polls"| F["HTTP keep-alive"]
-```
+```*Hình: SSE = đẩy máy chủ một chiều, WebSocket = song công hoàn toàn, Bỏ phiếu dài = dự phòng do khách hàng điều khiển.*
 
-*Figure: SSE = one-way server push, WebSocket = full duplex, Long Polling = client-driven fallback.*
-
-### Transport Comparison
-
-```text
+### So sánh vận tải```text
 SSE:       Server ──push──▶ Client   (one-way, auto-reconnect, text/event-stream)
 WebSocket: Server ◀─────▶ Client   (two-way, persistent TCP, binary or text)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Server-Sent Events
-
-```go
+### Ví dụ 1: Cơ bản — Sự kiện do máy chủ gửi```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // SSE: set text/event-stream headers, then loop with c.Stream.
     // c.SSEvent writes "event: message\ndata: {json}\n\n".
@@ -80,11 +65,7 @@ WebSocket: Server ◀─────▶ Client   (two-way, persistent TCP, binar
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — WebSocket Upgrades
-
-```go
+```### Ví dụ 2: Trung cấp — Nâng cấp WebSocket```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // WebSocket: upgrade HTTP → WS, Hub manages client map.
     // ReadMessage loop per client; Broadcast writes to all.
@@ -157,11 +138,7 @@ WebSocket: Server ◀─────▶ Client   (two-way, persistent TCP, binar
 
         r.Run(":8080")
     }
-```
-
-### Example 3: Advanced — Room Segmenting
-
-```go
+```### Ví dụ 3: Nâng cao — Phân chia phòng```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Room-based WebSocket: clients join rooms, broadcast targets one room.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -182,29 +159,27 @@ WebSocket: Server ◀─────▶ Client   (two-way, persistent TCP, binar
             conn.WriteMessage(websocket.TextMessage, data)
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Missing `defer conn.Close()` after WebSocket upgrade | Connection leaks exhaust file descriptors | Always `defer conn.Close()` + `defer hub.Unregister(conn)` |
-| 2 | 🔴 Fatal | `CheckOrigin` returning `true` for all origins in production | Any domain can open WebSocket connections to your server | Validate origin against an allowlist |
+| 1 | 🔴 Gây tử vong | Thiếu `defer conn.Close()` sau khi nâng cấp WebSocket | Bộ mô tả tập tin xả rò rỉ kết nối | Luôn `defer conn.Close()` + `defer hub.Unregister(conn)` |
+| 2 | 🔴 Gây tử vong | `CheckOrigin` trả lại `true` cho tất cả nguồn gốc trong sản xuất | Bất kỳ miền nào cũng có thể mở kết nối WebSocket tới máy chủ của bạn | Xác thực nguồn gốc theo danh sách cho phép |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| gorilla/websocket | [pkg.go.dev/github.com/gorilla/websocket](https://pkg.go.dev/github.com/gorilla/websocket) |
+| khỉ đột/websocket | [pkg.go.dev/github.com/gorilla/websocket](https://pkg.go.dev/github.com/gorilla/websocket) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| JWT Auth | When WebSocket connections need authentication | Validate JWT before or after upgrade to prevent unauthorized access | [../security/01-authentication-jwt.md](../security/01-authentication-jwt.md) |
+| Xác thực JWT | Khi kết nối WebSocket cần xác thực | Xác thực JWT trước hoặc sau khi nâng cấp để ngăn chặn truy cập trái phép | [../security/01-authentication-jwt.md](../security/01-authentication-jwt.md) |

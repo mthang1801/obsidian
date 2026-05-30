@@ -1,33 +1,26 @@
-<!-- tags: golang, memory, modules -->
-# 💾 Caching — NestJS CacheModule → Go Redis/In-memory
+<!-- tags: golang, memory, modules --> # 💾 Bộ nhớ đệm — NestJS CacheModule → Đi tới Redis/Trong bộ nhớ
 
-> **Library**: Cache responses using Redis or in-memory stores to reduce database load and latency.
+> **Thư viện**: Phản hồi bộ nhớ đệm bằng Redis hoặc kho lưu trữ trong bộ nhớ để giảm tải và độ trễ cơ sở dữ liệu.
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Without caching, every GET request hits the database. With a 60-second Redis TTL, the database handles one query per minute instead of thousands. Gin has no built-in cache module — you implement it with Redis or a middleware interceptor.
+Không có bộ nhớ đệm, mọi yêu cầu GET đều truy cập vào cơ sở dữ liệu. Với Redis TTL 60 giây, cơ sở dữ liệu xử lý một truy vấn mỗi phút thay vì hàng nghìn. Gin không có mô-đun bộ đệm tích hợp - bạn triển khai nó bằng Redis hoặc trình chặn phần mềm trung gian.
 
-| NestJS                               | Go Equivalent                          |
+| NestJS | Đi tương đương |
 | ------------------------------------ | -------------------------------------- |
-| `CacheModule.register()`             | `redis.NewClient()` or `cache.New()`   |
-| `@CacheKey('users')`                 | Manual cache key: `"users:list"`        |
-| `@CacheTTL(30)`                      | `rdb.Set(ctx, key, data, 30*time.Second)` |
-| `@UseInterceptors(CacheInterceptor)` | CacheMiddleware (checks cache before handler) |
+| `CacheModule.register()` | `redis.NewClient()` hoặc `cache.New()` |
+| `@CacheKey('users')` | Khóa bộ đệm thủ công: `"users:list"` |
+| `@CacheTTL(30)` | `rdb.Set(ctx, key, data, 30*time.Second)` |
+| `@UseInterceptors(CacheInterceptor)` | CacheMiddleware (kiểm tra bộ đệm trước khi xử lý) |
 
-### Key Invariants
+### Bất biến chính
 
-- **Invalidate on write.** `POST/PUT/DELETE` must `rdb.Del()` the affected cache keys.
-- **Use `singleflight` for cache stampede.** Without it, 1000 concurrent cache misses trigger 1000 identical DB queries.
+- **Không hợp lệ khi ghi.** `POST/PUT/DELETE` phải `rdb.Del()` các khóa bộ đệm bị ảnh hưởng.
+- **Sử dụng `singleflight` để chặn bộ nhớ đệm.** Nếu không có nó, 1000 lỗi bộ nhớ đệm đồng thời sẽ kích hoạt 1000 truy vấn DB giống hệt nhau.
 
-## 2. VISUAL
-
-![Cache-aside pattern — middleware checks cache before DB, with in-memory vs Redis comparison](./images/04-caching.png)
-
-*Figure: Cache-aside — request hits cache middleware first. HIT = return cached response. MISS = fetch from DB, store in cache with TTL. In-memory (fast, per-pod) vs Redis (shared, persistent).*
-
-```mermaid
+## 2. HÌNH ẢNH ![Cache-aside pattern — middleware checks cache before DB, with in-memory vs Redis comparison](./images/04-caching.png) *Hình: Bỏ bộ nhớ đệm — yêu cầu chạm vào phần mềm trung gian bộ nhớ đệm trước tiên. HIT = trả về phản hồi được lưu trong bộ nhớ đệm. MISS = tìm nạp từ DB, lưu vào bộ đệm bằng TTL. Trong bộ nhớ (nhanh, mỗi nhóm) so với Redis (được chia sẻ, liên tục).*```mermaid
 flowchart TD
     A["GET /users"] --> B{"Cache hit?"}
     B -->|Yes| C["Return cached"]
@@ -37,23 +30,15 @@ flowchart TD
     F --> G["Set cache + TTL"]
     G --> C
     E --> C
-```
+```*Hình: Dành riêng bộ nhớ đệm với singleflight — chỉ có một goroutine truy vấn DB bị bỏ lỡ; những người khác chờ đợi kết quả.*
 
-*Figure: Cache-aside with singleflight — only one goroutine queries DB on miss; others wait for the result.*
-
-### Cache-Aside Flow
-
-```text
+### Luồng bộ nhớ đệm```text
 GET /users
     ├── Redis hit?  → return cached JSON (source: cache)
     └── Redis miss? → query DB → serialize → SET in Redis (TTL 60s) → return JSON (source: db)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Redis Client Cache
-
-```go
+### Ví dụ 1: Cơ bản — Redis Client Cache```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Cache-aside: check Redis → miss → query DB → SET cache.
     // createUser invalidates cache to avoid stale data.
@@ -103,11 +88,7 @@ GET /users
         rdb.Del(c.Request.Context(), "users:list") 
         c.JSON(http.StatusCreated, gin.H{"message": "created"})
     }
-```
-
-### Example 2: Intermediate — Response Interceptors
-
-```go
+```### Ví dụ 2: Trung cấp — Bộ chặn phản hồi```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CacheMiddleware: intercepts GET requests, returns cached
     // response or captures handler output to cache.
@@ -164,29 +145,27 @@ GET /users
         w.body = append(w.body, b...)
         return w.ResponseWriter.Write(b)
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | No cache invalidation on writes | Clients see stale data after create/update | `rdb.Del()` affected keys in every write handler |
-| 2 | 🔴 Fatal | Cache stampede: 1000 concurrent misses query DB simultaneously | Database connection pool exhausted | Use `golang.org/x/sync/singleflight` to deduplicate |
+| 1 | 🔴 Gây tử vong | Không có hiệu lực bộ đệm khi ghi | Khách hàng thấy dữ liệu cũ sau khi tạo/cập nhật | `rdb.Del()` các khóa bị ảnh hưởng trong mọi trình xử lý ghi |
+| 2 | 🔴 Gây tử vong | Bộ nhớ đệm bị xáo trộn: 1000 truy vấn DB đồng thời bị trượt đồng thời | Nhóm kết nối cơ sở dữ liệu đã cạn kiệt | Sử dụng `golang.org/x/sync/singleflight` để loại bỏ trùng lặp |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Redis Go | [redis.io/docs/latest/develop/clients/go/](https://redis.io/docs/latest/develop/clients/go/) |
+| Redis Đi | [redis.io/docs/latest/develop/clients/go/](https://redis.io/docs/latest/develop/clients/go/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Logging | When debugging cache hits/misses in production | Structured logs with request ID help trace cache behavior | [./05-logging.md](./05-logging.md) |
+| Ghi nhật ký | Khi gỡ lỗi lần truy cập/lỗi bộ đệm trong quá trình sản xuất | Nhật ký có cấu trúc với ID yêu cầu giúp theo dõi hành vi bộ đệm | [./05-logging.md](./05-logging.md) |

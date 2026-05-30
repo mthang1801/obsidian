@@ -1,81 +1,68 @@
-<!-- tags: golang, generics -->
-# 🧬 Generics — Type Parameters, Constraints, Generic Patterns
+<!-- tags: golang, generics --> # 🧬 Generics — Loại Tham số, Ràng buộc, Generic Mẫu
 
-> Go 1.18+ generics: type parameters, constraints, generic data structures
+> Go 1.18+ generics : tham số kiểu, ràng buộc, cấu trúc dữ liệu generic 📅 Đã tạo: 2026-03-20 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-📅 Created: 2026-03-20 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
-
-| Aspect            | Detail                                                                              |
+| Khía cạnh | Chi tiết |
 | ----------------- | ----------------------------------------------------------------------------------- |
-| **Version**       | Go 1.18+                                                                            |
-| **Use case**      | Type-safe reusable code, no interface{} boxing                                      |
-| **Key insight**   | Generics are resolved at compile-time — zero runtime overhead                       |
-| **Go philosophy** | "A little copying is better than a little dependency" — but use generics when needed |
+| **Phiên bản** | Go 1.18+ |
+| **Trường hợp sử dụng** | Mã có thể tái sử dụng an toàn về loại, không có interface {} đấm bốc |
+| **Thông tin chi tiết quan trọng** | Generics được giải quyết tại biên dịch- time — không có chi phí runtime |
+| ** Go triết lý** | "Sao chép một chút sẽ tốt hơn là phụ thuộc một chút" — nhưng hãy sử dụng generics khi cần |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Your first PR using generics: you write `func Map[T any, R any](s []T, f func(T) R) []R` — the reviewer approves but asks: "why not use `comparable` instead of `any`?" You change it, compilation fails because `comparable` does not cover the required constraint.
+PR đầu tiên của bạn sử dụng generics : bạn viết `func Map [T any, R any](s []T, f func(T) R) []R` — người đánh giá chấp thuận nhưng hỏi: "tại sao không sử dụng `comparable` thay vì `any` ?" Bạn thay đổi nó, quá trình biên dịch không thành công vì `comparable` không đáp ứng được ràng buộc bắt buộc.
 
-> *You write `func MinInt(a, b int) int`. Done. Then you need `MinFloat64`, `MinString` — copy-paste, change the type. `Contains([]int, int)` → add `ContainsString`, `ContainsFloat64`. Six functions, identical logic, only the type differs — a DRY violation at the type system level. Add a new type? Fix six places. Bug in the logic? Fix six places. Reviewing the PR? Read six identical functions.*
+> *Bạn viết `func MinInt(a, b int) int` . Xong. Sau đó, bạn cần `MinFloat64` , `MinString` - sao chép-dán, thay đổi loại. `Contains([]int, int)` → thêm `ContainsString` , `ContainsFloat64` . Sáu chức năng, logic giống hệt nhau, chỉ khác loại - vi phạm DRY ở cấp hệ thống loại. Thêm một loại mới? Sửa sáu chỗ. Lỗi logic? Sửa sáu chỗ. Xem xét PR? Đọc sáu chức năng giống hệt nhau.*
 >
-> *Go 1.18 solves this with generics: `Min[T cmp.Ordered](a, b T) T` — one function, all ordered types. Compile-time type checking, zero runtime overhead, no boxing like `interface{}`. But there is a trap: over-generics turns Go into Java — unreadable code, unnecessary abstraction. Rule: if you cannot list at least 3 concrete types that will use the generic, do not make it generic. That trap will appear in PITFALLS.*
+> * Go 1.18 giải quyết vấn đề này bằng generics : `Min [T cmp.Ordered](a, b T) T` — một hàm, tất cả các loại được sắp xếp. Biên dịch- time kiểm tra loại, không có chi phí runtime , không có quyền anh như `interface{}` . Nhưng có một cái bẫy: over- generics biến Go thành Java — mã không thể đọc được, sự trừu tượng không cần thiết. Quy tắc: nếu bạn không thể liệt kê ít nhất 3 loại cụ thể sẽ sử dụng generic , thì đừng đặt nó generic . Cái bẫy đó sẽ xuất hiện trong PITFALS.*
 
-### Generics Syntax
+### Generics Cú pháp
 
-| Element          | Syntax                  | Example                   |
-| ---------------- | ----------------------- | ------------------------- |
-| Type parameter   | `[T any]`               | `func Print[T any](v T)`  |
-| Constraint       | `[T Constraint]`        | `[T comparable]`          |
-| Multiple params  | `[K comparable, V any]` | Map function              |
-| Union constraint | `int \| float64`        | Numeric operations        |
-| `~int`           | Underlying type         | Includes `type MyInt int` |
+| Yếu tố | Cú pháp | Ví dụ |
+| ---------------- | -------------- | ------------------------- |
+| Nhập tham số | `[T any]` | `func Print [T any](v T) ` |
+| Ràng buộc | `[T Constraint]` | `[T comparable]` |
+| Nhiều thông số | `[K comparable, V any]` | Hàm Map |
+| Liên minh hạn chế | `int \| float64` | Các phép toán số |
+| `~int` | Loại cơ bản | Bao gồm `type MyInt int` |
 
-### Built-in Constraints
+### Các ràng buộc tích hợp
 
-| Constraint            | Description                    | Package                        |
+| Ràng buộc | Mô tả | Package |
 | --------------------- | ------------------------------ | ------------------------------ |
-| `any`                 | Any type (`interface{}`)       | builtin                        |
-| `comparable`          | Supports `==`, `!=`            | builtin                        |
-| `constraints.Ordered` | Supports `<`, `>`, `<=`, `>=`  | `golang.org/x/exp/constraints` |
-| `constraints.Integer` | All integer types              | `golang.org/x/exp/constraints` |
-| `constraints.Float`   | `float32`, `float64`           | `golang.org/x/exp/constraints` |
-| `cmp.Ordered`         | Go 1.21+ ordered types         | `cmp`                          |
+| `any` | Any loại ( `interface{}` ) | dựng sẵn |
+| `comparable` | Hỗ trợ `==` , `!=` | dựng sẵn |
+| `constraints.Ordered` | Hỗ trợ `<` , `>` , `<=` , `>=` | `golang.org/x/exp/constraints` |
+| `constraints.Integer` | Tất cả các loại số nguyên | `golang.org/x/exp/constraints` |
+| `constraints.Float` | `float32` , `float64` | `golang.org/x/exp/constraints` |
+| `cmp.Ordered` | Go 1.21+ loại được đặt hàng | `cmp` |
 
-### When to Use Generics
+### Khi nào nên sử dụng Generics | Sử dụng | Không sử dụng |
+| ------------------------------ | ------------------------------- |
+| Vùng chứa an toàn loại ( stack , queue) | Chức năng đơn giản với 1-2 loại |
+| Các hàm tiện ích ( map , lọc, giảm) | Khi interface {} ổn |
+| Giảm trùng lặp mã | Khi nó ảnh hưởng đến khả năng đọc |
+| Tránh phản ánh | Codebase nhỏ với vài loại |
 
-| Use                                     | Don't Use                       |
-| --------------------------------------- | ------------------------------- |
-| Type-safe containers (stack, queue)     | Simple functions with 1-2 types |
-| Utility functions (map, filter, reduce) | When interface{} is fine        |
-| Reduce code duplication                 | When it hurts readability       |
-| Avoid reflection                        | Small codebase with few types   |
-
-Syntax, constraints, when to use — enough theory. Let us see how generics compare visually against interfaces and reflection.
+Cú pháp, các ràng buộc, khi nào nên sử dụng - đủ lý thuyết. Chúng ta hãy xem generics so sánh trực quan với interfaces và hình ảnh phản chiếu như thế nào.
 
 ---
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-Generics are only useful when they solve genuine abstraction pressure. Otherwise, they quickly slide into "generalized but unreadable code". The decision map below forces you to lock down that question before writing another type parameter.
+Generics chỉ hữu ích khi chúng giải quyết được áp lực trừu tượng thực sự. Nếu không, chúng sẽ nhanh chóng rơi vào tình trạng "mã tổng quát nhưng không thể đọc được". Quyết định map bên dưới buộc bạn phải khóa câu hỏi đó trước khi viết tham số loại khác. ![Generics decision map](./images/02-generics-decision-map.png) *Hình: Quyết định generics map bắt đầu từ lựa chọn mặc định — mã cụ thể — và chỉ mở về phía trừu tượng interface hoặc generic khi áp lực đủ rõ ràng để biện minh cho điều đó.*
 
-![Generics decision map](./images/02-generics-decision-map.png)
+Khi thứ tự quyết định đã đúng, phần mã bên dưới sẽ ít mang tính lý thuyết hơn. Mỗi ví dụ thể hiện chính xác khi nào generics giảm trùng lặp và khi interface hoặc mã cụ thể vẫn là lựa chọn rõ ràng hơn.
 
-*Figure: The generics decision map starts from the default choice — concrete code — and only opens toward interface or generic abstraction when the pressure is clear enough to justify it.*
+## 3. MÃ
 
-Once the decision order is correct, the code section below will feel less theoretical. Each example demonstrates precisely when generics reduce duplication, and when interface or concrete code remains the cleaner choice.
+Với ** Generics — Tham số loại, ràng buộc, mẫu Generic **, quyết định map được thiết lập. Bây giờ chúng ta hãy map viết mã để xem mỗi quyết định - cụ thể so với generic , `any` so với ràng buộc tùy chỉnh, chức năng so với loại - thực sự thay đổi hành vi biên dịch- time và trải nghiệm xem xét mã.
 
-## 3. CODE
-
-With **Generics — Type Parameters, Constraints, Generic Patterns**, the decision map is established. Now let us map it to code to see how each decision — concrete versus generic, `any` versus custom constraint, function versus type — actually changes compile-time behavior and code review experience.
-
-### Example 1: Basic — Generic Functions
-
-> **Goal**: Type-safe utility functions replacing interface{} / code duplication
-> **Requires**: Go 1.18+
-> **Outcome**: Reusable, type-safe utility library
-
-```go
+### Ví dụ 1: Hàm cơ bản — Generic > **Mục tiêu**: Các hàm tiện ích an toàn loại thay thế interface {} / sao chép mã
+> **Yêu cầu**: Go 1.18+
+> **Kết quả**: Thư viện tiện ích an toàn, có thể tái sử dụng```go
 package main
 
 import (
@@ -173,19 +160,12 @@ fmt.Println(Clamp(150, 0, 100)) // 100
     sum := Reduce(nums, 0, func(acc, n int) int { return acc + n })
     fmt.Println(sum) // 15
 }
-```
+```> **Takeaway**: hàm Generic = một hàm, tất cả các loại. `cmp.Ordered` để so sánh, `comparable` cho `==` . Tự động phát hiện suy luận kiểu - không cần chỉ định thông số loại trong hầu hết các trường hợp.
 
-> **Takeaway**: Generic functions = one function, all types. `cmp.Ordered` for comparison, `comparable` for `==`. Type inference auto-detects — no need to specify type params in most cases.
+ Các hàm Generic bao gồm các hoạt động tiện ích. Nhưng khi bạn cần generic **types** — Stack , Queue, Result — và **ràng buộc** tùy chỉnh** cho các loại miền như `Money` , `Temperature` thì sao? Bạn phải hiểu các mẫu `~int` (dấu ngã) và generic struct .
 
-Generic functions cover utility operations. But what when you need generic **types** — Stack, Queue, Result — and custom **constraints** for domain types like `Money`, `Temperature`? You must understand `~int` (tilde) and generic struct patterns.
-
-### Example 2: Intermediate — Custom Constraints & Generic Types
-
-> **Goal**: Define custom constraints and generic data structures
-> **Requires**: Type parameter syntax
-> **Outcome**: Type-safe containers, domain-specific constraints
-
-```go
+### Ví dụ 2: Trung cấp — Ràng buộc tùy chỉnh & loại Generic > **Mục tiêu**: Xác định các ràng buộc tùy chỉnh và cấu trúc dữ liệu generic > **Yêu cầu**: Nhập cú pháp tham số
+> **Kết quả**: Vùng chứa an toàn về loại, các ràng buộc theo miền cụ thể```go
 package main
 
 import (
@@ -298,22 +278,16 @@ temps := []Temperature{36.5, 37.2, 38.1}
         fmt.Println("Value:", val)
     }
 }
-```
+```> **Tại sao `~int` thay vì `int` trong một ràng buộc?**
+> `int` chỉ khớp với loại chính xác `int` . `~int` khớp với loại any có loại cơ bản là `int` - bao gồm `type Money int64` , `type UserID int` . Dấu ngã ( `~` ) có nghĩa là "khớp loại cơ bản" - điều này là bắt buộc để generics hoạt động với các loại miền tùy chỉnh.
 
-> **Why `~int` instead of `int` in a constraint?**
-> `int` only matches the exact type `int`. `~int` matches any type whose underlying type is `int` — which includes `type Money int64`, `type UserID int`. The tilde (`~`) means "underlying type matches" — this is strictly required for generics to work with custom domain types.
+> **Takeaway**: Ràng buộc tùy chỉnh ( `Number` , `Entity` ) bật tính năng dành riêng cho miền generics . Mẫu `var zero T` mang lại giá trị 0 một cách an toàn. Generic các loại ( `Stack[T]` , `Result[T]` ) thiết lập các thùng chứa loại an toàn.
 
-> **Takeaway**: Custom constraints (`Number`, `Entity`) enable domain-specific generics. The `var zero T` pattern safely yields the zero value. Generic types (`Stack[T]`, `Result[T]`) establish type-safe containers.
+ Các hàm và kiểu Generic bao gồm mã cấp thư viện. Nhưng trong DDD - khi bạn đặc biệt cần CRUD kho lưu trữ generic cho tất cả các thực thể - generics trở thành vũ khí DRY chính ở cấp độ kiến ​​​​trúc.
 
-Generic functions and types cover library-level code. But within DDD — when you specifically need a generic Repository CRUD for all entities — generics become a primary DRY weapon at the architecture level.
+### Ví dụ 3: Nâng cao — Generic Mẫu kho lưu trữ
 
-### Example 3: Advanced — Generic Repository Pattern
-
-> **Goal**: Generic CRUD repository for any entity
-> **Requires**: Database concepts, generics
-> **Outcome**: DRY repository layer
-
-```go
+> **Mục tiêu**: Generic Kho lưu trữ CRUD cho thực thể any > **Yêu cầu**: Database khái niệm, generics > **Kết quả**: Lớp kho lưu trữ DRY```go
 package main
 
 import (
@@ -461,61 +435,59 @@ usersJSON, _ := json.MarshalIndent(users, "", "  ")
     fmt.Println("Users:", string(usersJSON))
     fmt.Println("Products:", string(productsJSON))
 }
-```
+```> **Tại sao lại có ràng buộc `Entity` interface thay vì `any` ?**
+> A `Repository[T any]` không biết liệu thực thể có phương thức `GetID()` hay không → nó không thể tra cứu theo ID. Ràng buộc `Entity` đảm bảo `GetID() string` tồn tại → kho lưu trữ vừa là generic vừa an toàn về kiểu. Trong quá trình sản xuất: thay thế `InMemoryRepo` bằng `PostgresRepo[T Entity]` được hỗ trợ bởi `sqlx` / `pgx` .
 
-> **Why an `Entity` interface constraint instead of `any`?**
-> A `Repository[T any]` does not know if the entity has a `GetID()` method → it cannot look up by ID. The `Entity` constraint guarantees `GetID() string` exists → the repository is both generic and type-safe. In production: replace `InMemoryRepo` with a `PostgresRepo[T Entity]` backed by `sqlx`/`pgx`.
+> **Takeaway**: Generic kho lưu trữ = 1 cơ sở mã, N loại thực thể. Ràng buộc `Entity` thực thi hợp đồng. `sync.RWMutex` đảm bảo an toàn đồng thời. Trong quá trình sản xuất, hãy hoán đổi kho lưu trữ trong bộ nhớ lấy phần phụ trợ RDBMS.
 
-> **Takeaway**: Generic repository = 1 codebase, N entity types. The `Entity` constraint enforces the contract. `sync.RWMutex` ensures concurrent safety. In production, swap the in-memory store for an RDBMS backend.
-
-You have now learned generic functions, custom constraints, generic types, and the generic repository pattern. Now comes the dangerous part: over-generics — the trap established at the very beginning of this article that turns Go directly into Java.
+Bây giờ bạn đã tìm hiểu các hàm generic , các ràng buộc tùy chỉnh, các loại generic và mẫu kho lưu trữ generic . Bây giờ đến phần nguy hiểm: over- generics - cái bẫy được thiết lập ở đầu bài viết này biến Go trực tiếp thành Java.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The mechanics of **Generics — Type Parameters, Constraints, Generic Patterns** are clear. What remains is recognizing the spots where _almost correct_ code accidentally turns Go into Java.
+Cơ chế của ** Generics — Tham số loại, ràng buộc, Generic Mẫu** rất rõ ràng. Điều còn lại là nhận ra những điểm mà mã _gần như đúng_ vô tình biến Go thành Java.
 
-| # | Severity | Error | Consequence | Fix |
-|---|----------|-------|-------------|-----|
-| 1 | 🟡 Common | Over-generics (Java style) | Unreadable code, unnecessary complexity | Prefer concrete types first; use generics only when duplication is proven |
-| 2 | 🟡 Common | `~int` vs `int` confusion | Custom types (`type Money int`) fail to match the `int` constraint | Use `~int` to include all underlying types |
-| 3 | 🟡 Common | Type inference fails | Compile error with an unclear message | Specify type params explicitly: `Fn[int](...)` |
-| 4 | 🔵 Minor | Zero value return | `return T{}` does not compile for generics | Use `var zero T; return zero` |
-| 5 | 🔵 Minor | Cannot add methods to type params | `T.Method()` does not compile | Define an interface constraint with the required methods |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|-------|-------------|------|
+| 1 | 🟡 Chung | Over- generics (kiểu Java) | Mã không thể đọc được, độ phức tạp không cần thiết | Ưu tiên các loại bê tông trước; chỉ sử dụng generics khi chứng minh được sự trùng lặp |
+| 2 | 🟡 Chung | `~int` so với `int` nhầm lẫn | Các loại tùy chỉnh ( `type Money int` ) không khớp với ràng buộc `int` | Sử dụng `~int` để bao gồm tất cả các loại cơ bản |
+| 3 | 🟡 Chung | Kiểu suy luận không thành công | Biên dịch lỗi với thông báo không rõ ràng | Chỉ định rõ ràng các thông số loại: `Fn [int](...) ` |
+| 4 | 🔵 Nhỏ | Trả về giá trị bằng 0 | `return T{}` không biên dịch cho generics | Sử dụng `var zero T; return zero` |
+| 5 | 🔵 Nhỏ | Không thể thêm phương thức nhập thông số | `T.Method()` không biên dịch | Xác định ràng buộc interface bằng các phương thức được yêu cầu |
 
-### 🟡 Pitfall #1 — Over-generics = Java syndrome
+### 🟡 Cạm bẫy #1 — Over- generics = Hội chứng Java
 
-Go culture demands concrete types first. Generics enter only when code is **provably duplicated** across 3+ types. Writing `Filter[T]` for collection utilities is sensible. Writing `UserService[T UserRepo]` when only one implementation exists is unnecessary abstraction.
+ Văn hóa Go yêu cầu loại cụ thể trước tiên. Generics chỉ nhập khi mã **có thể được sao chép** trên hơn 3 loại. Viết `Filter[T]` cho các tiện ích thu thập là hợp lý. Viết `UserService[T UserRepo]` khi chỉ tồn tại một triển khai là sự trừu tượng không cần thiết.
 
-**Rule**: If you cannot list at least 3 concrete types that will use your generic function — do not write it generically.
+**Quy tắc**: Nếu bạn không thể liệt kê ít nhất 3 loại cụ thể sẽ sử dụng hàm generic của mình — đừng viết chung chung.
 
-You have navigated generic functions, types, repositories, and the over-generics trap. The resources below provide deep internals.
+Bạn đã điều hướng các hàm, loại, kho lưu trữ generic và bẫy quá mức generics . Các tài nguyên dưới đây cung cấp nội dung sâu sắc.
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource                 | Type     | Link                                                                                       | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | ------------------------ | -------- | ------------------------------------------------------------------------------------------ | ----- |
-| Go Generics Tutorial     | Official | [go.dev/doc/tutorial/generics](https://go.dev/doc/tutorial/generics)                       | Beginner-friendly tutorial |
-| Type Parameters Proposal | Official | [go.dev/blog/intro-generics](https://go.dev/blog/intro-generics)                           | Deep architectural design rationale |
-| constraints package      | Official | [pkg.go.dev/golang.org/x/exp/constraints](https://pkg.go.dev/golang.org/x/exp/constraints) | Predefined core constraints |
-| slices package           | Official | [pkg.go.dev/slices](https://pkg.go.dev/slices)                                             | Generic slice operations |
+| Go Generics Hướng dẫn | Chính thức | [go.dev/doc/tutorial/generics](https://go.dev/doc/tutorial/generics) | Hướng dẫn thân thiện với người mới bắt đầu |
+| Loại Thông số Đề xuất | Chính thức | [go.dev/blog/intro-generics](https://go.dev/blog/intro-generics) | Cơ sở thiết kế kiến ​​trúc sâu sắc |
+| ràng buộc package | Chính thức | [pkg.go.dev/golang.org/x/exp/constraints](https://pkg.go.dev/golang.org/x/exp/constraints) | Các ràng buộc cốt lõi được xác định trước |
+| slices package | Chính thức | [pkg.go.dev/slices](https://pkg.go.dev/slices) | Generic slice hoạt động |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Generics — Type Parameters, Constraints, Generic Patterns** is clear. The branches below bridge type-safe abstraction into production without sliding into over-engineering.
+Cốt lõi của ** Generics — Tham số loại, ràng buộc, Generic Mẫu** rất rõ ràng. Các nhánh bên dưới cầu loại trừu tượng hóa an toàn vào sản xuất mà không trượt vào kỹ thuật quá mức.
 
-| Extension | When to Read Next | Rationale | File/Link |
+| Gia hạn | Khi nào nên đọc tiếp | Cơ sở lý luận | Tệp/Liên kết |
 | ------- | ------- | ----- | --------- |
-| lo library | When you need Lodash for Go | Map, Filter, Reduce, GroupBy — all generic | [github.com/samber/lo](https://github.com/samber/lo) |
-| Iterator pattern | When working with Go 1.23+ | `iter.Seq[T]` — lazy evaluation, composable streams | [go.dev/blog/range-functions](https://go.dev/blog/range-functions) |
-| Generic collections | When standard slices/maps fall short | Type-safe queues, sets, and trees | [github.com/emirpasber/gods](https://github.com/emirpasber/gods) |
-| Type Assertion | When you need runtime type checking | `x.(T)`, type switches, and the nil interface trap | [03-type-assertion-embedding.md](./03-type-assertion-embedding.md) |
+| lo thư viện | Khi bạn cần Lodash cho Go | Map , Lọc, Giảm, GroupBy — tất cả generic | [github.com/samber/lo](https://github.com/samber/lo) |
+| mẫu Iterator | Khi làm việc với Go 1.23+ | `iter.Seq[T]` — đánh giá lười biếng, các luồng có thể tổng hợp | [go.dev/blog/range-functions](https://go.dev/blog/range-functions) |
+| Generic bộ sưu tập | Khi tiêu chuẩn slices / maps không còn | Hàng đợi, bộ và cây an toàn loại | [github.com/emirpasber/gods](https://github.com/emirpasber/gods) |
+| Type Assertion | Khi bạn cần kiểm tra kiểu runtime | `x.(T)` , loại công tắc và nil interface bẫy | [03-type-assertion-embedding.md](./03-type-assertion-embedding.md) |
 
 ---
 
-**Sequential Navigation**: [← Slices/Maps](./01-slices-maps-strings.md) · [→ Type Assertion & Embedding](./03-type-assertion-embedding.md)
+**Điều hướng tuần tự**: [← Slices/Maps](./01-slices-maps-strings.md) · [→ Type Assertion & Embedding](./03-type-assertion-embedding.md)

@@ -1,55 +1,40 @@
-<!-- tags: golang -->
-# 📖 Swagger & OpenAPI — NestJS @nestjs/swagger → Go swaggo
+<!-- tags: golang --> # 📖 Swagger & OpenAPI — NestJS @nestjs/swagger → Go swaggo
 
-> **Library**: Generate OpenAPI specs from Go comments with `swaggo/swag`, serve Swagger UI via `gin-swagger`.
+> **Thư viện**: Tạo thông số OpenAPI từ nhận xét Go bằng `swaggo/swag` , phân phát giao diện người dùng Swagger thông qua `gin-swagger` .
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS uses `@nestjs/swagger` decorators (`@ApiTags`, `@ApiResponse`) to auto-generate OpenAPI specs. In Go, `swaggo/swag` reads special comments above handlers and generates `docs/swagger.json`. The Swagger UI is served by `gin-swagger`.
+NestJS sử dụng trình trang trí `@nestjs/swagger` ( `@ApiTags` , `@ApiResponse` ) để tự động tạo thông số OpenAPI. Trong Go, `swaggo/swag` đọc các nhận xét đặc biệt phía trên trình xử lý và tạo `docs/swagger.json` . Giao diện người dùng Swagger được phục vụ bởi `gin-swagger` .
 
-| NestJS                              | Gin / Go                                       |
+| NestJS | Gin / Đi |
 | ----------------------------------- | ---------------------------------------------- |
-| `@ApiTags('users')`                 | `// @Tags users` comment                       |
-| `@ApiResponse({ status: 200 })`     | `// @Success 200 {object} User`                |
-| `@ApiBody({ type: CreateUserDto })` | `// @Param request body CreateUserDTO true`    |
-| `SwaggerModule.setup('api', app)`   | `ginSwagger.WrapHandler(swaggerFiles.Handler)` |
+| `@ApiTags('users')` | `// @Tags users` bình luận |
+| `@ApiResponse({ status: 200 })` | `// @Success 200 {object} User` |
+| `@ApiBody({ type: CreateUserDto })` | `// @Param request body CreateUserDTO true` |
+| `SwaggerModule.setup('api', app)` | `ginSwagger.WrapHandler(swaggerFiles.Handler)` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Run `swag init` in CI.** If you generate locally but forget, the deployed spec is stale.
-- **Keep annotations near handler code.** Moving them to separate files creates drift.
+- **Chạy `swag init` trong CI.** Nếu bạn tạo cục bộ nhưng quên, thông số được triển khai đã cũ.
+- **Giữ chú thích gần mã xử lý.** Di chuyển chúng sang các tệp riêng biệt sẽ tạo ra sự trôi dạt.
 
-## 2. VISUAL
-
-![Swagger/OpenAPI doc generation — Go comments → swag init → swagger.json → Swagger UI](./images/01-swagger-openapi.png)
-
-*Figure: OpenAPI flow — swaggo annotations in Go handlers → `swag init` generates swagger.json → gin-swagger serves interactive Swagger UI at /swagger/\*.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Swagger/OpenAPI doc generation — Go comments → swag init → swagger.json → Swagger UI](./images/01-swagger-openapi.png) *Hình: Luồng OpenAPI — chú thích swaggo trong trình xử lý Go → `swag init` tạo swagger.json → gin-swagger phục vụ giao diện người dùng Swagger tương tác tại /swagger/\*.*```mermaid
 flowchart LR
     A["Handler + // @Tags\n// @Success comments"] -->|"swag init"| B["docs/swagger.json"]
     B --> C["ginSwagger.WrapHandler"]
     C --> D["Swagger UI at /swagger"]
-```
+```*Hình: Quy trình chuyển đổi — trình xử lý chú thích bằng nhận xét → `swag init` tạo thông số kỹ thuật → gin-swagger phục vụ giao diện người dùng tương tác.*
 
-*Figure: Swagger pipeline — annotate handlers with comments → `swag init` generates spec → gin-swagger serves interactive UI.*
-
-### Generation Workflow
-
-```text
+### Quy trình tạo thế hệ```text
 1. Write // @Tags, // @Summary, // @Param, // @Success comments
 2. Run: swag init -g cmd/api/main.go
 3. Import _ "myapp/docs" in main.go
 4. Mount: r.GET("/swagger/*any", ginSwagger.WrapHandler(...))
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Swagger Annotations
-
-```go
+### Ví dụ 1: Cơ bản — Chú thích vênh vang```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Swagger annotations: each handler gets // @Summary, // @Tags,
     // // @Param, // @Success, // @Router comments above it.
@@ -90,11 +75,7 @@ flowchart LR
     func CreateUser(c *gin.Context) {
         // ...
     }
-```
-
-### Example 2: Intermediate — Setup & Serve
-
-```go
+```### Ví dụ 2: Trung cấp — Setup & Serve```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Serve Swagger UI: import generated docs package,
     // mount ginSwagger at /swagger/*any.
@@ -125,29 +106,27 @@ flowchart LR
     }
 
     // Generate docs: swag init -g cmd/api/main.go
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Not running `swag init` in CI | Deployed spec is stale; clients implement wrong contracts | Add `swag init` step to CI pipeline before build |
-| 2 | 🟡 Common | Using `map[string]interface{}` as response type | Swagger shows empty schema; consumers can't validate | Define named response structs for every endpoint |
+| 1 | 🔴 Gây tử vong | Không chạy `swag init` trong CI | Thông số đã triển khai đã cũ; khách hàng thực hiện sai hợp đồng | Thêm bước `swag init` vào quy trình CI trước khi xây dựng |
+| 2 | 🟡 Chung | Sử dụng `map[string]interface{}` làm loại phản hồi | Swagger hiển thị lược đồ trống; người tiêu dùng không thể xác thực | Xác định cấu trúc phản hồi được đặt tên cho mọi điểm cuối |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Swaggo Docs | [github.com/swaggo/swag](https://github.com/swaggo/swag) |
+| Tài liệu Swaggo | [github.com/swaggo/swag](https://github.com/swaggo/swag) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Health Check | When you need readiness/liveness probes | Expose /health endpoint for orchestrators and load balancers | [./02-health-check.md](./02-health-check.md) |
+| Kiểm tra sức khỏe | Khi bạn cần thăm dò mức độ sẵn sàng/sống động | Điểm cuối hiển thị /sức khỏe cho người điều phối và bộ cân bằng tải | [./02-health-check.md](./02-health-check.md) |

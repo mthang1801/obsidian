@@ -1,52 +1,43 @@
-<!-- tags: golang, iterators, generics -->
-# 🔄 Iterator — TS for...of / Generator → Go `iter.Seq` & range
+<!-- tags: golang, iterators, generics --> # 🔄 Iterator — TS cho...của / Generator → Go `iter.Seq` & phạm vi
 
-> TypeScript uses `function*` generators with `yield` for lazy sequences. Go 1.23+ introduces `iter.Seq[V]` — a function-based iterator that integrates with `for range`. No channels, no goroutines, no leaks.
+> TypeScript sử dụng `function*` generators với `yield` cho các chuỗi lười biếng. Go 1.23+ giới thiệu `iter.Seq[V]` — một iterator dựa trên chức năng tích hợp với `for range` . Không channels , không goroutines , không rò rỉ.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A developer ports a paginated database cursor from JavaScript's `for await (const page of fetchPages())` generator. They implement it using Go channels — a goroutine sends pages to a channel, the consumer reads with `for page := range ch`.
+Nhà phát triển chuyển con trỏ database được phân trang từ `for await (const page of fetchPages())` generator của JavaScript. Họ triển khai nó bằng cách sử dụng Go channels - a goroutine gửi các trang tới a channel , người tiêu dùng đọc với `for page := range ch` .
 
-The client disconnects mid-iteration. Nobody reads from the channel anymore. The goroutine blocks on `ch <- page` forever — it leaks memory for the lifetime of the process. Go 1.23+ solves this with `iter.Seq[V]`: a closure-based iterator that runs synchronously in the caller's goroutine. When the consumer breaks, the iterator stops immediately — no goroutine to leak.
+Máy khách ngắt kết nối giữa vòng lặp. Không ai đọc từ channel nữa. [[E42]]] chặn vĩnh viễn `ch <- page` - nó làm rò rỉ bộ nhớ trong suốt thời gian tồn tại của quá trình. Go 1.23+ giải quyết vấn đề này với `iter.Seq[V]` : a closure -based iterator chạy đồng bộ trong goroutine của người gọi. Khi người tiêu dùng phá vỡ, iterator sẽ dừng ngay lập tức - không có goroutine bị rò rỉ.
 
-### 1.1 Invariants & Failure Modes
+### 1.1 Các kiểu bất biến và lỗi
 
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **`iter.Seq[V]`** | A function `func(yield func(V) bool)` that calls `yield` for each element. Runs in the caller's goroutine. |
-| **Zero-leak guarantee** | No goroutines are spawned. When the consumer breaks, `yield` returns `false` and the iterator exits. |
+| ** `iter.Seq[V]` ** | Hàm `func(yield func(V) bool)` gọi `yield` cho mỗi phần tử. Chạy trong goroutine của người gọi. |
+| **Đảm bảo không rò rỉ** | Không có goroutines được sinh ra. Khi người tiêu dùng phá vỡ, `yield` trả về `false` và iterator thoát ra. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Always check `!yield(v)`** | If the consumer breaks out of the `for range` loop, `yield` returns `false`. Ignoring it creates an infinite loop. |
-| **Prefer `iter.Seq` over channels** | Channel-based iterators require goroutine lifecycle management. `iter.Seq` has no lifecycle — it's a function call. |
+| **Luôn kiểm tra `!yield(v)` ** | Nếu người tiêu dùng thoát ra khỏi vòng lặp `for range` , `yield` trả về `false` . Bỏ qua nó sẽ tạo ra một vòng lặp vô hạn. |
+| **Thích `iter.Seq` hơn channels ** | Các trình vòng lặp dựa trên Channel yêu cầu quản lý vòng đời goroutine . `iter.Seq` không có vòng đời - đó là lệnh gọi hàm. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The zombie loop:** Your iterator ignores the `yield` return value. The consumer calls `break` in the `for range` loop, but the iterator keeps generating values — infinite CPU usage until the process is killed.
-- **The channel trap:** You use a goroutine and a channel to implement lazy iteration. The consumer abandons the channel. The goroutine blocks on send forever — one leaked goroutine per abandoned iteration.
+- **Vòng lặp zombie:** iterator của bạn bỏ qua giá trị trả về `yield` . Người tiêu dùng gọi `break` trong vòng lặp `for range` , nhưng iterator tiếp tục tạo ra các giá trị - mức sử dụng CPU vô hạn cho đến khi quá trình bị hủy.
+- **Bẫy channel :** Bạn sử dụng goroutine và channel để triển khai phép lặp lười biếng. Người tiêu dùng từ bỏ channel . Các khối goroutine được gửi vĩnh viễn - một khối goroutine bị rò rỉ cho mỗi lần lặp bị bỏ rơi.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-JavaScript generators and Go `iter.Seq` achieve the same goal (lazy iteration) through different mechanisms.
+JavaScript generators và Go `iter.Seq` đạt được cùng một mục tiêu (lặp lại lười biếng) thông qua các cơ chế khác nhau. ![Iterator Yield Mechanics](./images/10-iterator-compare.png) *Hình: JS generators sử dụng `yield` để tạm dừng thực thi. Go `iter.Seq` sử dụng closure gọi `yield(v)` - khi `yield` trả về `false` , iterator thoát ra. Không liên quan đến goroutines .*
 
-![Iterator Yield Mechanics](./images/10-iterator-compare.png)
+## 3. MÃ
 
-*Figure: JS generators use `yield` to pause execution. Go `iter.Seq` uses a closure that calls `yield(v)` — when `yield` returns `false`, the iterator exits. No goroutines involved.*
+Với mô hình dựa trên closure - được thiết lập, mã bên dưới sẽ xây dựng ba mẫu: tạo phạm vi cơ bản, lặp lại khóa-giá trị với `iter.Seq2` và quy trình lọc lười biếng.
 
-## 3. CODE
-
-With the closure-based model established, the code below builds three patterns: basic range generation, key-value iteration with `iter.Seq2`, and lazy filtering pipelines.
-
-### Example 1: Basic — Range generator
-
-> **Goal**: Create a custom range iterator equivalent to JavaScript's `function* range(start, end)`.
-> **Approach**: Return an `iter.Seq[int]` closure that calls `yield` for each value.
-> **Complexity**: O(N) elements yielded.
-
-```go
+### Ví dụ 1: Cơ bản — Phạm vi generator > **Mục tiêu**: Tạo phạm vi tùy chỉnh iterator tương đương với `function* range(start, end)` của JavaScript.
+> **Phương pháp tiếp cận**: Trả về một `iter.Seq[int]` closure gọi `yield` cho mỗi giá trị.
+> **Độ phức tạp**: Mang lại phần tử O(N).```go
 // basic_sequences.go
 package iterators
 
@@ -73,19 +64,13 @@ func ExecuteGenerators() {
 		fmt.Printf("Value: %d\n", value)
 	}
 }
-```
-
-> **Takeaway**: `if !yield(v) { return }` is the critical line. Without it, `break` in the consumer's loop has no effect — the iterator keeps running. This is the Go equivalent of checking if a generator's caller is still listening.
+```> **Takeaway**: `if !yield(v) { return }` là đường quan trọng. Không có nó, `break` trong vòng lặp của người tiêu dùng không có tác dụng gì - iterator vẫn tiếp tục chạy. Đây là Go tương đương với việc kiểm tra xem người gọi của generator có còn nghe hay không.
 
 ---
 
-### Example 2: Intermediate — Key-value pairs with `iter.Seq2`
-
-> **Goal**: Create an indexed iterator equivalent to JavaScript's `Array.entries()` or `Object.entries()`.
-> **Approach**: `iter.Seq2[int, T]` yields two values per iteration — index and element.
-> **Complexity**: O(N) elements yielded.
-
-```go
+### Ví dụ 2: Trung gian — Cặp khóa-giá trị với `iter.Seq2` > **Mục tiêu**: Tạo một iterator được lập chỉ mục tương đương với `Array.entries()` hoặc `Object.entries()` của JavaScript.
+> **Phương pháp tiếp cận**: `iter.Seq2[int, T]` mang lại hai giá trị cho mỗi lần lặp — chỉ mục và phần tử.
+> **Độ phức tạp**: Mang lại phần tử O(N).```go
 // coordinate_sequences.go
 package iterators
 
@@ -112,19 +97,13 @@ func MapStructures() {
 		fmt.Printf("Index [%d]: %s\n", index, value)
 	}
 }
-```
-
-> **Takeaway**: `iter.Seq2[K, V]` works with `for k, v := range ...` — two-variable destructuring. Use it for any iterator that produces pairs (index+value, key+value, error+result).
+```> **Takeaway**: `iter.Seq2[K, V]` hoạt động với `for k, v := range ...` — phá hủy hai biến. Sử dụng nó cho any iterator tạo ra các cặp (chỉ mục+giá trị, khóa+giá trị, lỗi+kết quả).
 
 ---
 
-### Example 3: Advanced — Lazy filter pipeline
-
-> **Goal**: Filter a large sequence without allocating an intermediate slice, equivalent to RxJS `pipe(filter(...))`.
-> **Approach**: Chain `iter.Seq` functions — each wraps the previous iterator and applies a transformation. No intermediate slices are allocated.
-> **Complexity**: O(N) total — each element is evaluated once through the chain.
-
-```go
+### Ví dụ 3: Nâng cao — Bộ lọc lười pipeline > **Mục tiêu**: Lọc một chuỗi lớn mà không phân bổ một chuỗi trung gian slice , tương đương với RxJS `pipe(filter(...))` .
+> **Phương pháp tiếp cận**: Chuỗi hàm `iter.Seq` — mỗi hàm bao bọc iterator trước đó và áp dụng một phép biến đổi. Không có slices trung gian được phân bổ.
+> **Độ phức tạp**: Tổng O(N) — mỗi phần tử được đánh giá một lần trong chuỗi.```go
 // pipeline_streams.go
 package iterators
 
@@ -152,30 +131,28 @@ func Collect[T any](stream iter.Seq[T]) []T {
 	}
 	return result
 }
-```
+```> **Takeaway**: Đường dẫn Iterator lười biếng — `FilterSeq` không xử lý các phần tử any cho đến khi người tiêu dùng bắt đầu lặp lại. `Collect` cụ thể hóa chuỗi thành slice . Đây là sự phân chia lười biếng/háo hức tương tự như các phương thức RxJS có thể quan sát được và array .
 
-> **Takeaway**: Iterator pipelines are lazy — `FilterSeq` does not process any elements until the consumer starts iterating. `Collect` materializes the sequence into a slice. This is the same lazy/eager split as RxJS observables vs array methods.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Using channels to implement lazy iteration | Replace with `iter.Seq` — no goroutines, no channel lifecycle, no leaks |
-| 2 | Ignoring the `yield` return value | Always check `if !yield(v) { return }` — without it, `break` has no effect |
-| 3 | Calling `Collect` on infinite iterators | Add a `Take(n)` wrapper that stops after N elements before collecting |
+| 1 | Sử dụng channels để triển khai phép lặp lười biếng | Thay thế bằng `iter.Seq` - không goroutines , không có vòng đời channel , không rò rỉ |
+| 2 | Bỏ qua giá trị trả về `yield` | Luôn kiểm tra `if !yield(v) { return }` — không có nó, `break` không có tác dụng |
+| 3 | Gọi `Collect` trên các vòng lặp vô hạn | Thêm trình bao bọc `Take(n)` dừng sau N phần tử trước khi thu thập |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | `iter` package | [pkg.go.dev/iter](https://pkg.go.dev/iter) |
-| Range functions blog | [go.dev/blog/range-functions](https://go.dev/blog/range-functions) |
+| Blog hàm phạm vi | [go.dev/blog/range-functions](https://go.dev/blog/range-functions) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Array Pipelines](./02-array-pipeline.md) | When the input fits in memory | Eager `Map`/`Filter`/`Reduce` over concrete slices |
-| [Optional Types](./11-optional-nullable.md) | When iterators may produce absent values | `Optional[T]` wraps nullable elements in iterator chains |
+| [Array Pipelines](./02-array-pipeline.md) | Khi đầu vào vừa với bộ nhớ | Háo hức `Map` / `Filter` / `Reduce` trên bê tông slices |
+| [Optional Types](./11-optional-nullable.md) | Khi các trình vòng lặp có thể tạo ra các giá trị vắng mặt | `Optional[T]` bao bọc các phần tử nullable trong chuỗi iterator |
 
-**Navigation**: [← Set & Concurrent Map](./09-set-concurrent-map.md) · [→ Optional & Nullable](./11-optional-nullable.md)
+**Điều hướng**: [← Set & Concurrent Map](./09-set-concurrent-map.md) · [→ Optional & Nullable](./11-optional-nullable.md)

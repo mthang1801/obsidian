@@ -1,81 +1,72 @@
-<!-- tags: golang, testing -->
-# 🏋️ Benchmark & Fuzz Testing — Go Testing Beyond Unit Tests
+<!-- tags: golang, testing --> # 🏋️ Benchmark & Kiểm tra Fuzz — Go Kiểm tra ngoài các bài kiểm tra đơn vị
 
-> Go ships built-in benchmarks (`b.N`, `b.Loop()`) and fuzzing (`f.Fuzz()`) — no external libraries needed.
+> Go được tích hợp sẵn benchmarks ( `b.N` , `b.Loop()` ) và fuzzing ( `f.Fuzz()` ) — không cần thư viện bên ngoài.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 12 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Concept** | Benchmark, alloc measurement, fuzzing, corpus-driven input mutation |
-| **Use case** | Performance, regression detection, parser hardening, unexpected input discovery |
-| **Key insight** | Correctness test is not enough; New benchmarks and fuzz expose performance and input edge case |
-| **Go stdlib** | `testing`, `cmp`, `bytes`, `context` |
+| **Khái niệm** | Benchmark , đo lường phân bổ, fuzzing , đột biến đầu vào theo định hướng khối liệu |
+| **Trường hợp sử dụng** | Hiệu suất, phát hiện hồi quy, tăng cường trình phân tích cú pháp, phát hiện đầu vào không mong muốn |
+| **Thông tin chi tiết quan trọng** | Kiểm tra tính đúng đắn là chưa đủ; benchmarks mới và fuzz hiển thị hiệu suất và trường hợp cạnh đầu vào |
+| ** Go stdlib** | `testing` , `cmp` , `bytes` , `context` |
 
-| TS/Jest                | Go testing                                   |
+| TS/Jest | Go thử nghiệm |
 | ---------------------- | -------------------------------------------- |
-| `jest-bench`           | `func BenchmarkX(b *testing.B)` (built-in)   |
-| Property-based testing | `func FuzzX(f *testing.F)` (built-in, 1.18+) |
-| `performance.now()`    | `b.ResetTimer()`, `b.StopTimer()`            |
+| `jest-bench` | `func BenchmarkX(b *testing.B)` (tích hợp sẵn) |
+| Thử nghiệm dựa trên tài sản | `func FuzzX(f *testing.F)` (tích hợp, 1.18+) |
+| `performance.now()` | `b.ResetTimer()` , `b.StopTimer()` |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-"Optimize this — it's slow." You measure with `time.Now()` before and after — results fluctuate by ±40%. Go has `testing.B` built in. It benchmarks properly without third-party libraries, but the compiler can optimize away your target function if you are not careful.
+"Tối ưu hóa điều này - nó chậm." Bạn đo bằng `time.Now()` trước và sau - kết quả dao động trong khoảng ±40%. Go có `testing.B` được tích hợp sẵn. Nó benchmarks đúng cách mà không cần thư viện của bên thứ ba, nhưng trình biên dịch có thể tối ưu hóa chức năng mục tiêu của bạn nếu bạn không cẩn thận.
 
-> *"Why is my API slow?" Log shows p99 latency at 800ms. Unit tests pass. Nothing looks broken. The problem: unit tests only check **correctness**, not **performance**. You add a benchmark first.*
+> *"Tại sao API của tôi chậm?" Nhật ký hiển thị độ trễ p99 ở 800ms. Bài kiểm tra đơn vị vượt qua. Không có gì có vẻ bị hỏng. Vấn đề: kiểm thử đơn vị chỉ kiểm tra **tính chính xác** chứ không kiểm tra **hiệu suất**. Trước tiên, bạn thêm benchmark .*
 >
-> *Go has a built-in benchmark framework — no libraries needed. `BenchmarkXxx(b *testing.B)` runs the function `b.N` times (the runtime adjusts `N` for stability). `b.ReportAllocs()` reports memory usage. `benchstat` compares two runs to detect regressions. Fuzzing (Go 1.18+) covers the next layer: input robustness.*
+> * Go có khung benchmark tích hợp sẵn — không cần thư viện. `BenchmarkXxx(b *testing.B)` chạy hàm `b.N` lần ( runtime điều chỉnh `N` để ổn định). `b.ReportAllocs()` báo cáo mức sử dụng bộ nhớ. `benchstat` so sánh hai lần chạy để phát hiện hồi quy. Fuzzing ( Go 1.18+) bao gồm lớp tiếp theo: độ ổn định đầu vào.*
 
 ### Benchmark vs Unit Test vs Fuzz
 
-| Technique       | Purpose | When to run? | Output                          |
+| Kỹ thuật | Mục đích | Khi nào nên chạy? | Đầu ra |
 | --------------- | ------------------- | ----------------------------- | ------------------------------- |
-| **Unit test**   | Correctness         | `go test`                     | Pass / Fail                     |
-| **Benchmark**   | Performance (ns/op) | `go test -bench .`            | ns/op, B/op, allocs/op          |
-| **Fuzz test**   | Edge cases / crash  | `go test -fuzz=FuzzXxx`       | Crash input if a bug is found |
-| **Example**     | Documentation       | `go test`                     | Output match / Fail             |
+| **Kiểm tra đơn vị** | Tính đúng đắn | `go test` | Đạt/Không đạt |
+| ** Benchmark ** | Hiệu suất (ns/op) | `go test -bench .` | ns/op, B/op, phân bổ/op |
+| ** Fuzz test ** | Trường hợp cạnh / sự cố | `go test -fuzz=FuzzXxx` | Sự cố đầu vào nếu tìm thấy lỗi |
+| **Ví dụ** | Tài liệu | `go test` | Kết quả đầu ra khớp / Thất bại |
 
-**Why `b.Loop()` instead of `for i := 0; i < b.N; i++`?** `b.Loop()` (Go 1.24+) handles timer reset and `b.N` adjustment internally — no manual `b.ResetTimer()` needed. Cleaner, less error-prone. `for i := range b.N` (Go 1.22+) is a better intermediate, but `b.Loop()` is the preferred form going forward.
+**Tại sao `b.Loop()` thay vì `for i := 0; i < b.N; i++` ?** `b.Loop()` ( Go 1.24+) xử lý việc đặt lại bộ hẹn giờ và điều chỉnh `b.N` bên trong — không cần [[C28]]] thủ công. Sạch hơn, ít xảy ra lỗi hơn. `for i := range b.N` ( Go 1.22+) là dạng trung gian tốt hơn, nhưng `b.Loop()` là dạng được ưa thích trong tương lai.
 
-### Fuzz: Find bugs you didn't think of.
+### Fuzz: Tìm lỗi mà bạn không nghĩ tới.
 
-Fuzz testing is based on **property testing**: instead of asserting specific results, you assert **invariants** — properties that must always be true for all inputs:
+Kiểm thử fuzz dựa trên **kiểm tra thuộc tính**: thay vì khẳng định các kết quả cụ thể, bạn khẳng định **bất biến** — các thuộc tính phải luôn đúng cho tất cả dữ liệu đầu vào:
 
-| Property         | For example |
+| Bất động sản | Ví dụ |
 | ---------------- | ---------------------------------------------- |
-| Round-trip       | `decode(encode(x)) == x`                       |
-| Idempotency      | `f(f(x)) == f(x)`                              |
-| No crash         | Function does not panic with any input |
-| Length preserved | `len(transform(s)) == len(s)`                  |
+| Khứ hồi | `decode(encode(x)) == x` |
+| Bình thường | `f(f(x)) == f(x)` |
+| Không có sự cố | Hàm không panic với đầu vào any |
+| Chiều dài được bảo toàn | `len(transform(s)) == len(s)` |
 
-**Why is fuzz more effective than manual test cases?** Developers write cases based on what they expect. The fuzzer generates random inputs and mutations from the seed corpus — it finds edge cases you never imagined. `FuzzReverse` has caught Unicode bugs that no hand-written test covered.
-
-Benchmark vs fuzz vs unit — enough theory. Let's see how the testing pyramid and benchmark workflow looks visually.
+**Tại sao fuzz lại hiệu quả hơn các trường hợp kiểm thử thủ công?** Các nhà phát triển viết trường hợp dựa trên những gì họ mong đợi. Bộ làm mờ tạo ra các đầu vào và đột biến ngẫu nhiên từ kho hạt giống — nó tìm ra các trường hợp đặc biệt mà bạn chưa từng tưởng tượng. `FuzzReverse` đã phát hiện lỗi Unicode mà không có bài kiểm tra viết tay nào được đề cập. Benchmark so với fuzz so với đơn vị - lý thuyết đủ rồi. Hãy cùng xem kim tự tháp thử nghiệm và quy trình làm việc benchmark trông như thế nào.
 
 ---
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-Benchmarks and fuzz tests are often grouped under "advanced testing." The taxonomy card below separates them by purpose, so you do not confuse benchmark (performance) with fuzz (robustness) or unit test (correctness).
+Benchmarks và các bài kiểm tra fuzz thường được nhóm lại trong "thử nghiệm nâng cao". Thẻ phân loại bên dưới phân tách chúng theo mục đích, vì vậy bạn đừng nhầm lẫn benchmark (hiệu suất) với fuzz (mạnh mẽ) hoặc unit test (chính xác). ![Benchmark fuzz taxonomy](./images/02-benchmark-fuzz-taxonomy.png) *Hình: Thẻ phân loại đặt các bài kiểm tra đơn vị, benchmarks , kiểm tra fuzz và các công cụ so sánh dưới dạng bốn lớp khác nhau trong cùng một hệ thống độ tin cậy: độ chính xác, hiệu suất, độ chắc chắn và phán đoán thống kê.*
 
-![Benchmark fuzz taxonomy](./images/02-benchmark-fuzz-taxonomy.png)
+Sau khi phân loại rõ ràng, đoạn mã bên dưới sẽ không giống như một chuyến tham quan công cụ. Mỗi ví dụ sẽ trả lời “loại rủi ro nào đang được kiểm soát?” trước khi nói về cờ hoặc lệnh cụ thể.
 
-*Figure: Taxonomy card places unit tests, benchmarks, fuzz tests, and comparison tools as four different layers within the same confidence system: correctness, performance, robustness, and statistical judgment.*
+## 3. MÃ
 
-Once the taxonomy is clear, the code below will feel less like a tool tour. Each example will answer “what type of risk is being controlled?” before talking about specific flags or commands.
+Với ** Benchmark & Thử nghiệm Fuzz - Go Thử nghiệm ngoài các thử nghiệm đơn vị**, chúng tôi có một mô hình tinh thần về thử nghiệm hiệu suất và độ mạnh mẽ. Bây giờ chúng tôi neo nó vào mã để xem mỗi lựa chọn — sub- benchmark , theo dõi phân bổ, kho văn bản mờ — thay đổi kết quả kiểm tra và mức độ tin cậy như thế nào.
 
-## 3. CODE
-
-With **Benchmark & Fuzz Testing — Go Testing Beyond Unit Tests**, we have a mental model of performance and robustness testing. Now we anchor it in code to see how each choice — sub-benchmark, allocation tracking, fuzz corpus — changes the test output and confidence level.
-
-### Example 1: Basic — Benchmarks.
-> **Objective**: Measure function performance with built-in benchmarks, allocation tracking, and sub-benchmarks.
-> **Approach**: Start with a simple benchmark, then add setup exclusion and parameterized sub-benchmarks.
-> **Example**: String concatenation via `+` vs `strings.Builder` — sub-benchmarks reveal the allocation difference.
-> **Complexity**: O(1) per operation; the benchmark loop scales `b.N` automatically.
-
-```go
+### Ví dụ 1: Cơ bản — Benchmarks .
+> **Mục tiêu**: Đo lường hiệu suất của chức năng với benchmarks tích hợp sẵn, theo dõi phân bổ và phụ benchmarks .
+> **Phương pháp tiếp cận**: Bắt đầu bằng một benchmark đơn giản, sau đó thêm loại trừ thiết lập và tham số phụ- benchmarks .
+> **Ví dụ**: Nối chuỗi thông qua `+` so với `strings.Builder` — sub- benchmarks tiết lộ sự khác biệt về phân bổ.
+> **Độ phức tạp**: O(1) cho mỗi thao tác; vòng lặp benchmark tự động chia tỷ lệ `b.N` .```go
 package utils_test
 
 import "testing"
@@ -138,22 +129,16 @@ func BenchmarkAllocs(b *testing.B) {
 // Output:
 // BenchmarkStringConcat-20    50000000   25.3 ns/op   48 B/op   2 allocs/op
 // BenchmarkStringBuilder-20   80000000   18.1 ns/op   64 B/op   2 allocs/op
-```
+```> **Tại sao `b.ReportAllocs()` lại quan trọng?**
+> `ns/op` chỉ đo time — không đo áp suất bộ nhớ. Hàm 10ns nhưng 3 phân bổ/op sẽ tạo ra áp suất GC trên quy mô lớn. `b.ReportAllocs()` report `B/op` (byte) và `allocs/op` — giúp phát hiện các phân bổ ẩn trong đường dẫn nóng.
 
-> **Why is `b.ReportAllocs()` important?**
-> `ns/op` only measures time — not memory pressure. A function of 10ns but 3 allocs/op will create GC pressure at scale. `b.ReportAllocs()` report `B/op` (bytes) and `allocs/op` — helps detect hidden allocations in hot paths.
+> **Kết luận**: `b.Loop()` ( Go 1.24+) thay thế `for i := 0; i < b.N; i++` . Sub- benchmarks cho phép kiểm tra tham số hóa (size=100, size=1000). `-benchmem` hoặc `b.ReportAllocs()` theo dõi chi phí phân bổ. Benchmark đo hiệu suất bìa. Nhưng benchmarks chỉ là những trường hợp thử nghiệm mà bạn nghĩ ra. Kiểm thử fuzz tìm ra các lỗi mà bạn không nghĩ tới — bằng cách tạo đầu vào ngẫu nhiên từ kho dữ liệu gốc.
 
-> **Conclusion**: `b.Loop()` (Go 1.24+) replaces `for i := 0; i < b.N; i++`. Sub-benchmarks enable parameterized testing (size=100, size=1000). `-benchmem` or `b.ReportAllocs()` tracks allocation cost.
-
-Benchmark cover performance measurement. But benchmarks only test cases you come up with. Fuzz testing finds bugs you didn't think of — by generating random inputs from the seed corpus.
-
-### Example 2: Intermediate — Fuzz Testing (Go 1.18+).
-> **Objective**: Find edge cases and crashes with fuzz testing — property-based assertions on random inputs.
-> **Approach**: Define a seed corpus, then assert invariants (round-trip, length preservation, no panic).
-> **Example**: `FuzzReverse` verifies that double-reversing a string returns the original. `FuzzJSONParse` verifies that successful parse implies successful re-marshal.
-> **Complexity**: O(1) per iteration; the fuzzer generates thousands of inputs from the seed corpus.
-
-```go
+### Ví dụ 2: Trung cấp — Kiểm tra lông tơ ( Go 1.18+).
+> **Mục tiêu**: Tìm các trường hợp đặc biệt và sự cố với fuzz testing — xác nhận dựa trên thuộc tính trên dữ liệu đầu vào ngẫu nhiên.
+> **Phương pháp tiếp cận**: Xác định kho dữ liệu gốc, sau đó xác nhận các bất biến (khứ hồi, bảo toàn độ dài, không panic ).
+> **Ví dụ**: `FuzzReverse` xác minh rằng việc đảo ngược hai lần một chuỗi sẽ trả về chuỗi gốc. `FuzzJSONParse` xác minh rằng phân tích cú pháp thành công có nghĩa là sắp xếp lại thành công.
+> **Độ phức tạp**: O(1) mỗi lần lặp; bộ làm mờ tạo ra hàng nghìn đầu vào từ kho hạt giống.```go
 package utils_test
 
 import (
@@ -210,22 +195,16 @@ if err == nil {
 		// If err != nil, input is invalid JSON — that's OK
 	})
 }
-```
+```> **Tại sao xác nhận dựa trên thuộc tính thay vì dựa trên kết quả?**
+> Bộ làm mờ tạo ra đầu vào ngẫu nhiên — bạn không biết trước đầu vào nên không thể xác nhận kết quả cụ thể. Thay vào đó, hãy khẳng định **bất biến**: `decode(encode(x)) == x` , `len(transform(s)) == len(s)` hoặc đơn giản là "không panic ". Thuộc tính phải giữ cho tất cả các đầu vào.
 
-> **Why property-based instead of result-based assertions?**
-> The fuzzer generates random inputs — you do not know the input beforehand, so you cannot assert specific results. Instead, assert **invariants**: `decode(encode(x)) == x`, `len(transform(s)) == len(s)`, or simply "does not panic". Properties must hold for all inputs.
+> **Kết luận**: Kho hạt giống lông tơ cung cấp điểm khởi đầu. Bộ làm mờ Go biến đổi từ đầu vào gốc để tìm sự cố. Kết quả được lưu trữ trong `testdata/fuzz/` — đưa chúng vào kho lưu trữ để sao chép CI. `-fuzztime=30s` giới hạn CI runtime . Benchmark và độ bền cũng như độ bền của lớp phủ lông tơ. Nhưng một lần chạy benchmark là không đủ — các kết quả có sự khác biệt giữa việc điều tiết CPU, thời gian GC và lập lịch hệ điều hành. Bạn cần chạy nhiều lần và so sánh thống kê. Đó là nơi `benchstat` đi vào.
 
-> **Conclusion**: Fuzz seed corpus provides starting points. The Go fuzzer mutates from seed inputs to find crashes. Results are stored in `testdata/fuzz/` — commit them to the repo for CI reproduction. `-fuzztime=30s` limits CI runtime.
-
-Benchmark and fuzz cover measurement and robustness. But one benchmark run is not enough — results have variance from CPU throttling, GC timing, and OS scheduling. You need multiple runs and statistical comparison. That is where `benchstat` enters.
-
-### Example 3: Advanced — Comparing Benchmark Results.
-> **Objective**: Compare benchmark results across code changes with statistical significance.
-> **Approach**: Run benchmarks with `-count=10`, save results, make changes, re-run, and compare with `benchstat`.
-> **Example**: `benchstat old.txt new.txt` shows a 28% improvement in `StringConcat` with a p-value below 0.05.
-> **Complexity**: O(1) per comparison; `benchstat` handles the statistics.
-
-```bash
+### Ví dụ 3: Nâng cao — So sánh kết quả Benchmark .
+> **Mục tiêu**: So sánh kết quả benchmark qua các thay đổi mã với ý nghĩa thống kê.
+> **Cách tiếp cận**: Chạy benchmarks với `-count=10` , lưu kết quả, thực hiện thay đổi, chạy lại và so sánh với `benchstat` .
+> **Ví dụ**: `benchstat old.txt new.txt` cho thấy mức cải thiện 28% ở `StringConcat` với giá trị p dưới 0,05.
+> **Độ phức tạp**: O(1) cho mỗi lần so sánh; `benchstat` xử lý số liệu thống kê.```bash
 # Install benchstat
 go install golang.org/x/perf/cmd/benchstat@latest
 
@@ -240,68 +219,60 @@ benchstat old.txt new.txt
 # Output:
 # name           old time/op  new time/op  delta
 # StringConcat   25.3ns       18.1ns       -28.46%
-```
+```> **Tại sao `-count=10` khi so sánh benchmarks ?**
+> Kết quả Benchmark có sự khác biệt so với việc điều chỉnh CPU, thời gian GC và lập kế hoạch cho hệ điều hành. `-count=10` chạy 10 lần — `benchstat` tính giá trị trung bình và khoảng tin cậy. Nếu `p < 0.05` , thay đổi là một sự hồi quy hoặc cải thiện thực sự, không phải tiếng ồn.
 
-> **Why `-count=10` when comparing benchmarks?**
-> Benchmark results have variance from CPU throttling, GC timing, and OS scheduling. `-count=10` runs 10 times — `benchstat` calculates the mean and confidence interval. If `p < 0.05`, the change is a real regression or improvement, not noise.
+> **Kết luận**: `benchstat` so sánh benchmark các lần chạy có ý nghĩa thống kê. Sử dụng nó trong CI: nhánh cơ sở và nhánh PR. `-count≥5` đưa ra một so sánh đáng tin cậy.
 
-> **Conclusion**: `benchstat` compares benchmark runs with statistical significance. Use it in CI: baseline branch vs PR branch. `-count≥5` gives a reliable comparison.
-
-You now know benchmark, fuzz, and `benchstat`. The most dangerous part remains: the compiler can optimize away benchmark results — the trap seeded at the beginning of this article that produces meaningless `0 ns/op` output.
+Bây giờ bạn đã biết benchmark , fuzz và `benchstat` . Phần nguy hiểm nhất vẫn còn: trình biên dịch có thể tối ưu hóa các kết quả benchmark - cái bẫy được gieo ở đầu bài viết này tạo ra đầu ra `0 ns/op` vô nghĩa.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The mechanics of **Benchmark & Fuzz Testing** are clear. What remains is recognizing the spots where almost-correct code produces misleading benchmark results.
+Cơ chế của ** Benchmark & Fuzz testing** rất rõ ràng. Điều còn lại là nhận ra những điểm mà mã gần như chính xác tạo ra kết quả benchmark sai lệch.
 
-| # | Severity | Error | Consequence | Fix |
-|---|----------|-----|---------|-----|
-| 1 | 🔴 Fatal | Compiler optimizes away result | `0 ns/op` — meaningless benchmark | Assign result to `var sink T` package-level |
-| 2 | 🟡 Common | Setup included in benchmark | Measure setup time instead of target code | `b.ResetTimer()` after setup, or `b.StopTimer()`/`b.StartTimer()` |
-| 3 | 🟡 Common | Fuzz runs forever in CI | CI pipeline timeout/hang | `-fuzztime=30s` limit time, `-fuzzminimizetime=10s` |
-| 4 | 🟡 Common | `for i := 0; i < b.N; i++` (old style) | Timer issues, verbose | `for b.Loop()` (Go 1.24+) or `for range b.N` (Go 1.22+) |
-| 5 | 🔵 Minor | Benchmark does not use `-count` | Single run = unreliable data | `-count=5` minimum, `benchstat` for comparison |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|------|----------|------|
+| 1 | 🔴 Gây tử vong | Trình biên dịch tối ưu hóa kết quả | `0 ns/op` — vô nghĩa benchmark | Gán kết quả cho `var sink T` package -level |
+| 2 | 🟡 Chung | Thiết lập có trong benchmark | Đo thiết lập time thay vì mã mục tiêu | `b.ResetTimer()` sau khi thiết lập hoặc `b.StopTimer()` / `b.StartTimer()` |
+| 3 | 🟡 Chung | Fuzz chạy mãi mãi trong CI | CI pipeline hết thời gian chờ/treo | `-fuzztime=30s` giới hạn time , `-fuzzminimizetime=10s` |
+| 4 | 🟡 Chung | `for i := 0; i < b.N; i++` (kiểu cũ) | Vấn đề về hẹn giờ, dài dòng | `for b.Loop()` ( Go 1.24+) hoặc `for range b.N` ( Go 1.22+) |
+| 5 | 🔵 Nhỏ | Benchmark không sử dụng `-count` | Chạy một lần = dữ liệu không đáng tin cậy | `-count=5` tối thiểu, `benchstat` để so sánh |
 
-### 🔴 Pitfall #1 — Compiler optimizes away benchmark
-
-The Go compiler finds the result unused and eliminates the function call entirely — `0 ns/op`. The fix: assign the result to a package-level `var sink T`. The compiler cannot optimize it away because the variable is visible outside the function scope.
-
-```go
+### 🔴 Cạm bẫy #1 — Trình biên dịch tối ưu hóa benchmark Trình biên dịch Go tìm thấy kết quả không được sử dụng và loại bỏ hoàn toàn lệnh gọi hàm - `0 ns/op` . Cách khắc phục: gán kết quả cho package -level `var sink T` . Trình biên dịch không thể tối ưu hóa nó vì biến hiển thị bên ngoài phạm vi hàm.```go
 var sink int // package-level
 func BenchmarkFib(b *testing.B) {
     for b.Loop() {
         sink = Fib(20) // compiler keeps it because sink is package-level
     }
 }
-```
-
-You've gone through benchmark, fuzz, benchstat, and compiler optimization traps. The resources below help go deeper.
+```Bạn đã trải qua các bẫy benchmark , fuzz, Benchstat và tối ưu hóa trình biên dịch. Các tài nguyên dưới đây giúp đi sâu hơn.
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource      | Type | Link                                                                                             | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | ------------- | -------- | ------------------------------------------------------------------------------------------------ | ------- |
-| Go Benchmarks | Official | [pkg.go.dev/testing#hdr-Benchmarks](https://pkg.go.dev/testing#hdr-Benchmarks)                   | Built-in benchmark API |
-| Go Fuzzing    | Official | [go.dev/doc/security/fuzz](https://go.dev/doc/security/fuzz/)                                    | Fuzz testing guide (Go 1.18+) |
-| benchstat     | Tool     | [pkg.go.dev/golang.org/x/perf/cmd/benchstat](https://pkg.go.dev/golang.org/x/perf/cmd/benchstat) | Statistical benchmark comparison |
-| b.Loop() proposal | Official | [go.dev/blog/benchmarkloop](https://go.dev/blog/benchmarkloop) | Go 1.24 benchmark loop |
+| Go Benchmarks | Chính thức | [pkg.go.dev/testing#hdr-Benchmarks](https://pkg.go.dev/testing#hdr-Benchmarks) | API benchmark tích hợp |
+| Go Fuzzing | Chính thức | [go.dev/doc/security/fuzz](https://go.dev/doc/security/fuzz/) | Hướng dẫn kiểm tra fuzz ( Go 1.18+) |
+| băng ghế dự bị | Công cụ | [pkg.go.dev/golang.org/x/perf/cmd/benchstat](https://pkg.go.dev/golang.org/x/perf/cmd/benchstat) | So sánh thống kê benchmark |
+| đề xuất b.Loop() | Chính thức | [go.dev/blog/benchmarkloop](https://go.dev/blog/benchmarkloop) | Vòng lặp Go 1.24 benchmark |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Benchmark & Fuzz Testing** is clear. The branches below extend performance testing into production with profiling, property-based testing, and regression detection.
+Cốt lõi của ** Benchmark & Fuzz testing** rất rõ ràng. Các nhánh bên dưới mở rộng thử nghiệm hiệu suất vào sản xuất bằng tính năng lập hồ sơ, thử nghiệm dựa trên thuộc tính và phát hiện hồi quy.
 
-| Extend | When | Reason | File/Link |
+| Gia hạn | Khi nào | Lý do | Tệp/Liên kết |
 | ------- | ------- | ----- | --------- |
-| pprof profiling | After benchmark identifies slow function | Line-by-line allocation + CPU analysis | [../../advanced/05-performance-pprof.md](../../advanced/05-performance-pprof.md) |
-| Integration tests | Test real DB/Redis/Kafka | Beyond unit + benchmark — real dependencies | [03-integration-testcontainers.md](./03-integration-testcontainers.md) |
-| Property-based testing | Complex business logic | Complement fuzz with hypothesis-style properties | [github.com/flyingmutant/rapid](https://github.com/flyingmutant/rapid) |
-| CI benchmark regression | PR performance gates | Auto-detect performance regressions | `benchstat` in GitHub Actions |
+| hồ sơ pprof | Sau benchmark xác định chức năng chậm | Phân bổ từng dòng + phân tích CPU | [../../advanced/05-performance-pprof.md](../../advanced/05-performance-pprof.md) |
+| Kiểm tra tích hợp | Kiểm tra DB/Redis/Kafka thực | Đơn vị ngoài + benchmark — phụ thuộc thực sự | [03-integration-testcontainers.md](./03-integration-testcontainers.md) |
+| Thử nghiệm dựa trên tài sản | Logic kinh doanh phức tạp | Bổ sung fuzz với các thuộc tính kiểu giả thuyết | [github.com/flyingmutant/rapid](https://github.com/flyingmutant/rapid) |
+| Hồi quy CI benchmark | cổng thực hiện PR | Tự động phát hiện hồi quy hiệu suất | `benchstat` trong Hành động GitHub |
 
 ---
 
-**Navigation**: [← Table-driven Tests](./01-table-driven-mocking.md) · [→ Integration Tests](./03-integration-testcontainers.md)
+**Điều hướng**: [← Table-driven Tests](./01-table-driven-mocking.md) · [→ Integration Tests](./03-integration-testcontainers.md)

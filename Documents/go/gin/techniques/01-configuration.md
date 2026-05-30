@@ -1,57 +1,42 @@
-<!-- tags: golang, modules -->
-# ⚙️ Configuration — NestJS ConfigModule → Go Viper/envconfig
+<!-- tags: golang, modules --> # ⚙️ Cấu hình — NestJS ConfigModule → Go Viper/envconfig
 
-> **Library**: Load env vars into typed Go structs using `envconfig` or `viper` — replacing NestJS `ConfigModule`.
+> **Thư viện**: Tải các vars env vào các cấu trúc Go đã gõ bằng cách sử dụng `envconfig` hoặc `viper` — thay thế NestJS `ConfigModule` .
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Scattered `os.Getenv()` calls across a codebase hide missing values until runtime panics. Typed config structs with `required:"true"` tags crash fast at startup — before the first request arrives.
+Các lệnh gọi `os.Getenv()` rải rác trên một cơ sở mã sẽ ẩn các giá trị bị thiếu cho đến khi thời gian chạy bị hoảng loạn. Cấu trúc cấu hình đã nhập có thẻ `required:"true"` gặp sự cố nhanh khi khởi động — trước khi yêu cầu đầu tiên đến.
 
-| NestJS                                  | Go Equivalent                                 |
-| --------------------------------------- | --------------------------------------------- |
-| `ConfigModule.forRoot({ envFilePath })` | `godotenv.Load()` or `viper.ReadInConfig()`   |
-| `configService.get('DB_HOST')`          | `cfg.Database.Host` (typed struct field)       |
-| Joi schema validation                   | Struct tags: `required:"true"`, `default:"x"` |
-| `@nestjs/config` namespaces             | Nested config structs (AppConfig, DBConfig)    |
+| NestJS | Đi tương đương |
+| ------------------------------ | --------------------------------------------- |
+| `ConfigModule.forRoot({ envFilePath })` | `godotenv.Load()` hoặc `viper.ReadInConfig()` |
+| `configService.get('DB_HOST')` | `cfg.Database.Host` (trường cấu trúc đã nhập) |
+| Xác thực lược đồ Joi | Thẻ cấu trúc: `required:"true"` , `default:"x"` |
+| `@nestjs/config` không gian tên | Cấu trúc cấu hình lồng nhau (AppConfig, DBConfig) |
 
-### Key Invariants
+### Bất biến chính
 
-- **Fail at startup, not at request time.** Use `required:"true"` or `log.Fatal` if essential vars are missing.
-- **Never commit `.env` files to git.** Use `.env.example` with placeholder values.
+- **Không thành công khi khởi động, không phải lúc yêu cầu.** Sử dụng `required:"true"` hoặc `log.Fatal` nếu thiếu các lọ thiết yếu.
+- **Không bao giờ chuyển các tệp `.env` sang git.** Sử dụng `.env.example` với các giá trị giữ chỗ.
 
-## 2. VISUAL
-
-![Configuration management flow — sources → envconfig → typed struct → fail-fast startup](./images/01-configuration.png)
-
-*Figure: Config flow — .env, OS env, CLI flags, YAML merge through envconfig/viper into a typed Go struct. Missing required fields crash at startup (fail-fast).*
-
-```mermaid
+## 2. HÌNH ẢNH ![Configuration management flow — sources → envconfig → typed struct → fail-fast startup](./images/01-configuration.png) *Hình: Luồng cấu hình — .env, OS env, cờ CLI, YAML hợp nhất thông qua envconfig/viper thành cấu trúc Go đã gõ. Thiếu các trường bắt buộc bị lỗi khi khởi động (không nhanh).*```mermaid
 flowchart LR
     A[".env file"] -->|godotenv| B["OS Env Vars"]
     B -->|envconfig / viper| C["Config Struct"]
     C --> D{"required fields\npresent?"}
     D -->|Yes| E["✅ Server Starts"]
     D -->|No| F["❌ log.Fatal\nfail-fast exit"]
-```
+```*Hình: Đường dẫn tải cấu hình — tệp `.env` → OS env vars → liên kết cấu trúc → cổng xác thực khởi động. Việc thiếu các trường bắt buộc sẽ làm hỏng quy trình ngay lập tức.*
 
-*Figure: Config loading pipeline — `.env` file → OS env vars → struct binding → startup validation gate. Missing required fields crash the process immediately.*
-
-### Config Resolution Order
-
-```text
+### Thứ tự giải quyết cấu hình```text
 1. .env file loaded by godotenv (optional)
 2. OS environment variables (override .env)
 3. envconfig/viper binds to Config struct
 4. Missing required fields → log.Fatal at startup
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Struct-based Config
-
-```go
+### Ví dụ 1: Cơ bản — Cấu hình dựa trên cấu trúc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // envconfig binds env vars to struct fields by tag name.
     // required:"true" crashes startup if the var is missing.
@@ -96,11 +81,7 @@ flowchart LR
 
         return &cfg
     }
-```
-
-### Example 2: Intermediate — Viper Configurations
-
-```go
+```### Ví dụ 2: Trung cấp — Cấu hình Viper```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Viper: reads YAML config file, merges with env vars.
     // AutomaticEnv overrides file values with OS env vars.
@@ -136,30 +117,28 @@ flowchart LR
 
         return &cfg
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Committing `.env` with real credentials to git | Database passwords exposed in version history | Use `.env.example` + `.gitignore`; inject secrets via CI/CD |
-| 2 | 🟡 Common | Using `os.Getenv()` directly instead of typed config struct | Missing var returns empty string; silent runtime bugs | Bind all vars to a struct with `required:"true"` tags |
+| 1 | 🔴 Gây tử vong | Cam kết `.env` bằng thông tin xác thực thực sự cho git | Mật khẩu cơ sở dữ liệu bị lộ trong lịch sử phiên bản | Sử dụng `.env.example` + `.gitignore` ; tiêm bí mật qua CI/CD |
+| 2 | 🟡 Chung | Sử dụng trực tiếp `os.Getenv()` thay vì gõ config struct | Thiếu var trả về chuỗi trống; lỗi thời gian chạy im lặng | Liên kết tất cả các vars với một cấu trúc bằng thẻ `required:"true"` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | envconfig | [github.com/kelseyhightower/envconfig](https://github.com/kelseyhightower/envconfig) |
-| viper | [github.com/spf13/viper](https://github.com/spf13/viper) |
+| rắn lục | [github.com/spf13/viper](https://github.com/spf13/viper) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Database & ORM | After config is loaded | Use `cfg.Database` to open GORM/sqlx connections | [./02-database-orm.md](./02-database-orm.md) |
+| Cơ sở dữ liệu & ORM | Sau khi tải xong cấu hình | Sử dụng `cfg.Database` để mở kết nối GORM/sqlx | [./02-database-orm.md](./02-database-orm.md) |

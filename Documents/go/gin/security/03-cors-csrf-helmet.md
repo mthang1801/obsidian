@@ -1,33 +1,26 @@
-<!-- tags: golang -->
-# 🛡️ CORS, CSRF & Security Headers — NestJS Helmet → Gin Middleware
+<!-- tags: golang --> # 🛡️ CORS, CSRF & Tiêu đề bảo mật — Mũ bảo hiểm NestJS → Gin Middleware
 
-> **Library**: CORS via `gin-contrib/cors`, security headers (Helmet equivalent), and CSRF origin validation.
+> **Thư viện**: CORS qua `gin-contrib/cors` , tiêu đề bảo mật (tương đương với Mũ bảo hiểm) và xác thực nguồn gốc CSRF.
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-CORS controls which origins can call your API. Security headers prevent XSS, clickjacking, and MIME-sniffing. CSRF protection ensures state-changing requests come from your own frontend.
+CORS kiểm soát nguồn gốc nào có thể gọi API của bạn. Tiêu đề bảo mật ngăn chặn XSS, clickjacking và đánh hơi MIME. Bảo vệ CSRF đảm bảo các yêu cầu thay đổi trạng thái đến từ giao diện người dùng của riêng bạn.
 
-| NestJS                     | Gin Equivalent                           |
+| NestJS | Tương đương Gin |
 | -------------------------- | ---------------------------------------- |
-| `app.enableCors(options)`  | `r.Use(cors.New(cors.Config{...}))`      |
-| `app.use(helmet())`        | Custom `SecurityHeaders()` middleware    |
-| `app.use(csurf())`         | Origin validation middleware + SameSite cookies |
-| `@Header('X-Custom', 'v')` | `c.Header("X-Custom", "v")`              |
+| `app.enableCors(options)` | `r.Use(cors.New(cors.Config{...}))` |
+| `app.use(helmet())` | Phần mềm trung gian `SecurityHeaders()` tùy chỉnh |
+| `app.use(csurf())` | Phần mềm trung gian xác thực nguồn gốc + cookie SameSite |
+| `@Header('X-Custom', 'v')` | `c.Header("X-Custom", "v")` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Never use `AllowOrigins: ["*"]` with `AllowCredentials: true`.** Browsers reject this.
-- **Set `X-Content-Type-Options: nosniff` on every response.** Prevents MIME-type sniffing.
+- **Không bao giờ sử dụng `AllowOrigins: ["*"]` với `AllowCredentials: true` .** Trình duyệt từ chối điều này.
+- **Đặt `X-Content-Type-Options: nosniff` trên mọi phản hồi.** Ngăn chặn việc đánh hơi kiểu MIME.
 
-## 2. VISUAL
-
-![CORS, Security Headers, and CSRF protection layers](./images/03-cors-csrf-headers.png)
-
-*Figure: Three security layers — CORS (origin allowlist + preflight), Helmet-equivalent headers (nosniff, DENY, HSTS, CSP), CSRF (origin validation + SameSite cookies).*
-
-```mermaid
+## 2. HÌNH ẢNH ![CORS, Security Headers, and CSRF protection layers](./images/03-cors-csrf-headers.png) *Hình: Ba lớp bảo mật — CORS (danh sách cho phép nguồn gốc + preflight), tiêu đề tương đương với mũ bảo hiểm (nosniff, DENY, HSTS, CSP), CSRF (xác thực nguồn gốc + cookie SameSite).*```mermaid
 flowchart TD
     A["Incoming Request"] --> B["CORS Middleware"]
     B --> C{"Origin in\nallowlist?"}
@@ -37,24 +30,16 @@ flowchart TD
     F -->|"GET/HEAD"| G["Handler"]
     F -->|"POST+invalid origin"| H["403 Forbidden"]
     F -->|"POST+valid origin"| G
-```
+```*Hình: Ba lớp bảo vệ — CORS (danh sách cho phép nguồn gốc), tiêu đề bảo mật (tăng cường trình duyệt), CSRF (xác thực nguồn gốc khi ghi).*
 
-*Figure: Three defense layers — CORS (origin allowlist), security headers (browser hardening), CSRF (origin validation on writes).*
-
-### Defense Layers
-
-```text
+### Lớp phòng thủ```text
 Request from https://evil.com → POST /api/transfer
     ├── CORS: origin not in AllowOrigins → browser blocks preflight
     ├── Security headers: X-Frame-Options: DENY prevents iframe embedding
     └── CSRF: Origin header != allowed list → 403 Forbidden
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — CORS Configurations
-
-```go
+### Ví dụ 1: Cơ bản - Cấu hình CORS```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CORS: explicit origin allowlist, methods, and headers.
     // AllowCredentials: true sends cookies cross-origin.
@@ -85,11 +70,7 @@ Request from https://evil.com → POST /api/transfer
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — Security Headers
-
-```go
+```### Ví dụ 2: Trung cấp — Tiêu đề bảo mật```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // SecurityHeaders: Gin equivalent of Helmet.js.
     // Sets all OWASP-recommended headers per response.
@@ -112,11 +93,7 @@ Request from https://evil.com → POST /api/transfer
             c.Next()
         }
     }
-```
-
-### Example 3: Advanced — CSRF Protection
-
-```go
+```### Ví dụ 3: Nâng cao - Bảo vệ CSRF```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CSRF: validates Origin header on state-changing methods.
     // Falls back to Referer if Origin is empty.
@@ -153,30 +130,28 @@ Request from https://evil.com → POST /api/transfer
             })
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | `AllowOrigins: ["*"]` with `AllowCredentials: true` | Browsers reject this; no CORS at all | Use explicit origin allowlist |
-| 2 | 🔴 Fatal | Missing `X-Frame-Options: DENY` | API responses can be loaded in iframes for clickjacking | Add `SecurityHeaders()` middleware globally |
+| 1 | 🔴 Gây tử vong | `AllowOrigins: ["*"]` với `AllowCredentials: true` | Trình duyệt từ chối điều này; hoàn toàn không có CORS | Sử dụng danh sách cho phép xuất xứ rõ ràng |
+| 2 | 🔴 Gây tử vong | Thiếu `X-Frame-Options: DENY` | Phản hồi API có thể được tải trong iframe để clickjacking | Thêm phần mềm trung gian `SecurityHeaders()` trên toàn cầu |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | gin-contrib/cors | [github.com/gin-contrib/cors](https://github.com/gin-contrib/cors) |
-| OWASP Security Headers | [owasp.org/www-project-secure-headers](https://owasp.org/www-project-secure-headers/) |
+| Tiêu đề bảo mật OWASP | [owasp.org/www-project-secure-headers](https://owasp.org/www-project-secure-headers/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Rate Limiting | When you need to throttle abusive traffic | Complements CORS/CSRF by limiting request volume per IP | [./04-rate-limiting.md](./04-rate-limiting.md) |
+| Giới hạn tỷ lệ | Khi bạn cần điều tiết lưu lượng truy cập lạm dụng | Bổ sung CORS/CSRF bằng cách giới hạn khối lượng yêu cầu trên mỗi IP | [./04-rate-limiting.md](./04-rate-limiting.md) |

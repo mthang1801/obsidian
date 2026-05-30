@@ -1,52 +1,43 @@
-<!-- tags: golang, map, utils -->
-# 🗂️ Object/Map Utils — Keys, Values, Entries, Merge
+<!-- tags: golang, map, utils --> # 🗂️ Đối tượng/ Map Utils — Khóa, Giá trị, Mục nhập, Hợp nhất
 
-> JavaScript spreads objects with `{...a, ...b}`. Go has no spread operator — you loop through maps explicitly. Map iteration order is randomized by design. Concurrent map access without a mutex crashes with a fatal runtime error.
+> JavaScript truyền bá các đối tượng bằng `{...a, ...b}` . Go không có toán tử trải rộng — bạn lặp lại maps một cách rõ ràng. Thứ tự lặp Map được ngẫu nhiên hóa theo thiết kế. Truy cập đồng thời map không có mutex gặp sự cố với lỗi runtime nghiêm trọng.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Cập nhật: 19-04-2026 · ⏱️ Đọc 10 phút
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A TypeScript developer ports a configuration merger: `{...defaultConfig, ...envConfig}`. They try `reflect` to merge structs dynamically. The code compiles, runs 10x slower than a manual loop, and panics when a new field is added without updating the reflection logic.
+Nhà phát triển TypeScript chuyển việc hợp nhất cấu hình: `{...defaultConfig, ...envConfig}` . Họ thử `reflect` để hợp nhất structs một cách linh hoạt. Mã biên dịch, chạy chậm hơn 10 lần so với vòng lặp thủ công và hoảng loạn khi thêm trường mới mà không cập nhật logic phản chiếu. Go maps ( `map[K]V` ) thay thế các đối tượng động của JavaScript. Nhưng maps có hai điểm khác biệt quan trọng: thứ tự lặp được cố tình ngẫu nhiên hóa (không có thứ tự khóa ổn định) và việc đọc/ghi đồng thời gây ra sự cố runtime nghiêm trọng - không phải là cuộc đua dữ liệu, mà là `fatal error: concurrent map writes` không thể phục hồi.
 
-Go maps (`map[K]V`) replace JavaScript's dynamic objects. But maps have two critical differences: iteration order is deliberately randomized (no stable key order), and concurrent reads/writes cause a fatal runtime crash — not a data race, but an unrecoverable `fatal error: concurrent map writes`.
+### 1.1 Các kiểu bất biến và lỗi
 
-### 1.1 Invariants & Failure Modes
-
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **`map[K]V`** | The dynamic equivalent of JS objects. Keys must be `comparable`; values can be any type. |
-| **Random iteration** | Go randomizes `range` order to prevent code from depending on insertion order. |
+| ** `map[K]V` ** | Tương đương động của các đối tượng JS. Khóa phải là `comparable` ; các giá trị có thể là loại any . |
+| **Lặp lại ngẫu nhiên** | Go ngẫu nhiên hóa thứ tự `range` để ngăn mã phụ thuộc vào thứ tự chèn. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Never mutate maps in place** | `result[k] = v` mutates the original map. Create a new map for merges. |
-| **Sort keys after extraction** | `Keys(m)` returns a random-order slice. Sort if you need deterministic output. |
+| **Không bao giờ thay đổi maps tại chỗ** | `result[k] = v` làm thay đổi bản gốc map . Tạo một map mới để hợp nhất. |
+| **Sắp xếp khóa sau khi trích xuất** | `Keys(m)` trả về một thứ tự ngẫu nhiên slice . Sắp xếp nếu bạn cần đầu ra xác định. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The missing key sort:** You extract map keys and write them to a config file. Tests pass locally, fail in CI — because the key order changes between runs.
-- **The struct reflection trap:** Using `reflect` to extract struct fields bypasses compile-time safety. Adding a field to the struct silently breaks the reflection code at runtime.
+- **Sắp xếp khóa bị thiếu:** Bạn trích xuất khóa map và ghi vào tệp cấu hình. Các thử nghiệm thành công cục bộ, thất bại trong CI — vì thứ tự khóa thay đổi giữa các lần chạy.
+- **Bẫy phản chiếu struct :** Sử dụng `reflect` để trích xuất các trường struct bỏ qua sự an toàn biên dịch- time . Việc thêm trường vào struct âm thầm phá vỡ mã phản chiếu tại runtime .
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-JavaScript objects and Go maps look similar but behave differently. The visual maps each JS `Object.*` method to its Go generic equivalent.
+Các đối tượng JavaScript và Go maps trông giống nhau nhưng hoạt động khác nhau. Hình ảnh maps mỗi phương thức JS `Object.*` tương đương với Go generic của nó. ![Object Map Equivalents](./images/03-object-map-utils-api-map.png) *Hình: JS `Object.keys/values/entries/assign` được ánh xạ tới các hàm Go generic . Go yêu cầu các vòng lặp rõ ràng trong đó JavaScript cung cấp các phương thức tích hợp sẵn.*
 
-![Object Map Equivalents](./images/03-object-map-utils-api-map.png)
+## 3. MÃ
 
-*Figure: JS `Object.keys/values/entries/assign` mapped to Go generic functions. Go requires explicit loops where JavaScript provides built-in methods.*
+Với các bất biến map được thiết lập, mã bên dưới sẽ xây dựng sáu tiện ích: `Keys` , `Entries` , `Merge` , `Pick` , `Invert` và `FilterMap` .
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Khóa và mục nhập
 
-With the map invariants established, the code below builds six utilities: `Keys`, `Entries`, `Merge`, `Pick`, `Invert`, and `FilterMap`.
-
-### Example 1: Basic — Keys and Entries
-
-> **Goal**: Extract map keys and key-value pairs into typed slices.
-> **Approach**: Pre-allocate the result slice with `make([]K, 0, len(m))` to avoid reallocations.
-> **Complexity**: O(N) — one pass over the map.
-
-```go
+> **Mục tiêu**: Trích xuất map khóa và cặp khóa-giá trị thành [[E28]]] đã nhập.
+> **Phương pháp tiếp cận**: Phân bổ trước kết quả slice bằng `make([]K, 0, len(m))` để tránh phân bổ lại.
+> **Độ phức tạp**: O(N) — một lần vượt qua map .```go
 // basic_maps.go
 package utils
 
@@ -73,19 +64,15 @@ func Entries[K comparable, V any](m map[K]V) []Entry[K, V] {
 	}
 	return entries
 }
-```
-
-> **Takeaway**: Pre-allocating with `cap = len(m)` avoids slice growth during the loop. Always sort the result if you need deterministic order — `slices.Sort(Keys(m))`.
+```> **Bài học rút ra**: Việc phân bổ trước bằng `cap = len(m)` sẽ tránh tăng trưởng slice trong vòng lặp. Luôn sắp xếp kết quả nếu bạn cần thứ tự xác định - `slices.Sort(Keys(m))` .
 
 ---
 
-### Example 2: Intermediate — Merge and Pick
+### Ví dụ 2: Trung cấp — Hợp nhất và Chọn
 
-> **Goal**: Merge multiple maps (like `Object.assign`) and extract a subset of keys (like Lodash `pick`).
-> **Approach**: `Merge` creates a new map and copies entries — later maps overwrite earlier ones. `Pick` selects only the specified keys.
-> **Complexity**: O(N+M) for merge; O(K) for pick where K = number of selected keys.
-
-```go
+> **Mục tiêu**: Hợp nhất nhiều maps (như `Object.assign` ) và trích xuất một tập hợp con các khóa (như Lodash `pick` ).
+> **Phương pháp tiếp cận**: `Merge` tạo một map mới và sao chép các mục nhập — sau maps ghi đè lên các mục trước đó. `Pick` chỉ chọn các phím được chỉ định.
+> **Độ phức tạp**: O(N+M) để hợp nhất; O(K) để chọn trong đó K = số lượng phím được chọn.```go
 // mutable_config.go
 package utils
 
@@ -116,19 +103,15 @@ func Pick[K comparable, V any](m map[K]V, keys ...K) map[K]V {
 	}
 	return result
 }
-```
-
-> **Takeaway**: `Merge` always returns a new map — the originals are not modified. This is the Go equivalent of `Object.assign({}, ...maps)` (note the empty object as the first argument).
+```> **Takeaway**: `Merge` luôn trả về một map mới — bản gốc không được sửa đổi. Đây là Go tương đương với `Object.assign({}, ...maps)` (lưu ý đối tượng trống là đối số đầu tiên).
 
 ---
 
-### Example 3: Advanced — Invert and FilterMap
+### Ví dụ 3: Nâng cao — Đảo ngược và FilterMap
 
-> **Goal**: Swap keys and values for reverse lookups, and filter maps by predicate.
-> **Approach**: `Invert` requires both `K` and `V` to be `comparable`. `FilterMap` accepts a predicate over key-value pairs.
-> **Complexity**: O(N) — one pass for each operation.
-
-```go
+> **Mục tiêu**: Hoán đổi khóa và giá trị để tra cứu ngược và lọc maps theo vị từ.
+> **Cách tiếp cận**: `Invert` yêu cầu cả `K` và `V` phải là `comparable` . `FilterMap` chấp nhận một vị từ trên các cặp khóa-giá trị.
+> **Độ phức tạp**: O(N) — một lượt cho mỗi thao tác.```go
 // transform_maps.go
 package utils
 
@@ -152,30 +135,28 @@ func FilterMap[K comparable, V any](m map[K]V, predicate func(K, V) bool) map[K]
 	}
 	return result
 }
-```
+```> **Takeaway**: `Invert` bị mất khi các giá trị không phải là duy nhất. Trước tiên hãy kiểm tra tính duy nhất hoặc sử dụng `map[V][]K` để bảo toàn tất cả các khóa gốc.
 
-> **Takeaway**: `Invert` is lossy when values are not unique. Check uniqueness first, or use `map[V][]K` to preserve all original keys.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Concurrent map reads and writes | Use `sync.RWMutex` or `sync.Map`. Concurrent writes cause `fatal error: concurrent map writes` — unrecoverable. |
-| 2 | Expecting deterministic iteration order | Go randomizes `range` order by design. Sort keys after extraction if order matters. |
-| 3 | Mutating a map passed as a function argument | Maps are reference types. Mutations inside a function affect the caller. Clone first if you need isolation. |
+| 1 | Đồng thời map đọc và ghi | Sử dụng `sync.RWMutex` hoặc `sync.Map` . Nguyên nhân ghi đồng thời `fatal error: concurrent map writes` - không thể phục hồi được. |
+| 2 | Mong đợi thứ tự lặp lại xác định | Go sắp xếp ngẫu nhiên thứ tự `range` theo thiết kế. Sắp xếp các khóa sau khi trích xuất nếu thứ tự quan trọng. |
+| 3 | Thay đổi map được truyền dưới dạng đối số hàm | Maps là các loại tham chiếu. Đột biến bên trong một hàm ảnh hưởng đến người gọi. Sao chép trước nếu bạn cần cách ly. |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| `maps` Package (Go 1.21+) | [pkg.go.dev/maps](https://pkg.go.dev/maps) |
-| Go Generics Tutorial | [go.dev/doc/tutorial/generics](https://go.dev/doc/tutorial/generics) |
+| `maps` Package ( Go 1.21+) | [pkg.go.dev/maps](https://pkg.go.dev/maps) |
+| Go Generics Hướng dẫn | [go.dev/doc/tutorial/generics](https://go.dev/doc/tutorial/generics) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Concurrent Maps](./09-set-concurrent-map.md) | When multiple goroutines access the same map | `sync.Map` and mutex-guarded patterns |
-| [Array Pipelines](./02-array-pipeline.md) | When processing slices extracted from maps | Generic `Map`, `Filter`, `Reduce` over typed slices |
+| [Concurrent Maps](./09-set-concurrent-map.md) | Khi nhiều goroutines truy cập vào cùng một map | Các mẫu được bảo vệ `sync.Map` và mutex |
+| [Array Pipelines](./02-array-pipeline.md) | Khi xử lý slices được trích xuất từ ​​ maps | Generic `Map` , `Filter` , `Reduce` trên đã gõ slices |
 
-**Navigation**: [← Array Pipeline](./02-array-pipeline.md) · [→ Promise & Async](./04-promise-async.md)
+**Điều hướng**: [← Array Pipeline](./02-array-pipeline.md) · [→ Promise & Async](./04-promise-async.md)

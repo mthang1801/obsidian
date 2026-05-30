@@ -1,34 +1,27 @@
-<!-- tags: golang -->
-# 🔐 Authentication & JWT — NestJS Passport → Gin JWT Middleware
+<!-- tags: golang --> # 🔐 Xác thực & JWT — NestJS Passport → Gin JWT Middleware
 
-> **Library**: Issue and validate JWTs with `golang-jwt/jwt/v5`, extract claims in Gin middleware.
+> **Thư viện**: Phát hành và xác thực JWT bằng `golang-jwt/jwt/v5` , trích xuất các xác nhận quyền sở hữu trong phần mềm trung gian Gin.
 
-📅 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã cập nhật: 2026-04-19 · ⏱️ 16 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS uses Passport strategies + `JwtModule`. In Go, you sign tokens with `jwt.NewWithClaims()` and validate them in middleware using `jwt.ParseWithClaims()`. No framework magic — every step is explicit.
+NestJS sử dụng chiến lược Passport + `JwtModule` . Trong Go, bạn ký mã thông báo bằng `jwt.NewWithClaims()` và xác thực chúng trong phần mềm trung gian bằng cách sử dụng `jwt.ParseWithClaims()` . Không có phép thuật khuôn khổ nào - mọi bước đều rõ ràng.
 
-| NestJS                           | Gin Equivalent                              |
-| -------------------------------- | ------------------------------------------- |
-| `AuthModule` + `JwtModule`       | `auth.GenerateTokenPair()` + `auth.ValidateToken()` |
-| `@UseGuards(AuthGuard('jwt'))`   | `r.Use(auth.JWTAuth(secret))` middleware    |
-| `PassportStrategy(Strategy.JWT)` | `jwt.ParseWithClaims()` + signing method check |
-| `JwtService.sign(payload)`       | `jwt.NewWithClaims(HS256, claims).SignedString(key)` |
-| `@Request() req → req.user`      | `c.Set("userID", claims.UserID)` → `c.Get("userID")` |
+| NestJS | Tương đương Gin |
+| -------------------------------- | --------------------------------------------- |
+| `AuthModule` + `JwtModule` | `auth.GenerateTokenPair()` + `auth.ValidateToken()` |
+| `@UseGuards(AuthGuard('jwt'))` | `r.Use(auth.JWTAuth(secret))` phần mềm trung gian |
+| `PassportStrategy(Strategy.JWT)` | `jwt.ParseWithClaims()` + kiểm tra phương thức ký |
+| `JwtService.sign(payload)` | `jwt.NewWithClaims(HS256, claims).SignedString(key)` |
+| `@Request() req → req.user` | `c.Set("userID", claims.UserID)` → `c.Get("userID")` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always verify the signing method.** Without `t.Method.(*jwt.SigningMethodHMAC)` check, an attacker can forge tokens with `alg: none`.
-- **Use short-lived access tokens (15–30 min) + refresh tokens.** Never issue non-expiring JWTs.
+- **Luôn xác minh phương thức ký.** Nếu không kiểm tra `t.Method.(*jwt.SigningMethodHMAC)` , kẻ tấn công có thể giả mạo mã thông báo bằng `alg: none` .
+- **Sử dụng mã thông báo truy cập có thời hạn sử dụng ngắn (15–30 phút) + mã thông báo làm mới.** Không bao giờ phát hành JWT không hết hạn.
 
-## 2. VISUAL
-
-![JWT authentication flow — login and protected request paths](./images/01-jwt-auth-flow.png)
-
-*Figure: JWT flow — Login: client sends credentials → server issues access (15min) + refresh (7d) tokens. Protected: Bearer token extracted → jwt.ParseWithClaims validates signing method + expiry → c.Set("userID") → handler.*
-
-```mermaid
+## 2. HÌNH ẢNH ![JWT authentication flow — login and protected request paths](./images/01-jwt-auth-flow.png) *Hình: Luồng JWT - Đăng nhập: máy khách gửi thông tin xác thực → máy chủ phát hành mã thông báo truy cập (15 phút) + làm mới (7 ngày). Được bảo vệ: Mã thông báo mang được trích xuất → jwt.ParseWithClaims xác thực phương thức ký + hết hạn → c.Set("userID") → handler.*```mermaid
 sequenceDiagram
     participant C as Client
     participant S as Gin Server
@@ -37,13 +30,9 @@ sequenceDiagram
     C->>S: GET /profile [Bearer token]
     S->>S: JWTAuth: parse → verify → c.Set("userID")
     S-->>C: 200 {user data}
-```
+```*Hình: Đăng nhập → tạo quyền truy cập+làm mới mã thông báo → khách hàng gửi `Authorization: Bearer <token>` → xác thực phần mềm trung gian → đặt xác nhận quyền sở hữu trong ngữ cảnh.*
 
-*Figure: Login → generate access+refresh tokens → client sends `Authorization: Bearer <token>` → middleware validates → sets claims in context.*
-
-### Auth Flow
-
-```text
+### Luồng xác thực```text
 POST /login {email, password}
     → Validate credentials → GenerateTokenPair(userID, role)
     → Response: {access_token, refresh_token, expires_in}
@@ -51,13 +40,9 @@ POST /login {email, password}
 GET /profile  [Authorization: Bearer <access_token>]
     → JWTAuth middleware: parse → verify signature → check expiry
     → c.Set("userID", claims.UserID) → handler reads c.Get("userID")
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Native Token Services
-
-```go
+### Ví dụ 1: Cơ bản — Dịch vụ mã thông báo gốc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // GenerateTokenPair: creates access (short) + refresh (long) JWTs.
     // ValidateToken: parses, verifies signing method, returns Claims.
@@ -141,11 +126,7 @@ GET /profile  [Authorization: Bearer <access_token>]
         }
         return claims, nil
     }
-```
-
-### Example 2: Intermediate — Middleware Pipeline
-
-```go
+```### Ví dụ 2: Trung cấp — Middleware Pipeline```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // JWTAuth middleware: extracts Bearer token, validates,
     // stores claims in gin.Context for downstream handlers.
@@ -184,29 +165,27 @@ GET /profile  [Authorization: Bearer <access_token>]
             c.Next()
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Not checking `t.Method` in `ParseWithClaims` keyfunc | Attacker sets `alg: none` to forge valid tokens | Assert `t.Method.(*jwt.SigningMethodHMAC)` before returning key |
-| 2 | 🔴 Fatal | Issuing JWTs with no expiry (`ExpiresAt` omitted) | Stolen tokens remain valid forever | Set `ExpiresAt` to 15–30 min for access, 7 days for refresh |
+| 1 | 🔴 Gây tử vong | Không kiểm tra `t.Method` trong `ParseWithClaims` keyfunc | Kẻ tấn công đặt `alg: none` để giả mạo mã thông báo hợp lệ | Xác nhận `t.Method.(*jwt.SigningMethodHMAC)` trước khi trả lại khóa |
+| 2 | 🔴 Gây tử vong | Phát hành JWT không hết hạn ( `ExpiresAt` bỏ qua) | Token bị đánh cắp vẫn có hiệu lực mãi mãi | Đặt `ExpiresAt` thành 15–30 phút để truy cập, 7 ngày để làm mới |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| JWT Specs | [auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp](https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/) |
+| Thông số JWT | [auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp](https://auth0.com/blog/a-look-at-the-latest-draft-for-jwt-bcp/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Authorization & RBAC | After authentication is established | Restrict routes by role/permission using the claims set by JWTAuth | [./02-authorization-rbac.md](./02-authorization-rbac.md) |
+| Ủy quyền & RBAC | Sau khi xác thực được thiết lập | Hạn chế các tuyến đường theo vai trò/quyền bằng cách sử dụng các xác nhận quyền sở hữu do JWTAuth | [./02-authorization-rbac.md](./02-authorization-rbac.md) |

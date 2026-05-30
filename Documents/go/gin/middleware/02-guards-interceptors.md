@@ -1,53 +1,38 @@
-<!-- tags: golang -->
-# 🛡️ Guards & Interceptors — NestJS Patterns → Gin Middleware
+<!-- tags: golang --> # 🛡️ Guards & Interceptors — NestJS Patterns → Gin Middleware
 
-> **Library**: Implement NestJS Guards, Interceptors, Pipes, and Exception Filters as plain Gin middleware functions.
+> **Thư viện**: Triển khai Bộ bảo vệ, Bộ chặn, Đường ống và Bộ lọc ngoại lệ của NestJS dưới dạng các chức năng phần mềm trung gian đơn giản của Gin.
 
-📅 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 14 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS has four distinct pipeline stages (Guards → Interceptors → Pipes → Filters) with dedicated decorators. Gin collapses all four into a single concept: **middleware**. A middleware that checks roles before `c.Next()` is a Guard. One that times the request around `c.Next()` is an Interceptor. One that collects `c.Errors` after `c.Next()` is an Exception Filter.
+NestJS có bốn giai đoạn quy trình riêng biệt (Bộ bảo vệ → Bộ chặn → Đường ống → Bộ lọc) với các bộ trang trí chuyên dụng. Gin gộp cả bốn thành một khái niệm duy nhất: **middleware**. Phần mềm trung gian kiểm tra vai trò trước `c.Next()` là Guard. Một lần yêu cầu xung quanh `c.Next()` là một Thiết bị chặn. Một bộ thu thập `c.Errors` sau `c.Next()` là Bộ lọc ngoại lệ.
 
-| NestJS Concept                 | Gin Equivalent                                     |
+| Khái niệm NestJS | Tương đương Gin |
 | ------------------------------ | -------------------------------------------------- |
-| `@UseGuards(AuthGuard)`        | Middleware that aborts with 401/403 before `c.Next()` |
-| `@UseInterceptors()`           | Middleware that wraps `c.Next()` (before + after)  |
-| `@UsePipes(ValidationPipe)`    | `c.ShouldBind*()` inside the handler               |
-| `@UseFilters(ExceptionFilter)` | Middleware that reads `c.Errors` after `c.Next()`  |
+| `@UseGuards(AuthGuard)` | Phần mềm trung gian hủy bỏ với 401/403 trước `c.Next()` |
+| `@UseInterceptors()` | Phần mềm trung gian bao bọc `c.Next()` (trước + sau) |
+| `@UsePipes(ValidationPipe)` | `c.ShouldBind*()` bên trong trình xử lý |
+| `@UseFilters(ExceptionFilter)` | Phần mềm trung gian đọc `c.Errors` sau `c.Next()` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Guards run before the handler.** They call `c.Abort()` + `return` if authorization fails.
-- **Interceptors wrap `c.Next()`.** Code before `c.Next()` is pre-processing; code after is post-processing.
+- **Người bảo vệ chạy trước người xử lý.** Họ gọi `c.Abort()` + `return` nếu ủy quyền không thành công.
+- **Bộ chặn bao bọc `c.Next()` .** Mã trước `c.Next()` đang xử lý trước; mã sau là xử lý hậu kỳ.
 
-## 2. VISUAL
-
-![NestJS Guard, Interceptor, Pipe, Filter mapped to Gin middleware patterns](./images/02-guards-interceptors.png)
-
-*Figure: NestJS pipeline concepts → Gin middleware — Guard (abort before c.Next), Interceptor (wrap c.Next), Pipe (ShouldBind in handler), Exception Filter (read c.Errors after c.Next).*
-
-```mermaid
+## 2. HÌNH ẢNH ![NestJS Guard, Interceptor, Pipe, Filter mapped to Gin middleware patterns](./images/02-guards-interceptors.png) *Hình: Các khái niệm về đường dẫn NestJS → Phần mềm trung gian Gin — Guard (hủy bỏ trước c.Next), Interceptor (bọc c.Next), Pipe (ShouldBind trong trình xử lý), Bộ lọc ngoại lệ (đọc c.Errors sau c.Next).*```mermaid
 flowchart LR
     A["NestJS Guard"] -->|"maps to"| B["Gin Auth Middleware"]
     C["NestJS Interceptor"] -->|"maps to"| D["Gin c.Next() wrapper"]
     E["NestJS Pipe"] -->|"maps to"| F["ShouldBind + validator"]
-```
+```*Hình: NestJS Guards → Gin auth middleware, Interceptors → trình bao bọc c.Next(), Pipes → ShouldBind + xác thực.*
 
-*Figure: NestJS Guards → Gin auth middleware, Interceptors → c.Next() wrappers, Pipes → ShouldBind + validation.*
-
-### Pipeline Mapping
-
-```text
+### Lập bản đồ đường ống```text
 NestJS:  Guard → Interceptor(before) → Pipe → Handler → Interceptor(after) → Filter
 Gin:     AuthMW → LoggingMW(before)  → [bind in handler] → Handler → LoggingMW(after) → ErrorHandler
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Auth Guards
-
-```go
+### Ví dụ 1: Cơ bản — Auth Guards```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // RolesGuard: checks c.Get("role") against allowed roles.
     // Aborts with 403 if role missing or not permitted.
@@ -82,11 +67,7 @@ Gin:     AuthMW → LoggingMW(before)  → [bind in handler] → Handler → Log
             })
         }
     }
-```
-
-### Example 2: Intermediate — Interceptors
-
-```go
+```### Ví dụ 2: Trung cấp — Interceptor```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // LoggingInterceptor wraps c.Next(): logs before + after.
     // Uses slog for structured logging with duration tracking.
@@ -114,11 +95,7 @@ Gin:     AuthMW → LoggingMW(before)  → [bind in handler] → Handler → Log
             slog.Info("← response sent", "status", status, "duration", duration)
         }
     }
-```
-
-### Example 3: Advanced — Exception Filters
-
-```go
+```### Ví dụ 3: Nâng cao — Bộ lọc ngoại lệ```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // ErrorHandler reads c.Errors after c.Next().
     // Maps AppError to structured JSON; unknown errors → 500.
@@ -161,29 +138,27 @@ Gin:     AuthMW → LoggingMW(before)  → [bind in handler] → Handler → Log
             })
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Calling `c.AbortWithStatusJSON()` without `return` | Handler code below the abort still executes, writing a second response | Always pair `c.Abort*()` with an immediate `return` |
-| 2 | 🟡 Common | Type-asserting `c.Get("role")` without checking `exists` | Panic on nil interface assertion if auth middleware was skipped | Always check the `exists` bool from `c.Get()` |
+| 1 | 🔴 Gây tử vong | Gọi `c.AbortWithStatusJSON()` không có `return` | Mã xử lý bên dưới lệnh hủy bỏ vẫn thực thi, viết phản hồi thứ hai | Luôn ghép nối `c.Abort*()` với `return` |
+| 2 | 🟡 Chung | Xác nhận kiểu `c.Get("role")` mà không kiểm tra `exists` | Hoảng sợ khi xác nhận giao diện không nếu phần mềm trung gian xác thực bị bỏ qua | Luôn kiểm tra bool `exists` từ `c.Get()` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Custom Middleware | [gin-gonic.com/docs/examples/custom-middleware](https://gin-gonic.com/docs/examples/custom-middleware/) |
+| Phần mềm trung gian tùy chỉnh | [gin-gonic.com/docs/examples/custom-middleware](https://gin-gonic.com/docs/examples/custom-middleware/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Response Types | When you need structured JSON, HTML, or streaming responses | Covers output formatting after middleware has processed the request | [../response/01-json-html-streaming.md](../response/01-json-html-streaming.md) |
+| Các loại phản hồi | Khi bạn cần phản hồi có cấu trúc JSON, HTML hoặc phát trực tuyến | Bao gồm định dạng đầu ra sau khi phần mềm trung gian xử lý yêu cầu | [../response/01-json-html-streaming.md](../response/01-json-html-streaming.md) |

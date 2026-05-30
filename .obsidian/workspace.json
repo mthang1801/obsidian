@@ -55,16 +55,28 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "Documents/best-practice/01-inventory-stock-deduction.md",
+                "file": "Glosarry/🎯 Overview Glossary.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "01-inventory-stock-deduction"
+              "title": "🎯 Overview Glossary"
+            }
+          },
+          {
+            "id": "014cbf555b3a6178",
+            "type": "leaf",
+            "state": {
+              "type": "html-file-view",
+              "state": {
+                "file": "Go/Fundamental/go-optimization-guide.html"
+              },
+              "icon": "lucide-file",
+              "title": "go-optimization-guide"
             }
           }
         ],
-        "currentTab": 3
+        "currentTab": 4
       }
     ],
     "direction": "vertical"
@@ -238,34 +250,41 @@
       "remotely-save:Remotely Save": false
     }
   },
-  "active": "451c75627e5b183b",
+  "active": "014cbf555b3a6178",
   "lastOpenFiles": [
+    "Go/Fundamental/go-fundamental-guide.html",
+    "Go/Fundamental/go-optimization-guide.html",
+    "Go/Fundamental/go-basics-guide.html",
+    "Go/Fundamental/gin-guide.html",
+    "Glosarry/api-patterns-guide.html",
+    "Glosarry/🎯 Overview Glossary.md",
+    "Go/Fundamental/translate_gin_mdfiles.py",
+    "Go/Fundamental/go-advanced-guide.html",
+    "public/images/ts-go-router.png",
+    "public/images/migration-playbook-rollout.png",
+    "public/images/go-vs-typescript-decision-map.png",
+    "public/images/07-translation-atlas-api-map.png",
+    "public/images/04-project-layout-tooling-compare.png",
+    "public/images/03-errors-concurrency-context-compare.png",
+    "public/images/02-types-data-modeling-compare.png",
+    "public/images/01-mental-model-runtime-compare.png",
+    "public/images/types-router-map.png",
+    "public/images/04-comparable-decision-map.png",
+    "Go/Fundamental/__pycache__/translate_mdfiles.cpython-314.pyc",
+    "Go/Fundamental/__pycache__",
+    "Go/Fundamental/translate_mdfiles.py",
+    "Go/Fundamental/build_fundamental_guide.py",
+    "Go/Fundamental/🎯 Overview Go Fundamental.md",
+    "Documents/best-practice/01-inventory-stock-deduction.md",
     "Documents/design-pattern/creational/README.md",
     "Documents/design-pattern/creational/01-factory.md",
-    "DSA/important-algorithms.html",
-    "DSA/linked-lists.html",
-    "Go/Concurrency/11-fan-out-fan-in-go.html",
-    "Go/Concurrency/08-select-statement.html",
     "Documents/drizzle/advanced/README.md",
-    "Go/Concurrency/04-mutex-and-confinement.html",
-    "Go/Concurrency/02-buffered-unbuffered-channels.html",
     "Documents/diagram/06-planning/03-quadrant-chart.md",
     "Documents/diagram/06-planning/02-mindmap.md",
     "Documents/diagram/03-behavioral/README.md",
     "Documents/diagram/03-behavioral/02-sequence-diagram.md",
     "Documents/go/quiz/scenario/05-saga-outbox-incidents.md",
     "documents/assets/devops/README.md",
-    "Documents/system-design/images/top20-system-design.png",
-    "Documents/system-design/images/thread-pool-exhaustion-flow.png",
-    "Documents/system-design/images/tcp-udp-protocols.png",
-    "Documents/system-design/images/system-design-blueprint.png",
-    "Documents/system-design/images/sysdesign-learning-roadmap.png",
-    "Documents/system-design/images/software-architecture-styles.png",
-    "Documents/system-design/images/realtime-web-updates.png",
-    "Documents/system-design/images/ports-adapters-hexagonal-architecture.png",
-    "Documents/system-design/images/network-protocols-explained.png",
-    "Documents/system-design/images/mcp.webp",
-    "Documents/system-design/images",
     "Documents/system-design/README.md",
     "Documents/system-design/21-blocking-vs-non-blocking-io.md",
     "Documents/system-design/20-ports-adapters-hexagonal-architecture.md",
@@ -279,13 +298,6 @@
     "Documents/system-design/12-top-20-system-design-concepts.md",
     "Documents/system-design/11-realtime-web-updates.md",
     "Documents/system-design/10-http-ecosystem.md",
-    "Documents/system-design/09-kafka-vs-rabbitmq.md",
-    "Documents/system-design/08-architectural-concepts.md",
-    "Documents/system-design/07-software-architecture-styles.md",
-    "Documents/system-design/06-9-key-ai-concepts.md",
-    "Documents/system-design",
-    "Documents/sql/postgresql/performance/images",
-    "Documents/sql/postgresql/replication/images",
     "Untitled.canvas",
     "mAIvt/Untitled.canvas",
     "Untitled 2.canvas",

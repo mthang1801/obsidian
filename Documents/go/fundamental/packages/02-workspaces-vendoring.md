@@ -1,65 +1,55 @@
-<!-- tags: golang, modules -->
+<!-- tags: golang, modules --> # 📦 Go Workspaces , Vendoring & Riêng tư Modules > Phát triển đa module với `go.work` , xây dựng ngoại tuyến với `vendor/` và cấu hình đăng ký riêng với `GOPRIVATE` .
 
-# 📦 Go Workspaces, Vendoring & Private Modules
+📅 Đã tạo: 23-03-2026 · 🔄 Cập nhật: 19-04-2026 · ⏱️ Đọc 10 phút
 
-> Multi-module development with `go.work`, offline builds with `vendor/`, and private registry configuration with `GOPRIVATE`.
-
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 10 min read
-
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Concept** | Local multi-module development, offline dependency vendoring, private module access |
-| **Use case** | Monorepos, air-gapped builds, internal corporate modules |
-| **Key insight** | `go.work` replaces `replace` directives for local dev — stays in `.gitignore`, never pollutes `go.mod` |
-| **Go toolchain** | `go work`, `go mod vendor`, `go env`, `replace` |
+| **Khái niệm** | Phát triển đa module cục bộ, phụ thuộc ngoại tuyến vendoring , truy cập module riêng tư |
+| **Trường hợp sử dụng** | Monorepos, bản dựng air-gapped, nội bộ công ty modules |
+| **Thông tin chi tiết quan trọng** | `go.work` thay thế các lệnh `replace` cho nhà phát triển cục bộ - vẫn ở `.gitignore` , không bao giờ gây ô nhiễm `go.mod` |
+| ** Go chuỗi công cụ** | `go work` , `go mod vendor` , `go env` , `replace` |
 
-| TS/Node                   | Go                                |
+| TS/Nút | Go |
 | ------------------------- | --------------------------------- |
-| Monorepo (nx, turborepo)  | `go.work` workspaces (Go 1.18+)   |
-| `node_modules/`           | `vendor/` directory               |
-| `.npmrc` private registry | `GOPRIVATE`, `GONOSUMDB` env vars |
-| `"file:../shared"` path   | `replace` directive in `go.mod`   |
+| Monorepo (nx, turborepo) | `go.work` workspaces ( Go 1.18+) |
+| `node_modules/` | `vendor/` thư mục |
+| `.npmrc` sổ đăng ký riêng tư | `GOPRIVATE` , `GONOSUMDB` env vars |
+| đường dẫn `"file:../shared"` | Chỉ thị `replace` trong `go.mod` |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Developing a shared library and an API service simultaneously? Without workspaces, every change to the library requires a commit, push, and `go get` update in the service. With `go.work`, both modules resolve locally — zero publish cycles.
+Phát triển đồng thời thư viện dùng chung và dịch vụ API? Nếu không có workspaces , mọi thay đổi đối với thư viện đều yêu cầu cập nhật cam kết, đẩy và `go get` trong dịch vụ. Với `go.work` , cả hai modules đều giải quyết cục bộ - không có chu kỳ xuất bản.
 
-> *Your shared library evolves daily. The API service consumes it. Without `go.work`, every library change requires: commit → push → tag → `go get` in the service. That's 4 steps per iteration. With `go.work`, changes are visible immediately — the workspace overrides module resolution locally.*
+> *Thư viện chia sẻ của bạn phát triển hàng ngày. Dịch vụ API tiêu thụ nó. Nếu không có `go.work` , mọi thay đổi thư viện đều yêu cầu: cam kết → đẩy → thẻ → `go get` trong dịch vụ. Đó là 4 bước cho mỗi lần lặp. Với `go.work` , các thay đổi sẽ hiển thị ngay lập tức — workspace ghi đè độ phân giải module cục bộ.*
 >
-> *Vendoring solves a different problem: reproducible builds without network access. `go mod vendor` copies all dependencies into `vendor/`, and `go build -mod=vendor` uses them exclusively. Air-gapped environments, CI without internet, and compliance audits all benefit. `GOPRIVATE` handles the third case: internal modules that should bypass the public checksum database.*
+> * Vendoring giải quyết một vấn đề khác: các bản dựng có thể tái tạo mà không cần truy cập mạng. `go mod vendor` sao chép tất cả các phụ thuộc vào `vendor/` và `go build -mod=vendor` chỉ sử dụng chúng. Môi trường không có khoảng cách, CI không có internet và kiểm tra tuân thủ đều được hưởng lợi. `GOPRIVATE` xử lý trường hợp thứ ba: nội bộ modules sẽ bỏ qua tổng kiểm tra công khai database .*
 
-### When to Use What
+### Khi nào nên sử dụng cái gì
 
-| Situation                                   | Tool              | Purpose                                       |
+| Tình huống | Công cụ | Mục đích |
 | -------------------------------------------- | ---------------------- | -------------------------------------------- |
-| Edit multiple modules simultaneously       | `go.work`    | Local cross-module development without publishing    |
-| Build without network access          | `go mod vendor`        | Archive all dependencies locally      |
-| Fetch internal corporate packages       | `GOPRIVATE`    | Skip public checksum DB for private repos           |
-| Temporarily use a local fork          | `replace` directive    | Point to a local path or forked repo        |
+| Chỉnh sửa đồng thời nhiều modules | `go.work` | Phát triển chéo cục bộ module mà không xuất bản |
+| Xây dựng mà không cần truy cập mạng | `go mod vendor` | Lưu trữ tất cả các phụ thuộc cục bộ |
+| Tìm nạp nội bộ công ty packages | `GOPRIVATE` | Bỏ qua DB tổng kiểm tra công khai cho các kho lưu trữ riêng tư |
+| Tạm thời sử dụng ngã ba cục bộ | `replace` chỉ thị | Trỏ tới một đường dẫn cục bộ hoặc repo rẽ nhánh |
 
-**Why `go.work` instead of `replace`?** `replace` directives modify `go.mod`, which gets committed to version control and breaks other developers' builds. `go.work` stays local (`.gitignore`d) and does not affect the module file.
+**Tại sao `go.work` thay vì `replace` ?** `replace` chỉ thị sửa đổi `go.mod` , được cam kết kiểm soát phiên bản và phá vỡ các bản dựng của nhà phát triển khác. `go.work` vẫn cục bộ ( `.gitignore` d) và không ảnh hưởng đến tệp module .
 
 ---
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The decision tree is simple: local multi-module dev → `go.work`; offline builds → `vendor/`; private repos → `GOPRIVATE`. The visual below maps these three paths.
+Cây quyết định rất đơn giản: local multi- module dev → `go.work` ; bản dựng ngoại tuyến → `vendor/` ; kho lưu trữ riêng tư → `GOPRIVATE` . Hình ảnh bên dưới maps ba đường dẫn này. ![Workspaces vendoring decision map](./images/02-workspaces-vendoring-decision-map.png) *Hình: Quyết định map định tuyến các kịch bản phụ thuộc tới đúng công cụ: `go.work` dành cho nhà phát triển cục bộ, `vendor/` dành cho các bản dựng ngoại tuyến, `GOPRIVATE` dành cho nội bộ modules .*
 
-![Workspaces vendoring decision map](./images/02-workspaces-vendoring-decision-map.png)
+## 3. MÃ
 
-*Figure: Decision map routing dependency scenarios to the correct tool: `go.work` for local dev, `vendor/` for offline builds, `GOPRIVATE` for internal modules.*
+Bốn cấp độ tiến triển: chỉ thị workspace , vendoring , riêng tư modules và `replace` .
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Go Workspaces (Monorepo)
 
-Four progression levels: workspace setup, vendoring, private modules, and `replace` directives.
-
-### Example 1: Basic — Go Workspaces (Monorepo)
-
-A monorepo with three modules: shared library, API service, and worker. `go.work` links them for simultaneous local development.
-
-```bash
+Một monorepo có ba modules : thư viện dùng chung, dịch vụ API và nhân viên. `go.work` liên kết chúng để phát triển cục bộ đồng thời.```bash
 # Project structure:
 my-project/
 ├── go.work           # workspace root
@@ -92,17 +82,11 @@ use (
 
 # Now: all modules can import each other without versioning
 # services/api can `import "myproject/pkg/shared"` directly
-```
-
-> **Takeaway**: `go.work` eliminates publish cycles during local development. Add it to `.gitignore` — it is a local-only tool.
+```> **Takeaway**: `go.work` loại bỏ chu kỳ xuất bản trong quá trình phát triển cục bộ. Thêm nó vào `.gitignore` - nó chỉ là một công cụ cục bộ.
 
 ---
 
-### Example 2: Intermediate — Vendoring
-
-Vendoring copies all dependencies into the project tree. Builds use only vendored code — no network required.
-
-```bash
+### Ví dụ 2: Trung cấp — Vendoring Vendoring sao chép tất cả các phụ thuộc vào cây dự án. Các bản dựng chỉ sử dụng mã được cung cấp — không cần mạng.```bash
 # Create vendor directory with all dependencies
 go mod vendor
 
@@ -122,19 +106,13 @@ vendor/
 ├── gorm.io/
 │   └── gorm/
 └── modules.txt         # dependency list
-```
+```> **Khi nào cần đến nhà cung cấp?** Môi trường không có khoảng cách, yêu cầu tuân thủ nghiêm ngặt hoặc hệ thống CI không có quyền truy cập Internet. Đối với hầu hết các dự án, bộ đệm module ( `go mod download` ) là đủ.
 
-> **When to vendor?** Air-gapped environments, strict compliance requirements, or CI systems without internet access. For most projects, the module cache (`go mod download`) is sufficient.
-
-> **Takeaway**: `go mod vendor` + `go build -mod=vendor` gives fully reproducible, offline builds.
+> **Takeaway**: `go mod vendor` + `go build -mod=vendor` cung cấp các bản dựng ngoại tuyến, có thể tái tạo hoàn toàn.
 
 ---
 
-### Example 3: Advanced — Private Modules
-
-Internal corporate modules live behind authentication and should not be verified against the public checksum database.
-
-```bash
+### Ví dụ 3: Nâng cao — Riêng tư Modules Nội bộ công ty modules thực hiện xác thực và không được xác minh dựa vào tổng kiểm tra công khai database .```bash
 # Tell Go to skip checksum DB for private modules
 export GOPRIVATE=github.com/mycompany/*,gitlab.com/myorg/*
 
@@ -143,17 +121,13 @@ git config --global url."git@github.com:mycompany/".insteadOf "https://github.co
 
 # Or use GONOSUMDB + GOFLAGS
 export GONOSUMDB=github.com/mycompany/*
-```
-
-> **Takeaway**: `GOPRIVATE` tells `go get` to skip the public proxy and checksum database. Combine with SSH-based Git config for seamless authentication.
+```> **Takeaway**: `GOPRIVATE` yêu cầu `go get` bỏ qua proxy công khai và tổng kiểm tra database . Kết hợp với cấu hình Git dựa trên SSH để xác thực liền mạch.
 
 ---
 
-### Example 4: Expert — Replace Directives
+### Ví dụ 4: Expert — Thay thế Chỉ thị
 
-`replace` directives override module resolution in `go.mod`. Use for temporary local forks — but do not commit them to shared repos.
-
-```go
+ Lệnh `replace` ghi đè độ phân giải module trong `go.mod` . Sử dụng cho các nhánh cục bộ tạm thời - nhưng không cam kết chúng với các kho lưu trữ được chia sẻ.```go
 // go.mod
 
 module myapp
@@ -169,42 +143,40 @@ replace github.com/mycompany/shared-lib => ../shared-lib
 
 // ✅ Fork: use forked repo
 replace github.com/original/lib => github.com/myfork/lib v1.0.0-patched
-```
+```> **Tại sao phải xử lý `replace` cẩn thận?** Các lệnh `replace` đã cam kết phá vỡ các bản dựng của nhà phát triển khác — đường dẫn cục bộ không tồn tại trên máy của họ. Ưu tiên `go.work` để phát triển địa phương.
 
-> **Why handle `replace` carefully?** Committed `replace` directives break other developers' builds — the local path does not exist on their machines. Prefer `go.work` for local development.
-
-> **Takeaway**: Use `replace` for quick local debugging. Use `go.work` for sustained multi-module development. Never commit `replace` directives pointing to local paths.
+> **Takeaway**: Sử dụng `replace` để gỡ lỗi cục bộ nhanh chóng. Sử dụng `go.work` để phát triển đa module bền vững. Không bao giờ cam kết chỉ thị `replace` trỏ đến đường dẫn cục bộ.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The tools are straightforward. The traps below catch teams who commit `replace` directives or forget to update their vendor directory.
+Các công cụ rất đơn giản. Những cái bẫy bên dưới sẽ bắt những nhóm thực hiện chỉ thị `replace` hoặc quên cập nhật danh mục nhà cung cấp của họ.
 
-| # | Severity | Error | Consequence | Fix |
-|---|----------|-----|---------|-----|
-| 1 | 🔴 Fatal | Committing `replace` directives with local paths | Breaks builds for all other developers | Use `go.work` instead; add `go.work` to `.gitignore` |
-| 2 | 🟡 Common | Stale `vendor/` directory after dependency updates | Builds use old dependency versions | Run `go mod vendor` after every `go get` |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|------|----------|------|
+| 1 | 🔴 Gây tử vong | Cam kết chỉ thị `replace` với đường dẫn cục bộ | Các bản dựng phá vỡ dành cho tất cả các nhà phát triển khác | Thay vào đó hãy sử dụng `go.work` ; thêm `go.work` vào `.gitignore` |
+| 2 | 🟡 Chung | Thư mục `vendor/` cũ sau khi cập nhật phụ thuộc | Bản dựng sử dụng phiên bản phụ thuộc cũ | Chạy `go mod vendor` sau mỗi `go get` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource        | Type     | Link                                                                     | Description |
+| Tài nguyên | Loại | Liên kết | Mô tả |
 | --------------- | -------- | ------------------------------------------------------------------------ | ------- |
-| Go Workspaces   | Official | [go.dev/doc/tutorial/workspaces](https://go.dev/doc/tutorial/workspaces) | Multi-module workspace tutorial |
-| Go Modules      | Official | [go.dev/ref/mod](https://go.dev/ref/mod)                                 | Complete module and dependency reference |
+| Go Workspaces | Chính thức | [go.dev/doc/tutorial/workspaces](https://go.dev/doc/tutorial/workspaces) | Multi- module workspace hướng dẫn |
+| Go Modules | Chính thức | [go.dev/ref/mod](https://go.dev/ref/mod) | Hoàn thành module và tham chiếu phụ thuộc |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The foundations of **Workspaces & Vendoring** are settled. The extension below connects back to module layout fundamentals.
+Nền tảng của ** Workspaces & Vendoring ** đã được giải quyết. Tiện ích mở rộng bên dưới kết nối trở lại các nguyên tắc cơ bản về bố cục module .
 
-| Extension | When | Why | File/Link |
+| Gia hạn | Khi nào | Tại sao | Tệp/Liên kết |
 | ------- | ------- | ----- | --------- |
-| Modules & Layout | Project structure and `internal/` boundaries | Foundation for package organization | [01-modules-layout.md](./01-modules-layout.md) |
+| Modules & Bố cục | Cấu trúc dự án và ranh giới `internal/` | Nền tảng cho tổ chức package | [01-modules-layout.md](./01-modules-layout.md) |
 
 ---
 
-**Navigation**: [← Modules Layout](./01-modules-layout.md) · [→ Basics](../basics/01-syntax-variables.md)
+**Điều hướng**: [← Modules Layout](./01-modules-layout.md) · [→ Basics](../basics/01-syntax-variables.md)

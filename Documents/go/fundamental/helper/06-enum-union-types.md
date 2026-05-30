@@ -1,57 +1,48 @@
-<!-- tags: golang, typing, enums -->
-# 🏷️ Enum & Union Types — TS → Go Patterns
+<!-- tags: golang, typing, enums --> # 🏷️ Các loại Enum & Union — TS → Go Mẫu
 
-> TypeScript has `enum` keywords and discriminated unions (`type Shape = Circle | Square`). Go has neither. You simulate enums with `const` + `iota`, and union types with sealed interfaces containing unexported methods.
+> TypeScript có từ khóa `enum` và các hiệp hội phân biệt đối xử ( `type Shape = Circle | Square` ). Go không có. Bạn mô phỏng các enum bằng `const` + `iota` và các loại kết hợp với interfaces được niêm phong chứa các phương thức chưa được xuất.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 14 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A frontend engineer defines API states with `type Status = "ACTIVE" | "INACTIVE"`. TypeScript rejects `Status = "UNKNOWN"` at compile time. The engineer ports this to Go as `type Status string` — but Go lets anyone write `Status("UNKNOWN")` and the compiler accepts it silently. The invalid status reaches the database, corrupting records.
+Một kỹ sư giao diện người dùng xác định trạng thái API bằng `type Status = "ACTIVE" | "INACTIVE"` . TypeScript từ chối `Status = "UNKNOWN"` lúc biên dịch time . Kỹ sư chuyển cái này sang Go dưới dạng `type Status string` - nhưng Go cho phép bất kỳ ai viết `Status("UNKNOWN")` và trình biên dịch chấp nhận nó một cách im lặng. Trạng thái không hợp lệ đạt đến database , làm hỏng hồ sơ. Go không cung cấp kiểu chữ, không có từ khóa `enum` và không có kiểm tra `switch` đầy đủ. Bạn nhận được hai công cụ:
 
-Go provides no literal types, no `enum` keyword, and no exhaustive `switch` checks. You get two tools:
+1. ** `const` + `iota` ** cho các enum số có giá trị tăng tự động.
+2. **Đã niêm phong interfaces ** đối với các loại kết hợp — một phương thức chưa được xuất sẽ ngăn packages bên ngoài thêm các biến thể mới.
 
-1. **`const` + `iota`** for numeric enums with auto-incrementing values.
-2. **Sealed interfaces** for union types — an unexported method prevents external packages from adding new variants.
+Cả hai đều yêu cầu xác thực rõ ràng: Go sẽ không bắt gặp các trường hợp `switch` bị thiếu khi biên dịch time .
 
-Both require explicit validation: Go will not catch missing `switch` cases at compile time.
+### 1.1 Các kiểu bất biến và lỗi
 
-### 1.1 Invariants & Failure Modes
-
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **`iota` groups** | Auto-incrementing constants within a `const` block. Resets to 0 in each new block. |
-| **Sealed interfaces** | An interface with an unexported method (`sealed()`) restricts implementations to the current package. |
+| ** `iota` nhóm** | Các hằng số tự động tăng trong khối `const` . Đặt lại về 0 trong mỗi khối mới. |
+| **Đã niêm phong interfaces ** | Một interface với phương thức chưa được xuất ( `sealed()` ) hạn chế việc triển khai ở package hiện tại. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Skip zero with `_`** | `iota` starts at 0. If zero is a valid default, accidental zero-values create phantom matches. Skip it. |
-| **Add `.IsValid()` methods** | String constants have no exhaustive checks. Attach a validation method to reject unknown values. |
+| **Bỏ qua số 0 bằng `_` ** | `iota` bắt đầu từ 0. Nếu số 0 là giá trị mặc định hợp lệ, các giá trị 0 ngẫu nhiên sẽ tạo ra các kết quả khớp ảo. Bỏ qua nó. |
+| **Thêm phương thức `.IsValid()` ** | Các hằng chuỗi không có sự kiểm tra toàn diện. Đính kèm phương thức xác thực để từ chối các giá trị không xác định. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The resetting iota:** You split a `const` block into two blocks thinking `iota` continues counting. It resets to 0 in the second block — two different constants get the same numeric value, causing silent collisions.
-- **The broken assertion:** You write `s.(Circle)` without the comma-ok idiom. If `s` is not a `Circle`, Go panics. Use `v, ok := s.(Circle)` or a `switch s.(type)` block.
+- **Việc đặt lại iota :** Bạn chia một khối `const` thành hai khối với suy nghĩ `iota` tiếp tục đếm. Nó đặt lại về 0 trong khối thứ hai - hai hằng số khác nhau có cùng giá trị số, gây ra xung đột im lặng.
+- **Khẳng định sai:** Bạn viết `s.(Circle)` không có thành ngữ dấu phẩy-ok. Nếu `s` không phải là `Circle` , Go hoảng sợ. Sử dụng khối `v, ok := s.(Circle)` hoặc `switch s.(type)` .
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-TypeScript enums and union types map to Go's `const`/`iota` blocks and sealed interfaces. The visual shows the translation.
+Các enum và kiểu kết hợp của TypeScript map đến Go 's `const` / `iota` và được niêm phong interfaces . Hình ảnh hiển thị bản dịch. ![Enum Typologies Compare](./images/06-enum-union-types-compare.png) *Hình: TS enum trở thành khối `const` với `iota` . Các công đoàn bị phân biệt đối xử TS trở nên kín interfaces bằng các loại công tắc. Không cung cấp tính đầy đủ của biên dịch- time trong Go .*
 
-![Enum Typologies Compare](./images/06-enum-union-types-compare.png)
+## 3. MÃ
 
-*Figure: TS enums become `const` blocks with `iota`. TS discriminated unions become sealed interfaces with type switches. Neither provides compile-time exhaustiveness in Go.*
+Với các ràng buộc được thiết lập, mã bên dưới thể hiện ba mẫu: enum số và chuỗi, liên kết kín interfaces và loại generic `Result[T]` .
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Hằng số và chuỗi enum
 
-With the constraints established, the code below demonstrates three patterns: numeric and string enums, sealed union interfaces, and a generic `Result[T]` type.
-
-### Example 1: Basic — Numeric constants and string enums
-
-> **Goal**: Define bounded status values that reject invalid inputs at runtime.
-> **Approach**: Use `const` + `iota` for numeric priorities, `const` with explicit string values for statuses. Add `.IsValid()` for runtime validation.
-> **Complexity**: O(1) per validation check.
-
-```go
+> **Mục tiêu**: Xác định các giá trị trạng thái giới hạn từ chối các đầu vào không hợp lệ tại runtime .
+> **Phương pháp tiếp cận**: Sử dụng `const` + `iota` cho mức độ ưu tiên bằng số, `const` với các giá trị chuỗi rõ ràng cho các trạng thái. Thêm `.IsValid()` để xác thực runtime .
+> **Độ phức tạp**: O(1) cho mỗi lần kiểm tra xác thực.```go
 // core_enums.go
 package helper
 
@@ -88,19 +79,13 @@ func ExecuteStatusGuard(input Status) {
 	}
 	fmt.Println("Processing valid state")
 }
-```
-
-> **Takeaway**: `Status("UNKNOWN")` compiles — Go does not restrict named type casting. The `.IsValid()` method is the only defense. Call it at the boundary (HTTP handler, message consumer) before passing values into business logic.
+```> **Takeaway**: `Status("UNKNOWN")` biên dịch — Go không hạn chế việc truyền kiểu được đặt tên. Phương pháp `.IsValid()` là cách phòng thủ duy nhất. Gọi nó ở ranh giới (trình xử lý HTTP, trình tiêu thụ thông báo) trước khi chuyển các giá trị vào logic nghiệp vụ.
 
 ---
 
-### Example 2: Intermediate — Sealed union interfaces
-
-> **Goal**: Simulate TypeScript's `type Command = StartCommand | StopCommand` with compile-time variant control.
-> **Approach**: Define an interface with an unexported `sealed()` method. Only structs in the same package can implement it.
-> **Complexity**: O(1) per type switch.
-
-```go
+### Ví dụ 2: Trung gian — Liên kết kín interfaces > **Mục tiêu**: Mô phỏng `type Command = StartCommand | StopCommand` của TypeScript với điều khiển biến thể biên dịch- time .
+> **Phương pháp tiếp cận**: Xác định một interface bằng phương thức `sealed()` chưa xuất. Chỉ structs trong cùng package mới có thể triển khai nó.
+> **Độ phức tạp**: O(1) trên type switch .```go
 // sealed_unions.go
 package helper
 
@@ -132,19 +117,15 @@ func ProcessCommand(c Command) string {
 		return "Unknown command"
 	}
 }
-```
-
-> **Takeaway**: The `sealed()` method is unexported — external packages cannot add new `Command` variants. This gives you package-level control over the union. Always include a `default` case in the type switch to catch impossible states during refactoring.
+```> **Takeaway**: Phương thức `sealed()` không được xuất — packages bên ngoài không thể thêm các biến thể `Command` mới. Điều này mang lại cho bạn quyền kiểm soát cấp độ package đối với liên minh. Luôn bao gồm trường hợp `default` trong type switch để nắm bắt các trạng thái không thể xảy ra trong quá trình tái cấu trúc.
 
 ---
 
-### Example 3: Advanced — Generic Result type
+### Ví dụ 3: Nâng cao — Generic Loại kết quả
 
-> **Goal**: Build a `Result[T]` container that forces callers to check success before accessing the value, similar to Rust's `Result<T, E>`.
-> **Approach**: Generic struct with `ok` boolean, `value`, and `err` fields. `Unwrap()` returns `(T, error)`.
-> **Complexity**: O(1) per unwrap.
-
-```go
+> **Mục tiêu**: Xây dựng vùng chứa `Result[T]` buộc người gọi phải kiểm tra thành công trước khi truy cập giá trị, tương tự như `Result<T, E>` của Rust.
+> **Phương pháp tiếp cận**: Generic struct với các trường `ok` boolean, `value` và `err` . `Unwrap()` trả về `(T, error)` .
+> **Độ phức tạp**: O(1) mỗi lần mở gói.```go
 // generic_results.go
 package helper
 
@@ -182,30 +163,28 @@ func DemonstrateFunctionalReturn() {
 	}
 	fmt.Println("Processed:", val)
 }
-```
+```> **Takeaway**: Trong hầu hết mã Go , các giá trị trả về `(T, error)` là đủ thành ngữ. `Result[T]` rất hữu ích trong các tình huống pipeline trong đó bạn muốn xâu chuỗi các thao tác mà không cần kiểm tra lỗi ở mỗi bước — nhưng nó chống lại các quy ước Go . Sử dụng một cách thận trọng.
 
-> **Takeaway**: In most Go code, `(T, error)` return values are idiomatic enough. `Result[T]` is useful in pipeline scenarios where you want to chain operations without checking errors at every step — but it fights Go conventions. Use judiciously.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Splitting `const` blocks and expecting `iota` to continue | Keep all values in a single `const` block. `iota` resets in each new block. |
-| 2 | Using zero as a valid enum value | Skip zero with `_ = iota` so uninitialized variables do not accidentally match a valid state. |
-| 3 | Missing `default` in type switches | Always add a `default` case. It catches new variants added during refactoring. |
+| 1 | Tách các khối `const` và mong đợi `iota` tiếp tục | Giữ tất cả các giá trị trong một khối `const` duy nhất. `iota` đặt lại trong mỗi khối mới. |
+| 2 | Sử dụng số 0 làm giá trị enum hợp lệ | Bỏ qua số 0 bằng `_ = iota` để các biến chưa được khởi tạo không vô tình khớp với trạng thái hợp lệ. |
+| 3 | Thiếu `default` trong loại switch | Luôn thêm trường hợp `default` . Nó nắm bắt các biến thể mới được thêm vào trong quá trình tái cấu trúc. |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Iota Specification | [go.dev/ref/spec#Iota](https://go.dev/ref/spec#Iota) |
-| `stringer` Tool | [pkg.go.dev/golang.org/x/tools/cmd/stringer](https://pkg.go.dev/golang.org/x/tools/cmd/stringer) |
+| Iota Thông số kỹ thuật | [go.dev/ref/spec#Iota](https://go.dev/ref/spec#Iota) |
+| Công cụ `stringer` | [pkg.go.dev/golang.org/x/tools/cmd/stringer](https://pkg.go.dev/golang.org/x/tools/cmd/stringer) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Data Conversion](./01-data-conversion.md) | When parsing enum values from incoming payloads | Validate string-to-enum conversion at the boundary |
-| [Error Handling](./07-error-handling.md) | When validation failures need structured error responses | Combine enum validation with sentinel errors |
+| [Data Conversion](./01-data-conversion.md) | Khi phân tích các giá trị enum từ tải trọng đến | Xác thực chuyển đổi chuỗi thành enum ở ranh giới |
+| [Error Handling](./07-error-handling.md) | Khi lỗi xác thực cần phản hồi lỗi có cấu trúc | Kết hợp xác thực enum với lỗi trọng điểm |
 
-**Navigation**: [← Date/Time](./05-date-time.md) · [→ Error Handling](./07-error-handling.md)
+**Điều hướng**: [← Date/Time](./05-date-time.md) · [→ Error Handling](./07-error-handling.md)

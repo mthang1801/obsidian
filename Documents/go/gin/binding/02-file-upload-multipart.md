@@ -1,58 +1,43 @@
-<!-- tags: golang -->
-# 📁 File Upload & Multipart — NestJS FileInterceptor → Gin
+<!-- tags: golang --> # 📁 Tải lên tệp & nhiều phần — NestJS FileInterceptor → Gin
 
-> **Library**: Handle single and multi-file uploads with `c.FormFile`, `c.MultipartForm`, content-type validation, and streaming `io.Copy`.
+> **Thư viện**: Xử lý tải lên một tệp và nhiều tệp bằng `c.FormFile` , `c.MultipartForm` , xác thực loại nội dung và phát trực tuyến `io.Copy` .
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Gin buffers the entire multipart body into memory up to `MaxMultipartMemory` (default 32 MB), then spills to temp files. Without explicit size limits and content-type validation, a single malicious upload can OOM your container.
+Gin đệm toàn bộ nội dung nhiều phần vào bộ nhớ lên tới `MaxMultipartMemory` (mặc định 32 MB), sau đó tràn vào các tệp tạm thời. Nếu không có giới hạn kích thước rõ ràng và xác thực loại nội dung, một lần tải lên độc hại có thể làm hỏng vùng chứa của bạn.
 
-| NestJS                                      | Gin                                               |
-| ------------------------------------------- | ------------------------------------------------- |
-| `@UseInterceptors(FileInterceptor('file'))` | `file, _ := c.FormFile("file")`                   |
-| `@UploadedFile() file`                      | `file, header, err := c.Request.FormFile("file")` |
-| `FilesInterceptor('files', 5)`              | `form, _ := c.MultipartForm()`                    |
-| `file.buffer` / `file.stream`               | `file.Open()` returns an `io.Reader`              |
+| NestJS | Gin |
+| --------------------------------------------- | ------------------------------------------------- |
+| `@UseInterceptors(FileInterceptor('file'))` | `file, _ := c.FormFile("file")` |
+| `@UploadedFile() file` | `file, header, err := c.Request.FormFile("file")` |
+| `FilesInterceptor('files', 5)` | `form, _ := c.MultipartForm()` |
+| `file.buffer` / `file.stream` | `file.Open()` trả về `io.Reader` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Set `r.MaxMultipartMemory` explicitly.** The 32 MB default is too high for most APIs.
-- **Validate by content sniffing, not file extension.** Extensions can be spoofed.
+- **Đặt `r.MaxMultipartMemory` một cách rõ ràng.** Mặc định 32 MB là quá cao đối với hầu hết các API.
+- **Xác thực bằng cách đánh hơi nội dung, không phải phần mở rộng tệp.** Phần mở rộng có thể bị giả mạo.
 
-## 2. VISUAL
-
-![File upload pipeline with validation stages](./images/02-file-upload-pipeline.png)
-
-*Figure: File upload flow — multipart request buffered by MaxMultipartMemory → c.FormFile extracts header → validation (extension, size, content sniff) → save or reject. Large files use io.Copy streaming.*
-
-```mermaid
+## 2. HÌNH ẢNH ![File upload pipeline with validation stages](./images/02-file-upload-pipeline.png) *Hình: Luồng tải tệp lên — yêu cầu nhiều phần được lưu vào bộ đệm bởi MaxMultipartMemory → c.FormFile trích xuất tiêu đề → xác thực (phần mở rộng, kích thước, đánh hơi nội dung) → lưu hoặc từ chối. Các tệp lớn sử dụng tính năng phát trực tuyến io.Copy.*```mermaid
 flowchart LR
     A["multipart/form-data"] -->|"c.FormFile('file')"| B["*multipart.FileHeader"]
     B --> C["validate size + ext"]
     C -->|"pass"| D["c.SaveUploadedFile"]
     D --> E["disk / S3"]
     C -->|"fail"| F["400 error"]
-```
+```*Hình: Luồng tải tệp lên — biểu mẫu nhiều phần → trích xuất tiêu đề tệp → xác thực → lưu vào đĩa hoặc bộ lưu trữ đám mây.*
 
-*Figure: File upload flow — multipart form → extract file header → validate → save to disk or cloud storage.*
-
-### Upload Flow
-
-```text
+### Luồng tải lên```text
 POST /upload  (multipart/form-data, file: photo.jpg)
     ├── Gin parses multipart body (buffered up to 8 MB)
     ├── c.FormFile("file") returns *multipart.FileHeader
     ├── Validate: extension, size, content-type
     └── c.SaveUploadedFile(file, dst) writes to disk
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Physical File Saving
-
-```go
+### Ví dụ 1: Cơ bản — Lưu tệp vật lý```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Single file upload: rename with UUID to avoid collisions.
     // MaxMultipartMemory caps in-memory buffering at 8 MB.
@@ -96,11 +81,7 @@ POST /upload  (multipart/form-data, file: photo.jpg)
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — Content Type Verification
-
-```go
+```### Ví dụ 2: Trung cấp — Xác minh loại nội dung```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Validate file extension and size BEFORE saving.
     // MultipartForm handles multiple files under one field name.
@@ -143,11 +124,7 @@ POST /upload  (multipart/form-data, file: photo.jpg)
             c.SaveUploadedFile(file, dst)
         }
     }
-```
-
-### Example 3: Advanced — Constant Stream Copies
-
-```go
+```### Ví dụ 3: Nâng cao — Bản sao luồng liên tục```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Stream upload via io.Copy: avoids buffering entire file in RAM.
     // Use for large files (>10 MB) or when memory is constrained.
@@ -193,29 +170,27 @@ POST /upload  (multipart/form-data, file: photo.jpg)
 
         r.Run(":8080")
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | No `MaxMultipartMemory` limit set | A single 1 GB upload OOMs the container | Set `r.MaxMultipartMemory = 8 << 20` (8 MB) |
-| 2 | 🔴 Fatal | Trusting file extension without content sniffing | Attacker uploads `.exe` renamed to `.jpg` | Use `http.DetectContentType` on the first 512 bytes |
+| 1 | 🔴 Gây tử vong | Không đặt giới hạn `MaxMultipartMemory` | Một lần tải lên 1 GB OOM chứa vùng chứa | Đặt `r.MaxMultipartMemory = 8 << 20` (8 MB) |
+| 2 | 🔴 Gây tử vong | Tin tưởng vào phần mở rộng tập tin mà không đánh hơi nội dung | Kẻ tấn công tải lên `.exe` được đổi tên thành `.jpg` | Sử dụng `http.DetectContentType` trên 512 byte đầu tiên |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Gin Upload Example | [gin-gonic.com/docs/examples/upload-file](https://gin-gonic.com/docs/examples/upload-file/) |
+| Ví dụ tải lên Gin | [gin-gonic.com/docs/examples/upload-file](https://gin-gonic.com/docs/examples/upload-file/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Response Types | When returning files, HTML, or streaming data | Covers JSON, HTML templates, SSE, and binary download responses | [../response/01-json-html-streaming.md](../response/01-json-html-streaming.md) |
+| Các loại phản hồi | Khi trả về tệp, HTML hoặc truyền dữ liệu | Bao gồm các mẫu JSON, HTML, SSE và phản hồi tải xuống nhị phân | [../response/01-json-html-streaming.md](../response/01-json-html-streaming.md) |

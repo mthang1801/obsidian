@@ -1,56 +1,53 @@
-<!-- tags: golang, oop, solid, principles -->
-# ⚖️ SOLID in Go — Identical Names, Distinct Expression
+<!-- tags: golang, oop, solid, principles --> # ⚖️ SOLID trong Go — Tên giống nhau, biểu thức khác biệt
 
-> SOLID principles remain valid in Go — but their expression differs entirely. There are no classes, no extends, and no abstract declarations. This guide maps each core principle to native Go idioms.
+> Các nguyên tắc SOLID vẫn có hiệu lực trong Go — nhưng cách thể hiện của chúng hoàn toàn khác nhau. Không có lớp, không có phần mở rộng và không có khai báo trừu tượng. Hướng dẫn này maps từng nguyên tắc cốt lõi cho các thành ngữ Go bản địa.
 
-📅 Created: 2026-04-10 · 🔄 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã tạo: 2026-04-10 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 16 phút đọc
 
-| Aspect            | Detail                                         |
+| Khía cạnh | Chi tiết |
 | ----------------- | ---------------------------------------------- |
-| **Concept**       | SOLID principles mapped directly to Go constructs |
-| **Use case**      | Code review structures, architecture decisions            |
-| **Key insight**   | SOLID ≠ Java SOLID. Identical ideas, Go expression  |
-| **Go philosophy** | The principles function correctly, implementation differs            |
+| **Khái niệm** | Nguyên tắc SOLID được ánh xạ trực tiếp tới cấu trúc Go |
+| **Trường hợp sử dụng** | Cấu trúc xem xét mã, quyết định kiến ​​trúc |
+| **Thông tin chi tiết quan trọng** | SOLID ≠ Java SOLID . Ý tưởng giống hệt nhau, biểu thức Go |
+| ** Go triết lý** | Các nguyên tắc hoạt động chính xác, việc thực hiện lại khác nhau |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Consider a Tuesday code review. You comment on the `OrderProcessor` struct inside a PR:
+Hãy xem xét đánh giá mã vào thứ Ba. Bạn nhận xét về `OrderProcessor` struct bên trong PR:
 
-> "This struct violates SRP — it validates, persists, and notifies simultaneously."
+> " struct này vi phạm SRP — nó xác thực, duy trì và thông báo đồng thời."
 
-A junior developer replies: "But Go has no classes. Does SRP apply to a struct? And OCP — Open/Closed — what does 'open for extension' mean when the language lacks `extends`?"
+Một nhà phát triển cấp dưới trả lời: "Nhưng Go không có lớp. SRP có áp dụng cho struct không? Và OCP — Mở/Đóng — 'mở để mở rộng' nghĩa là gì khi ngôn ngữ thiếu `extends` ?"
 
-This is a good question. **SOLID principles remain valid in Go** — but the expression changes:
+Đây là một câu hỏi hay. ** Các nguyên tắc SOLID vẫn hợp lệ trong Go ** — nhưng biểu thức thay đổi:
 
-| Principle | Java Expression | Go Expression |
+| Nguyên tắc | Biểu thức Java | Go Biểu thức |
 | --- | --- | --- |
-| **S** — Single Responsibility | One class, one specific reason to change | One struct/package, one distinct job responsibility |
-| **O** — Open/Closed | Abstract class definitions + formal override | Interface contracts + new structural implementations |
-| **L** — Liskov Substitution | Subclass operates directly substitutable for parent | Interface implementer remains safely substitutable |
-| **I** — Interface Segregation | Splitting massive fat interfaces | Small focused interfaces modeled from the absolute start |
-| **D** — Dependency Inversion | Abstract class/interface rigid DI | Consumer-defined specific interface + constructor based injection |
+| **S** — Trách nhiệm duy nhất | Một lớp học, một lý do cụ thể để thay đổi | Một struct / package , một trách nhiệm công việc riêng biệt |
+| **O** — Mở/Đóng | Định nghĩa lớp trừu tượng + ghi đè chính thức | hợp đồng Interface + triển khai cấu trúc mới |
+| **L** — Thay thế Liskov | Lớp con hoạt động có thể thay thế trực tiếp cho lớp cha | Interface người triển khai vẫn có thể thay thế một cách an toàn |
+| **I** — Interface Phân chia | Tách mỡ khổng lồ interfaces | interfaces tập trung nhỏ được mô hình hóa ngay từ đầu |
+| **D** — Đảo ngược phụ thuộc | Lớp trừu tượng/ interface cứng nhắc DI | Nội dung dựa trên hàm tạo + cụ thể do người tiêu dùng xác định interface |
 
-If you think "SOLID in Go is too easy because Go enforces pure composition" — that is true... regarding O, L, and I. But S (SRP) and D (DIP) still command strict structural discipline — Go does not enforce them automatically.
+Nếu bạn cho rằng " SOLID trong Go là quá dễ dàng vì Go thực thi thuần composition " — điều đó đúng... liên quan đến O, L và I. Nhưng S (SRP) và D (DIP) vẫn yêu cầu kỷ luật cấu trúc nghiêm ngặt — Go không tự động thực thi chúng.
 
-### Failure Modes
+### Chế độ lỗi
 
-| Structural Defect | Root Cause | Ripple Effect |
+| Khiếm khuyết cấu trúc | Nguyên nhân gốc rễ | Hiệu ứng gợn sóng |
 | --- | --- | --- |
-| "SOLID = mandate an interface for every single struct" | Misunderstanding basic ISP logic | Meaningless ceremony, strict YAGNI violation |
-| "Go structs lack classes therefore SRP fails" | Confusing structural SRP scope | Generating 500-line God structs |
-| "DIP = importing generic interface packages" | Maintaining obsolete Java-style DI constraints | Fatal shared interface dependency coupling |
+| " SOLID = ủy quyền một interface cho mỗi struct " | Hiểu sai logic cơ bản của ISP | Lễ vô nghĩa, vi phạm nghiêm ngặt YAGNI |
+| " Go structs thiếu lớp nên SRP không thành công" | Phạm vi cấu trúc SRP khó hiểu | Tạo Thần 500 dòng structs |
+| "DIP = nhập generic interface packages " | Duy trì các ràng buộc kiểu Java DI lỗi thời | Khớp nối phụ thuộc interface được chia sẻ nghiêm trọng |
 
-SRP ranks first because it impacts architecture most — but it generates heavy confusion when arriving from Java backgrounds. Let us examine each distinct principle.
+SRP xếp hạng đầu tiên vì nó tác động đến kiến ​​trúc nhiều nhất — nhưng nó tạo ra sự nhầm lẫn nặng nề khi đến từ nền tảng Java. Chúng ta hãy xem xét từng nguyên tắc riêng biệt.
 
 ---
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-### SOLID Decision Mapping: Java → Go
-
-```mermaid
+### SOLID Ánh xạ quyết định: Java → Go```mermaid
 flowchart TD
     subgraph S["S — Single Responsibility"]
         S1["Java: 1 class = 1 formal reason"]
@@ -72,15 +69,9 @@ flowchart TD
         D1["Java: @Autowired mapping + global interface"]
         D2["Go: constructor injection wiring + consumer interface parameters"]
     end
-```
+```![SOLID in Go taxonomy card](./images/05-solid-in-go-taxonomy.png) *Hình: 5 nguyên tắc hình thức, thuật ngữ giống nhau, phương tiện hoạt động riêng biệt. Go thiếu các khung `abstract` , `extends` và `@Autowired` — nhưng các phần tử SOLID vẫn tồn tại nhờ sử dụng structs , interfaces và các hàm tạo rõ ràng.*
 
-![SOLID in Go taxonomy card](./images/05-solid-in-go-taxonomy.png)
-
-*Figure: 5 formal principles, identical terminology, distinct operational vehicles. Go lacks `abstract`, `extends`, and `@Autowired` frameworks — but SOLID elements survive utilizing structs, interfaces, and explicit constructors.*
-
-### SOLID Violation Detection Logic
-
-```mermaid
+### SOLID Logic phát hiện vi phạm```mermaid
 flowchart TD
     A[Review specific struct/package definition] --> B{Can you describe it utilizing 1 short sentence?}
     B -->|No — requiring the word 'and'| C["⚠️ Major SRP violation"]
@@ -91,23 +82,19 @@ flowchart TD
     F -->|No| H{Does the struct depend upon a specific concrete type?}
     H -->|Yes| I["⚠️ Major DIP violation"]
     H -->|No — depends purely upon interface| J["✅ SOLID operations validated OK"]
-```
+```*Hình: 4 câu hỏi đánh giá tuần tự nhắm mục tiêu phát hiện vi phạm. Hoàn hảo để triển khai trong quá trình đánh giá mã — mỗi câu hỏi cụ thể kiểm tra chính xác 1 nguyên tắc.*
 
-*Figure: 4 sequential evaluation questions targeting violation detection. Perfect for implementation during code review — each specific question tests exactly 1 principle.*
-
-We will now implement each principle — starting with SRP, the most frequently violated.
+Bây giờ chúng ta sẽ triển khai từng nguyên tắc - bắt đầu với SRP, nguyên tắc thường bị vi phạm nhất.
 
 ---
 
-### Example 1: Basic — SRP: One Struct, One Job
+### Ví dụ 1: Cơ bản — SRP: Một Struct , Một công việc
 
-A God struct does too much. Split responsibilities.
+Một vị thần struct làm quá nhiều việc. Phân chia trách nhiệm.
 
-> **Goal**: Fix SRP violations.
-> **Approach**: Describe the struct. If you use "and", split it.
-> **Example**: `OrderProcessor` becomes `OrderValidator` plus `OrderRepository` plus `OrderNotifier`.
-
-```go
+> **Mục tiêu**: Khắc phục các vi phạm SRP.
+> **Cách tiếp cận**: Mô tả struct . Nếu bạn sử dụng "và", hãy chia nó ra.
+> **Ví dụ**: `OrderProcessor` trở thành `OrderValidator` cộng `OrderRepository` cộng `OrderNotifier` .```go
 // ❌ SRP violation — God struct
 type OrderProcessor struct {
 	db       *sql.DB
@@ -165,21 +152,17 @@ func (s *OrderService) Process(ctx context.Context, o *Order) error {
 	_ = s.notifier.Notify(ctx, o) // non-critical
 	return nil
 }
-```
-
-> **Takeaway**: SRP in Go means a struct has one job. Do not use "and" in its description. A service struct coordinates, it does not hold logic.
+```> **Takeaway**: SRP trong Go có nghĩa là struct có một công việc. Không sử dụng "và" trong mô tả của nó. Tọa độ dịch vụ struct , nó không giữ logic.
 
 ---
 
-### Example 2: Intermediate — OCP + DIP: Add Behavior Without Modifying
+### Ví dụ 2: Trung cấp — OCP + DIP: Thêm hành vi mà không sửa đổi
 
-Add a pricing strategy by making a new struct, not modifying the service. Interface injection fulfills OCP and DIP.
+Thêm giá strategy bằng cách tạo struct mới, không sửa đổi dịch vụ. Việc tiêm Interface đáp ứng OCP và DIP.
 
-> **Goal**: OCP — open for extension, closed for modification. DIP — depend on abstractions.
-> **Approach**: Use a `PricingStrategy` interface. Inject concrete implementations.
-> **Example**: Add `WeekendPricing` without modifying `CheckoutService`.
-
-```go
+> **Mục tiêu**: OCP — mở để mở rộng, đóng để sửa đổi. DIP - phụ thuộc vào sự trừu tượng.
+> **Cách tiếp cận**: Sử dụng `PricingStrategy` interface . Triển khai cụ thể.
+> **Ví dụ**: Thêm `WeekendPricing` mà không sửa đổi `CheckoutService` .```go
 // ocp_dip.go — Open/Closed + Dependency Inversion
 package checkout
 
@@ -235,23 +218,19 @@ func NewCheckoutService(p PricingStrategy) *CheckoutService {
 func (cs *CheckoutService) Checkout(entry, exit time.Time) int64 {
 	return cs.pricing.Calculate(entry, exit)
 }
-```
+```> **Tại sao lại là OCP và DIP?**
+> **OCP**: `CheckoutService` không thể sửa đổi. Để thêm `WeekendPricing` , hãy viết một struct mới . Mã dịch vụ không có thay đổi. 
+> **DIP**: `CheckoutService` phụ thuộc vào `PricingStrategy` (trừu tượng), không phải `HourlyPricing` (cụ thể). 
 
-> **Why is this OCP and DIP?**
-> **OCP**: `CheckoutService` is closed to modification. To add `WeekendPricing`, write a new struct. The service code has zero changes. 
-> **DIP**: `CheckoutService` depends on `PricingStrategy` (abstraction), not `HourlyPricing` (concrete). 
+> **Bài học rút ra**: OCP cộng với DIP trong Go là hệ thống dây dẫn và bộ tạo interface . Trình xây dựng cộng với interface là tất cả những gì bạn cần. Không cần khuôn khổ.
 
-> **Takeaway**: OCP plus DIP in Go is interface injection and constructor wiring. Constructor plus interface is all you need. No frameworks required.
+\n### Ví dụ 3: Nâng cao — ISP + LSP: Tách Interface & Đảm bảo khả năng thay thế
 
-\n### Example 3: Advanced — ISP + LSP: Split Interface & Ensure Substitutability
+Quy tắc ISP: người gọi cần một phương thức sẽ nhận được interface với một phương thức. Quy tắc LSP: mọi triển khai đều hoạt động chính xác khi được thay thế.
 
-ISP rules: a caller needing one method gets an interface with one method. LSP rules: every implementation behaves correctly when substituted.
-
-> **Goal**: ISP — split fat interfaces. LSP — ensure safe substitutability.
-> **Approach**: Build small interfaces. Prohibit panics or unexpected return values in implementations.
-> **Example**: Repository splits into Reader plus Writer. Detect LSP violations.
-
-```go
+> **Mục tiêu**: ISP — chia mỡ interfaces . LSP - đảm bảo khả năng thay thế an toàn.
+> **Phương pháp tiếp cận**: Xây dựng nhỏ interfaces . Cấm hoảng loạn hoặc giá trị trả về không mong muốn trong quá trình triển khai.
+> **Ví dụ**: Kho lưu trữ chia thành Reader và Writer. Phát hiện vi phạm LSP.```go
 // isp_lsp.go — Interface Segregation plus Liskov Substitution
 package repository
 
@@ -311,49 +290,47 @@ type CacheRepo struct{}
 func (r *CacheRepo) Delete(ctx context.Context, id int64) error {
 	return fmt.Errorf("cache repository does not support delete") // ✅ safe handling
 }
-```
-
-> **Why does a panic equal an LSP violation?**
-> The interface contract dictates `Delete() error`. The caller expects an error return and handles it. A `panic` crashes the execution. Substituting `BrokenCacheRepo` for `PostgresRepo` causes a runtime crash. LSP is broken.
+```> **Tại sao panic lại tương đương với vi phạm LSP?**
+> Hợp đồng interface quy định `Delete() error` . Người gọi mong đợi một lỗi trả về và xử lý nó. `panic` làm hỏng quá trình thực thi. Việc thay thế `BrokenCacheRepo` cho `PostgresRepo` gây ra sự cố runtime . LSP bị hỏng.
 >
-> **ISP rule**: If an implementation must leave methods empty or panicking, the target interface is too fat. Split it.
+> **Quy tắc ISP**: Nếu quá trình triển khai phải để trống các phương thức hoặc gây hoảng loạn thì mục tiêu interface quá béo. Chia nó ra.
 
-> **Takeaway**: ISP in Go equals composing small interfaces upon requirement. LSP dictates all implementations behave logically when substituted without panics or silent failures.
+> **Takeaway**: ISP trong Go tương đương với việc soạn thảo interfaces nhỏ theo yêu cầu. LSP ra lệnh cho tất cả các triển khai hoạt động hợp lý khi được thay thế mà không gây hoảng loạn hoặc thất bại thầm lặng.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-| # | Severity | Defect | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Panicking inside interface implementations | LSP violation and application crash | Return standard errors. Do not panic. |
-| 2 | 🔴 Fatal | God structs with numerous dependencies | ISP and SRP violated, tests fail | Split into focused struct definitions. |
-| 3 | 🟡 Common | Preemptive interface for every struct | Ceremony and useless indirection | Define a concrete type first. Use interfaces only when needing mocks. |
-| 4 | 🟡 Common | Shared interface packages | Tight coupling defeating DIP | Consumer defines interfaces natively where used. |
-| 5 | 🔵 Minor | Naming structs like `XxxImpl` | Java legacy formatting | Name descriptively like `PostgresRepo`. |
+| 1 | 🔴 Gây tử vong | Hoảng loạn bên trong quá trình triển khai interface | Vi phạm LSP và sự cố ứng dụng | Trả về lỗi tiêu chuẩn. Đừng panic . |
+| 2 | 🔴 Gây tử vong | Chúa structs với vô số phụ thuộc | ISP và SRP bị vi phạm, kiểm tra thất bại | Chia thành các định nghĩa struct tập trung. |
+| 3 | 🟡 Chung | Ưu tiên interface cho mọi struct | Lễ và sự gián tiếp vô ích | Xác định một loại cụ thể đầu tiên. Chỉ sử dụng interfaces khi cần mocks . |
+| 4 | 🟡 Chung | Đã chia sẻ interface packages | Khớp nối chặt chẽ đánh bại DIP | Người tiêu dùng xác định interfaces nguyên bản khi được sử dụng. |
+| 5 | 🔵 Nhỏ | Đặt tên structs như `XxxImpl` | Định dạng kế thừa Java | Đặt tên mang tính mô tả như `PostgresRepo` . |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | --- | --- | --- | --- |
-| SOLID Go Design | Presentation | https://dave.cheney.net/2016/08/20/solid-go-design | Dave Cheney's talk |
-| Go Proverbs | Philosophy | https://go-proverbs.github.io/ | Architectural quotes |
-| Effective Go | Documentation | https://go.dev/doc/effective_go | Native code patterns |
+| SOLID Go Thiết kế | Trình bày | https://dave.cheney.net/2016/08/20/ solid -go-design | Buổi nói chuyện của Dave Cheney |
+| Go Châm ngôn | Triết học | https://go-proverbs.github.io/ | Báo giá kiến ​​trúc |
+| Có hiệu lực Go | Tài liệu | https://go.dev/doc/effect_go | Mẫu mã gốc |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core operations of **SOLID in Go** are clear. The extensions below transition SOLID principles into practical patterns and architectures.
+Các hoạt động cốt lõi của ** SOLID trong Go ** rất rõ ràng. Các phần mở rộng bên dưới chuyển đổi các nguyên tắc SOLID thành các mẫu và kiến ​​trúc thực tế.
 
-| Extension | When | Rationale | File linking |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết tập tin |
 | --- | --- | --- | --- |
-| [Design Patterns Formats](./06-design-patterns-go-way.md) | When implementing structure patterns | Factory, Strategy, Observer | Next sequence |
-| [OOP Mental Model Configs](./01-oop-mental-model.md) | Reviewing foundational rules | Broad structural review | Go back |
-| [Interfaces structure deep dive](../interfaces/02-di-mocking-patterns.md) | When needing mock logic | DI wiring structures | Module crossing |
+| [Design Patterns Formats](./06-design-patterns-go-way.md) | Khi triển khai các mẫu cấu trúc | Factory , Strategy , Observer | Trình tự tiếp theo |
+| [OOP Mental Model Configs](./01-oop-mental-model.md) | Rà soát các quy tắc cơ bản | Đánh giá cấu trúc rộng rãi | Go quay lại |
+| [Interfaces structure deep dive](../interfaces/02-di-mocking-patterns.md) | Khi cần logic mock | DI cấu trúc nối dây | Module băng qua |
 
 ---
 
-**Directory Navigation**: [← Interfaces module](./04-interfaces-polymorphism.md) · [→ Design Patterns logic](./06-design-patterns-go-way.md)
+**Điều hướng thư mục**: [← Interfaces module](./04-interfaces-polymorphism.md) · [→ Design Patterns logic](./06-design-patterns-go-way.md)

@@ -1,70 +1,65 @@
-<!-- tags: golang, typescript, testing -->
-# 🛠️ Project Layout, Tooling, Testing — How Go Teams Build and Ship Different TypeScript.
+<!-- tags: golang, typescript, testing --> # 🛠️ Bố cục dự án, công cụ, thử nghiệm - Cách Go Các nhóm xây dựng và vận chuyển các TypeScript khác nhau.
 
-> If the mental model is correct but the workflow still follows Node.js/NestJS, you will think Go "lacks a framework". Go actually puts most of its power into the standard toolchain, package boundaries, and convention.
+> Nếu mô hình tinh thần đúng nhưng quy trình làm việc vẫn tuân theo Node.js/NestJS, bạn sẽ nghĩ Go "thiếu khung". Go thực sự đặt phần lớn sức mạnh của nó vào chuỗi công cụ tiêu chuẩn, ranh giới và quy ước package .
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | `go.mod`, package layout, `go test`, `gofmt`, `httptest` |
-| **Use case** | The TypeScript team started building the first Go service and needed a maintainable workflow |
-| **Key diff** | TypeScript often pairs the language with ecosystem tools; Go includes most things in the default toolchain |
-| **Go stdlib** | `testing`, `httptest`, `net/http`, `os`, `time` |
+| **Tập trung** | `go.mod` , package bố cục, `go test` , `gofmt` , `httptest` |
+| **Trường hợp sử dụng** | Nhóm TypeScript bắt đầu xây dựng dịch vụ Go đầu tiên và cần một quy trình làm việc có thể duy trì |
+| **Khác biệt về phím** | TypeScript thường ghép nối ngôn ngữ với các công cụ của hệ sinh thái; Go bao gồm hầu hết mọi thứ trong chuỗi công cụ mặc định |
+| ** Go stdlib** | `testing` , `httptest` , `net/http` , `os` , `time` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A TypeScript backend team rarely thinks about language. They think in terms of:
+Nhóm phụ trợ TypeScript hiếm khi nghĩ về ngôn ngữ. Họ nghĩ về mặt:
 
-- `package.json`
-- `tsconfig.json`
-- framework CLI
+- `package.json` - `tsconfig.json` - khung CLI
 - Jest/Vitest
-- ESLint/Prettier
-- runtime env loader
+- ESLint/Đẹp hơn
+- runtime trình tải env
 
-When switching to Go, the first feeling is often "lacking too many amenities". There is no DI decorator, no default CLI framework, no Jest-style test runner with dozens of matchers, no built-in config system like NestJS.
+Khi chuyển sang Go , cảm giác đầu tiên thường là “thiếu quá nhiều tiện nghi”. Không có DI decorator , không có CLI framework mặc định, không có trình chạy thử nghiệm kiểu Jest với hàng tá trình so khớp, không có hệ thống cấu hình tích hợp như NestJS.
 
-But that is just the perspective from the old system. Go bets on a different principle: standard toolchain + clear package boundaries + wide-enough stdlib. You do not have to assemble many pieces to have a production-ready service.
+Nhưng đó chỉ là quan điểm của hệ thống cũ. Go đặt cược vào một nguyên tắc khác: chuỗi công cụ tiêu chuẩn + ranh giới package rõ ràng + stdlib đủ rộng. Bạn không cần phải lắp ráp nhiều bộ phận để có dịch vụ sẵn sàng sản xuất.
 
-### 1.1 Package is the first design unit.
+### 1.1 Package là đơn vị thiết kế đầu tiên.
 
-In TypeScript, folder structure is often strongly influenced by the framework or monorepo tool. In Go, package boundaries manage API surface, testability, visibility, and coupling. If the packages are well-designed, the codebase stays maintainable.
+Trong TypeScript, cấu trúc thư mục thường bị ảnh hưởng mạnh mẽ bởi framework hoặc công cụ monorepo. Trong các ranh giới Go , package quản lý bề mặt API, khả năng kiểm tra, khả năng hiển thị và khớp nối. Nếu packages được thiết kế tốt thì cơ sở mã vẫn có thể duy trì được.
 
-Pragmatic rule:
+Quy tắc thực dụng:
 
-- `cmd/` for entrypoints
-- `internal/` indicates an implementation that does not want to be exported outside the module.
-- Packages should be small, clearly named, avoiding ambiguous `utils`, `common`, `helpers`.
+- `cmd/` cho điểm vào
+- `internal/` biểu thị một triển khai không muốn được xuất bên ngoài module .
+- Packages nên nhỏ gọn, đặt tên rõ ràng, tránh mơ hồ `utils` , `common` , `helpers` .
 
-### 1.2 Toolchain is part of the language.
+### 1.2 Toolchain là một phần của ngôn ngữ.
 
-Here's where many TypeScript engineers underestimate Go:
+Đây là điểm mà nhiều kỹ sư TypeScript đánh giá thấp Go :
 
-- `go fmt` / `gofmt`: standard formatter is almost mandatory.
-- `go test`: unit test, benchmark, fuzz in one tool.
-- `go mod`: integrated dependency management.
-- `go vet`: default static checks.
+- `go fmt` / `gofmt` : định dạng chuẩn gần như là bắt buộc.
+- `go test` : unit test , benchmark , fuzz trong một công cụ.
+- `go mod` : quản lý phụ thuộc tích hợp.
+- `go vet` : kiểm tra tĩnh mặc định.
 
-You spend less time arguing about styles and tool combinations, and more time on real logic.
+Bạn tốn ít time tranh luận về kiểu dáng và cách kết hợp công cụ hơn và time nhiều hơn cho logic thực.
 
-### 1.3 Invariants & Failure Modes
+### 1.3 Các kiểu bất biến và lỗi
 
-- If you build DI containers too early, it's often a sign that you're bringing old framework dependency shapes into Go.
-- If you group too many packages into `internal/common`, you have just created a new "shared junk drawer".
-- If you go against `gofmt`, your team is fighting a war that is not worth winning.
+- Nếu bạn xây dựng vùng chứa DI quá sớm, đó thường là dấu hiệu cho thấy bạn đang đưa các hình dạng phụ thuộc khung cũ vào Go .
+- Nếu bạn nhóm quá nhiều packages vào `internal/common` , bạn vừa tạo một "ngăn kéo rác chung" mới.
+- Nếu bạn chống lại `gofmt` , đội của bạn đang chiến đấu trong một cuộc chiến không đáng để chiến thắng.
 
-Fewer tools does not mean less discipline.
+Ít công cụ hơn không có nghĩa là ít kỷ luật hơn.
 
-It just pushes discipline to default.
+Nó chỉ đẩy kỷ luật đến mức mặc định.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The biggest difference between Go workflow and TypeScript workflow is not in the number of tools, but in deciding on good defaults. The diagram below shows that.
+Sự khác biệt lớn nhất giữa quy trình làm việc Go và quy trình làm việc TypeScript không nằm ở số lượng công cụ mà ở việc quyết định các giá trị mặc định tốt. Biểu đồ dưới đây cho thấy điều đó.
 
-### Level 1
-
-```text
+### Cấp 1```text
 TypeScript backend workflow
 source
   -> tsconfig
@@ -80,38 +75,28 @@ source
   -> go build
   -> native binary
   -> stdlib-first deployment
-```
+```![Project layout tooling compare card](./images/04-project-layout-tooling-compare.png) *Hình: Cấp 1 cho thấy rằng Go gộp nhiều quyết định vào chuỗi công cụ mặc định hơn là phần phụ trợ TypeScript điển hình stack .*.
 
-![Project layout tooling compare card](./images/04-project-layout-tooling-compare.png)
-
-*Figure: Level 1 shows that Go bundles more decisions into the default toolchain than a typical TypeScript backend stack.*.
-
-### Level 2
-
-```text
+### Cấp 2```text
 good Go project
   -> package boundaries clear
   -> entrypoints explicit
   -> constructors explicit
   -> tests live next to code
   -> formatting non-negotiable
-```
+```*Hình: Cấp độ 2 nhấn mạnh rằng khả năng bảo trì trong Go đến từ cấu trúc và kỷ luật mặc định nhiều hơn là từ sự trừu tượng hóa khung.*.
 
-*Figure: Level 2 emphasizes that maintainability in Go comes more from default structure and discipline than framework abstraction.*.
+## 3. MÃ
 
-## 3. CODE
+Quy trình làm việc chính xác sẽ xuất hiện rất rõ ràng khi bạn viết, kiểm tra và sau đó gửi một module nhỏ.
 
-The correct workflow will appear very clearly when you write, test, and then ship a small module.
+### Ví dụ 1: Cơ bản — hệ thống dây của hàm tạo thường đủ thay cho các thùng chứa DI .
 
-### Example 1: Basic — constructor wiring is often sufficient in place of DI containers.
+> **Mục tiêu**: Hãy thấy rằng hầu hết dependency injection trong Go đều có thể được giải bằng các hàm tạo rõ ràng.
+> **Phương pháp tiếp cận**: Tạo một `Clock` interface nhỏ và đưa nó vào dịch vụ bằng cách sử dụng `NewService` .
+> **Ví dụ**: `BillingService` cần time hiện tại để đóng hóa đơn.
 
-> **Goal**: See that most dependency injection in Go can be solved with explicit constructors.
-> **Approach**: Create a small `Clock` interface and inject it into the service using `NewService`.
-> **Example**: `BillingService` needs the current time to close the invoice.
-
-TypeScript version many teams are familiar with:
-
-```typescript
+Phiên bản TypeScript được nhiều nhóm quen thuộc:```typescript
 interface Clock {
   now(): Date;
 }
@@ -132,11 +117,7 @@ class BillingService {
 
 const service = new BillingService(new RealClock());
 console.log(service.closeInvoice("inv-1"));
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -168,21 +149,17 @@ func main() {
 	service := NewBillingService(RealClock{})
 	fmt.Println(service.CloseInvoice("inv-1"))
 }
-```
+```> **Takeaway**: Trong Go , hàm tạo rõ ràng thường đủ cho 80% trường hợp sử dụng. Các vùng chứa DI phải được cân nhắc lại, không phải là mặc định vào ngày đầu tiên.
 
-> **Takeaway**: In Go, the explicit constructor is usually enough for 80% of use cases. DI containers should be an afterthought, not a default on day one.
+Hệ thống dây điện xây dựng giải quyết bề mặt phụ thuộc. Chất lượng quy trình làm việc chỉ hiển thị khi quá trình kiểm tra bắt đầu chồng chất.
 
-Constructor wiring solves the dependency surface. Workflow quality only shows up when testing begins to pile up.
+### Ví dụ 2: Trung cấp - các bài kiểm tra dựa trên bảng thay thế các bài kiểm tra kiểu so khớp của TypeScript.
 
-### Example 2: Intermediate — table-driven tests replace TypeScript's matcher style tests.
+> **Mục tiêu**: Làm quen với nhịp điệu thử nghiệm độc đáo của Go .
+> **Phương pháp tiếp cận**: Sử dụng các thử nghiệm dựa trên bảng để bao quát nhiều trường hợp trong một chức năng thử nghiệm duy nhất.
+> **Ví dụ**: Phân tích thời gian chờ từ biến môi trường.
 
-> **Goal**: Get familiar with Go's unique testing rhythm.
-> **Approach**: Use table-driven tests to cover multiple cases in a single test function.
-> **Example**: Parse timeout from environment variable.
-
-TypeScript version with test matrix:
-
-```typescript
+Phiên bản TypeScript với ma trận thử nghiệm:```typescript
 import { describe, expect, it } from "vitest";
 
 function parseTimeout(raw: string): number {
@@ -208,11 +185,7 @@ describe("parseTimeout", () => {
     expect(parseTimeout(input)).toBe(want);
   });
 });
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package config
 
 import (
@@ -257,23 +230,19 @@ func TestParseTimeout(t *testing.T) {
 		})
 	}
 }
-```
+```> **Tại sao?** Các bài kiểm tra TypeScript thường dựa vào DSL đối sánh và công thái học của khung. Các bài kiểm tra Go tối giản hơn, nhưng bù lại rất gần với logic thực và dễ đọc. Các bài kiểm tra dựa trên bảng có quy mô tốt cho các nhóm.
 
-> **Why?** TypeScript tests often rely on matcher DSLs and framework ergonomics. Go tests are more minimalist, but in return are very close to real logic and cheap to read. Table-driven tests scale well for teams.
+> **Takeaway**: Nếu bạn cảm thấy các bài kiểm tra Go có "kém ma thuật hơn", đó là do thiết kế. Nó làm cho ý định và kết quả thất bại gần nhau hơn.
 
-> **Takeaway**: If you feel Go tests have "less magic", that is by design. It makes intent and failure output closer together.
+Kiểm tra đơn vị làm rõ logic. Nhưng nhóm chỉ tin tưởng vào quy trình làm việc mới khi lớp HTTP cũng có thể được kiểm tra mà không cần thêm một nửa khung.
 
-Unit testing clarifies logic. But the team only believes in the new workflow when the HTTP layer can also be tested without adding half of the framework.
+### Ví dụ 3: Nâng cao — `httptest` dành cho các thử nghiệm giống như tích hợp mà không cần framework nặng nề.
 
-### Example 3: Advanced — `httptest` for integration-like tests without a heavy framework.
+> **Mục tiêu**: Thấy rằng Go stdlib là đủ cho phần lớn thử nghiệm dịch vụ.
+> **Phương pháp tiếp cận**: Sử dụng `httptest.NewServer` để kiểm tra các trình xử lý toàn diện trong quá trình xử lý.
+> **Ví dụ**: Trả về điểm cuối sức khỏe `200 ok` .
 
-> **Goal**: See that Go stdlib is enough for a large portion of service testing.
-> **Approach**: Use `httptest.NewServer` to test end-to-end handlers in-process.
-> **Example**: Health endpoint returns `200 ok`.
-
-The TypeScript version often comes with the test stack framework:
-
-```typescript
+Phiên bản TypeScript thường đi kèm với framework stack test:```typescript
 import express from "express";
 import request from "supertest";
 import { describe, expect, it } from "vitest";
@@ -290,11 +259,7 @@ describe("GET /health", () => {
     expect(response.text).toBe("ok");
   });
 });
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -331,42 +296,40 @@ func TestHealthHandler(t *testing.T) {
 		t.Fatalf("got body %q, want %q", body, "ok")
 	}
 }
-```
+```> **Tại sao?** Các nhóm TypeScript thường tiếp cận Supertest, framework test modules và mock server packages từ rất sớm. Go stdlib đã có hầu hết những gì bạn cần. Đây là lý do tại sao nhiều dịch vụ Go có cây phụ thuộc nhỏ hơn đáng kể.
 
-> **Why?** TypeScript teams often reach for Supertest, framework test modules, and mock server packages very early. Go stdlib already has most of what you need. This is why many Go services have significantly smaller dependency trees.
+> **Takeaway**: Đừng cho rằng Go thiếu hệ sinh thái chỉ vì bạn chưa khám phá stdlib.
 
-> **Takeaway**: Do not assume Go lacks an ecosystem just because you have not explored the stdlib.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
+Sai lầm của các đội mới tham gia Go hiếm khi đến từ việc thiếu packages .
 
-Mistakes of teams new to Go rarely come from missing packages.
+Nó thường xuất phát từ việc cố gắng tái tạo lại hệ sinh thái cũ bằng một cái tên mới.
 
-It often comes from trying to recreate the same old ecosystem with a new name.
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Bringing the old framework architecture into Go from day one | Project is heavy on abstraction, hard to debug, and loses Go's simplicity advantage | Start with stdlib + constructor wiring + clear package boundaries |
-| 2 | 🟡 Common | Creating packages named `utils`, `helpers`, `common` | Coupling increases and responsibility is ambiguous | Name packages by specific domain or capability |
-| 3 | 🔵 Minor | Fighting `gofmt` or Go's standard style | Wastes review bandwidth on formatting matters | Accept the standard formatter as part of the team's social contract |
+| 1 | 🔴 Gây tử vong | Đưa kiến ​​trúc khung cũ vào Go ngay từ ngày đầu tiên | Dự án nặng về tính trừu tượng, khó gỡ lỗi và mất đi lợi thế đơn giản của Go | Bắt đầu với stdlib + xây dựng hệ thống dây + xóa ranh giới package |
+| 2 | 🟡 Chung | Tạo packages có tên `utils` , `helpers` , `common` | Sự ghép nối tăng lên và trách nhiệm không rõ ràng | Đặt tên packages theo miền hoặc khả năng cụ thể |
+| 3 | 🔵 Nhỏ | Chiến đấu theo phong cách chuẩn của `gofmt` hoặc Go | Lãng phí băng thông khi xem xét các vấn đề định dạng | Chấp nhận trình định dạng tiêu chuẩn như một phần của hợp đồng xã hội của nhóm |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| Go User Manual | Official | https://go.dev/doc/ | Mainstream entrance for building, testing, modules, tooling |
-| Go Modules Reference | Official | https://go.dev/ref/mod | Source of truth for module boundaries, replaces, vendoring, and private deps |
-| `testing` package | Official | https://pkg.go.dev/testing | Standard entry point for unit test, benchmark, fuzz, example test |
+| Go Hướng dẫn sử dụng | Chính thức | https://go.dev/doc/ | Lối vào chính cho xây dựng, thử nghiệm, modules , dụng cụ |
+| Go Modules Tham khảo | Chính thức | https://go.dev/ref/mod | Nguồn sự thật cho các ranh giới module , thay thế, vendoring và các dep riêng tư |
+| `testing` package | Chính thức | https://pkg.go.dev/testing | Điểm vào tiêu chuẩn cho unit test , benchmark , fuzz, ví dụ kiểm tra |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core part of **Project Layout, Tooling & Testing** is clear. The extension branches below help you bring Go project practices into production with technology decisions and migration playbooks.
+Phần cốt lõi của **Bố cục, Công cụ & Kiểm tra Dự án** rất rõ ràng. Các nhánh tiện ích mở rộng bên dưới giúp bạn đưa các thực tiễn dự án Go vào sản xuất với các quyết định công nghệ và sách hướng dẫn di chuyển.
 
-| Extension | When | Rationale | Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Modules & Layout | When the repo starts having many packages | Avoid architecture drift from the start | [→ 01-modules-layout](../packages/01-modules-layout.md) |
-| Table-driven Tests & Mocking | When the team has written the basic flow and needs more test ergonomics | Important bridge from workflow to execution quality | [→ 01-table-driven-mocking](../testing/01-table-driven-mocking.md) |
-| Benchmark & Fuzz | When unit testing is solid and the team wants to harden behavior or measure regressions | Natural next step after testing basics | [→ 02-benchmark-fuzz](../testing/02-benchmark-fuzz.md) |
-| Interfaces — Implicit Contracts | When the team starts mocking more dependencies | Go testability is closely tied to interface design | [→ 01-implicit-io-patterns](../interfaces/01-implicit-io-patterns.md) |
-| When to Choose Go vs TypeScript | Once the team understands Go workflow and needs to decide on greenfield/hybrid | Workflow awareness must accompany language choice | [→ 05-when-to-choose](./05-when-to-choose-go-vs-typescript.md) |
+| Modules & Bố cục | Khi repo bắt đầu có nhiều packages | Tránh trôi dạt kiến ​​trúc ngay từ đầu | [→ 01-modules-layout](../packages/01-modules-layout.md) |
+| Kiểm tra dựa trên bảng & Mocking | Khi nhóm đã viết xong quy trình cơ bản và cần thêm công thái học thử nghiệm | Cầu nối quan trọng từ quy trình làm việc đến chất lượng thực thi | [→ 01-table-driven-mocking](../testing/01-table-driven-mocking.md) |
+| Benchmark & Lông tơ | Khi thử nghiệm đơn vị là solid và nhóm muốn củng cố hành vi hoặc đo lường hồi quy | Bước tiếp theo tự nhiên sau khi kiểm tra kiến ​​thức cơ bản | [→ 02-benchmark-fuzz](../testing/02-benchmark-fuzz.md) |
+| Interfaces — Hợp đồng ngầm | Khi nhóm bắt đầu mocking thêm phụ thuộc | Khả năng kiểm tra Go gắn chặt với thiết kế interface | [→ 01-implicit-io-patterns](../interfaces/01-implicit-io-patterns.md) |
+| Khi nào nên chọn Go so với TypeScript | Sau khi nhóm hiểu được quy trình làm việc Go và cần quyết định chọn greenfield/hybrid | Nhận thức về quy trình làm việc phải đi kèm với việc lựa chọn ngôn ngữ | [→ 05-when-to-choose](./05-when-to-choose-go-vs-typescript.md) |
 
-**Navigation**: [← Previous](./03-errors-concurrency-context.md) · [→ Next](./05-when-to-choose-go-vs-typescript.md)
+**Điều hướng**: [← Previous](./03-errors-concurrency-context.md) · [→ Next](./05-when-to-choose-go-vs-typescript.md)

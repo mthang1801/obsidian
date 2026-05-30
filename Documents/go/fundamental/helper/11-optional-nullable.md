@@ -1,57 +1,48 @@
-<!-- tags: golang, memory, pointers -->
-# ❓ Optional & Nullable — TS `T?` / `undefined` → Go Pointers & zero values
+<!-- tags: golang, memory, pointers --> # ❓ Tùy chọn & Nullable — TS `T?` / `undefined` → Go Pointers & giá trị 0
 
-> TypeScript distinguishes `undefined` (not set) from `null` (explicitly empty) and provides optional chaining (`?.`). Go has no `undefined` — unset variables get zero values (`""`, `0`, `false`, `nil`). You distinguish "not set" from "set to zero" using pointers.
+> TypeScript phân biệt `undefined` (not set) với `null` (rõ ràng trống) và cung cấp chuỗi tùy chọn ( `?.` ). Go không có `undefined` — các biến không đặt sẽ nhận giá trị bằng 0 ( `""` , `0` , `false` , `nil` ). Bạn phân biệt "không được đặt" với "được đặt thành 0" bằng cách sử dụng pointers .
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 12 phút đọc
 
-> [!TIP]
-> Go 1.26 adds `new(expr)` for creating pointers to literal values, replacing verbose `Ptr()` helper functions.
+> [!MẸO]
+> Go 1.26 thêm `new(expr)` để tạo pointers thành các giá trị bằng chữ, thay thế các hàm trợ giúp `Ptr()` dài dòng.
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Your API accepts `PATCH` requests with partial JSON: `{"age": 0}`. The struct field `Age int` gets zero-value `0` — but was it explicitly set to 0, or was it absent from the request? With `int`, you cannot tell. Both "not sent" and "sent as 0" produce the same value.
+API của bạn chấp nhận các yêu cầu `PATCH` với một phần JSON: `{"age": 0}` . Trường struct `Age int` nhận giá trị 0 `0` — nhưng nó được đặt rõ ràng thành 0 hay không có trong yêu cầu? Với `int` , bạn không thể biết được. Cả "không được gửi" và "được gửi dưới dạng 0" đều tạo ra cùng một giá trị.
 
-The fix: use `*int`. When the JSON field is absent, the pointer is `nil`. When the field is present with value 0, the pointer points to `0`. The pointer distinguishes absence from zero.
+Cách khắc phục: sử dụng `*int` . Khi trường JSON không có, pointer là `nil` . Khi trường có giá trị 0, pointer trỏ đến `0` . pointer phân biệt sự vắng mặt với số không.
 
-This pattern applies to all PATCH endpoints, optional config fields, and nullable database columns: use pointers when "not set" and "zero" mean different things.
+Mẫu này áp dụng cho tất cả các điểm cuối PATCH, trường cấu hình tùy chọn và cột database có thể rỗng: sử dụng pointers khi "không được đặt" và "không" có nghĩa khác nhau.
 
-### 1.1 Invariants & Failure Modes
+### 1.1 Các kiểu bất biến và lỗi
 
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **Pointers `*T`** | `nil` means "not set." Non-nil means "set to this value." Zero values no longer collide with absence. |
-| **Nil dereference** | Accessing `*ptr` when `ptr == nil` panics. Always check `ptr != nil` before dereferencing. |
+| ** Pointers `*T` ** | `nil` có nghĩa là "chưa được đặt." Non- nil có nghĩa là "được đặt thành giá trị này." Giá trị 0 không còn xung đột với sự vắng mặt. |
+| ** Nil vô hiệu** | Truy cập `*ptr` khi `ptr == nil` hoảng sợ. Luôn kiểm tra `ptr != nil` trước khi hội thảo. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Always nil-check pointers** | `*ptr` on a nil pointer is a fatal panic — not a recoverable error. |
-| **Use `sql.NullString` for DB columns** | Database drivers use `NullString`/`NullInt64` instead of pointers for nullable columns. |
+| **Luôn luôn nil -kiểm tra pointers ** | `*ptr` trên nil pointer là một panic nghiêm trọng — không phải là một lỗi có thể phục hồi được. |
+| **Sử dụng `sql.NullString` cho các cột DB** | Trình điều khiển Database sử dụng `NullString` / `NullInt64` thay vì pointers cho các cột có thể rỗng. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The zero-value erasure:** A PATCH request sends `{"priority": 0}`. The handler uses `Priority int`, sees `0`, and skips the update ("zero means unchanged"). The user's explicit 0 is silently ignored.
-- **The chaining panic:** You port `user?.address?.city` to Go as `user.Address.City`. If `Address` is nil, the access panics. Go has no optional chaining — you must check each pointer.
+- **Xóa giá trị bằng 0:** Yêu cầu PATCH gửi `{"priority": 0}` . Trình xử lý sử dụng `Priority int` , xem `0` và bỏ qua cập nhật ("không có nghĩa là không thay đổi"). Số 0 rõ ràng của người dùng bị âm thầm bỏ qua.
+- **Xâu chuỗi panic :** Bạn chuyển `user?.address?.city` sang Go dưới dạng `user.Address.City` . Nếu `Address` là nil , quyền truy cập sẽ hoảng loạn. Go không có chuỗi tùy chọn - bạn phải kiểm tra từng pointer .
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The decision between `T`, `*T`, and `Optional[T]` depends on whether zero is a valid value.
+Quyết định giữa `T` , `*T` và `Optional[T]` phụ thuộc vào việc số 0 có phải là giá trị hợp lệ hay không. ![Optional Strategy Map](./images/11-optional-nullable-decision-map.png) *Hình: Cây quyết định cho các giá trị tùy chọn. Sử dụng `T` khi số 0 không bao giờ hợp lệ. Sử dụng `*T` khi số 0 và "không được đặt" cần xử lý khác nhau. Sử dụng `Optional[T]` khi bạn muốn xâu chuỗi chức năng.*
 
-![Optional Strategy Map](./images/11-optional-nullable-decision-map.png)
+## 3. MÃ
 
-*Figure: Decision tree for optional values. Use `T` when zero is never valid. Use `*T` when zero and "not set" need different handling. Use `Optional[T]` when you want functional chaining.*
+Với quyết định pointer -vs-value được làm rõ, mã bên dưới thể hiện ba mẫu: xử lý pointer cơ bản, các bản vá struct một phần và loại generic `Optional[T]` .
 
-## 3. CODE
-
-With the pointer-vs-value decision clarified, the code below demonstrates three patterns: basic pointer handling, partial struct patches, and a generic `Optional[T]` type.
-
-### Example 1: Basic — Pointer defaults and nil checks
-
-> **Goal**: Implement the Go equivalent of TypeScript's `customer?.name ?? "Anonymous"`.
-> **Approach**: Check `ptr != nil` before dereferencing. Use `OrDefault` for fallback values.
-> **Complexity**: O(1) per check.
-
-```go
+### Ví dụ 1: Cơ bản — Pointer mặc định và kiểm tra nil > **Mục tiêu**: Triển khai Go tương đương với `customer?.name ?? "Anonymous"` của TypeScript.
+> **Phương pháp tiếp cận**: Kiểm tra `ptr != nil` trước khi hội thảo. Sử dụng `OrDefault` cho các giá trị dự phòng.
+> **Độ phức tạp**: O(1) mỗi lần kiểm tra.```go
 // basic_pointers.go
 package pointers
 
@@ -85,19 +76,13 @@ func ExecuteDefaults() {
 	inputPointer = new("Active")
 	fmt.Println("Active:", OrDefault(inputPointer, "Offline"))
 }
-```
-
-> **Takeaway**: Go has no `??` operator. `OrDefault` is the generic equivalent. For pre-1.26 Go, use a `Ptr[T](v T) *T` helper to create pointers to literals — `Ptr("Active")` instead of declaring a variable and taking its address.
+```> **Takeaway**: Go không có toán tử `??` . `OrDefault` là tương đương với generic . Đối với phiên bản trước 1.26 Go , hãy sử dụng trình trợ giúp `Ptr [T](v T) *T` để tạo pointers thành chữ — `Ptr("Active")` thay vì khai báo một biến và lấy địa chỉ của nó.
 
 ---
 
-### Example 2: Intermediate — Partial struct patching
-
-> **Goal**: Deserialize a PATCH JSON body where absent fields should not overwrite existing values.
-> **Approach**: Use `*string` and `*int` in the patch struct. `nil` means "not sent." Non-nil means "update to this value."
-> **Complexity**: O(1) per field.
-
-```go
+### Ví dụ 2: Trung cấp — Bản vá một phần struct > **Mục tiêu**: Giải tuần tự hóa nội dung PATCH JSON trong đó các trường vắng mặt sẽ không ghi đè lên các giá trị hiện có.
+> **Cách tiếp cận**: Sử dụng `*string` và `*int` trong bản vá struct . `nil` có nghĩa là "không được gửi." Non- nil có nghĩa là "cập nhật giá trị này."
+> **Độ phức tạp**: O(1) mỗi trường.```go
 // partial_structs.go
 package pointers
 
@@ -134,19 +119,15 @@ func DeserializePatch(data []byte) (*Schema, error) {
 	
 	return &base, nil
 }
-```
-
-> **Takeaway**: `json:"priority,omitempty"` with `*int` means: if `priority` is absent in JSON → `nil`. If `priority` is `0` in JSON → `*int` pointing to `0`. The pointer preserves the caller's intent.
+```> **Takeaway**: `json:"priority,omitempty"` với `*int` có nghĩa là: nếu `priority` không có trong JSON → `nil` . Nếu `priority` là `0` trong JSON → `*int` trỏ đến `0` . pointer duy trì ý định của người gọi.
 
 ---
 
-### Example 3: Advanced — Generic Optional type
+### Ví dụ 3: Nâng cao — Generic Loại tùy chọn
 
-> **Goal**: Build a functional `Optional[T]` that prevents nil dereference panics through a safe API.
-> **Approach**: Wrap the value and a `present` boolean. `UnwrapOr` provides a fallback. `Map` transforms the value if present.
-> **Complexity**: O(1) per operation.
-
-```go
+> **Mục tiêu**: Xây dựng một chức năng `Optional[T]` ngăn chặn tình trạng vô hiệu hóa nil thông qua một API an toàn.
+> **Phương pháp tiếp cận**: Bao bọc giá trị và một boolean `present` . `UnwrapOr` cung cấp một dự phòng. `Map` biến đổi giá trị nếu có.
+> **Độ phức tạp**: O(1) cho mỗi thao tác.```go
 // functional_optionals.go
 package pointers
 
@@ -176,30 +157,28 @@ func (o Optional[T]) Map(transform func(T) T) Optional[T] {
 	}
 	return None[T]()
 }
-```
+```> **Takeaway**: `Optional[T]` an toàn hơn `*T` — không có sự hoảng loạn do vô căn cứ nil . Nhưng nó chống lại các thành ngữ Go : hầu hết mã Go sử dụng `(T, bool)` trả về (như tra cứu `map` ) hoặc `(T, error)` . Sử dụng `Optional[T]` trong pipeline - mã nặng trong đó chuỗi `.Map().Map().UnwrapOr()` đọc tốt hơn.
 
-> **Takeaway**: `Optional[T]` is safer than `*T` — no nil dereference panics. But it fights Go idioms: most Go code uses `(T, bool)` returns (like `map` lookup) or `(T, error)`. Use `Optional[T]` in pipeline-heavy code where chaining `.Map().Map().UnwrapOr()` reads better.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Dereferencing a pointer without nil check | Always check `if ptr != nil` before `*ptr`. Nil dereference is a fatal panic. |
-| 2 | Using `int` for optional JSON fields | Use `*int` — both absent and `0` deserialize as `int(0)`, making them indistinguishable. |
-| 3 | Omitting `omitempty` on pointer fields | Without `omitempty`, nil pointers serialize as `null` in JSON. Add `omitempty` to skip them. |
+| 1 | Hủy tham chiếu pointer không có kiểm tra nil | Luôn kiểm tra `if ptr != nil` trước `*ptr` . Nil sự vô căn cứ là một panic gây tử vong. |
+| 2 | Sử dụng `int` cho các trường JSON tùy chọn | Sử dụng `*int` - cả hai đều vắng mặt và `0` giải tuần tự hóa thành `int(0)` , khiến chúng không thể phân biệt được. |
+| 3 | Bỏ qua `omitempty` trên các trường pointer | Không có `omitempty` , nil pointers tuần tự hóa thành `null` trong JSON. Thêm `omitempty` để bỏ qua chúng. |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Zero values specification | [go.dev/ref/spec#The_zero_value](https://go.dev/ref/spec#The_zero_value) |
-| JSON and Go blog | [go.dev/blog/json](https://go.dev/blog/json) |
+| Đặc tả giá trị 0 | [go.dev/ref/spec#The_zero_value](https://go.dev/ref/spec#The_zero_value) |
+| Blog JSON và Go | [go.dev/blog/json](https://go.dev/blog/json) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Data Conversion](./01-data-conversion.md) | When deserializing complex payloads | Pointer fields combine with streaming JSON decoding |
-| [Iterator Patterns](./10-iterator.md) | When iterators produce nullable values | `Optional[T]` integrates with `iter.Seq[Optional[T]]` for safe lazy pipelines |
+| [Data Conversion](./01-data-conversion.md) | Khi giải tuần tự hóa các tải trọng phức tạp | Các trường Pointer kết hợp với giải mã JSON phát trực tuyến |
+| [Iterator Patterns](./10-iterator.md) | Khi các trình vòng lặp tạo ra các giá trị null | `Optional[T]` tích hợp với `iter.Seq[Optional[T]]` để tạo ra các đường ống lười an toàn |
 
-**Navigation**: [← Iterator Patterns](./10-iterator.md) · [→ Class → Struct](./12-class-struct.md)
+**Điều hướng**: [← Iterator Patterns](./10-iterator.md) · [→ Class → Struct](./12-class-struct.md)

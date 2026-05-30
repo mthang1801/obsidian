@@ -1,83 +1,76 @@
-<!-- tags: golang, typescript, migration -->
-# 🚚 Migration Playbook — Convert Service from TypeScript to Go Without Creating Your Own Incident.
+<!-- tags: golang, typescript, migration --> # 🚚 Playbook di chuyển - Chuyển đổi dịch vụ từ TypeScript sang Go mà không tạo ra sự cố của riêng bạn.
 
-> How to migrate intentionally: choose the right strategy, keep the contract stable, measure the baseline before rewriting, and train the team according to the 30/60/90 day roadmap.
+> Cách di chuyển có chủ ý: chọn đúng strategy , giữ hợp đồng ổn định, đo đường cơ sở trước khi viết lại và đào tạo đội ngũ theo lộ trình 30/60/90 ngày.
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 18 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 18 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | Migration strategy, contract-first rollout, team enablement |
-| **Use case** | Rewrite service, split critical path, introduce Go into the JS/TS-heavy organization |
-| **Key diff** | Good migration is a boundary + operations + team learning problem, not just code translation |
-| **Go stdlib** | `context`, `encoding/json`, `net/http`, `sync/atomic` |
+| **Tập trung** | Di chuyển strategy , triển khai theo hợp đồng đầu tiên, hỗ trợ nhóm |
+| **Trường hợp sử dụng** | Viết lại dịch vụ, phân chia đường dẫn quan trọng, đưa Go vào tổ chức nặng về JS/TS |
+| **Khác biệt về phím** | Di chuyển tốt là ranh giới + hoạt động + vấn đề học tập nhóm, không chỉ là dịch mã |
+| ** Go stdlib** | `context` , `encoding/json` , `net/http` , `sync/atomic` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-The biggest temptation when the team decides to "rewrite in Go" is to start from a new repo. That almost always gives the feeling of moving very quickly in the first 2 weeks, then stalling when real-world complexity hits.
+Sự cám dỗ lớn nhất khi nhóm quyết định "viết lại trong Go " là bắt đầu từ một repo mới. Điều đó hầu như luôn mang lại cảm giác di chuyển rất nhanh trong 2 tuần đầu tiên, sau đó chững lại khi sự phức tạp của thế giới thực ập đến.
 
-Why? Because migration is not just about code:
+Tại sao? Bởi vì việc di chuyển không chỉ là về mã:
 
-- Does the current system have any contracts that are implicitly dependent on the client?
-- Have you measured latency, memory, error rate baseline?
-- Does the team understand Go enough to keep the old behavior without introducing new bugs?
-- Where is the rollback plan if the Go version goes into production and has an issue?
+- Hệ thống hiện tại có các hợp đồng any hoàn toàn phụ thuộc vào khách hàng không?
+- Bạn đã đo độ trễ, bộ nhớ, tỷ lệ lỗi cơ bản chưa?
+- Team có đủ hiểu Go để giữ nguyên hành vi cũ mà không đưa ra lỗi mới không?
+- Kế hoạch khôi phục ở đâu nếu phiên bản Go đi vào sản xuất và gặp sự cố?
 
-Good migration doesn't start with rewrite. It starts with clear boundaries, adequate measurement, and the right rollout strategy.
+Di chuyển tốt không bắt đầu bằng việc viết lại. Nó bắt đầu với những ranh giới rõ ràng, đo lường đầy đủ và triển khai phù hợp strategy .
 
-The new repo is the easy part.
+Repo mới là phần dễ dàng.
 
-Rollback is the hard part.
+Rollback là phần khó khăn.
 
-### 1.1 The 3 most pragmatic strategies.
+### 1.1 3 chiến lược thực dụng nhất.
 
-**Strangler**  
-Keep the old TypeScript service, gradually route some endpoints/use cases to Go. This is the safest default when the system is having real traffic.
+**Kẻ bóp cổ** 
+Giữ dịch vụ TypeScript cũ, định tuyến dần một số điểm cuối/trường hợp sử dụng tới Go . Đây là mặc định an toàn nhất khi hệ thống có lưu lượng truy cập thực.
 
-**Sidecar / worker extraction**  
-Split the concurrency-heavy, CPU-heavy, batch-heavy or infra-heavy part into Go first. Suitable when you don't want to touch a large API contract.
+** Khai thác xe sidecar / công nhân ** 
+Trước tiên hãy chia phần concurrency -heavy, CPU-heavy, batch-heavy hoặc infra-heavy thành Go . Thích hợp khi bạn không muốn chạm vào một hợp đồng API lớn.
 
-**Full rewrite**  
-Only reasonable when the service is small, the contract is simple, or the old code is so rotten that it can no longer be saved. Even with a full rewrite, you should still contract-first and measure the baseline.
+**Viết lại đầy đủ** 
+Chỉ hợp lý khi dịch vụ nhỏ, hợp đồng đơn giản, hoặc code cũ đã mục nát đến mức không thể cứu được nữa. Ngay cả khi viết lại toàn bộ, bạn vẫn nên thu gọn lại trước và đo đường cơ sở.
 
-### 1.2 Roadmap 30/60/90 days for TypeScript-first team.
+### 1.2 Lộ trình 30/60/90 ngày dành cho nhóm đầu tiên về TypeScript.
 
-**Days 0-30** 
-Lock the mental model, data model, error/concurrency/context, toolchain, and write 1-2 small non-critical services.
+**Ngày 0-30** 
+Khóa mô hình tinh thần, mô hình dữ liệu, lỗi/ concurrency /bối cảnh, chuỗi công cụ và viết 1-2 dịch vụ nhỏ không quan trọng.
 
-**Days 31-60** 
-Start decoupling workers, sidecars, internal tools, or one-way consumers to Go. Set up a separate review checklist for pointer/value/context/errors.
+**Ngày 31-60** 
+Bắt đầu tách công nhân, sidecar, công cụ nội bộ hoặc người tiêu dùng một chiều thành Go . Thiết lập danh sách kiểm tra đánh giá riêng cho pointer /value/context/errors.
 
-**Days 61-90** 
-Touch a more critical path: a small API route, a large downstream service fan-out, or a job that handles high throughput. Only do this if you have a clear baseline and rollback plan.
+**Ngày 61-90** 
+Chạm vào một đường dẫn quan trọng hơn: một tuyến API nhỏ, phân phát dịch vụ xuôi dòng lớn hoặc một công việc xử lý thông lượng cao. Chỉ làm điều này nếu bạn có kế hoạch cơ bản và khôi phục rõ ràng.
 
-### 1.3 Invariants & Failure Modes
+### 1.3 Các kiểu bất biến và lỗi
 
-- If contract testing is not kept, the rewrite will be "correct according to the new code" but incorrect according to the old behavior that the customer is using.
-- If you don't measure the baseline first, you won't know if rewrite actually improves anything other than feel.
-- If the team does not have a review discipline for Go, bug pointer/context/goroutine leaks will enter production very quickly.
+- Nếu không lưu hợp đồng kiểm tra thì viết lại sẽ “đúng theo mã mới” nhưng sai theo hành vi cũ mà khách hàng đang sử dụng.
+- Nếu bạn không đo lường đường cơ sở trước, bạn sẽ không biết liệu việc viết lại có thực sự cải thiện được điều gì khác ngoài cảm giác hay không.
+- Nếu nhóm không có kỷ luật xem xét đối với Go , lỗi pointer /context/ goroutine rò rỉ sẽ được đưa vào sản xuất rất nhanh.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-Migration is a multi-phase rollout problem, so static visual assets help you see the validation cycle and 30/60/90 span much more clearly than diagram-as-code.
+Di chuyển là một vấn đề triển khai nhiều giai đoạn, vì vậy nội dung trực quan tĩnh giúp bạn thấy chu trình xác thực và khoảng 30/60/90 rõ ràng hơn nhiều so với sơ đồ dưới dạng mã. ![Migration Playbook Rollout](./images/migration-playbook-rollout.png) *Hình: Bảng bên trên là vòng triển khai an toàn từ đường cơ sở đến mở rộng hoặc khôi phục; Bảng bên dưới là nhịp độ học tập và phạm vi can thiệp phù hợp cho nhóm ưu tiên TypeScript trong 30/60/90 ngày đầu tiên.*.
 
-![Migration Playbook Rollout](./images/migration-playbook-rollout.png)
+## 3. MÃ
 
-*Figure: The panel above is the safe rollout loop from baseline to expand or rollback; The panel below is the appropriate learning rhythm and intervention scope for the TypeScript-first team in the first 30/60/90 days.*.
+Di chuyển tốt thường thắng trong thiết kế ranh giới hơn là thuật toán. Ba ví dụ dưới đây minh họa tinh thần đó.
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — khóa hợp đồng với interface trước khi thay đổi cách triển khai.
 
-Good migration often wins in boundary design rather than algorithms. The three examples below illustrate that spirit.
+> **Mục tiêu**: Tránh khiến việc triển khai strategy phụ thuộc trực tiếp vào ứng dụng khách cụ thể cũ.
+> **Phương pháp**: Xác định interface tại thời điểm sử dụng, sau đó hoán đổi dần bộ chuyển đổi.
+> **Ví dụ**: Dịch vụ đọc hóa đơn từ hệ thống TS cũ hôm nay, từ bộ chuyển đổi Go ​​ngày mai.
 
-### Example 1: Basic — lock contract with interface before changing implementation.
-
-> **Goal**: Avoid making the rollout strategy directly dependent on the old concrete client.
-> **Approach**: Define the interface at the point of use, then gradually swap the adapter.
-> **Example**: Service reads invoices from the old TS system today, from the Go adapter tomorrow.
-
-Multi-team versions of TypeScript are available:
-
-```typescript
+Phiên bản TypeScript dành cho nhiều nhóm có sẵn:```typescript
 type Invoice = {
   id: string;
   amount: number;
@@ -101,11 +94,7 @@ class BillingService {
     console.log(`invoice=${invoice.id} amount=${invoice.amount}`);
   }
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -149,21 +138,17 @@ func main() {
 	service := NewBillingService(LegacyTSClient{})
 	_ = service.PrintInvoice(context.Background(), "inv-10")
 }
-```
+```> **Bài học rút ra**: Quá trình di cư bền vững bắt đầu từ bước cuối cùng. Nếu bạn chưa có đường nối, việc viết lại sẽ rất khó để triển khai từng phần một.
 
-> **Takeaway**: Sustainable migration starts at the seam. If you do not have seams yet, the rewrite will be very difficult to roll out piece by piece.
+Đường may có, nhưng đường may thôi chưa đủ. Nếu hợp đồng cũ vẫn tràn sang miền mới, bạn chỉ thay đổi ngôn ngữ chứ không gặp rủi ro.
 
-Seam is there, but seam is not enough. If the legacy contract still spills over into the new domain, you have only changed the language but not the risk.
+### Ví dụ 2: Trung cấp - dịch DTO ở ranh giới thay vì để miền ôm lấy hợp đồng kế thừa.
 
-### Example 2: Intermediate — translate DTO at the boundary instead of letting the domain embrace the legacy contract.
+> **Mục tiêu**: Cho phép dịch vụ Go giữ cho mô hình miền sạch sẽ trong khi vẫn giao tiếp với hình dạng JSON cũ.
+> **Phương pháp tiếp cận**: Sở hữu DTO kế thừa, giữ một miền riêng và sử dụng các chức năng dịch rõ ràng.
+> **Ví dụ**: Điểm cuối TS kế thừa trả về `customerId` và `totalCents` ; miền Go sử dụng `Order` .
 
-> **Goal**: Allow the Go service to keep the domain model clean while still communicating with the old JSON shape.
-> **Approach**: Own the legacy DTO, keep a separate domain, and use clear translation functions.
-> **Example**: Legacy TS endpoint returns `customerId` and `totalCents`; the Go domain uses `Order`.
-
-TypeScript version at adapter layer:
-
-```typescript
+Phiên bản TypeScript ở lớp bộ điều hợp:```typescript
 type LegacyOrderDTO = {
   id: string;
   customerId: string;
@@ -187,11 +172,7 @@ function translateLegacyOrder(dto: LegacyOrderDTO): Order {
     total: dto.totalCents,
   };
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -234,23 +215,19 @@ func main() {
 	}
 	fmt.Printf("%+v\n", order)
 }
-```
+```> **Tại sao?** Các nhóm thường cố gắng giữ một mô hình chung cho các hợp đồng cũ, miền mới, cơ sở dữ liệu, sự kiện và phản hồi. Đó là cách nhanh nhất để rò rỉ logic di chuyển trên cơ sở mã. Dịch ranh giới có vẻ giống như một công việc làm thêm nhưng nó mang lại hiệu quả ngay lập tức.
 
-> **Why?** Teams often try to keep a common model for old contracts, new domains, databases, events, and responses. That is the fastest way to leak migration logic across the codebase. Boundary translation looks like extra work, but it pays off immediately.
+> **Bài học rút ra**: Hình dạng kế thừa là mối quan tâm của lớp bộ điều hợp. Tên miền mới không nên mang cú pháp cũ lâu.
 
-> **Takeaway**: Legacy shape is a concern of the adapter layer. The new domain should not carry old syntax for long.
+Biên dịch giữ nguyên hình dạng. Vấn đề còn lại là triển khai: giao thông đi đâu, quan sát thế nào, quay đầu ra sao.
 
-Boundary translation preserves shape. The remaining problem is rollout: where does traffic go, how to observe, how to turn around.
+### Ví dụ 3: Nâng cao — bộ định tuyến strangler có cờ tính năng và khôi phục đơn giản.
 
-### Example 3: Advanced — strangler router with feature flag and simple rollback.
+> **Mục tiêu**: Định tuyến lưu lượng truy cập dần dần đến trình xử lý Go trong khi vẫn giữ đường dẫn quay lại.
+> **Phương pháp tiếp cận**: Sử dụng cờ nguyên tử để chọn giữa trình xử lý cũ và trình xử lý mới.
+> **Ví dụ**: `/invoice` có thể chạy qua đường dẫn cũ hoặc Go .
 
-> **Goal**: Route traffic gradually to the Go handler while still keeping a return path.
-> **Approach**: Use atomic flags to choose between legacy and new handler.
-> **Example**: `/invoice` can run through the legacy or Go path.
-
-TypeScript/Node versions usually start like this:
-
-```typescript
+Các phiên bản TypeScript/Node thường bắt đầu như thế này:```typescript
 import express from "express";
 
 const app = express();
@@ -270,11 +247,7 @@ app.get("/invoice", (req, res) => {
   }
   return legacyHandler(req, res);
 });
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -310,46 +283,44 @@ func main() {
 	fmt.Println("listening on :8080")
 	_ = http.ListenAndServe(":8080", nil)
 }
-```
+```> **Tại sao?** Mô hình strangler thành công khi việc khôi phục rẻ hơn so với triển khai. Nếu bạn phải triển khai lại hoặc khôi phục toàn bộ dịch vụ mỗi lần time xảy ra lỗi thì bạn chưa thực sự xây dựng được quá trình di chuyển an toàn.
 
-> **Why?** The strangler pattern succeeds when rollback is cheaper than rollout. If you have to redeploy or roll back the entire service every time there is an error, you have not really built a safe migration.
+> **Bài học rút ra**: Di chuyển quy mô nhỏ slices với tính năng khôi phục rẻ tiền hầu như luôn đánh bại việc viết lại mạnh mẽ.
 
-> **Takeaway**: Migrating small slices with cheap rollback almost always beats big-bang rewrite.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
+Ba lỗi dưới đây hiếm khi xuất hiện trong các slide khởi động.
 
-The three errors below rarely appear in kickoff slides.
+Chúng xuất hiện muộn hơn, khi dòng thời gian bị khóa và quá trình sản xuất bắt đầu có tín hiệu xấu.
 
-They appeared later, when the timeline was locked and production started to have bad signals.
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Big-bang rewrite without measuring baseline and without rollback | Timeline burns, difficult to verify value, easy production incident | Choose the strangler or sidecar first; Measure latency/error/cost baseline from the beginning |
-| 2 | 🟡 Common | Port the original NestJS/Express architecture into Go | Rewrite is complete but the old complexity is still intact | Redesign boundary according to package, small interface, explicit constructor |
-| 3 | 🔵 Minor | Train the team with a single doc and then dive into the critical path | Review quality is weak, semantic bugs slip through | Follow the 30/60/90 day roadmap and use a separate review checklist for Go |
+| 1 | 🔴 Gây tử vong | Viết lại đột phá mà không cần đo đường cơ sở và không cần khôi phục | Bỏng dòng thời gian, khó xác minh giá trị, dễ xảy ra sự cố trong sản xuất | Chọn người siết cổ hoặc xe sidecar trước; Đo đường cơ sở về độ trễ/lỗi/chi phí ngay từ đầu |
+| 2 | 🟡 Chung | Chuyển kiến ​​trúc NestJS/Express ban đầu vào Go | Viết lại xong nhưng sự phức tạp cũ vẫn còn nguyên | Thiết kế lại ranh giới theo package , nhỏ interface , hàm tạo rõ ràng |
+| 3 | 🔵 Nhỏ | Huấn luyện nhóm bằng một tài liệu duy nhất và sau đó đi sâu vào con đường quan trọng | Chất lượng đánh giá yếu, lỗi ngữ nghĩa lọt qua | Thực hiện theo lộ trình 30/60/90 ngày và sử dụng danh sách kiểm tra đánh giá riêng cho Go |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| The TypeScript Handbook | Official | https://www.typescriptlang.org/docs/handbook/intro.html | Baseline of source runtime/type model before migration |
-| Go User Manual | Official | https://go.dev/doc/ | Baseline of toolchain, modules, testing, and target-side workflow |
-| Go for Cloud & Network Services | Official | https://go.dev/solutions/cloud | Basis for evaluating suitable use cases for Go sidecar/service extraction |
+| Cẩm nang TypeScript | Chính thức | https://www.typescriptlang.org/docs/handbook/intro.html | Đường cơ sở của mô hình nguồn runtime /type trước khi di chuyển |
+| Go Hướng dẫn sử dụng | Chính thức | https://go.dev/doc/ | Đường cơ sở của chuỗi công cụ, modules , thử nghiệm và quy trình làm việc phía mục tiêu |
+| Go cho Dịch vụ Mạng & Đám mây | Chính thức | https://go.dev/solutions/cloud | Cơ sở đánh giá các trường hợp sử dụng phù hợp cho việc khai thác dịch vụ/xe sidecar Go |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of the **Migration Playbook** is clear. The extensions below help you put your migration strategy into action with translation atlas and team onboarding.
+Cốt lõi của **Playbook di chuyển** rất rõ ràng. Các tiện ích mở rộng bên dưới giúp bạn thực hiện quá trình di chuyển strategy của mình bằng tập bản đồ dịch thuật và giới thiệu nhóm.
 
-It has a small, measurable, and rollback decision chain.
+Nó có một chuỗi quyết định nhỏ, có thể đo lường được và quay trở lại.
 
-| Extension | When | Rationale | Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Mental Model & Runtime | When the team still views Go as "TypeScript compiled to binary" | A correct migration strategy requires a correct mental model first | [→ 01-mental-model-runtime](./01-mental-model-runtime.md) |
-| When to Choose Go vs TypeScript | When debating whether to migrate at all, or migrate incrementally first | Decision framework before committing to the roadmap | [→ 05-when-to-choose](./05-when-to-choose-go-vs-typescript.md) |
-| Project Layout, Tooling, Testing | When the migration plan is clear but repo organization and shipping is still undecided | Moving the language without changing the workflow makes rollout less durable | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
-| Types & Data Modeling | When legacy contracts start getting complicated | Correct translation layer requires correct data model | [→ 02-types-data-modeling](./02-types-data-modeling.md) |
-| Errors, Concurrency, Context | When the migrated slice starts calling multiple downstreams | Migration failures are most common in lifecycle control | [→ 03-errors-concurrency-context](./03-errors-concurrency-context.md) |
-| Translation Atlas | When the team is migrating but keeps asking "What is this TS/Node idiom in Go?" | Quick lookup while maintaining idiomatic direction | [→ 07-translation-atlas](./07-translation-atlas.md) |
-| Helper — TS/JS → Go Utilities | When the team needs quick mapping syntax during migration execution | Strategy cluster handles strategy; helper handles recipes | [→ Helper README](../helper/README.md) |
+| Mô hình tinh thần & Runtime | Khi nhóm vẫn xem Go là "TypeScript được biên dịch thành nhị phân" | Việc di chuyển chính xác strategy trước tiên cần có một mô hình tinh thần chính xác | [→ 01-mental-model-runtime](./01-mental-model-runtime.md) |
+| Khi nào nên chọn Go so với TypeScript | Khi tranh luận về việc nên di chuyển hoàn toàn hay di chuyển từng bước trước | Khung quyết định trước khi cam kết lộ trình | [→ 05-when-to-choose](./05-when-to-choose-go-vs-typescript.md) |
+| Bố cục dự án, Dụng cụ, Kiểm tra | Khi kế hoạch di chuyển đã rõ ràng nhưng việc tổ chức repo và vận chuyển vẫn chưa được quyết định | Di chuyển ngôn ngữ mà không thay đổi quy trình làm việc khiến việc triển khai kém bền hơn | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
+| Các loại & mô hình hóa dữ liệu | Khi hợp đồng cũ bắt đầu trở nên phức tạp | Lớp dịch đúng yêu cầu mô hình dữ liệu chính xác | [→ 02-types-data-modeling](./02-types-data-modeling.md) |
+| Lỗi, Concurrency , Ngữ cảnh | Khi slice đã di chuyển bắt đầu gọi nhiều luồng xuống | Lỗi di chuyển là phổ biến nhất trong kiểm soát vòng đời | [→ 03-errors-concurrency-context](./03-errors-concurrency-context.md) |
+| Bản đồ dịch thuật | Khi nhóm đang di chuyển nhưng vẫn hỏi "Thành ngữ TS/Node này trong Go ?" | Tra cứu nhanh trong khi vẫn duy trì hướng thành ngữ | [→ 07-translation-atlas](./07-translation-atlas.md) |
+| Người trợ giúp — TS/JS → Go Tiện ích | Khi nhóm cần cú pháp ánh xạ nhanh trong quá trình thực hiện di chuyển | Strategy xử lý cụm strategy ; người trợ giúp xử lý công thức nấu ăn | [→ Helper README](../helper/README.md) |
 
-**Navigation**: [← Previous](./05-when-to-choose-go-vs-typescript.md) · [→ Next](./07-translation-atlas.md)
+**Điều hướng**: [← Previous](./05-when-to-choose-go-vs-typescript.md) · [→ Next](./07-translation-atlas.md)

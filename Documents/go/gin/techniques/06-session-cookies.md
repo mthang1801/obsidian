@@ -1,59 +1,44 @@
-<!-- tags: golang -->
-# 🍪 Session & Cookies — NestJS express-session → Gin gin-contrib/sessions
+<!-- tags: golang --> # 🍪 Phiên & Cookies — NestJS express-session → Gin gin-contrib/sessions
 
-> **Library**: Set/read cookies with `c.SetCookie`/`c.Cookie`, and manage server-side sessions via `gin-contrib/sessions` with Redis.
+> **Thư viện**: Đặt/đọc cookie với `c.SetCookie` / `c.Cookie` và quản lý các phiên phía máy chủ thông qua `gin-contrib/sessions` với Redis.
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Cookies are client-side key-value pairs sent on every request. Sessions are server-side state keyed by a session ID cookie. Use cookies for preferences; use sessions backed by Redis for auth state.
+Cookie là cặp khóa-giá trị phía máy khách được gửi theo mọi yêu cầu. Phiên là trạng thái phía máy chủ được khóa bằng cookie ID phiên. Sử dụng cookie cho các tùy chọn; sử dụng các phiên được Redis hỗ trợ cho trạng thái xác thực.
 
-| NestJS                       | Gin Equivalent                           |
+| NestJS | Tương đương Gin |
 | ---------------------------- | ---------------------------------------- |
-| `express-session`            | `gin-contrib/sessions`                   |
-| `req.session.userId`         | `session.Set("userID", id)`              |
-| `res.cookie('name', 'val')`  | `c.SetCookie("name", "val", ...)`        |
-| `@Req() req.cookies`         | `c.Cookie("name")`                       |
-| Redis session store          | `redis.NewStore(10, "tcp", addr, ...)` |
+| `express-session` | `gin-contrib/sessions` |
+| `req.session.userId` | `session.Set("userID", id)` |
+| `res.cookie('name', 'val')` | `c.SetCookie("name", "val", ...)` |
+| `@Req() req.cookies` | `c.Cookie("name")` |
+| Cửa hàng phiên Redis | `redis.NewStore(10, "tcp", addr, ...)` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always set `HttpOnly: true` and `Secure: true` in production.** Without them, cookies are exposed to XSS and man-in-the-middle attacks.
-- **Call `session.Save()` after every mutation.** `Set()` alone does not persist changes.
+- **Luôn đặt `HttpOnly: true` và `Secure: true` trong quá trình sản xuất.** Nếu không có chúng, cookie sẽ có nguy cơ bị tấn công XSS và kẻ trung gian.
+- **Gọi `session.Save()` sau mỗi lần đột biến.** `Set()` không duy trì các thay đổi.
 
-## 2. VISUAL
-
-![Cookies vs Sessions — client-side vs server-side storage with Redis session lookup](./images/06-sessions-cookies.png)
-
-*Figure: Cookies = client-side (preferences, HttpOnly+Secure+SameSite). Sessions = server-side (auth state) with session ID cookie → Redis lookup. Never store sensitive data in cookies.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Cookies vs Sessions — client-side vs server-side storage with Redis session lookup](./images/06-sessions-cookies.png) *Hình: Cookie = phía máy khách (tùy chọn, HttpOnly+Secure+SameSite). Phiên = phía máy chủ (trạng thái xác thực) với cookie ID phiên → Tra cứu Redis. Không bao giờ lưu trữ dữ liệu nhạy cảm trong cookie.*```mermaid
 flowchart LR
     A["Browser"] -->|"POST /login"| B["Gin Handler"]
     B -->|"session.Set + Save"| C[("Redis Store")]
     C -->|"Set-Cookie: session_id"| A
     A -->|"GET /profile + cookie"| D["Session Middleware"]
     D -->|"session.Get('userID')"| C
-```
+```*Hình: Cookie và Phiên — cookie tồn tại trong trình duyệt; các phiên hoạt động trong Redis, được xác định bằng cookie ID phiên.*
 
-*Figure: Cookie vs Session — cookies live in the browser; sessions live in Redis, identified by a session ID cookie.*
-
-### Session Flow
-
-```text
+### Luồng phiên```text
 POST /login
     ├── Validate credentials
     ├── session.Set("userID", "user-123")
     ├── session.Save() → writes to Redis, sets session cookie
     └── Response includes Set-Cookie: app_session=abc123
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Native Cookies
-
-```go
+### Ví dụ 1: Cơ bản — Cookie gốc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Native cookies: SetCookie writes, Cookie reads, SetCookie(-1) deletes.
     // HttpOnly=true prevents JavaScript access.
@@ -89,11 +74,7 @@ POST /login
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — Persistent Redis Stores
-
-```go
+```### Ví dụ 2: Trung cấp — Persistent Redis Stores```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Redis-backed sessions: state survives server restarts.
     // session.Save() is required after Set() or Clear().
@@ -139,29 +120,27 @@ POST /login
 
         r.Run(":8080")
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Setting `HttpOnly: false` and `Secure: false` in production | Session cookies exposed to XSS and MITM attacks | Always `HttpOnly: true`, `Secure: true`, `SameSite: Strict` |
-| 2 | 🟡 Common | Forgetting `session.Save()` after `session.Set()` | Session changes are lost; user appears logged out | Call `session.Save()` after every mutation |
+| 1 | 🔴 Gây tử vong | Đặt `HttpOnly: false` và `Secure: false` trong sản xuất | Cookie phiên tiếp xúc với các cuộc tấn công XSS và MITM | Luôn luôn `HttpOnly: true` , `Secure: true` , `SameSite: Strict` |
+| 2 | 🟡 Chung | Quên `session.Save()` sau `session.Set()` | Các thay đổi trong phiên bị mất; người dùng xuất hiện đã đăng xuất | Gọi `session.Save()` sau mỗi đột biến |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| gin-contrib/sessions | [github.com/gin-contrib/sessions](https://github.com/gin-contrib/sessions) |
+| gin-đóng góp/phiên | [github.com/gin-contrib/sessions](https://github.com/gin-contrib/sessions) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Error Handling | When you need structured error responses | Centralized error middleware catches all handler errors | [./07-error-handling.md](./07-error-handling.md) |
+| Xử lý lỗi | Khi bạn cần phản hồi lỗi có cấu trúc | Phần mềm trung gian lỗi tập trung bắt tất cả các lỗi xử lý | [./07-error-handling.md](./07-error-handling.md) |

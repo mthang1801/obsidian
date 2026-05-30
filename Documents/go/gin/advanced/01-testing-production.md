@@ -1,32 +1,25 @@
-<!-- tags: golang, testing -->
-# ⚙️ Advanced — Testing, Graceful Shutdown, Production
+<!-- tags: golang, testing --> # ⚙️ Nâng cao — Thử nghiệm, Tắt máy nhẹ nhàng, Sản xuất
 
-> **Library**: Unit test Gin handlers with `httptest` + `testify`, deploy with graceful shutdown and production timeouts.
+> **Thư viện**: Trình xử lý Gin thử nghiệm đơn vị với `httptest` + `testify` , triển khai với quá trình tắt máy và hết thời gian chờ sản xuất một cách duyên dáng.
 
-📅 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Testing Gin handlers requires `httptest.NewRecorder()` to capture HTTP responses without starting a real server. In production, `gin.SetMode(gin.ReleaseMode)` disables debug logging, and `http.Server` with explicit timeouts prevents slowloris attacks.
+Việc kiểm tra trình xử lý Gin yêu cầu `httptest.NewRecorder()` để nắm bắt các phản hồi HTTP mà không cần khởi động máy chủ thực. Trong quá trình sản xuất, `gin.SetMode(gin.ReleaseMode)` vô hiệu hóa tính năng ghi nhật ký gỡ lỗi và `http.Server` với thời gian chờ rõ ràng sẽ ngăn chặn các cuộc tấn công Slowloris.
 
-| Aspect       | Gin Detail                           |
+| Khía cạnh | Chi tiết rượu Gin |
 | ------------ | ------------------------------------ |
-| **Testing**  | `net/http/httptest` + `gin.TestMode` |
-| **Shutdown** | Graceful manual signal boundaries    |
-| **Deploy**   | Production mode limits + Timeouts    |
+| **Thử nghiệm** | `net/http/httptest` + `gin.TestMode` |
+| **Tắt máy** | Ranh giới tín hiệu thủ công duyên dáng |
+| **Triển khai** | Giới hạn chế độ sản xuất + Thời gian chờ |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always set `gin.SetMode(gin.TestMode)` in tests.** Suppresses debug output and prevents flaky test logs.
-- **Never use `r.Run()` in production.** Use `http.Server{}` with `ReadTimeout`, `WriteTimeout`, `IdleTimeout` to prevent resource exhaustion.
+- **Luôn đặt `gin.SetMode(gin.TestMode)` trong các thử nghiệm.** Ngăn chặn đầu ra gỡ lỗi và ngăn chặn nhật ký kiểm tra không ổn định.
+- **Không bao giờ sử dụng `r.Run()` trong sản xuất.** Sử dụng `http.Server{}` với `ReadTimeout` , `WriteTimeout` , `IdleTimeout` để tránh cạn kiệt tài nguyên.
 
-## 2. VISUAL
-
-![Testing with httptest + production graceful shutdown flow](./images/01-testing-production.png)
-
-*Figure: Testing — httptest.NewRecorder + NewRequest → router.ServeHTTP → assert response. Production — ReleaseMode, timeouts, SIGTERM → os.Signal → srv.Shutdown(ctx) with 10s drain.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Testing with httptest + production graceful shutdown flow](./images/01-testing-production.png) *Hình: Kiểm tra — httptest.NewRecorder + NewRequest → router.ServeHTTP → xác nhận phản hồi. Sản xuất — ReleaseMode, hết thời gian chờ, SIGTERM → os.Signal → srv.Shutdown(ctx) với thời gian tiêu hao là 10 giây.*```mermaid
 flowchart LR
     subgraph Testing
         A["gin.TestMode"] --> B["httptest.NewRecorder"]
@@ -38,22 +31,14 @@ flowchart LR
         F --> G["SIGTERM"]
         G --> H["srv.Shutdown(ctx)"]
     end
-```
+```*Hình: Đường dẫn thử nghiệm sử dụng trình ghi httptest; đường dẫn sản xuất sử dụng http.Server với tính năng tắt nhẹ nhàng trên SIGTERM.*
 
-*Figure: Testing path uses httptest recorder; production path uses http.Server with graceful shutdown on SIGTERM.*
-
-### Test vs Production Flow
-
-```text
+### Thử nghiệm và quy trình sản xuất```text
 Test:  gin.TestMode → httptest.NewRecorder → ServeHTTP → assert
 Prod:  ReleaseMode  → http.Server{timeouts} → signal.Notify → Shutdown(ctx)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Unit Testing Handlers
-
-```go
+### Ví dụ 1: Cơ bản — Trình xử lý kiểm thử đơn vị```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Unit test: create router in TestMode, register handler,
     // send request via httptest, assert status code.
@@ -94,11 +79,7 @@ Prod:  ReleaseMode  → http.Server{timeouts} → signal.Notify → Shutdown(ctx
         assert.Equal(t, http.StatusOK, w.Code)
         mockService.AssertExpectations(t)
     }
-```
-
-### Example 2: Intermediate — Production Server Shutdown
-
-```go
+```### Ví dụ 2: Trung cấp — Tắt máy chủ sản xuất```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Production server: ReleaseMode + explicit timeouts.
     // Graceful shutdown: trap SIGINT/SIGTERM, drain in-flight.
@@ -149,30 +130,28 @@ Prod:  ReleaseMode  → http.Server{timeouts} → signal.Notify → Shutdown(ctx
 
         slog.Info("server stopped")
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Using `r.Run()` in production without timeouts | Slowloris attacks hold connections indefinitely; server exhausts file descriptors | Use `http.Server{}` with `ReadTimeout: 15s`, `WriteTimeout: 30s` |
-| 2 | 🟡 Common | Not setting `gin.TestMode` in tests | Debug output pollutes test logs; test failures are hard to read | Call `gin.SetMode(gin.TestMode)` in `setupRouter()` |
+| 1 | 🔴 Gây tử vong | Sử dụng `r.Run()` trong sản xuất mà không hết thời gian chờ | Các cuộc tấn công Slowloris giữ kết nối vô thời hạn; máy chủ sử dụng hết các bộ mô tả tập tin | Sử dụng `http.Server{}` với `ReadTimeout: 15s` , `WriteTimeout: 30s` |
+| 2 | 🟡 Chung | Không cài đặt `gin.TestMode` trong các bài kiểm tra | Đầu ra gỡ lỗi làm ô nhiễm nhật ký kiểm tra; lỗi kiểm tra rất khó đọc | Gọi `gin.SetMode(gin.TestMode)` trong `setupRouter()` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | httptest | [pkg.go.dev/net/http/httptest](https://pkg.go.dev/net/http/httptest) |
-| testify | [github.com/stretchr/testify](https://github.com/stretchr/testify) |
+| làm chứng | [github.com/stretchr/testify](https://github.com/stretchr/testify) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Dependency Injection | When you need to swap real services for mocks in tests | Interface-based DI makes handlers testable without DB | [./02-dependency-injection.md](./02-dependency-injection.md) |
+| Tiêm phụ thuộc | Khi bạn cần đổi dịch vụ thực lấy mô hình thử nghiệm | DI dựa trên giao diện giúp các trình xử lý có thể kiểm tra được mà không cần DB | [./02-dependency-injection.md](./02-dependency-injection.md) |

@@ -1,64 +1,59 @@
-<!-- tags: golang, typescript, runtime -->
-# 🧭 Mental Model & Runtime — From Type Layer to Compiled Language.
+<!-- tags: golang, typescript, runtime --> # 🧭 Mô hình tinh thần & Runtime — Từ lớp loại đến ngôn ngữ biên dịch.
 
-> First lesson for TypeScript engineers migrating to Go: key differences in runtime, ownership, package boundaries, zero value, and how Go wants you to design your code.
+> Bài học đầu tiên dành cho các kỹ sư TypeScript khi chuyển sang Go : những khác biệt chính trong runtime , quyền sở hữu, ranh giới package , giá trị 0 và cách Go muốn bạn thiết kế mã của mình.
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 16 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | Runtime model, value semantics, package boundaries |
-| **Use case** | The first 1-3 days when starting to write Go after many years in TypeScript |
-| **Key diff** | TypeScript is a type layer on top of JavaScript; Go is a compiled language with its own runtime |
-| **Go stdlib** | `context`, `fmt`, `net/http`, `sync/atomic` |
+| **Tập trung** | mô hình Runtime , ngữ nghĩa giá trị, ranh giới package |
+| **Trường hợp sử dụng** | 1-3 ngày đầu tiên khi bắt đầu viết Go sau nhiều năm sử dụng TypeScript |
+| **Khác biệt về phím** | TypeScript là một lớp kiểu trên JavaScript; Go là một ngôn ngữ được biên dịch với runtime |
+| ** Go stdlib** | `context` , `fmt` , `net/http` , `sync/atomic` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-You have just ported a handler from NestJS to Go. The function name is similar, the DTO is similar, the compiler is green. But a few hours later, you encounter three surprises.
+Bạn vừa chuyển một trình xử lý từ NestJS sang Go . Tên hàm tương tự, DTO tương tự, trình biên dịch có màu xanh. Nhưng vài giờ sau, bạn gặp phải ba điều bất ngờ.
 
-- A field that is not initialized but still has a valid value because of zero value.
-- A method modifies the state but nothing changes because you use a value receiver.
-- An interface does not need `implements`, but the compiler still considers it satisfied.
+- Trường không được khởi tạo nhưng vẫn có giá trị hợp lệ vì giá trị bằng 0.
+- Một phương thức sửa đổi trạng thái nhưng không có gì thay đổi vì bạn sử dụng value receiver .
+- An interface không cần `implements` , nhưng trình biên dịch vẫn coi là thỏa mãn.
 
-That is when you realize: the real difference is not syntax. TypeScript mainly helps you verify your JavaScript program before running it. Go brings the type system, package boundaries, memory layout, and build tooling into a single compiled binary.
+Đó là lúc bạn nhận ra: sự khác biệt thực sự không phải ở cú pháp. TypeScript chủ yếu giúp bạn xác minh chương trình JavaScript của mình trước khi chạy nó. Go đưa hệ thống kiểu, ranh giới package , bố cục bộ nhớ và công cụ xây dựng vào một tệp nhị phân được biên dịch duy nhất.
 
-### 1.1 TypeScript and Go protect you at two different layers.
+### 1.1 TypeScript và Go bảo vệ bạn ở hai lớp khác nhau.
 
-TypeScript, according to the official Handbook, is a static typechecker for JavaScript programs. Its strongest guarantees operate before runtime — after compilation, you still run on the JavaScript engine and its event loop.
+TypeScript, theo Sổ tay chính thức, là một trình kiểm tra kiểu tĩnh cho các chương trình JavaScript. Sự đảm bảo mạnh mẽ nhất của nó hoạt động trước runtime - sau khi biên dịch, bạn vẫn chạy trên công cụ JavaScript và [[E11]]] của nó.
 
-This entails three consequences:
+Điều này kéo theo ba hậu quả:
 
-1. In TypeScript, many guarantees reside in the compiler or framework.
-2. In Go, guarantees are in language + package boundary + runtime behavior.
-3. In TypeScript, you often optimize developer ergonomics through abstraction. In Go, you often optimize for readability, predictability, and explicitness.
+1. Trong TypeScript, nhiều đảm bảo nằm trong trình biên dịch hoặc khung công tác.
+2. Trong Go , các đảm bảo nằm trong ngôn ngữ + package ranh giới + hành vi runtime .
+3. Trong TypeScript, bạn thường tối ưu hóa công thái học của nhà phát triển thông qua tính trừu tượng. Trong Go , bạn thường tối ưu hóa khả năng đọc, khả năng dự đoán và tính rõ ràng.
 
-### 1.2 4 rewires you must do soon.
+### 1.2 4 rewire bạn phải làm sớm nhé.
 
-**Packages are architectural boundaries, not decorative folders.** 
-In Go, lowercase/uppercase is more than just style — it decides the public API of the package. You hide invariants behind export boundaries, without needing `private/protected`.
+** Packages là ranh giới kiến trúc, không phải thư mục trang trí.** 
+Trong Go , chữ thường/chữ hoa không chỉ là kiểu dáng - nó quyết định API công khai của package . Bạn ẩn các bất biến đằng sau ranh giới xuất khẩu mà không cần `private/protected` .
 
-**Zero value is a feature, not a bug.** 
-`var cfg Config` is a valid object at the language level. But whether it is business-valid is still the responsibility of the constructor or validation function.
+**Giá trị 0 là một tính năng, không phải lỗi.** `var cfg Config` là một đối tượng hợp lệ ở cấp độ ngôn ngữ. Nhưng liệu nó có hợp lệ trong kinh doanh hay không vẫn là trách nhiệm của hàm tạo hoặc hàm xác thực.
 
-**Value vs pointer is a behavioral decision.** 
-In TypeScript, objects follow shared reference semantics at runtime. In Go, you must decide when to copy values and when to use pointers — the method set changes accordingly.
+**Giá trị so với pointer là quyết định hành vi.** 
+Trong TypeScript, các đối tượng tuân theo ngữ nghĩa tham chiếu được chia sẻ tại runtime . Trong Go , bạn phải quyết định khi nào nên sao chép giá trị và khi nào nên sử dụng pointers — bộ phương thức sẽ thay đổi tương ứng.
 
-**Interfaces are defined by the consumer.** 
-Go does not want you to build a class hierarchy and then fill in `implements`. It wants the package that uses a dependency to say "I need exactly these 1-2 methods", then lets the compiler check implicitly.
+** Interfaces do người tiêu dùng xác định.** Go không muốn bạn xây dựng hệ thống phân cấp lớp và sau đó điền vào `implements` . Nó muốn package sử dụng phần phụ thuộc để nói "Tôi cần chính xác 1-2 phương thức này", sau đó cho phép trình biên dịch kiểm tra ngầm.
 
-### 1.3 Invariants & Failure Modes
+### 1.3 Các kiểu bất biến và lỗi
 
-- Zero value is convenient, but does not automatically encode business variables. `User{}` compiling does not mean the domain is valid.
-- Pointer receiver should be the default choice when the mutate state or struct method is large enough that copying is pointless.
-- Don't bring the decorators, DI container, request-scoped provider model from NestJS into Go just because "the team is used to it". Most of the time you are importing framework complexity without getting additional value.
+- Giá trị 0 thuận tiện nhưng không tự động mã hóa các biến nghiệp vụ. Việc biên dịch `User{}` không có nghĩa là tên miền hợp lệ.
+- Pointer receiver phải là lựa chọn mặc định khi trạng thái đột biến hoặc phương thức struct đủ lớn để việc sao chép là vô nghĩa.
+- Không mang các bộ trang trí, bộ chứa DI , mô hình nhà cung cấp theo phạm vi yêu cầu từ NestJS vào Go chỉ vì "nhóm đã quen với việc đó". Hầu hết time bạn đang nhập độ phức tạp của khung mà không nhận được giá trị bổ sung.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The most confusing part is not the definition, but where the guarantee actually lies. The two diagrams below pull that exact point into view.
+Phần khó hiểu nhất không phải là định nghĩa mà là sự đảm bảo thực sự nằm ở đâu. Hai sơ đồ dưới đây cho thấy điểm chính xác đó.
 
-### Level 1
-
-```text
+### Cấp 1```text
 TypeScript path
 source.ts
     -> tsc checks types
@@ -72,15 +67,9 @@ source.go
         -> native binary
             -> Go runtime
                 -> stdlib + package boundaries
-```
+```![Mental model runtime compare card](./images/01-mental-model-runtime-compare.png) *Hình: Cấp độ 1 cho thấy rằng TypeScript và Go đều biên dịch, nhưng nơi triển khai đảm bảo thực tế lại rất khác nhau.*.
 
-![Mental model runtime compare card](./images/01-mental-model-runtime-compare.png)
-
-*Figure: Level 1 shows that TypeScript and Go both compile, but where the actual guarantee is implemented is very different.*.
-
-### Level 2
-
-```text
+### Cấp 2```text
 TypeScript
   type safety ........ mostly before runtime
   object model ....... JavaScript semantics
@@ -92,23 +81,19 @@ Go
   object model ....... structs, pointers, zero values
   async model ........ goroutines + channels + context
   architecture ....... stdlib + simple composition
-```
+```*Hình: Cấp độ 2 nhấn mạnh nguồn gốc của hầu hết các lỗi chuyển đổi hệ thống: bạn nghĩ rằng bạn đang thay đổi cú pháp, nhưng thực ra bạn đang thay đổi cơ chế vận hành.*.
 
-*Figure: Level 2 emphasizes the origin of most system conversion bugs: you think you are changing the syntax, but actually you are changing the operating mechanism.*.
+## 3. MÃ
 
-## 3. CODE
+Khi mô hình tinh thần không bị khóa, mã Go rất dễ "nhìn đúng". Ba ví dụ dưới đây tóm tắt những vị trí thường đánh lừa các kỹ sư TypeScript nhất.
 
-When the mental model is not locked, it is very easy for Go code to "look right". The three examples below summarize the places that most often fool TypeScript engineers.
+### Ví dụ 1: Cơ bản — giá trị 0 rất hữu ích, nhưng hàm tạo mới giữ bất biến.
 
-### Example 1: Basic — zero value is useful, but the new constructor holds invariant.
+> **Mục tiêu**: Hiểu rằng giá trị 0 trong Go là một tính năng ngôn ngữ, nhưng các bất biến vẫn phải được thực thi một cách rõ ràng.
+> **Phương pháp tiếp cận**: Sử dụng struct ​​với các giá trị mặc định hợp lý nhưng thực thi các trường bắt buộc thông qua một hàm tạo.
+> **Ví dụ**: `NewServerConfig("billing")` tạo cấu hình hợp lệ; `ServerConfig{}` chỉ là giá trị 0 - nó có thể không hợp lệ trong kinh doanh.
 
-> **Goal**: Understand that zero value in Go is a language feature, but invariants must still be enforced explicitly.
-> **Approach**: Use a struct with reasonable defaults, but enforce required fields through a constructor.
-> **Example**: `NewServerConfig("billing")` creates valid config; `ServerConfig{}` is just a zero value — it may not be business-valid.
-
-TypeScript version you usually start from:
-
-```typescript
+Phiên bản TypeScript bạn thường bắt đầu từ:```typescript
 type ServerConfig = {
   serviceName: string;
   timeoutMs: number;
@@ -129,11 +114,7 @@ function createServerConfig(serviceName: string): ServerConfig {
 
 const cfg = createServerConfig("billing");
 console.log(cfg);
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -170,19 +151,15 @@ func main() {
 
 	fmt.Printf("constructed: %+v\n", cfg)
 }
-```
+```> **Takeaway**: Giá trị 0 mang lại cho bạn một đối tượng hợp lệ về ngôn ngữ. Một hàm tạo cung cấp cho bạn một đối tượng hợp lệ theo miền. Đây không phải là điều tương tự.
 
-> **Takeaway**: Zero value gives you a language-valid object. A constructor gives you a domain-valid object. These are not the same thing.
+### Ví dụ 2: Trung cấp — do người tiêu dùng xác định interface , không cần `implements` .
 
-### Example 2: Intermediate — consumer-defined interface, no `implements` needed.
+> **Mục tiêu**: Hiểu rằng Go ưu tiên các hợp đồng nhỏ được xác định ở nơi sử dụng các phần phụ thuộc chứ không phải trong nhà cung cấp package .
+> **Phương pháp tiếp cận**: Xác định interface trong tiêu dùng package . Hãy để loại bê tông thỏa mãn nó một cách ngầm định.
+> **Ví dụ**: `ProfileService` chỉ cần một phương thức `Load` duy nhất.
 
-> **Goal**: Understand that Go prioritizes small contracts defined where dependencies are consumed, not in the provider package.
-> **Approach**: Define the interface in the consumer package. Let the concrete type satisfy it implicitly.
-> **Example**: `ProfileService` only needs a single `Load` method.
-
-Familiar TypeScript version:
-
-```typescript
+Phiên bản TypeScript quen thuộc:```typescript
 interface Profile {
   id: string;
   name: string;
@@ -212,11 +189,7 @@ class ProfileService {
     return `hello ${profile.name}`;
   }
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -274,21 +247,17 @@ func main() {
 
 	fmt.Println(msg)
 }
-```
+```> **Tại sao?** Các kỹ sư TypeScript đã quen với việc interfaces được xác định trong nhà cung cấp packages hoặc được gắn vào các vùng chứa DI . Go đảo ngược điều này: người tiêu dùng khai báo những gì họ cần và nhà sản xuất chỉ cần có phương pháp phù hợp.
 
-> **Why?** TypeScript engineers are used to interfaces being defined in provider packages or tied into DI containers. Go reverses this: the consumer declares what it needs, and the producer just has to have the right methods.
+> **Takeaway**: Hãy để package tiêu thụ xác định interface . Đây là một trong những thay đổi tinh thần lớn nhất từ ​​TypeScript nặng về OOP sang Go .
 
-> **Takeaway**: Let the consuming package define the interface. This is one of the biggest mental shifts from OOP-heavy TypeScript to Go.
+### Ví dụ 3: Nâng cao — pointer receiver ​​vs value receiver thay đổi hoàn toàn kết quả.
 
-### Example 3: Advanced — pointer receiver vs value receiver completely changes the outcome.
+> **Mục tiêu**: Tránh nhầm lẫn khi cho rằng bạn đã thay đổi trạng thái khi thực sự chỉnh sửa một bản sao.
+> **Phương pháp tiếp cận**: So sánh các phương thức trên value receiver với pointer receiver .
+> **Ví dụ**: `Add` trên value receiver không thay đổi bộ đếm ban đầu; `AddInPlace` trên pointer receiver thì có.
 
-> **Goal**: Avoid the mistake of thinking you mutated state when you actually edited a copy.
-> **Approach**: Compare methods on value receiver vs pointer receiver.
-> **Example**: `Add` on a value receiver does not change the original counter; `AddInPlace` on a pointer receiver does.
-
-TypeScript version, where default object mutation follows reference semantics:
-
-```typescript
+Phiên bản TypeScript, trong đó đột biến đối tượng mặc định tuân theo ngữ nghĩa tham chiếu:```typescript
 class Counter {
   total = 0;
 
@@ -304,11 +273,7 @@ console.log("after add:", counter.total); // 5
 const alias = counter;
 alias.add(10);
 console.log("after alias add:", counter.total); // 15
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import "fmt"
@@ -341,36 +306,34 @@ func main() {
 	fmt.Println("copy:", copyCounter.total)   // 15
 	fmt.Println("orig:", counter.total)       // 5
 }
-```
+```> **Tại sao?** Trong Go , phương thức receivers là một phần của ngữ nghĩa, không chỉ là cú pháp. Các nhà phát triển TypeScript đã quen với việc phản đối các đột biến theo các tham chiếu một cách tự nhiên. Go buộc bạn phải rõ ràng: sao chép là sao chép, pointer là pointer .
 
-> **Why?** In Go, method receivers are part of the semantics, not just syntax. TypeScript developers are used to object mutations following references naturally. Go forces you to be explicit: copy is copy, pointer is pointer.
+> **Bài học rút ra**: Nếu một phương thức cần thay đổi trạng thái hoặc struct đủ lớn khiến việc sao chép trở nên lãng phí, hãy sử dụng pointer receiver . Không trộn lẫn value/ pointer receivers trừ khi bạn hiểu các bộ phương thức và ý nghĩa của chúng.
 
-> **Takeaway**: If a method needs to mutate state or the struct is large enough that copying is wasteful, use a pointer receiver. Do not mix value/pointer receivers unless you understand method sets and their implications.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Treating zero value as a default business object | Entity/config compiles but violates invariants | Use a constructor or `Validate()` to separate syntax validity from domain validity |
-| 2 | 🟡 Common | Bringing class hierarchies or DI containers from TypeScript to Go | Code is heavy on abstraction, hard to read, hard to debug, and not idiomatic | Start with struct + small interface + explicit constructor |
-| 3 | 🔵 Minor | Mixing value and pointer receivers without intention | Mutation does not behave as expected | Convention: mutating methods and large structs use pointer receivers |
+| 1 | 🔴 Gây tử vong | Xử lý giá trị 0 làm đối tượng kinh doanh mặc định | Thực thể/config biên dịch nhưng vi phạm bất biến | Sử dụng hàm tạo hoặc `Validate()` để phân tách tính hợp lệ của cú pháp khỏi tính hợp lệ của miền |
+| 2 | 🟡 Chung | Đưa hệ thống phân cấp lớp hoặc vùng chứa DI từ TypeScript sang Go | Mã nặng về tính trừu tượng, khó đọc, khó gỡ lỗi và không có tính thành ngữ | Bắt đầu với struct + nhỏ interface + hàm tạo rõ ràng |
+| 3 | 🔵 Nhỏ | Trộn giá trị và pointer receivers không có chủ ý | Đột biến không hoạt động như mong đợi | Quy ước: các phương thức đột biến và sử dụng structs lớn pointer receivers |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| The TypeScript Handbook | Official | https://www.typescriptlang.org/docs/handbook/intro.html | Confirm TypeScript is a static typechecker for JavaScript |
-| Effective Go | Official | https://go.dev/doc/effective_go | Idiomatic baseline for package boundaries, interfaces, receivers, and composition |
-| Go Spec — Method sets | Official | https://go.dev/ref/spec#Method_sets | Source of truth differentiates value receiver vs pointer receiver |
+| Cẩm nang TypeScript | Chính thức | https://www.typescriptlang.org/docs/handbook/intro.html | Xác nhận TypeScript là trình đánh máy tĩnh cho JavaScript |
+| Có hiệu lực Go | Chính thức | https://go.dev/doc/effect_go | Đường cơ sở thành ngữ cho các ranh giới package , interfaces , receivers và composition |
+| Go Spec — Bộ phương thức | Chính thức | https://go.dev/ref/spec#Method_sets | Nguồn chân lý phân biệt value receiver vs pointer receiver |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Mental Model & Runtime** is clear. The extension branches below help you bring Go runtime understanding into production with types, error handling, and concurrency.
-| Extension | When | Rationale | Link |
+Cốt lõi của **Mô hình tinh thần & Runtime ** rất rõ ràng. Các nhánh mở rộng bên dưới giúp bạn đưa sự hiểu biết về Go runtime vào sản xuất với các loại, xử lý lỗi và concurrency .
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Types & Data Modeling | When starting to port DTOs, entities, and configs | The correct mental model must come with the correct data shape | [→ 02-types-data-modeling](./02-types-data-modeling.md) |
-| Class → Struct | When you want to translate classes to structs one-to-one | Helps gradually eliminate unnecessary OOP abstractions | [→ 12-class-struct](../helper/12-class-struct.md) |
-| Type Assertion & Embedding | When method sets, interface satisfaction, or embedding remains ambiguous | Goes deeper into the type mechanics behind the mental model | [→ 03-type-assertion-embedding](../types/03-type-assertion-embedding.md) |
-| Project Layout, Tooling, Testing | When you understand Go code but are unfamiliar with how Go teams build and ship | Differentiates workflow, not just syntax | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
+| Các loại & mô hình hóa dữ liệu | Khi bắt đầu chuyển DTO, thực thể và cấu hình | Mô hình tư duy đúng phải đi kèm với hình dạng dữ liệu chính xác | [→ 02-types-data-modeling](./02-types-data-modeling.md) |
+| Lớp → Struct | Khi bạn muốn dịch các lớp sang structs một-một | Giúp loại bỏ dần sự trừu tượng hóa OOP không cần thiết | [→ 12-class-struct](../helper/12-class-struct.md) |
+| Type Assertion & Embedding | Khi phương thức được đặt, sự hài lòng của interface hoặc embedding vẫn không rõ ràng | Đi sâu hơn vào cơ chế loại đằng sau mô hình tinh thần | [→ 03-type-assertion-embedding](../types/03-type-assertion-embedding.md) |
+| Bố cục dự án, Dụng cụ, Kiểm tra | Khi bạn hiểu mã Go nhưng không quen với cách các nhóm Go xây dựng và vận chuyển | Phân biệt quy trình làm việc, không chỉ cú pháp | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
 
-**Navigation**: [← Previous](./README.md) · [→ Next](./02-types-data-modeling.md)
+**Điều hướng**: [← Previous](./README.md) · [→ Next](./02-types-data-modeling.md)

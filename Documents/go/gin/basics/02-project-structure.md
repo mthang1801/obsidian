@@ -1,35 +1,28 @@
-<!-- tags: golang, structs, modules -->
-# 🏗️ Project Structure — NestJS Modules → Go Gin Architecture
+<!-- tags: golang, structs, modules --> # 🏗️ Cấu trúc dự án — Mô-đun NestJS → Kiến trúc Go Gin
 
-> **Library**: Mapping NestJS’s Module/Controller/Service pattern to Go’s package-based architecture in Gin.
+> **Thư viện**: Ánh xạ mẫu Mô-đun/Bộ điều khiển/Dịch vụ của NestJS tới kiến trúc dựa trên gói của Go trong Gin.
 
-📅 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS uses decorators (`@Controller`, `@Injectable`, `@Module`) to organize code into dependency-injected modules. Go has no DI framework — you organize by **packages** and wire dependencies manually through constructor functions.
+NestJS sử dụng các trình trang trí ( `@Controller` , `@Injectable` , `@Module` ) để sắp xếp mã thành các mô-đun được chèn phụ thuộc. Go không có khung DI — bạn sắp xếp theo **gói** và kết nối các phần phụ thuộc theo cách thủ công thông qua các hàm khởi tạo.
 
-| NestJS Concept        | Gin Equivalent                          |
-| --------------------- | --------------------------------------- |
-| `@Controller()`       | Handler struct with `*gin.Context` methods |
-| `@Injectable()`       | Service struct, injected via constructor |
-| `@Module()`           | `RegisterRoutes(r *gin.RouterGroup)` function |
-| `@Inject()`           | Constructor parameter: `NewHandler(svc *Service)` |
-| `main.ts bootstrap`   | `cmd/api/main.go` with manual wiring |
-| DTO (class-validator)  | Struct with `binding:"required"` tags |
+| Khái niệm NestJS | Tương đương Gin |
+| --------------------- | ------------------------------ |
+| `@Controller()` | Cấu trúc trình xử lý với các phương thức `*gin.Context` |
+| `@Injectable()` | Cấu trúc dịch vụ, được đưa vào thông qua hàm tạo |
+| `@Module()` | Hàm `RegisterRoutes(r *gin.RouterGroup)` |
+| `@Inject()` | Tham số hàm tạo: `NewHandler(svc *Service)` |
+| `main.ts bootstrap` | `cmd/api/main.go` với hệ thống dây điện thủ công |
+| DTO (trình xác thực lớp) | Cấu trúc với thẻ `binding:"required"` |
 
-### Key Invariants
+### Bất biến chính
 
-- **One package per domain concept** (e.g., `internal/users/`). Import cycles in Go are compile errors, not warnings.
-- **Handlers depend on Services, Services depend on Repositories.** Never import handlers from services.
+- **Một gói cho mỗi tên miền** (ví dụ: `internal/users/` ). Chu kỳ nhập trong Go là lỗi biên dịch chứ không phải cảnh báo.
+- **Trình xử lý phụ thuộc vào Dịch vụ, Dịch vụ phụ thuộc vào Kho lưu trữ.** Không bao giờ nhập trình xử lý từ dịch vụ.
 
-## 2. VISUAL
-
-![Layered architecture — cmd/ bootstraps, internal/ contains domain packages](./images/02-project-architecture.png)
-
-*Figure: Go Gin project structure — `cmd/api/main.go` wires dependencies into domain packages (`internal/user`, `internal/product`), each following a handler → service → repository layering.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Layered architecture — cmd/ bootstraps, internal/ contains domain packages](./images/02-project-architecture.png) *Hình: Cấu trúc dự án Go Gin — `cmd/api/main.go` nối các phần phụ thuộc vào các gói miền ( `internal/user` , `internal/product` ), mỗi phần sau một trình xử lý → dịch vụ → phân lớp kho lưu trữ.*```mermaid
 flowchart TD
     A["cmd/api/main.go"] -->|"wire"| B["internal/user"]
     B --> C["handler.go"]
@@ -38,13 +31,9 @@ flowchart TD
     E --> F[("PostgreSQL")]
     A -->|"wire"| G["internal/product"]
     G --> H["handler.go"]
-```
+```*Hình: Kiến trúc phân lớp — `cmd/` khởi động ứng dụng, `internal/` chứa các gói miền, mỗi gói có trình xử lý → dịch vụ → kho lưu trữ.*
 
-*Figure: Layered architecture — `cmd/` bootstraps the app, `internal/` contains domain packages, each with handler → service → repository.*
-
-### Dependency Flow
-
-```text
+### Luồng phụ thuộc```text
 cmd/api/main.go
     │
     ├── Creates *gorm.DB, *gin.Engine
@@ -52,13 +41,9 @@ cmd/api/main.go
     ├── Wires: svc  := NewService(repo)
     ├── Wires: handler := NewHandler(svc)
     └── Calls: RegisterRoutes(router, handler)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Structuring Handlers
-
-```go
+### Ví dụ 1: Cơ bản — Trình xử lý cấu trúc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Handler struct holds a service dependency. Methods map to HTTP routes.
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -95,11 +80,7 @@ cmd/api/main.go
         }
         c.JSON(http.StatusOK, gin.H{"data": user})
     }
-```
-
-### Example 2: Intermediate — Service + Repository Interface
-
-```go
+```### Ví dụ 2: Giao diện trung gian — Dịch vụ + Kho lưu trữ```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Service depends on a Repository interface, not a concrete type.
     // This allows swapping implementations for testing.
@@ -129,11 +110,7 @@ cmd/api/main.go
         FindByID(ctx context.Context, id string) (*User, error)
         Create(ctx context.Context, user *User) (*User, error)
     }
-```
-
-### Example 3: Advanced — Route Registration Function
-
-```go
+```### Ví dụ 3: Nâng cao — Chức năng đăng ký lộ trình```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Each domain package exports a RegisterRoutes function.
     // main.go calls it to mount the package’s endpoints on the router.
@@ -152,30 +129,28 @@ cmd/api/main.go
             users.POST("", handler.Create)
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Putting all handlers, services, and models in one package | Import cycles impossible to break; untestable monolith | One package per domain: `internal/users/`, `internal/orders/` |
-| 2 | 🔴 Fatal | Handler directly calling the database (skipping service layer) | Business logic scattered across HTTP handlers; no reuse | Handler → Service → Repository; handler only calls service methods |
+| 1 | 🔴 Gây tử vong | Đưa tất cả các trình xử lý, dịch vụ và mô hình vào một gói | Chu kỳ nhập khẩu không thể bị phá vỡ; khối nguyên khối không thể kiểm chứng | Một gói cho mỗi miền: `internal/users/` , `internal/orders/` |
+| 2 | 🔴 Gây tử vong | Trình xử lý gọi trực tiếp cơ sở dữ liệu (bỏ qua lớp dịch vụ) | Logic nghiệp vụ nằm rải rác trên các trình xử lý HTTP; không tái sử dụng | Trình xử lý → Dịch vụ → Kho lưu trữ; xử lý chỉ gọi phương thức dịch vụ |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| NestJS Layout | [docs.nestjs.com/controllers](https://docs.nestjs.com/controllers) |
-| Standard Layout | [github.com/golang-standards/project-layout](https://github.com/golang-standards/project-layout) |
+| Bố cục NestJS | [docs.nestjs.com/controllers](https://docs.nestjs.com/controllers) |
+| Bố cục chuẩn | [github.com/golang-standards/project-layout](https://github.com/golang-standards/project-layout) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Routing | When you need route groups, versioning, or path params | Builds on the `RegisterRoutes` pattern to organize complex APIs | [../routing/01-groups-params.md](../routing/01-groups-params.md) |
+| Định tuyến | Khi bạn cần nhóm tuyến đường, phiên bản hoặc thông số đường dẫn | Xây dựng trên mẫu `RegisterRoutes` để tổ chức các API phức tạp | [../routing/01-groups-params.md](../routing/01-groups-params.md) |

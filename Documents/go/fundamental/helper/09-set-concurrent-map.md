@@ -1,57 +1,46 @@
-<!-- tags: golang, map, concurrency, data-structures -->
-# 🗃️ Set & Concurrent Map — TS Set/Map/WeakMap → Go
+<!-- tags: golang, map, concurrency, data-structures --> # 🗃️ Đặt & Đồng thời Map — TS Set/ Map /WeakMap → Go > JavaScript có sẵn `Set<T>` và `Map<K,V>` . Go không có — bạn xây dựng các tập hợp có `map[T]struct{}` và đồng thời maps với các trình bao bọc `sync.RWMutex` . Truy cập đồng thời map mà không có mutex gây ra sự cố nghiêm trọng, không thể phục hồi.
 
-> JavaScript has built-in `Set<T>` and `Map<K,V>`. Go has neither — you build sets with `map[T]struct{}` and concurrent maps with `sync.RWMutex` wrappers. Concurrent map access without a mutex causes a fatal, unrecoverable crash.
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 12 phút đọc
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 12 min read
+## 1. ĐỊNH NGHĨA
 
-## 1. DEFINE
+Năm goroutines chèn ID người dùng vào `map[string]bool` được chia sẻ cùng một lúc. Go runtime phát hiện quá trình ghi đồng thời và gặp sự cố với `fatal error: concurrent map writes` — không phục hồi, không tắt máy dễ dàng. Quá trình này bị giết. Go maps không an toàn thread -. Không giống như JavaScript (chạy trên một thread ), Go truy cập thường xuyên maps từ nhiều goroutines . Có hai lựa chọn:
 
-Five goroutines insert user IDs into a shared `map[string]bool` simultaneously. The Go runtime detects the concurrent writes and crashes with `fatal error: concurrent map writes` — no recovery, no graceful shutdown. The process is killed.
+1. ** `sync.RWMutex` ** — bọc một map thông thường bằng các khóa đọc/ghi. An toàn loại đầy đủ với generics .
+2. ** `sync.Map` ** — tích hợp đồng thời map , nhưng sử dụng `any` cho các khóa và giá trị (không generics , yêu cầu xác nhận loại).
 
-Go maps are not thread-safe. Unlike JavaScript (which runs on a single thread), Go routinely accesses maps from multiple goroutines. Two options exist:
+Đối với các bộ, Go không có loại `Set` . Sử dụng `map[T]struct{}` — struct trống chiếm 0 byte, làm cho nó trở thành biểu diễn tập hợp hiệu quả về bộ nhớ nhất.
 
-1. **`sync.RWMutex`** — wrap a regular map with read/write locks. Full type safety with generics.
-2. **`sync.Map`** — built-in concurrent map, but uses `any` for keys and values (no generics, requires type assertions).
+### 1.1 Các kiểu bất biến và lỗi
 
-For sets, Go has no `Set` type. Use `map[T]struct{}` — the empty struct occupies zero bytes, making it the most memory-efficient set representation.
-
-### 1.1 Invariants & Failure Modes
-
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **Zero-allocation sets** | `map[T]struct{}` uses zero bytes per value. `map[T]bool` wastes 1 byte per entry. |
-| **Thread-safe access** | Unprotected map access from multiple goroutines is a fatal crash, not a data race. |
+| **Bộ phân bổ bằng 0** | `map[T]struct{}` sử dụng 0 byte cho mỗi giá trị. `map[T]bool` lãng phí 1 byte cho mỗi mục nhập. |
+| ** Thread -truy cập an toàn** | Quyền truy cập map không được bảo vệ từ nhiều goroutines là một sự cố nghiêm trọng, không phải là một cuộc chạy đua dữ liệu. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Never share raw maps across goroutines** | Even concurrent reads with one write crash the process. Use mutex wrappers or `sync.Map`. |
-| **Prefer generic wrappers over `sync.Map`** | `sync.Map` stores `any` — every access needs a type assertion. Generic mutex wrappers preserve type safety. |
+| **Không bao giờ chia sẻ thô maps trên goroutines ** | Ngay cả việc đọc đồng thời với một lần ghi cũng làm hỏng quá trình. Sử dụng trình bao bọc mutex hoặc `sync.Map` . |
+| **Thích trình bao bọc generic hơn `sync.Map` ** | `sync.Map` lưu trữ `any` - mọi quyền truy cập đều cần có type assertion . Trình bao bọc Generic mutex bảo đảm an toàn cho loại. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The boolean memory tax:** `map[string]bool` with 1 million entries wastes 1 MB on boolean values. `map[string]struct{}` uses exactly zero bytes for values — only keys consume memory.
-- **The untyped `sync.Map` trap:** `sync.Map.Load` returns `any`. Forgetting the type assertion silently passes the wrong type downstream, causing panics far from the source.
+- **Thuế bộ nhớ boolean:** `map[string]bool` với 1 triệu mục nhập sẽ lãng phí 1 MB đối với các giá trị boolean. `map[string]struct{}` sử dụng chính xác byte bằng 0 cho các giá trị - chỉ các khóa mới tiêu tốn bộ nhớ.
+- **Bẫy `sync.Map` chưa được gõ:** `sync.Map.Load` trả về `any` . Việc quên type assertion âm thầm truyền nhầm loại xuống dòng gây hoang mang xa nguồn.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-JavaScript Sets and Go map-based sets differ in API surface and thread safety. The visual maps the translation.
+Bộ JavaScript và bộ dựa trên Go map - khác nhau về bề mặt API và độ an toàn thread . Hình ảnh maps bản dịch. ![Set Concurrent Map Model](./images/09-set-concurrent-map-compare.png) *Hình: Các phương thức JS `Set` được ánh xạ tới các hoạt động Go `map[T]struct{}` . Go yêu cầu trình bao bọc mutex rõ ràng để truy cập đồng thời.*
 
-![Set Concurrent Map Model](./images/09-set-concurrent-map-compare.png)
+## 3. MÃ
 
-*Figure: JS `Set` methods mapped to Go `map[T]struct{}` operations. Go requires explicit mutex wrappers for concurrent access.*
+Với các ràng buộc concurrency được thiết lập, mã bên dưới sẽ xây dựng ba mẫu: một bộ generic , một mutex -protected map và cách sử dụng `sync.Map` .
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Generic Cài đặt triển khai
 
-With the concurrency constraints established, the code below builds three patterns: a generic set, a mutex-protected map, and `sync.Map` usage.
-
-### Example 1: Basic — Generic Set implementation
-
-> **Goal**: Build a type-safe `Set[T]` with `Add`, `Has`, `Delete`, and `Intersection` using zero-allocation values.
-> **Approach**: Define `Set[T comparable]` as a type alias for `map[T]struct{}`.
-> **Complexity**: O(1) per add/has/delete; O(min(N,M)) for intersection.
-
-```go
+> **Mục tiêu**: Xây dựng một loại `Set[T]` an toàn với `Add` , `Has` , `Delete` và `Intersection` sử dụng các giá trị phân bổ bằng 0.
+> **Phương pháp tiếp cận**: Xác định `Set[T comparable]` làm bí danh loại cho `map[T]struct{}` .
+> **Độ phức tạp**: O(1) mỗi lần thêm/có/xóa; O(min(N,M)) cho giao lộ.```go
 // generic_sets.go
 package collections
 
@@ -78,19 +67,13 @@ func (s Set[T]) Intersection(other Set[T]) Set[T] {
 	}
 	return result
 }
-```
-
-> **Takeaway**: `struct{}` is the idiomatic Go "I only care about the key" value. It occupies zero bytes — `unsafe.Sizeof(struct{}{})` returns 0.
+```> **Takeaway**: `struct{}` là giá trị thành ngữ Go "Tôi chỉ quan tâm đến khóa". Nó chiếm 0 byte - `unsafe.Sizeof(struct{}{})` trả về 0.
 
 ---
 
-### Example 2: Intermediate — Mutex-protected generic map
-
-> **Goal**: Build a concurrent map with full type safety using generics and `sync.RWMutex`.
-> **Approach**: `RLock` for reads (multiple concurrent readers allowed), `Lock` for writes (exclusive).
-> **Complexity**: O(1) per operation; lock contention scales with goroutine count.
-
-```go
+### Ví dụ 2: Trung cấp — Mutex -được bảo vệ generic map > **Mục tiêu**: Xây dựng một map đồng thời với loại an toàn đầy đủ bằng cách sử dụng generics và `sync.RWMutex` .
+> **Phương pháp tiếp cận**: `RLock` để đọc (cho phép nhiều người đọc đồng thời), `Lock` để ghi (độc quyền).
+> **Độ phức tạp**: O(1) cho mỗi thao tác; khóa thang đo tranh chấp với số lượng goroutine .```go
 // secure_maps.go
 package collections
 
@@ -118,19 +101,13 @@ func (sm *SafeMap[K, V]) Get(key K) (V, bool) {
 	val, ok := sm.store[key]
 	return val, ok
 }
-```
-
-> **Takeaway**: `RWMutex` allows multiple concurrent readers — only writes are exclusive. This matters for read-heavy workloads (config caches, session stores). For write-heavy workloads, the mutex becomes a bottleneck.
+```> **Takeaway**: `RWMutex` cho phép nhiều người đọc đồng thời — chỉ có thao tác ghi là độc quyền. Điều này quan trọng đối với khối lượng công việc đọc nhiều (bộ đệm cấu hình, cửa hàng session ). Đối với khối lượng công việc ghi nhiều, mutex sẽ trở thành nút thắt cổ chai.
 
 ---
 
-### Example 3: Advanced — Built-in sync.Map
-
-> **Goal**: Use Go's built-in concurrent map for read-heavy, write-rare scenarios.
-> **Approach**: `sync.Map` is optimized for two patterns: (1) keys written once and read many times, (2) disjoint key sets across goroutines. It uses `any` for both keys and values.
-> **Complexity**: O(1) amortized per operation.
-
-```go
+### Ví dụ 3: Nâng cao — Đồng bộ hóa tích hợp. Map > **Mục tiêu**: Sử dụng tính năng đồng thời tích hợp sẵn của Go map cho các tình huống đọc nhiều, hiếm ghi.
+> **Phương pháp tiếp cận**: `sync.Map` được tối ưu hóa cho hai mẫu: (1) các khóa được viết một lần và đọc nhiều lần, (2) các bộ khóa rời rạc trên goroutines . Nó sử dụng `any` cho cả khóa và giá trị.
+> **Độ phức tạp**: O(1) được khấu hao cho mỗi hoạt động.```go
 // standard_sync_map.go
 package collections
 
@@ -153,30 +130,28 @@ func ExecuteSyncMap() {
 	current, loaded := sharedMap.LoadOrStore("TargetHost", "192.168.1.1")
 	fmt.Printf("Value: %v (Was cached: %v)\n", current, loaded)
 }
-```
+```> **Takeaway**: `sync.Map` chậm hơn so với mutex -wrapped map để sử dụng thông thường. Nó tỏa sáng theo hai kiểu cụ thể: phím ổn định (đọc nặng) và phím rời (không tranh chấp). Đối với mọi thứ khác, hãy sử dụng generic `SafeMap` từ Ví dụ 2.
 
-> **Takeaway**: `sync.Map` is slower than a mutex-wrapped map for general use. It shines in two specific patterns: stable keys (read-heavy) and disjoint keys (no contention). For everything else, use the generic `SafeMap` from Example 2.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Sharing raw `map` across goroutines | Wrap with `sync.RWMutex` or use `sync.Map`. Concurrent writes are fatal — not a data race, a crash. |
-| 2 | Using `sync.Map` for type-safe code | `sync.Map` stores `any`. Use a generic mutex-wrapped map for type safety. |
-| 3 | Using `map[T]bool` for sets | Use `map[T]struct{}` — zero bytes per value instead of 1 byte per boolean. |
+| 1 | Chia sẻ thô `map` trên goroutines | Gói bằng `sync.RWMutex` hoặc sử dụng `sync.Map` . Việc ghi đồng thời rất nguy hiểm - không phải là một cuộc chạy đua dữ liệu, mà là một sự cố. |
+| 2 | Sử dụng `sync.Map` cho mã an toàn loại | `sync.Map` lưu trữ `any` . Sử dụng generic mutex -wrapped map để đảm bảo an toàn về loại. |
+| 3 | Sử dụng `map[T]bool` cho các bộ | Sử dụng `map[T]struct{}` - 0 byte cho mỗi giá trị thay vì 1 byte cho mỗi boolean. |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| `sync.Map` documentation | [pkg.go.dev/sync#Map](https://pkg.go.dev/sync#Map) |
-| `sync.RWMutex` documentation | [pkg.go.dev/sync#RWMutex](https://pkg.go.dev/sync#RWMutex) |
+| `sync.Map` tài liệu | [pkg.go.dev/sync#Map](https://pkg.go.dev/sync#Map) |
+| `sync.RWMutex` tài liệu | [pkg.go.dev/sync#RWMutex](https://pkg.go.dev/sync#RWMutex) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Goroutines & Channels](../concurrency/01-goroutines-and-channels.md) | When designing concurrent data pipelines | Understanding goroutine lifecycle for safe map access |
-| [Map Utilities](./03-object-map-utils.md) | When transforming map data (keys, merge, pick) | Generic utility functions for single-threaded map operations |
+| [Goroutines & Channels](../concurrency/01-goroutines-and-channels.md) | Khi thiết kế đường dẫn dữ liệu đồng thời | Hiểu vòng đời goroutine để truy cập map an toàn |
+| [Map Utilities](./03-object-map-utils.md) | Khi chuyển đổi dữ liệu map (khóa, hợp nhất, chọn) | Generic các hàm tiện ích cho các hoạt động đơn luồng map |
 
-**Navigation**: [← Regex & Templates](./08-regex-templates.md) · [→ Iterator Patterns](./10-iterator.md)
+**Điều hướng**: [← Regex & Templates](./08-regex-templates.md) · [→ Iterator Patterns](./10-iterator.md)

@@ -1,55 +1,42 @@
-<!-- tags: golang, structs, design-patterns -->
-# 🏗️ Class → Struct — TS OOP → Go Composition
+<!-- tags: golang, structs, design-patterns --> # 🏗️ Lớp → Struct — TS OOP → Go Composition > TypeScript sử dụng `class` inheritance với `extends` và `super()` . Go không có lớp, không có inheritance và không có `super` . Bạn xây dựng hành vi thông qua struct embedding ( composition ) và interface sự hài lòng (thực hiện ngầm).
 
-> TypeScript uses `class` inheritance with `extends` and `super()`. Go has no classes, no inheritance, and no `super`. You build behavior through struct embedding (composition) and interface satisfaction (implicit implementation).
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 16 phút đọc
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 16 min read
+## 1. ĐỊNH NGHĨA
 
-## 1. DEFINE
+Một kiến trúc sư chuyển hệ thống phân cấp bộ điều khiển NestJS: `UserController extends BaseController` . Họ nhúng `BaseController` vào một Go struct , mong đợi `super.handleRequest()` gửi đi một cách đa hình. Nó không. Go embedding là cú pháp để truy cập trường - nó sao chép các phương thức của cha mẹ nhưng không tạo ra chuỗi inheritance . Các phương thức của struct được nhúng luôn đề cập đến loại được nhúng, không phải struct bên ngoài. Go thay thế inheritance bằng hai cơ chế:
 
-An architect ports a NestJS controller hierarchy: `UserController extends BaseController`. They embed `BaseController` in a Go struct, expecting `super.handleRequest()` to dispatch polymorphically. It does not. Go embedding is syntactic sugar for field access — it copies the parent's methods but does not create an inheritance chain. The embedded struct's methods always refer to the embedded type, not the outer struct.
+1. ** Struct embedding ** — quảng bá các trường và phương thức từ bên trong struct . Hữu ích cho việc sử dụng lại việc triển khai nhưng không có công văn đa hình.
+2. ** Interfaces ** — sự hài lòng tiềm ẩn. Any struct với các phương pháp phù hợp sẽ triển khai từ khóa interface , không có `implements` . Đây là Go của polymorphism .
 
-Go replaces inheritance with two mechanisms:
+### 1.1 Các kiểu bất biến và lỗi
 
-1. **Struct embedding** — promotes fields and methods from the inner struct. Useful for reusing implementation, but no polymorphic dispatch.
-2. **Interfaces** — implicit satisfaction. Any struct with the right methods implements the interface, no `implements` keyword. This is Go's polymorphism.
-
-### 1.1 Invariants & Failure Modes
-
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **Composition over inheritance** | Embedding promotes field access. It does not override methods — the embedded type's receiver is always itself. |
-| **Implicit interfaces** | A struct satisfies an interface by having all required methods. No declaration needed. |
+| ** Composition trên inheritance ** | Embedding thúc đẩy khả năng truy cập trường. Nó không ghi đè các phương thức - receiver của loại được nhúng luôn là chính nó. |
+| **Ngụ ý interfaces ** | A struct thỏa mãn interface bằng cách có tất cả các phương thức được yêu cầu. Không cần khai báo. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Use `NewXxx()` constructors** | Go has no constructor syntax. Convention: `NewCustomer(id, email)` returns a validated `*Customer`. |
-| **Use functional options** | Large struct configs with many optional fields get unreadable. `WithTimeout(5s)` option functions scale cleanly. |
+| **Sử dụng hàm tạo `NewXxx()` ** | Go không có cú pháp hàm tạo. Quy ước: `NewCustomer(id, email)` trả về `*Customer` đã được xác thực. |
+| **Sử dụng các tùy chọn chức năng** | Cấu hình struct lớn với nhiều trường tùy chọn sẽ không thể đọc được. Các hàm tùy chọn `WithTimeout(5s)` có tỷ lệ rõ ràng. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The shadowed method trap:** You embed `BaseLogger` and define your own `Log()` method. The outer method shadows the inner one — code calling `base.Log()` through the embedded field still runs the original, not your override. This is not polymorphism.
-- **The value receiver mutation:** You attach methods to `func (c Customer)` (value receiver). Inside the method, `c.Email = "new"` modifies a copy. The caller's struct is unchanged. Use pointer receivers `func (c *Customer)` for mutations.
+- **Bẫy phương thức bị che khuất:** Bạn nhúng `BaseLogger` và xác định phương thức `Log()` của riêng bạn. Phương thức bên ngoài che mờ phương thức bên trong — mã gọi `base.Log()` thông qua trường được nhúng vẫn chạy bản gốc chứ không phải phần ghi đè của bạn. Đây không phải là polymorphism .
+- ** Đột biến value receiver :** Bạn đính kèm các phương thức vào `func (c Customer)` ( value receiver ). Bên trong phương thức, `c.Email = "new"` sửa đổi một bản sao. struct của người gọi không thay đổi. Sử dụng pointer receivers `func (c *Customer)` cho các đột biến.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-JavaScript class hierarchies and Go compositional structs solve the same problem differently.
+Hệ thống phân cấp lớp JavaScript và Go thành phần structs giải quyết cùng một vấn đề theo cách khác nhau. ![Class to Struct Comparison](./images/12-class-struct-compare.png) *Hình: Lớp TS inheritance (trái) vs Go struct embedding + interface (phải). Go quảng bá các trường thông qua embedding nhưng gửi các phương thức một cách tĩnh — không có bảng phương thức ảo.*
 
-![Class to Struct Comparison](./images/12-class-struct-compare.png)
+## 3. MÃ
 
-*Figure: TS class inheritance (left) vs Go struct embedding + interface (right). Go promotes fields through embedding but dispatches methods statically — no virtual method table.*
+Khi composition và [[E40]]] được thiết lập, mã bên dưới thể hiện ba mẫu: struct hàm tạo với encapsulation , interface -based polymorphism và các tùy chọn chức năng cho cấu hình.
 
-## 3. CODE
-
-With composition and interfaces established, the code below demonstrates three patterns: struct constructors with encapsulation, interface-based polymorphism, and functional options for configuration.
-
-### Example 1: Basic — Structs, constructors, and receivers
-
-> **Goal**: Replace a TypeScript `class Customer` with a Go struct, constructor function, and methods.
-> **Approach**: Unexported fields (lowercase) enforce encapsulation. `NewCustomer` validates input. Pointer receivers enable mutation.
-> **Complexity**: O(1) per construction.
-
-```go
+### Ví dụ 1: Cơ bản — Structs , hàm tạo và receivers > **Mục tiêu**: Thay thế TypeScript `class Customer` bằng Go struct , hàm xây dựng và các phương thức.
+> **Phương pháp tiếp cận**: Các trường chưa xuất (chữ thường) thực thi encapsulation . `NewCustomer` xác nhận đầu vào. Pointer receivers kích hoạt đột biến.
+> **Độ phức tạp**: O(1) cho mỗi công trình.```go
 // core_entities.go
 package domain
 
@@ -81,19 +68,13 @@ func (c *Customer) ID() string {
 func (c *Customer) UpdateEmail(email string) {
 	c.Email = email
 }
-```
-
-> **Takeaway**: Go uses capitalization for access control — uppercase = exported (public), lowercase = unexported (private to the package). There is no `protected` — package boundaries are the only access scope.
+```> **Takeaway**: Go sử dụng cách viết hoa để kiểm soát truy cập — chữ hoa = được xuất (công khai), chữ thường = không được xuất (riêng tư cho package ). Không có ranh giới `protected` — package là phạm vi truy cập duy nhất.
 
 ---
 
-### Example 2: Intermediate — Interface-based polymorphism
-
-> **Goal**: Define a `Transmitter` interface that multiple structs satisfy, replacing `abstract class Transmitter`.
-> **Approach**: The interface defines the contract. Structs implement it implicitly by having the right methods. Embedding reuses the `Protocol()` implementation.
-> **Complexity**: O(1) per dispatch.
-
-```go
+### Ví dụ 2: Trung cấp — Interface -based polymorphism > **Mục tiêu**: Xác định một `Transmitter` interface mà nhiều structs thỏa mãn, thay thế `abstract class Transmitter` .
+> **Phương pháp tiếp cận**: interface xác định hợp đồng. Structs triển khai nó một cách ngầm định bằng cách sử dụng đúng phương pháp. Embedding sử dụng lại cách triển khai `Protocol()` .
+> **Độ phức tạp**: O(1) mỗi lần gửi.```go
 // polymorphic_engines.go
 package domain
 
@@ -130,19 +111,15 @@ func (s *SecureTransmitter) Dispatch(payload []byte) error {
 	fmt.Printf("Transmitting via %s: %s\n", s.Protocol(), s.targetURL)
 	return nil
 }
-```
-
-> **Takeaway**: `SecureTransmitter` satisfies `Transmitter` without declaring `implements`. It gets `Protocol()` from embedding and defines `Dispatch()` directly. This is composition — not inheritance.
+```> **Takeaway**: `SecureTransmitter` thỏa mãn `Transmitter` mà không cần khai báo `implements` . Nó nhận `Protocol()` từ embedding và định nghĩa trực tiếp `Dispatch()` . Đây là composition - không phải inheritance .
 
 ---
 
-### Example 3: Advanced — Functional options pattern
+### Ví dụ 3: Nâng cao — Mẫu tùy chọn chức năng
 
-> **Goal**: Replace large constructor parameter lists with composable option functions.
-> **Approach**: Define `type Option func(*Config)`. Each option modifies one field. The constructor applies all options in order.
-> **Complexity**: O(N) where N = number of options applied.
-
-```go
+> **Mục tiêu**: Thay thế danh sách tham số hàm tạo lớn bằng các hàm tùy chọn có thể kết hợp.
+> **Phương pháp**: Xác định `type Option func(*Config)` . Mỗi tùy chọn sửa đổi một trường. Hàm tạo áp dụng tất cả các tùy chọn theo thứ tự.
+> **Độ phức tạp**: O(N) trong đó N = số lượng tùy chọn được áp dụng.```go
 // functional_options.go
 package domain
 
@@ -182,30 +159,28 @@ func NewApplication(endpoint string, opts ...AppOption) *Application {
 	
 	return app
 }
-```
+```> **Takeaway**: Các tùy chọn chức năng chia tỷ lệ theo any số lượng tham số tùy chọn mà không phá vỡ hàm tạo signature . Mỗi tùy chọn đều tự ghi lại tài liệu: `WithTimeout(5 * time.Second)` đọc tốt hơn đối số vị trí. Mẫu này được sử dụng bởi `grpc.NewServer` , `http.NewServeMux` và hầu hết các thư viện Go sản xuất.
 
-> **Takeaway**: Functional options scale to any number of optional parameters without breaking the constructor signature. Each option is self-documenting: `WithTimeout(5 * time.Second)` reads better than a positional argument. This pattern is used by `grpc.NewServer`, `http.NewServeMux`, and most production Go libraries.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Using value receivers for mutation methods | Use pointer receivers `func (c *Customer)`. Value receivers operate on a copy. |
-| 2 | Expecting method overriding through embedding | Embedding is not inheritance. The embedded struct's methods always bind to the embedded type. |
-| 3 | Using large config structs with many zero-valued fields | Use functional options pattern — each option function is self-documenting and composable. |
+| 1 | Sử dụng giá trị receivers cho các phương thức đột biến | Sử dụng pointer receivers `func (c *Customer)` . Giá trị receivers hoạt động trên một bản sao. |
+| 2 | Phương thức mong đợi ghi đè thông qua embedding | Embedding không phải là inheritance . Các phương thức của struct được nhúng luôn liên kết với kiểu được nhúng. |
+| 3 | Sử dụng cấu hình lớn structs với nhiều trường có giá trị bằng 0 | Sử dụng mẫu tùy chọn chức năng - mỗi chức năng tùy chọn đều có khả năng tự ghi lại và có thể kết hợp được. |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Pointers vs Values | [go.dev/doc/effective_go#pointers_vs_values](https://go.dev/doc/effective_go#pointers_vs_values) |
+| Pointers so với Giá trị | [go.dev/doc/effective_go#pointers_vs_values](https://go.dev/doc/effective_go#pointers_vs_values) |
 | Embedding | [go.dev/doc/effective_go#embedding](https://go.dev/doc/effective_go#embedding) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Optional Properties](./11-optional-nullable.md) | When constructor parameters are optional | Pointer fields and functional options serve different use cases |
-| [Map Utilities](./03-object-map-utils.md) | When building configuration from dynamic key-value sources | Generic map operations for config merging |
+| [Optional Properties](./11-optional-nullable.md) | Khi tham số hàm tạo là tùy chọn | Các trường Pointer và các tùy chọn chức năng phục vụ các trường hợp sử dụng khác nhau |
+| [Map Utilities](./03-object-map-utils.md) | Khi xây dựng cấu hình từ các nguồn khóa-giá trị động | Generic map thao tác để hợp nhất cấu hình |
 
-**Navigation**: [← Optional & Nullable](./11-optional-nullable.md) · [→ Directory Overview](./README.md)
+**Điều hướng**: [← Optional & Nullable](./11-optional-nullable.md) · [→ Directory Overview](./README.md)

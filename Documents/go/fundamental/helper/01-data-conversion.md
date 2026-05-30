@@ -1,52 +1,45 @@
-<!-- tags: golang, conversion, bytes, encoding -->
-# 🔄 Data Conversion — String, Bytes, Base64, Hex, JSON
+<!-- tags: golang, conversion, bytes, encoding --> # 🔄 Chuyển đổi dữ liệu - Chuỗi, Byte, Base64, Hex, JSON
 
-> Go separates immutable `string` from mutable `[]byte`. Every network payload, cryptographic hash, and JSON body starts as bytes. Skipping explicit conversion causes silent data corruption.
+> Go tách biệt `string` bất biến khỏi `[]byte` có thể thay đổi. Mọi tải trọng mạng, hàm băm mật mã và nội dung JSON đều bắt đầu dưới dạng byte. Bỏ qua chuyển đổi rõ ràng gây ra hỏng dữ liệu thầm lặng.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Your webhook handler receives an HMAC signature as a hex string in the `X-Hub-Signature` header. Your backend computes the digest and gets a raw `[]byte`. You compare them with `==` — the check fails every time. The hex string `"a1b2c3"` and the byte slice `[]byte{0xa1, 0xb2, 0xc3}` look related, but they occupy different memory layouts. You need `hex.EncodeToString` to bring them into the same representation before comparison.
+Trình xử lý webhook của bạn nhận được HMAC signature dưới dạng chuỗi hex trong tiêu đề `X-Hub-Signature` . Phần phụ trợ của bạn tính toán thông báo và nhận được `[]byte` thô. Bạn so sánh chúng với `==` - việc kiểm tra đều thất bại time . Chuỗi hex `"a1b2c3"` và byte slice `[]byte{0xa1, 0xb2, 0xc3}` trông có vẻ liên quan nhưng chúng chiếm các bố cục bộ nhớ khác nhau. Bạn cần `hex.EncodeToString` để đưa chúng vào cùng một biểu diễn trước khi so sánh.
 
-JavaScript developers expect implicit coercion between strings and binary data. Go refuses. `string(bytes)` and `[]byte(str)` create explicit copies — the string remains immutable, the byte slice remains mutable. Mixing them up corrupts cryptographic comparisons and leaks memory in streaming scenarios.
+Các nhà phát triển JavaScript mong đợi sự ép buộc ngầm giữa chuỗi và dữ liệu nhị phân. Go từ chối. `string(bytes)` và `[]byte(str)` tạo các bản sao rõ ràng - chuỗi không thay đổi, byte slice vẫn có thể thay đổi. Việc trộn lẫn chúng sẽ làm hỏng các so sánh mật mã và rò rỉ bộ nhớ trong các tình huống phát trực tuyến.
 
-### 1.1 Invariants & Failure Modes
+### 1.1 Các kiểu bất biến và lỗi
 
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **`[]byte`** | The universal format. Cryptography, I/O, and JSON encoders consume byte slices exclusively. |
-| **Encodings** | Base64 and hex are transport wrappers — they convert byte slices into printable strings for network transfer. |
+| ** `[]byte` ** | Phổ quát format . Bộ mã hóa mật mã, I/O và JSON chỉ sử dụng byte slices . |
+| **Mã hóa** | Base64 và hex là các trình bao bọc vận chuyển - chúng chuyển đổi byte slices thành các chuỗi có thể in được để truyền mạng. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Explicit copies** | `string(buf)` allocates a new string. Mutating `buf` after the cast does not affect the string. |
-| **Reader pipelines** | Avoid `io.ReadAll` on untrusted input. Stream large payloads through `json.NewDecoder` to cap memory usage. |
+| **Bản sao rõ ràng** | `string(buf)` cấp phát một chuỗi mới. Việc thay đổi `buf` sau khi truyền không ảnh hưởng đến chuỗi. |
+| **Quy trình đọc** | Tránh `io.ReadAll` trên đầu vào không đáng tin cậy. Truyền tải trọng lớn qua `json.NewDecoder` để giới hạn mức sử dụng bộ nhớ. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The Base64 Misalignment:** You decode a JWT payload with `base64.StdEncoding` instead of `base64.URLEncoding`. Standard Base64 uses `+` and `/`; URL-safe Base64 uses `-` and `_`. The decoder silently produces wrong bytes.
-- **The OOM Decoder:** A client uploads a 2 GB JSON body. You call `io.ReadAll(request.Body)` and load the entire payload into memory. The Kubernetes pod hits its memory limit and is killed.
+- **Sai lệch Base64:** Bạn giải mã tải trọng JWT bằng `base64.StdEncoding` thay vì `base64.URLEncoding` . Base64 tiêu chuẩn sử dụng `+` và `/` ; Base64 an toàn cho URL sử dụng `-` và `_` . Bộ giải mã âm thầm tạo ra các byte sai.
+- **Bộ giải mã OOM:** Một khách hàng tải lên nội dung JSON 2 GB. Bạn gọi `io.ReadAll(request.Body)` và tải toàn bộ tải trọng vào bộ nhớ. Nhóm Kubernetes đạt đến giới hạn bộ nhớ và bị hủy.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The conversion landscape has one central hub: `[]byte`. Every format — string, Base64, hex, JSON — converts to and from bytes. The visual anchors this hierarchy.
+Bối cảnh chuyển đổi có một trung tâm trung tâm: `[]byte` . Mọi format — chuỗi, Base64, hex, JSON — chuyển đổi thành và từ byte. Hình ảnh neo giữ hệ thống phân cấp này. ![Data Conversion Map](./images/01-data-conversion-api-map.png) *Hình: `[]byte` nằm ở trung tâm. Các chuỗi, Base64, hex và JSON đều chuyển đổi thông qua byte slices . Tải trọng mạng đến dưới dạng byte; định dạng hiển thị để lại dưới dạng chuỗi.*
 
-![Data Conversion Map](./images/01-data-conversion-api-map.png)
+## 3. MÃ
 
-*Figure: `[]byte` sits at the center. Strings, Base64, hex, and JSON all convert through byte slices. Network payloads arrive as bytes; display formats leave as strings.*
+Với hệ thống phân cấp chuyển đổi được thiết lập, mã bên dưới thể hiện bốn mẫu tăng dần: chuyển đổi chuỗi/byte cơ bản, xác minh hex signature , giải mã JSON trực tuyến và tập hợp nhiều phần.
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Chuyển đổi chuỗi và byte
 
-With the conversion hierarchy established, the code below demonstrates four escalating patterns: basic string/byte casts, hex signature verification, streaming JSON decoding, and multipart assembly.
-
-### Example 1: Basic — String and byte conversions
-
-> **Goal**: Convert between `string` and `[]byte` for cryptographic and network payloads.
-> **Approach**: Use native `[]byte()` casts and `encoding/base64` for transport encoding.
-> **Complexity**: O(N) — each conversion copies the entire buffer.
-
-```go
+> **Mục tiêu**: Chuyển đổi giữa `string` và `[]byte` cho tải trọng mạng và mật mã.
+> **Phương pháp tiếp cận**: Sử dụng các phôi `[]byte()` gốc và `encoding/base64` để mã hóa truyền tải.
+> **Độ phức tạp**: O(N) — mỗi chuyển đổi sẽ sao chép toàn bộ bộ đệm.```go
 // basic_coercion.go
 package helper
 
@@ -68,19 +61,13 @@ func ExecuteConversions(payload string) error {
 	fmt.Printf("Reverted: %s | Std: %s | URL: %s\n", reverted, standardEncoded, urlEncoded)
 	return nil
 }
-```
-
-> **Takeaway**: `string(buf)` and `[]byte(str)` are explicit copies. Mutating the byte slice after conversion does not affect the string. Use `URLEncoding` for JWT tokens and URL parameters; use `StdEncoding` for everything else.
+```> **Takeaway**: `string(buf)` và `[]byte(str)` là những bản sao rõ ràng. Việc thay đổi byte slice sau khi chuyển đổi không ảnh hưởng đến chuỗi. Sử dụng `URLEncoding` cho mã thông báo JWT và tham số URL; sử dụng `StdEncoding` cho mọi thứ khác.
 
 ---
 
-### Example 2: Intermediate — Hex signature verification
-
-> **Goal**: Compare a raw HMAC digest against a hex-encoded signature header.
-> **Approach**: Encode the raw digest with `hex.EncodeToString` and compare strings.
-> **Complexity**: O(N) — one pass to encode, one comparison.
-
-```go
+### Ví dụ 2: Trung cấp — Xác minh Hex signature > **Mục tiêu**: So sánh thông báo HMAC thô với tiêu đề signature được mã hóa hex.
+> **Phương pháp tiếp cận**: Mã hóa thông báo thô bằng `hex.EncodeToString` và so sánh các chuỗi.
+> **Độ phức tạp**: O(N) — một lần mã hóa, một lần so sánh.```go
 // crypto_mapping.go
 package helper
 
@@ -98,19 +85,15 @@ func VerifyHexadecimalSignatures(rawHash []byte, providedSignature string) error
 	}
 	return nil
 }
-```
-
-> **Takeaway**: Never compare raw bytes against hex strings directly. `hex.EncodeToString` converts `[]byte{0xa1}` to `"a1"` — both sides must be in the same representation.
+```> **Takeaway**: Không bao giờ so sánh trực tiếp byte thô với chuỗi hex. `hex.EncodeToString` chuyển đổi `[]byte{0xa1}` thành `"a1"` — cả hai bên phải có cùng cách biểu diễn.
 
 ---
 
-### Example 3: Advanced — Streaming JSON decoding
+### Ví dụ 3: Nâng cao — Giải mã JSON trực tuyến
 
-> **Goal**: Decode large JSON request bodies without loading the entire payload into memory.
-> **Approach**: Use `json.NewDecoder(reader)` to stream-parse directly from `io.ReadCloser`.
-> **Complexity**: O(1) memory overhead — the decoder reads token by token.
-
-```go
+> **Mục tiêu**: Giải mã nội dung yêu cầu JSON lớn mà không tải toàn bộ tải trọng vào bộ nhớ.
+> **Phương pháp tiếp cận**: Sử dụng `json.NewDecoder(reader)` để phân tích cú pháp trực tiếp từ `io.ReadCloser` .
+> **Độ phức tạp**: O(1) chi phí bộ nhớ — bộ giải mã đọc mã thông báo theo mã thông báo.```go
 // streaming_json.go
 package helper
 
@@ -138,19 +121,15 @@ func StreamIncomingPayload(request *http.Request) (VerificationPayload, error) {
 	
 	return payload, nil
 }
-```
-
-> **Takeaway**: `io.ReadAll` on untrusted input is an OOM vector. `json.NewDecoder` reads the HTTP body as a stream — memory stays constant regardless of payload size.
+```> **Takeaway**: `io.ReadAll` trên đầu vào không đáng tin cậy là một vectơ OOM. `json.NewDecoder` đọc phần thân HTTP dưới dạng luồng - bộ nhớ không đổi bất kể kích thước tải trọng.
 
 ---
 
-### Example 4: Expert — Multipart form assembly
+### Ví dụ 4: Expert — Lắp ráp biểu mẫu nhiều phần
 
-> **Goal**: Build an HTTP multipart body containing both JSON metadata and a binary file.
-> **Approach**: Use `multipart.Writer` to write fields and file parts to a shared buffer.
-> **Complexity**: O(1) buffer logic — writes stream directly.
-
-```go
+> **Mục tiêu**: Xây dựng nội dung nhiều phần HTTP chứa cả siêu dữ liệu JSON và tệp nhị phân.
+> **Phương pháp tiếp cận**: Sử dụng `multipart.Writer` để ghi các trường và phần tệp vào bộ đệm dùng chung.
+> **Độ phức tạp**: Logic đệm O(1) — ghi luồng trực tiếp.```go
 // multipart_assembly.go
 package helper
 
@@ -176,31 +155,29 @@ func BuildMultipartTransmission(metadata string, binary []byte) (*bytes.Buffer, 
 	
 	return buffer, writer.FormDataContentType(), nil
 }
-```
+```> **Takeaway**: `multipart.Writer` tự động xử lý các điểm đánh dấu ranh giới. Gọi `Close()` trước khi đọc bộ đệm - nó ghi ranh giới cuối cùng.
 
-> **Takeaway**: `multipart.Writer` handles boundary markers automatically. Call `Close()` before reading the buffer — it writes the final boundary.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Using `StdEncoding` for URL/JWT payloads | Use `base64.URLEncoding` — standard encoding contains `+` and `/` which break URL parameters |
-| 2 | Calling `io.ReadAll` on untrusted HTTP bodies | Use `json.NewDecoder` to stream-parse; add `http.MaxBytesReader` as a size guard |
-| 3 | Comparing raw bytes against hex/Base64 strings | Encode both sides to the same format before comparison |
-| 4 | Assuming `string(buf)` shares memory with `buf` | It creates a copy. Mutating `buf` after the cast is safe but allocates extra memory |
+| 1 | Sử dụng `StdEncoding` cho tải trọng URL/ JWT | Sử dụng `base64.URLEncoding` — mã hóa tiêu chuẩn chứa `+` và `/` phá vỡ các tham số URL |
+| 2 | Gọi `io.ReadAll` trên các phần thân HTTP không đáng tin cậy | Sử dụng `json.NewDecoder` để phân tích cú pháp luồng; thêm `http.MaxBytesReader` làm bộ bảo vệ kích thước |
+| 3 | So sánh byte thô với chuỗi hex/Base64 | Mã hóa cả hai bên thành cùng một format trước khi so sánh |
+| 4 | Giả sử `string(buf)` chia sẻ bộ nhớ với `buf` | Nó tạo ra một bản sao. Đột biến `buf` sau khi truyền là an toàn nhưng phân bổ thêm bộ nhớ |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | `encoding/base64` | [pkg.go.dev/encoding/base64](https://pkg.go.dev/encoding/base64) |
 | `encoding/json` | [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Array Pipeline](./02-array-pipeline.md) | When processing collections of converted records | Generic `Map`, `Filter`, `Reduce` over typed slices |
-| [Promise & Async](./04-promise-async.md) | When calling multiple external APIs concurrently | `errgroup` and channel patterns for parallel I/O |
+| [Array Pipeline](./02-array-pipeline.md) | Khi xử lý bộ sưu tập các bản ghi được chuyển đổi | Generic `Map` , `Filter` , `Reduce` trên đã gõ slices |
+| [Promise & Async](./04-promise-async.md) | Khi gọi đồng thời nhiều API bên ngoài | Các mẫu `errgroup` và channel cho I/O song song |
 
-**Navigation**: [← Bridge Router](./README.md) · [→ Array Pipeline](./02-array-pipeline.md)
+**Điều hướng**: [← Bridge Router](./README.md) · [→ Array Pipeline](./02-array-pipeline.md)

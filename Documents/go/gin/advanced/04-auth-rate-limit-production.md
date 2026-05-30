@@ -1,33 +1,26 @@
-<!-- tags: golang -->
-# 🔐 Auth & Rate Limit — Production API Protection in Gin
+<!-- tags: golang --> # 🔐 Giới hạn xác thực & tỷ lệ — Bảo vệ API sản xuất trong Gin
 
-> **Library**: Layered middleware for JWT auth, role checks, and per-user/IP rate limiting in production Gin APIs.
+> **Thư viện**: Phần mềm trung gian phân lớp để xác thực JWT, kiểm tra vai trò và giới hạn tốc độ IP/người dùng trong API Gin sản xuất.
 
-📅 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã cập nhật: 2026-04-19 · ⏱️ 16 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Production APIs need three middleware layers in order: **authentication** (who is calling?), **authorization** (are they allowed?), **rate limiting** (are they abusing?). Each layer is a separate Gin middleware that calls `c.Next()` on success or `c.Abort*` on failure.
+API sản xuất cần ba lớp phần mềm trung gian theo thứ tự: **xác thực** (ai đang gọi?), **ủy quyền** (họ có được phép không?), **giới hạn tỷ lệ** (họ có đang lạm dụng không?). Mỗi lớp là một phần mềm trung gian Gin riêng biệt gọi `c.Next()` nếu thành công hoặc `c.Abort*` nếu thất bại.
 
-| Layer          | Purpose                                   |
+| Lớp | Mục đích |
 | -------------- | ----------------------------------------- |
-| Authentication | Validates Bearer token, sets `claims` in context |
-| Authorization  | Checks role/permission from claims        |
-| Rate Limiting  | Throttles by user ID or IP address        |
-| Audit Logging  | Logs denied requests for security review  |
+| Xác thực | Xác thực mã thông báo Bearer, đặt `claims` trong ngữ cảnh |
+| Ủy quyền | Kiểm tra vai trò/quyền từ các khiếu nại |
+| Giới hạn tỷ lệ | Điều tiết theo ID người dùng hoặc địa chỉ IP |
+| Ghi nhật ký kiểm tra | Nhật ký từ chối yêu cầu xem xét bảo mật |
 
-### Key Invariants
+### Bất biến chính
 
-- **Auth before rate limit.** Rate-limit by user ID requires knowing who the user is first.
-- **Accept `TokenVerifier` interface, not a concrete JWT lib.** Enables swapping JWKS, Paseto, or mocks.
+- **Xác thực trước giới hạn tỷ lệ.** Giới hạn tỷ lệ theo ID người dùng yêu cầu biết người dùng là ai trước.
+- **Chấp nhận giao diện `TokenVerifier` , không phải lib JWT cụ thể.** Cho phép hoán đổi JWKS, Paseto hoặc giả.
 
-## 2. VISUAL
-
-![Production middleware stack — 7 protection layers from rate limiter to handler](./images/04-auth-ratelimit-prod.png)
-
-*Figure: Layered protection — Rate Limiter → CORS → Security Headers → JWT Auth → RBAC → Logging → Handler. Each layer can short-circuit; request reaches handler only if all pass.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Production middleware stack — 7 protection layers from rate limiter to handler](./images/04-auth-ratelimit-prod.png) *Hình: Bảo vệ theo lớp — Bộ giới hạn tốc độ → CORS → Tiêu đề bảo mật → Xác thực JWT → RBAC → Ghi nhật ký → Trình xử lý. Mỗi lớp có thể bị đoản mạch; yêu cầu chỉ đến được bộ xử lý nếu tất cả đều đạt.*```mermaid
 flowchart LR
     A["Request"] --> B["RateLimiter"]
     B -->|"under limit"| C["AuthMiddleware"]
@@ -36,23 +29,15 @@ flowchart LR
     B -->|"exceeded"| F["429"]
     C -->|"invalid"| G["401"]
     D -->|"no access"| H["403"]
-```
+```*Hình: Chuỗi phần mềm trung gian ba lớp — giới hạn tốc độ (toàn cầu) → xác thực (danh tính) → kiểm tra vai trò (quyền). Mỗi lớp sẽ bị đoản mạch khi bị lỗi.*
 
-*Figure: Three-layer middleware chain — rate limit (global) → auth (identity) → role check (permission). Each layer short-circuits on failure.*
-
-### Middleware Order
-
-```text
+### Thứ tự phần mềm trung gian```text
 Global:   RateLimit (by IP)
 Auth:     AuthMiddleware (Bearer token → claims)
 Route:    RequireRole("admin") (per-endpoint)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Native Token Validation
-
-```go
+### Ví dụ 1: Cơ bản — Xác thực mã thông báo gốc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Auth middleware: extract Bearer token, verify via interface,
     // set claims in gin.Context for downstream handlers.
@@ -92,11 +77,7 @@ Route:    RequireRole("admin") (per-endpoint)
             c.Next()
         }
     }
-```
-
-### Example 2: Intermediate — Mapped Role Restrictions
-
-```go
+```### Ví dụ 2: Trung cấp — Hạn chế về vai trò được ánh xạ```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Role guard: read claims from context, check role match.
     // 403 if role doesn't match expected value.
@@ -129,11 +110,7 @@ Route:    RequireRole("admin") (per-endpoint)
             c.Next()
         }
     }
-```
-
-### Example 3: Advanced — Throttling Context Keys
-
-```go
+```### Ví dụ 3: Nâng cao — Khóa ngữ cảnh điều chỉnh```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Per-key rate limiter using x/time/rate. Keyed by user ID
     // (if authenticated) or client IP (fallback).
@@ -182,29 +159,27 @@ Route:    RequireRole("admin") (per-endpoint)
         }
         return c.ClientIP()
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Rate limiting without authentication first | Rate limit key is IP only; authenticated users share limits behind NAT | Run auth middleware before rate limiter, key by user ID |
-| 2 | 🟡 Common | Unbounded in-memory limiter map (no eviction) | Memory grows linearly with unique IPs; OOM after days | Use TTL-based cache or Redis-backed limiter in production |
+| 1 | 🔴 Gây tử vong | Giới hạn tỷ lệ mà không cần xác thực trước | Khóa giới hạn tốc độ chỉ là IP; người dùng được xác thực chia sẻ giới hạn đằng sau NAT | Chạy phần mềm trung gian xác thực trước bộ giới hạn tốc độ, khóa theo ID người dùng |
+| 2 | 🟡 Chung | Bản đồ giới hạn bộ nhớ không giới hạn (không bị trục xuất) | Bộ nhớ tăng trưởng tuyến tính với các IP duy nhất; OOM sau nhiều ngày | Sử dụng bộ đệm dựa trên TTL hoặc bộ giới hạn được Redis hỗ trợ trong sản xuất |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Middleware Docs | [gin-gonic.com/en/docs/examples/using-middleware/](https://gin-gonic.com/en/docs/examples/using-middleware/) |
+| Tài liệu phần mềm trung gian | [gin-gonic.com/en/docs/examples/using-middleware/](https://gin-gonic.com/en/docs/examples/using-middleware/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Upload Streaming | When you handle large file uploads/downloads | Stream via `io.Copy` to avoid loading entire file in memory | [./05-upload-download-streaming.md](./05-upload-download-streaming.md) |
+| Tải lên phát trực tuyến | Khi bạn xử lý việc tải lên/tải xuống tệp lớn | Truyền phát qua `io.Copy` để tránh tải toàn bộ tệp trong bộ nhớ | [./05-upload-download-streaming.md](./05-upload-download-streaming.md) |

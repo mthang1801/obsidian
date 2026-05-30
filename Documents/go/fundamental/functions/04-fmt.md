@@ -1,102 +1,87 @@
-<!-- tags: golang -->
-# 🖨️ Fmt — Formatting, Printing & Scanning
+<!-- tags: golang --> # 🖨️ Fmt — Định dạng, In & Quét
 
-> Package `fmt` is the central I/O formatting hub in Go: print routines, format string construction, and input scanning. Understanding format verbs accelerates debugging and ensures precise output.
+> Package `fmt` là trung tâm định dạng I/O trung tâm trong Go : quy trình in, xây dựng chuỗi format và quét đầu vào. Việc hiểu các động từ format sẽ tăng tốc quá trình gỡ lỗi và đảm bảo kết quả đầu ra chính xác.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-| Aspect         | Detail                                    |
+| Khía cạnh | Chi tiết |
 | -------------- | ----------------------------------------- |
-| **Package**    | `fmt`                                     |
-| **Use case**   | Print, format strings, scan input, debug  |
-| **Interfaces** | `Stringer`, `GoStringer`, `Formatter`     |
-| **Key rule**   | `%v` for general, `%+v` for struct fields |
+| ** Package ** | `fmt` |
+| **Trường hợp sử dụng** | In, chuỗi format , quét đầu vào, gỡ lỗi |
+| ** Interfaces ** | `Stringer` , `GoStringer` , `Formatter` |
+| **Quy tắc chính** | `%v` dành cho trường chung, `%+v` dành cho trường struct |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA `fmt.Sprintf("%v", obj)` thuận tiện nhưng chậm hơn 5 lần so với `strconv.Itoa()` . `fmt.Errorf("%w", err)` kết thúc chuỗi lỗi; `%v` thì không. Sản xuất Go yêu cầu biết khi nào nên sử dụng `fmt` , khi nào cần tiếp cận `strconv` và khi nào nên xoay sang `strings.Builder` .
 
-`fmt.Sprintf("%v", obj)` is convenient but 5x slower than `strconv.Itoa()`. `fmt.Errorf("%w", err)` wraps the error chain; `%v` does not. Production Go demands knowing when to use `fmt`, when to reach for `strconv`, and when to pivot to `strings.Builder`.
-
-> *You are debugging a production bug. The API returns wrong data but you cannot tell at which step. You need to print variable values, format log output, and build error messages with context. In Go, all formatted output flows through a single package: `fmt`.*
+> *Bạn đang gỡ lỗi sản xuất. API trả về dữ liệu sai nhưng bạn không thể biết được ở bước nào. Bạn cần in các giá trị biến, đầu ra nhật ký format và tạo thông báo lỗi có ngữ cảnh. Trong Go , tất cả đầu ra được định dạng đều chảy qua một package : `fmt` .*
 >
-> *`fmt` is far more than `println`. It is a versatile formatting toolkit: `Sprintf` builds strings safely, `Fprintf` writes to any `io.Writer` (files, HTTP responses, buffers), and `Errorf` with `%w` creates wrapped errors that preserve the causal chain. Mastering `fmt` means mastering how Go communicates — with the developer via logs, with the caller via errors, and with the client via API responses.*
+> * `fmt` nhiều hơn `println` . Đây là bộ công cụ định dạng linh hoạt: `Sprintf` xây dựng chuỗi một cách an toàn, `Fprintf` ghi vào any `io.Writer` (tệp, phản hồi HTTP, bộ đệm) và `Errorf` với `%w` tạo ra các lỗi bao bọc để duy trì chuỗi nguyên nhân. Nắm vững `fmt` có nghĩa là nắm vững cách Go giao tiếp — với nhà phát triển qua nhật ký, với người gọi qua lỗi và với khách hàng qua phản hồi API.*
 
-### Print Functions
+### Chức năng in
 
-| Function   | Output        | Newline? | Format? |
+| Chức năng | Đầu ra | Dòng mới? | Format ? |
 | ---------- | ------------- | -------- | ------- |
-| `Print`    | stdout        | ❌       | ❌      |
-| `Println`  | stdout        | ✅       | ❌      |
-| `Printf`   | stdout        | ❌       | ✅      |
-| `Sprint`   | return string | ❌       | ❌      |
-| `Sprintf`  | return string | ❌       | ✅      |
-| `Sprintln` | return string | ✅       | ❌      |
-| `Fprint`   | io.Writer     | ❌       | ❌      |
-| `Fprintf`  | io.Writer     | ❌       | ✅      |
-| `Errorf`   | return error  | ❌       | ✅      |
+| `Print` | thiết bị xuất chuẩn | ❌ | ❌ |
+| `Println` | thiết bị xuất chuẩn | ✅ | ❌ |
+| `Printf` | thiết bị xuất chuẩn | ❌ | ✅ |
+| `Sprint` | chuỗi trả về | ❌ | ❌ |
+| `Sprintf` | chuỗi trả về | ❌ | ✅ |
+| `Sprintln` | chuỗi trả về | ✅ | ❌ |
+| `Fprint` | io.Writer | ❌ | ❌ |
+| `Fprintf` | io.Writer | ❌ | ✅ |
+| `Errorf` | lỗi trả về | ❌ | ✅ |
 
-### Format Verbs — Reference Table
+### Format Động từ — Bảng tham khảo
 
-| Verb  | Description              | Example output            |
+| Động từ | Mô tả | Đầu ra ví dụ |
 | ----- | ------------------------ | ------------------------- |
-| `%v`  | Default format           | `{Alice 25}`              |
-| `%+v` | Struct with field names  | `{Name:Alice Age:25}`     |
-| `%#v` | Go syntax representation | `main.User{Name:"Alice"}` |
-| `%T`  | Type                     | `main.User`               |
-| `%d`  | Integer (decimal)        | `42`                      |
-| `%b`  | Integer (binary)         | `101010`                  |
-| `%o`  | Integer (octal)          | `52`                      |
-| `%x`  | Integer (hex lowercase)  | `2a`                      |
-| `%X`  | Integer (hex uppercase)  | `2A`                      |
-| `%f`  | Float (decimal)          | `3.141593`                |
-| `%e`  | Float (scientific)       | `3.141593e+00`            |
-| `%g`  | Float (compact)          | `3.14159`                 |
-| `%s`  | String                   | `hello`                   |
-| `%q`  | Quoted string            | `"hello"`                 |
-| `%c`  | Character (rune)         | `A`                       |
-| `%p`  | Pointer address          | `0xc000014080`            |
-| `%t`  | Boolean                  | `true`                    |
-| `%%`  | Literal %                | `%`                       |
+| `%v` | Mặc định format | `{Alice 25}` |
+| `%+v` | Struct với tên trường | `{Name:Alice Age:25}` |
+| `%#v` | Biểu diễn cú pháp Go | `main.User{Name:"Alice"}` |
+| `%T` | Loại | `main.User` |
+| `%d` | Số nguyên (thập phân) | `42` |
+| `%b` | Số nguyên (nhị phân) | `101010` |
+| `%o` | Số nguyên (bát phân) | `52` |
+| `%x` | Số nguyên (chữ thường hex) | `2a` |
+| `%X` | Số nguyên (chữ hoa hex) | `2A` |
+| `%f` | Phao (thập phân) | `3.141593` |
+| `%e` | Phao (khoa học) | `3.141593e+00` |
+| `%g` | Phao (nhỏ gọn) | `3.14159` |
+| `%s` | Chuỗi | `hello` |
+| `%q` | Chuỗi trích dẫn | `"hello"` |
+| `%c` | Nhân vật (rune) | `A` |
+| `%p` | Pointer địa chỉ | `0xc000014080` |
+| `%t` | Boolean | `true` |
+| `%%` | Nghĩa đen % | `%` |
 
-### Width & Precision
+### Chiều rộng và độ chính xác
 
-| Syntax  | Description                | Example output |
+| Cú pháp | Mô tả | Đầu ra ví dụ |
 | ------- | -------------------------- | -------------- |
-| `%10d`  | Width 10, right-aligned    | `        42`   |
-| `%-10d` | Width 10, left-aligned     | `42        `   |
-| `%010d` | Width 10, zero-padded      | `0000000042`   |
-| `%.2f`  | 2 decimal places           | `3.14`         |
-| `%8.2f` | Width 8, 2 decimals        | `    3.14`     |
-| `%.5s`  | Truncate string to 5 chars | `Hello`        |
+| `%10d` | Chiều rộng 10, căn phải | ` 42` |
+| `%-10d` | Chiều rộng 10, căn trái | `42 ` |
+| `%010d` | Chiều rộng 10, không đệm | `0000000042` |
+| `%.2f` | 2 chữ số thập phân | `3.14` |
+| `%8.2f` | Chiều rộng 8, 2 số thập phân | ` 3.14` |
+| `%.5s` | Cắt chuỗi còn 5 ký tự | `Hello` |
 
 ---
 
-These format verbs look familiar — but real traps exist: `%v` on a pointer prints the address instead of the value, and `Sprintf` in a hot loop creates an allocation storm. Those traps surface in PITFALLS.
+Các động từ format này trông quen thuộc — nhưng có bẫy thực sự: `%v` trên pointer in địa chỉ thay vì giá trị và `Sprintf` trong vòng lặp nóng sẽ tạo ra cơn bão phân bổ. Những cái bẫy đó xuất hiện trong PITFALS.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH `fmt` trông giống như một hình phẳng package , nhưng mô hình tinh thần chính xác bắt đầu từ *destination* thay vì tên hàm. Hình ảnh bên dưới sắp xếp lại API thành các nhóm gia đình: đầu ra đi đâu, chuỗi được tạo như thế nào và điều gì kiểm soát độ phân giải động từ. ![Fmt API map](./images/04-fmt-api-map.png) *Hình: Họ API map dành cho `fmt` nhóm bốn họ — `Print` , `Sprint` , `Fprint` , `Scan` — sau đó neo lớp phân giải động từ trong đó `Stringer` , `error` , chiều rộng và độ chính xác bắt đầu định hình đầu ra thực tế.*
 
-`fmt` looks like a flat package, but the correct mental model starts from the *destination* rather than the function name. The visual below reorganizes the API into family groups: where does the output go, how is a string created, and what controls verb resolution.
+Khi thứ tự đích và độ phân giải hiển thị, mã bên dưới sẽ không còn cảm giác giống như "ghi nhớ động từ". Thay vào đó, bạn sẽ hiểu tại sao cùng một giá trị lại tạo ra kết quả hoàn toàn khác khi bạn chuyển đổi họ hoặc động từ.
 
-![Fmt API map](./images/04-fmt-api-map.png)
+## 3. MÃ
 
-*Figure: API-family map for `fmt` grouping four families — `Print`, `Sprint`, `Fprint`, `Scan` — then anchoring the verb resolution layer where `Stringer`, `error`, width, and precision begin to shape the actual output.*
+Với **Fmt — Định dạng, In & Quét**, chúng tôi đã ánh xạ các động từ và mẫu đầu ra format . Bây giờ, hãy bước vào mã để xem mỗi lựa chọn — `%v` so với `%+v` , `Sprintf` so với `Fprintf` , `Stringer` so với thủ công format — thực sự thay đổi kết quả gỡ lỗi và chất lượng nhật ký như thế nào.
 
-Once destination and resolution order are visible, the code below stops feeling like "memorize the verb." Instead, you will see why the same value produces entirely different output when you switch families or verbs.
+### Ví dụ 1: Cơ bản — Hàm in & Động từ Format Bạn đang gỡ lỗi struct và cần tên trường cộng với giá trị. `Println` chỉ in giá trị. `Printf("%v")` cũng chỉ in các giá trị. `Printf("%+v")` thêm tên trường. `Printf("%#v")` cũng thêm tên loại - nhưng khi nào bạn nên sử dụng tên loại nào? `fmt` package có 3 nhóm động từ: chung ( `%v` , `%T` ), số nguyên ( `%d` , `%x` ) và chuỗi ( `%s` , `%q` ) — mỗi động từ phục vụ một mục đích riêng biệt.
 
-## 3. CODE
-
-With **Fmt — Formatting, Printing & Scanning**, we mapped format verbs and output patterns. Now let's step into the code to see how each choice — `%v` vs `%+v`, `Sprintf` vs `Fprintf`, `Stringer` vs manual format — actually changes debug output and log quality.
-
-### Example 1: Basic — Print Functions & Format Verbs
-
-You are debugging a struct and need field names plus values. `Println` only prints values. `Printf("%v")` also only prints values. `Printf("%+v")` adds field names. `Printf("%#v")` adds the type name as well — but when should you use which?
-
-The `fmt` package has 3 verb groups: general (`%v`, `%T`), integer (`%d`, `%x`), and string (`%s`, `%q`) — each verb serves a distinct purpose.
-
-Input: `fmt.Printf("%+v", User{"Go", 15})` · Output: `{Name:Go Age:15}`
-
-```go
+Đầu vào: `fmt.Printf("%+v", User{"Go", 15})` · Đầu ra: `{Name:Go Age:15}````go
 package main
 
 import "fmt"
@@ -146,21 +131,17 @@ func main() {
 	p := &n
 	fmt.Printf("Pointer: %p\n", p)    // 0xc000014088
 }
-```
+```> `%v` xuất ra `{Alice 25}` — bạn không thể biết trường nào là trường nào. `%+v` xuất ra `{Name:Alice Age:25}` — rõ ràng. `%#v` thậm chí còn cung cấp cú pháp Go `main.User{Name:"Alice", Age:25}` - sẵn sàng sao chép-dán. `%T` cung cấp tên loại - hữu ích khi interface ẩn loại bê tông.
 
-> `%v` outputs `{Alice 25}` — you cannot tell which field is which. `%+v` outputs `{Name:Alice Age:25}` — explicit. `%#v` even provides Go syntax `main.User{Name:"Alice", Age:25}` — copy-paste ready. `%T` gives the type name — useful when an interface hides the concrete type.
+> **Takeaway**: `%v` cho đầu ra chung, `%+v` để gỡ lỗi structs , `%#v` cho kết xuất mã, `%T` để kiểm tra loại. Định dạng số: `%d` thập phân, `%x` hex, `%b` nhị phân.
 
-> **Takeaway**: `%v` for general output, `%+v` for debugging structs, `%#v` for dump-to-code, `%T` for type inspection. Number formats: `%d` decimal, `%x` hex, `%b` binary.
+Những điều cơ bản về in ấn được đề cập. Nhưng format động từ đi sâu hơn: `%+v` , `%#v` , chiều rộng/độ chính xác và Stringer interface .
 
-Print basics are covered. But format verbs go deeper: `%+v`, `%#v`, width/precision, and the Stringer interface.
+### Ví dụ 2: Trung cấp — Chiều rộng, Đệm & Chạy nước rút
 
-### Example 2: Intermediate — Width, Padding & Sprintf
+Bạn in một bảng dữ liệu ra terminal: các cột dính vào nhau, các số bị lệch. `Printf` cung cấp chiều rộng và phần đệm: `%10d` căn phải trong vòng 10 ký tự, `%-10s` căn trái, `%08x` căn lề bằng số 0. `Sprintf` trả về một chuỗi thay vì in — sử dụng chuỗi đó để xây dựng các chuỗi được định dạng để ghi nhật ký và báo cáo.
 
-You print a data table to the terminal: columns stick together, numbers misalign. `Printf` provides width and padding: `%10d` right-aligns within 10 characters, `%-10s` left-aligns, `%08x` pads with zeros. `Sprintf` returns a string instead of printing — use it to build formatted strings for logging and reporting.
-
-Input: `fmt.Sprintf("%-10s %5d", "Go", 42)` · Output: `"Go              42"`
-
-```go
+Đầu vào: `fmt.Sprintf("%-10s %5d", "Go", 42)` · Đầu ra: `"Go 42"````go
 package main
 
 import "fmt"
@@ -216,23 +197,17 @@ func main() {
 		fmt.Printf("%-12s %10.2f %6d\n", p.Name, p.Price, p.Stock)
 	}
 }
-```
+```> `%w` bao bọc lỗi — bảo toàn toàn bộ chuỗi lỗi. `errors.Is()` và `errors.As()` có thể duyệt chuỗi để tìm ra nguyên nhân gốc rễ. Nếu không có `%w` , chuỗi lỗi sẽ bị mất và người gọi không thể kiểm tra kiểu. `%v` định dạng lỗi thành một chuỗi đơn giản - mất hoàn toàn thông tin loại.
 
-> `%w` wraps the error — preserving the entire error chain. `errors.Is()` and `errors.As()` can traverse the chain to find the root cause. Without `%w`, the error chain is lost and callers cannot type-check. `%v` formats the error into a plain string — losing type information entirely.
+> **Takeaway**: `Sprintf` để xây dựng chuỗi, `Errorf` + `%w` cho error wrapping . Chiều rộng và phần đệm cho đầu ra dạng bảng. `%010d` zero-pad, `%-10s` căn trái. Format động từ được bao phủ. Tiếp theo: Stringer/GoStringer tùy chỉnh, `fmt.Formatter` interface và các lựa chọn thay thế ghi nhật ký hiệu suất cao.
 
-> **Takeaway**: `Sprintf` for string building, `Errorf` + `%w` for error wrapping. Width and padding for tabular output. `%010d` zero-pads, `%-10s` left-aligns.
+### Ví dụ 3: Nâng cao — Stringer Interface & Fprint
 
-Format verbs are covered. Next: custom Stringer/GoStringer, the `fmt.Formatter` interface, and high-performance logging alternatives.
+Bạn có `Money` struct với `Amount` và `Currency` . Mỗi time bạn in, bạn viết thủ công `fmt.Printf("%s %.2f", m.Currency, m.Amount)` . Triển khai `fmt.Stringer` interface (một phương thức `String() string` ) và `fmt.Println(m)` sẽ tự động gọi phương thức đó - DRY và nhất quán.
 
-### Example 3: Advanced — Stringer Interface & Fprint
+Họ `Fprint` ghi vào any `io.Writer` (tệp, mạng, bộ đệm) thay vì thiết bị xuất chuẩn - tạo thành nền tảng của ghi nhật ký có cấu trúc và kết xuất mẫu.
 
-You have a `Money` struct with `Amount` and `Currency`. Every time you print, you manually write `fmt.Printf("%s %.2f", m.Currency, m.Amount)`. Implement the `fmt.Stringer` interface (a `String() string` method) and `fmt.Println(m)` will automatically call that method — DRY and consistent.
-
-The `Fprint` family writes to any `io.Writer` (file, network, buffer) instead of stdout — forming the foundation of structured logging and template rendering.
-
-Input: `fmt.Println(Money{42.5, "USD"})` · Output: `USD 42.50`
-
-```go
+Đầu vào: `fmt.Println(Money{42.5, "USD"})` · Đầu ra: `USD 42.50````go
 package main
 
 import (
@@ -309,68 +284,64 @@ func main() {
 	fmt.Fprintf(f, "Report generated\n")
 	fmt.Fprintf(f, "Users: %d\n", 42)
 }
-```
+```> **Tại sao Stringer interface là mẫu quan trọng nhất trong `fmt` ?**
+> Việc triển khai `String() string` trên một loại tùy chỉnh có nghĩa là `fmt.Println(myType)` sẽ tự động gọi phương thức đó. Không cần ghi đè `toString()` hoặc decorator — chỉ một phương thức. Áp dụng nó để ghi nhật ký enum ( `LogLevel.String()` ), định dạng màu, hiển thị tiền. `Fprint` + `io.Writer` tách đích đầu ra khỏi logic định dạng.
 
-> **Why is the Stringer interface the most important pattern in `fmt`?**
-> Implementing `String() string` on a custom type means `fmt.Println(myType)` automatically calls that method. No `toString()` override or decorator needed — just one method. Apply it to enum logging (`LogLevel.String()`), color formatting, money display. `Fprint` + `io.Writer` decouples the output destination from the formatting logic.
-
-> **Takeaway**: Stringer for custom `%v`/`%s` output. GoStringer for `%#v`. `Fprint*` for writing to any `io.Writer`. Combine with `strings.Builder` for efficient string building.
+> **Takeaway**: Stringer cho đầu ra `%v` / `%s` tùy chỉnh. GoStringer cho `%#v` . `Fprint*` để ghi vào any `io.Writer` . Kết hợp với `strings.Builder` để xây dựng chuỗi hiệu quả.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The core mechanics of **Fmt — Formatting, Printing & Scanning** are clear. What remains is recognizing syntax that looks _almost right_ but introduces format bugs or performance traps into production.
+Cơ chế cốt lõi của **Fmt — Định dạng, In & Quét** rất rõ ràng. Những gì còn lại là cú pháp nhận dạng có vẻ _gần như đúng_ nhưng lại đưa ra các lỗi format hoặc bẫy hiệu suất trong quá trình sản xuất.
 
-| # | Severity | Bug | Consequence | Fix |
-|---|----------|-----|-------------|-----|
-| 1 | 🔴 Fatal | Stringer infinite loop — `String()` calls `Sprintf` with its own receiver | Stack overflow panic | Use fields directly, not `%v` with the receiver |
-| 2 | 🟡 Common | `Printf` missing `\n` | Output does not advance to the next line | Append `\n` or use `Println` |
-| 3 | 🟡 Common | Mismatched verb → output `%!d(string=hello)` | Debug output becomes unreadable | Match the verb to the correct type |
-| 4 | 🟡 Common | `Sprintf` is slower than `strconv` for number conversion | Performance degradation in hot paths | Prefer `strconv.Itoa()` when you only need number→string |
-| 5 | 🔵 Minor | `%w` only works inside `Errorf` | Compiles fine but behaves incorrectly at runtime | `%w` wraps errors exclusively via `fmt.Errorf` |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|------|-------------|------|
+| 1 | 🔴 Gây tử vong | Vòng lặp vô hạn Stringer - `String()` gọi `Sprintf` bằng receiver | Stack tràn panic | Sử dụng các trường trực tiếp, không phải `%v` với receiver |
+| 2 | 🟡 Chung | `Printf` thiếu `
+` | Đầu ra không chuyển sang dòng tiếp theo | Nối `
+` hoặc sử dụng `Println` |
+| 3 | 🟡 Chung | Động từ không khớp → đầu ra `%!d(string=hello)` | Đầu ra gỡ lỗi trở nên không thể đọc được | Nối động từ với đúng loại |
+| 4 | 🟡 Chung | `Sprintf` chậm hơn `strconv` khi chuyển đổi số | Suy giảm hiệu suất trong các đường dẫn nóng | Ưu tiên `strconv.Itoa()` khi bạn chỉ cần number→string |
+| 5 | 🔵 Nhỏ | `%w` chỉ hoạt động bên trong `Errorf` | Biên dịch tốt nhưng hoạt động không chính xác tại runtime | `%w` chỉ xử lý các lỗi thông qua `fmt.Errorf` |
 
-### 🔴 Pitfall #1 — Stringer infinite loop crash
+### 🔴 Cạm bẫy #1 — Sự cố vòng lặp vô hạn của Stringer
 
-You write a `String()` method for type `MyType` and inside it call `fmt.Sprintf("%v", m)` — accidentally creating infinite recursion:
-
-```go
+Bạn viết một phương thức `String()` cho kiểu `MyType` và bên trong nó gọi `fmt.Sprintf("%v", m)` — vô tình tạo ra đệ quy vô hạn:```go
 type MyType struct{ Name string }
 
 func (m MyType) String() string {
     return fmt.Sprintf("MyType: %v", m) // ❌ %v calls String() again → infinite loop!
 }
 // Fix: fmt.Sprintf("MyType: %s", m.Name)  ← use the field directly
-```
-
-`fmt` sees `%v` on a type that has `String()` → calls `String()` → encounters `%v` again → calls `String()` → stack overflow. This bug only surfaces at runtime — the compiler issues no warning.
+````fmt` thấy `%v` trên loại có `String()` → gọi `String()` → gặp lại `%v` → gọi `String()` → tràn stack . Lỗi này chỉ xuất hiện ở runtime — trình biên dịch không đưa ra cảnh báo.
 
 ---
 
-You have explored the `fmt` package from `Printf` through custom formatters. The resources below will take you deeper.
+Bạn đã khám phá `fmt` package từ `Printf` thông qua các trình định dạng tùy chỉnh. Các tài nguyên dưới đây sẽ đưa bạn sâu hơn.
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource                 | Type     | Link                                                                                                                    | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | ------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------- | ----- |
-| `fmt` package            | Official | [pkg.go.dev/fmt](https://pkg.go.dev/fmt)                                                                                | API reference |
-| Effective Go — Printing  | Official | [go.dev/doc/effective_go#printing](https://go.dev/doc/effective_go#printing)                                            | Best practices |
-| Format verbs cheat sheet | External | [yourbasic.org/golang/fmt-printf-reference-cheat-sheet](https://yourbasic.org/golang/fmt-printf-reference-cheat-sheet/) | Quick reference |
+| `fmt` package | Chính thức | [pkg.go.dev/fmt](https://pkg.go.dev/fmt) | Tham chiếu API |
+| Có hiệu lực Go — In ấn | Chính thức | [go.dev/doc/effective_go#printing](https://go.dev/doc/effective_go#printing) | Thực tiễn tốt nhất |
+| Format bảng động từ | Bên ngoài | [yourbasic.org/golang/fmt-printf-reference-cheat-sheet](https://yourbasic.org/golang/fmt-printf-reference-cheat-sheet/) | Tham khảo nhanh |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The foundations of **Fmt — Formatting, Printing & Scanning** are clear. The extensions below help you bring formatting into production with structured logging, CLI alignment, and template generation.
+Nền tảng của **Fmt — Định dạng, In & Quét** rất rõ ràng. Các tiện ích mở rộng bên dưới giúp bạn đưa định dạng vào sản xuất bằng tính năng ghi nhật ký có cấu trúc, căn chỉnh CLI và tạo mẫu.
 
-| Extension            | When                    | Why                                    | File/Link |
-| -------------------- | ----------------------- | -------------------------------------- | --------- |
-| `log` / `slog`       | Structured logging      | Production logging instead of fmt.Println | [pkg.go.dev/log/slog](https://pkg.go.dev/log/slog) |
-| `text/tabwriter`     | Aligned tabular output  | Auto-align columns                     | [pkg.go.dev/text/tabwriter](https://pkg.go.dev/text/tabwriter) |
-| `text/template`      | Complex text generation | Built-in template engine               | [pkg.go.dev/text/template](https://pkg.go.dev/text/template) |
-| `encoding/json`      | Structured output       | JSON marshaling for APIs               | [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json) |
-| `fmt.Formatter`      | Custom format verbs     | Implement for complex custom types     | [pkg.go.dev/fmt#Formatter](https://pkg.go.dev/fmt#Formatter) |
+| Gia hạn | Khi nào | Tại sao | Tệp/Liên kết |
+| -------------------- | -------------- | -------------------------------------- | --------- |
+| `log` / `slog` | Ghi nhật ký có cấu trúc | Ghi nhật ký sản xuất thay vì fmt.Println | [pkg.go.dev/log/slog](https://pkg.go.dev/log/slog) |
+| `text/tabwriter` | Đầu ra dạng bảng được căn chỉnh | Tự động căn chỉnh cột | [pkg.go.dev/text/tabwriter](https://pkg.go.dev/text/tabwriter) |
+| `text/template` | Tạo văn bản phức tạp | Công cụ tạo mẫu tích hợp | [pkg.go.dev/text/template](https://pkg.go.dev/text/template) |
+| `encoding/json` | Đầu ra có cấu trúc | Sắp xếp JSON cho API | [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json) |
+| `fmt.Formatter` | Động từ format tùy chỉnh | Triển khai cho các loại tùy chỉnh phức tạp | [pkg.go.dev/fmt#Formatter](https://pkg.go.dev/fmt#Formatter) |
 
 ---
 
-**Navigation**: [← strconv](./03-strconv.md) · [→ math](./05-math.md)
+**Điều hướng**: [← strconv](./03-strconv.md) · [→ math](./05-math.md)

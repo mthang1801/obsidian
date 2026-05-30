@@ -1,67 +1,54 @@
-<!-- tags: golang, structs -->
-# 🏷️ Struct Tags, Options & Builder Pattern
+<!-- tags: golang, structs --> # 🏷️ Struct Thẻ, Tùy chọn & Builder Mẫu
 
-> **Three construction patterns**: Struct tags control serialization and validation at the field level. Functional options create flexible constructors with sensible defaults. Builders enforce step-by-step object assembly with final validation.
+> **Ba mẫu xây dựng**: Thẻ Struct kiểm soát việc tuần tự hóa và xác thực ở cấp trường. Các tùy chọn chức năng tạo ra các hàm tạo linh hoạt với các giá trị mặc định hợp lý. Người xây dựng thực thi việc lắp ráp đối tượng từng bước với quá trình xác thực cuối cùng.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 12 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Concept** | Struct tags, functional options, builder pattern |
-| **Use case** | JSON serialization, flexible construction, step-by-step assembly |
-| **Key insight** | Tags are strings parsed at runtime via reflection — no compile-time safety |
-| **Go stdlib** | `encoding/json`, `reflect`, `net/url` |
+| **Khái niệm** | Thẻ Struct , tùy chọn chức năng, mẫu builder |
+| **Trường hợp sử dụng** | Tuần tự hóa JSON, xây dựng linh hoạt, lắp ráp từng bước |
+| **Thông tin chi tiết quan trọng** | Thẻ là các chuỗi được phân tích cú pháp tại runtime thông qua sự phản chiếu - không biên dịch- time an toàn |
+| ** Go stdlib** | `encoding/json` , `reflect` , `net/url` |
 
-| External Paradigm | Go Pattern                               |
+| Mô hình bên ngoài | Go Mẫu |
 | --------------------------------- | ---------------------------------------- |
-| Decorators `@Column()`, `@Prop()` | Struct tags: `json:"name"`, `gorm:"..."` |
-| Constructor overloads             | Functional Options system               |
-| Builder pattern class             | Chained pointer mutation structures      |
+| Trang trí `@Column()` , `@Prop()` | Thẻ Struct : `json:"name"` , `gorm:"..."` |
+| Quá tải hàm tạo | Hệ thống tùy chọn chức năng |
+| Lớp mẫu Builder | Cấu trúc đột biến chuỗi pointer |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A missing `json:"-"` tag on a `Password` field leaks credentials in every API response. A typo in `json:"naem"` silently drops a field from the JSON output. Both bugs produce zero compile-time warnings — struct tags are raw strings parsed by reflection at runtime.
+Thẻ `json:"-"` bị thiếu trên trường `Password` làm rò rỉ thông tin đăng nhập trong mọi phản hồi API. Một lỗi đánh máy trong `json:"naem"` đã âm thầm loại bỏ một trường khỏi đầu ra JSON. Cả hai lỗi đều không tạo ra cảnh báo biên dịch- time - thẻ struct là các chuỗi thô được phân tích cú pháp bằng sự phản chiếu tại runtime .
 
-Struct tags control how external systems (JSON encoders, ORMs, validators) interpret struct fields. Functional options replace constructor overloading — each option is a closure that mutates a default config. The Builder pattern chains method calls to assemble complex objects, deferring validation to a final `Build()` step.
+ Thẻ Struct kiểm soát cách các hệ thống bên ngoài (bộ mã hóa JSON, ORM, trình xác thực) diễn giải các trường struct . Các tùy chọn chức năng thay thế việc nạp chồng hàm tạo - mỗi tùy chọn là một closure làm thay đổi cấu hình mặc định. Phương thức chuỗi mẫu Builder gọi để tập hợp các đối tượng phức tạp, trì hoãn việc xác thực đến bước `Build()` cuối cùng.
 
-### Struct Tag Anatomy
-
-```text
+### Struct Giải phẫu thẻ```text
 type User struct {
     ID    uint   `json:"id" gorm:"primaryKey" validate:"required"`
     //            ↑json tag  ↑gorm tag         ↑validate tag
 }
-```
+```### Hệ thống thẻ — Bảng tham khảo
 
-### Tag Systems — Reference Table
-
-| Tag System | Package | Purpose |
+| Hệ thống thẻ | Package | Mục đích |
 | --- | --- | --- |
-| `json:"name"` | `encoding/json` | JSON field name mapping |
-| `gorm:"column"` | `gorm.io/gorm` | Database column binding |
-| `validate:"required"` | `go-playground/validator` | Input validation rules |
-| `form:"field"` | Fiber/Gin | HTTP form/query binding |
-| `env:"VAR"` | `caarlos0/env` | Environment variable binding |
+| `json:"name"` | `encoding/json` | Ánh xạ tên trường JSON |
+| `gorm:"column"` | `gorm.io/gorm` | Liên kết cột Database |
+| `validate:"required"` | `go-playground/validator` | Quy tắc xác thực đầu vào |
+| `form:"field"` | Chất xơ/gin | Liên kết biểu mẫu/truy vấn HTTP |
+| `env:"VAR"` | `caarlos0/env` | Ràng buộc biến môi trường |
 
-Tags, options, builder — three patterns, one shared goal: controlling how structs interact with the world outside Go's type system. The visual below maps when to reach for each.
+Thẻ, tùy chọn, builder — ba mẫu, một mục tiêu chung: kiểm soát cách structs tương tác với thế giới bên ngoài hệ thống loại của Go . Hình ảnh bên dưới maps khi nào cần tiếp cận từng cái.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH ![Tags options builder decision map](./images/02-tags-options-builder-decision-map.png) *Hình: Quyết định map định tuyến ba áp lực xây dựng — điều khiển format bên ngoài (thẻ), mặc định linh hoạt (tùy chọn chức năng) và lắp ráp tuần tự với xác thực ( builder ) — đến mẫu chính xác dựa trên hình dạng vấn đề.*
 
-![Tags options builder decision map](./images/02-tags-options-builder-decision-map.png)
+## 3. MÃ
 
-*Figure: The decision map routes three construction pressures — external format control (tags), flexible defaults (functional options), and sequential assembly with validation (builder) — to the correct pattern based on the problem shape.*
-
-## 3. CODE
-
-### Example 1: Basic — Struct Tags
-
-> **Goal**: Demonstrate how struct tags control JSON output and hide sensitive fields.
-> **Approach**: Use `json:"-"` to exclude passwords and `omitempty` to skip nil pointers.
-> **Complexity**: Basic
-
-```go
+### Ví dụ 1: Cơ bản — Thẻ Struct > **Mục tiêu**: Trình bày cách thẻ struct kiểm soát đầu ra JSON và ẩn các trường nhạy cảm.
+> **Phương pháp tiếp cận**: Sử dụng `json:"-"` để loại trừ mật khẩu và `omitempty` để bỏ qua nil pointers .
+> **Độ phức tạp**: Cơ bản```go
 package main
 
 import (
@@ -97,17 +84,13 @@ func main() {
 	fmt.Println(string(data))
 	fmt.Println("Password leaked?", strings.Contains(string(data), "super-secret"))
 }
-```
+```> **Takeaway**: `json:"-"` ngăn trường xuất hiện trong đầu ra JSON. `omitempty` bỏ qua các trường có giá trị bằng 0. Thẻ là chuỗi - trình biên dịch không thể bắt lỗi chính tả. Chạy `go vet` để xác thực cú pháp thẻ.
 
-> **Takeaway**: `json:"-"` prevents a field from appearing in JSON output. `omitempty` skips fields with zero values. Tags are strings — the compiler cannot catch typos. Run `go vet` to validate tag syntax.
+### Ví dụ 2: Trung cấp — Mẫu tùy chọn chức năng
 
-### Example 2: Intermediate — Functional Options Pattern
-
-> **Goal**: Build a flexible constructor that supports optional parameters without breaking existing callers.
-> **Approach**: Each option is a `func(*Server)` closure that sets one field. The constructor applies defaults first, then iterates over options.
-> **Complexity**: Intermediate
-
-```go
+> **Mục tiêu**: Xây dựng một hàm khởi tạo linh hoạt hỗ trợ các tham số tùy chọn mà không làm gián đoạn các phương thức gọi hiện có.
+> **Phương pháp tiếp cận**: Mỗi tùy chọn là một `func(*Server)` closure đặt một trường. Hàm tạo áp dụng các giá trị mặc định trước, sau đó lặp lại các tùy chọn.
+> **Độ phức tạp**: Trung cấp```go
 package main
 
 import (
@@ -155,17 +138,11 @@ func main() {
 	customServer := NewServer("0.0.0.0", WithPort(3000), WithTLS())
 	fmt.Printf("Server configured on %s:%d\n", customServer.host, customServer.port)
 }
-```
+```> **Bài học rút ra**: Các tùy chọn chức năng tách biệt mối quan tâm về cấu hình khỏi hàm tạo. Việc thêm tùy chọn mới không làm thay đổi hàm tạo signature — khả năng tương thích ngược được giữ nguyên theo mặc định.
 
-> **Takeaway**: Functional options separate configuration concerns from the constructor. Adding a new option does not change the constructor signature — backward compatibility is preserved by default.
-
-### Example 3: Advanced — Builder Pattern
-
-> **Goal**: Assemble a SQL query step by step, validating all required fields in a final `Build()` call.
-> **Approach**: Each method returns `*QueryBuilder` for chaining. `Build()` validates required fields before producing output.
-> **Complexity**: Advanced
-
-```go
+### Ví dụ 3: Mẫu nâng cao — Builder > **Mục tiêu**: Tập hợp truy vấn SQL từng bước, xác thực tất cả các trường bắt buộc trong lệnh gọi `Build()` cuối cùng.
+> **Phương pháp tiếp cận**: Mỗi phương thức trả về `*QueryBuilder` cho chuỗi. `Build()` xác thực các trường bắt buộc trước khi tạo đầu ra.
+> **Độ phức tạp**: Nâng cao```go
 package main
 
 import (
@@ -217,25 +194,23 @@ func main() {
 	}
 	fmt.Println(sql)
 }
-```
+```> **Takeaway**: Mẫu Builder trì hoãn xác thực thành `Build()` , ngăn các đối tượng được xây dựng một phần thoát ra. Mỗi phương thức xâu chuỗi sẽ tích lũy trạng thái; xác nhận chạy một lần ở cuối.
 
-> **Takeaway**: The Builder pattern defers validation to `Build()`, preventing partially constructed objects from escaping. Each chained method accumulates state; validation runs once at the end.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
+ Mỗi thẻ Struct , tùy chọn chức năng và trình tạo đều có một chế độ lỗi riêng biệt.
 
-Struct tags, functional options, and builders each carry a distinct failure mode.
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Sửa chữa |
+|---|----------|--------|------|
+| 1 | 🔴 Gây tử vong | Thiếu `json:"-"` trên các trường nhạy cảm (mật khẩu, mã thông báo) làm rò rỉ thông tin đăng nhập trong phản hồi API | Kiểm tra tất cả các trường struct chạm vào phản hồi HTTP — thêm `json:"-"` vào mọi trường bí mật |
+| 2 | 🟡 Chung | Lỗi đánh máy thẻ ( `json:"naem"` thay vì `json:"name"` ) âm thầm loại bỏ trường khỏi đầu ra JSON | Chạy `go vet` trên mọi bản dựng - nó bắt các thẻ struct không đúng định dạng |
+| 3 | 🟡 Chung | Việc sử dụng `omitempty` trên các trường `bool` sẽ làm giảm giá trị `false` — máy khách không nhận được trường nào thay vì `false` | Tránh `omitempty` trên các trường boolean trong đó `false` mang ý nghĩa ngữ nghĩa |
 
-| # | Severity | Defect | Fix |
-|---|----------|--------|-----|
-| 1 | 🔴 Fatal | Missing `json:"-"` on sensitive fields (passwords, tokens) leaks credentials in API responses | Audit all struct fields that touch HTTP responses — add `json:"-"` to every secret field |
-| 2 | 🟡 Common | Tag typo (`json:"naem"` instead of `json:"name"`) silently drops the field from JSON output | Run `go vet` on every build — it catches malformed struct tags |
-| 3 | 🟡 Common | Using `omitempty` on `bool` fields drops `false` values — clients receive no field instead of `false` | Avoid `omitempty` on boolean fields where `false` carries semantic meaning |
+## 5. GIỚI THIỆU
 
-## 5. REF
-
-| Resource     | Link                                                                           |
+| Tài nguyên | Liên kết |
 | ------------ | ------------------------------------------------------------------------------ |
-| Struct Tags  | [pkg.go.dev/reflect#StructTag](https://pkg.go.dev/reflect#StructTag)           |
-| Effective Go | [go.dev/doc/effective_go#embedding](https://go.dev/doc/effective_go#embedding) |
+| Struct Thẻ | [pkg.go.dev/reflect#StructTag](https://pkg.go.dev/reflect#StructTag) |
+| Có hiệu lực Go | [go.dev/doc/effective_go#embedding](https://go.dev/doc/effective_go#embedding) |
 
 ---

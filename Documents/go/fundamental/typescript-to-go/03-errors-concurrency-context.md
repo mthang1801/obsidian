@@ -1,72 +1,64 @@
-<!-- tags: golang, typescript, concurrency -->
-# ⚙️ Errors, Concurrency, Context — From `throw` and `await` to `err`, goroutine, context.
+<!-- tags: golang, typescript, concurrency --> # ⚙️ Lỗi, Concurrency , Ngữ cảnh — Từ `throw` và `await` đến `err` , goroutine , context.
 
-> The most important articles when porting services from TypeScript to Go: explicit error flow, safe fan-out, cancellation, timeout, and bounded concurrency.
+> Các bài viết quan trọng nhất khi chuyển dịch vụ từ TypeScript sang Go : luồng lỗi rõ ràng, phân xuất an toàn, hủy, hết thời gian chờ và giới hạn concurrency .
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 18 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 18 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | Error returns, wrapping, goroutines, `context`, `errgroup` |
-| **Use case** | Port service is using `async/await`, `Promise.all`, timeout, abort logic |
-| **Key diff** | TypeScript async runs on the event loop; Go concurrency is a language-level primitive with explicit lifecycle control |
-| **Go stdlib** | `context`, `errors`, `fmt`, `time` |
+| **Tập trung** | Lỗi trả về, gói, goroutines , `context` , `errgroup` |
+| **Trường hợp sử dụng** | Dịch vụ cổng đang sử dụng `async/await` , `Promise.all` , hết thời gian chờ, hủy bỏ logic |
+| **Khác biệt về phím** | TypeScript async chạy trên event loop ; Go concurrency là ngôn ngữ nguyên thủy ở cấp độ ngôn ngữ với khả năng kiểm soát vòng đời rõ ràng |
+| ** Go stdlib** | `context` , `errors` , `fmt` , `time` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-You have a TypeScript service that does exactly what you want:
+Bạn có một dịch vụ TypeScript thực hiện chính xác những gì bạn muốn:
 
-- Call 3 APIs at once using `Promise.all`.
-- Timeout with `AbortController`
-- `throw` when downstream fails
-- `catch` in the outer layer and then map it to an HTTP response.
+- Gọi 3 API cùng lúc bằng `Promise.all` .
+- Hết thời gian chờ với `AbortController` - `throw` khi hạ lưu bị lỗi
+- `catch` ở lớp bên ngoài và sau đó map thành phản hồi HTTP.
 
-When switching to Go, most engineers think they only need:
+Khi chuyển sang Go , hầu hết các kỹ sư nghĩ rằng họ chỉ cần:
 
-- `await` -> `<-ch`
-- `Promise.all` -> several goroutines
-- `throw` -> `panic`
+- `await` -> `<-ch` - `Promise.all` -> vài goroutines - `throw` -> `panic` Đó là cú trượt nguy hiểm nhất. Trong Go , lỗi không phải là một luồng ngoại lệ. Việc hủy bỏ không tự lan truyền trừ khi bạn vượt qua `context.Context` . Goroutines không tự giới hạn, không tự dọn dẹp và không dừng lại trừ khi bạn thiết kế một lối thoát rõ ràng.
 
-That is the most dangerous slip. In Go, error is not an exception flow. Cancellation does not propagate itself unless you pass `context.Context`. Goroutines do not limit themselves, do not clean up after themselves, and do not stop unless you design a clear exit path.
+### 1.1 Lỗi trong Go là dữ liệu, không phải runtime tác dụng phụ.
 
-### 1.1 Errors in Go are data, not runtime side effects.
+TypeScript có thể sử dụng `throw` hoặc từ chối Promise làm đường dẫn luồng điều khiển hợp lệ. Go ưu tiên trả về `error` một cách rõ ràng tại mỗi ranh giới. Điều này có vẻ dài dòng hơn nhưng nó làm cho đường dẫn lỗi và siêu dữ liệu liên quan dễ dàng theo dõi hơn nhiều.
 
-TypeScript can use `throw` or reject a Promise as a valid control flow path. Go prioritizes returning `error` explicitly at each boundary. This looks more verbose, but it makes the error path and associated metadata much easier to trace.
+Quy tắc thực dụng:
 
-Pragmatic rule:
+- Lỗi kinh doanh hoặc I/O: `return err` .
+- Bất biến bị người gọi phá vỡ và không thể tiếp tục: xét panic ở ranh giới rất hẹp.
+- Mã thư viện: hầu như luôn luôn là `return err` , rất hiếm khi `panic` .
 
-- Business or I/O failure: `return err`.
-- Invariant is broken by the caller and cannot continue: consider panic at a very narrow boundary.
-- Library code: almost always `return err`, very rarely `panic`.
+### 1.2 Concurrency trong Go mạnh hơn Promise , nhưng cũng dễ tạo rò rỉ hơn.
 
-### 1.2 Concurrency in Go is more powerful than Promise, but also easier to create leaks.
+TypeScript async về cơ bản là sự phối hợp I/O không chặn trên event loop . Go mang lại cho bạn goroutines rất rẻ, nhưng rẻ không có nghĩa là miễn phí. Any goroutine không có đường dừng rõ ràng có thể trở thành rò rỉ.
 
-TypeScript async is essentially non-blocking I/O orchestration on the event loop. Go gives you very cheap goroutines, but cheap doesn't mean free. Any goroutine without a clear stopping path can become a leak.
+Do đó, khi chuyển mã từ TypeScript:
 
-Therefore, when porting code from TypeScript:
+- `Promise.all` thường là maps để `errgroup` .
+- `AbortController` thường là maps đến `context.WithCancel` hoặc `WithTimeout` .
+- `Promise.race` thường là maps đến `select` .
+- Bắn và quên hầu như luôn cần được xem xét lại.
 
-- `Promise.all` usually maps well to `errgroup`.
-- `AbortController` usually maps to `context.WithCancel` or `WithTimeout`.
-- `Promise.race` usually maps to `select`.
-- Fire-and-forget almost always needs a review.
+### 1.3 Các kiểu bất biến và lỗi
 
-### 1.3 Invariants & Failure Modes
+- Không chuyển `context` xuống phần phụ thuộc có nghĩa là thời gian chờ/hủy ở lớp trên gần như vô dụng.
+- Goroutine gửi tới channel mà không có người tiêu dùng sẽ bị chặn vĩnh viễn.
+- Sử dụng `panic` thay vì lan truyền lỗi trong mã dịch vụ sẽ khiến việc gỡ lỗi sự cố trở nên tồi tệ hơn chứ không tốt hơn.
 
-- Not passing `context` down to the dependency means timeout/cancel on the upper layer is almost useless.
-- Goroutine sent to the channel without a consumer will be blocked permanently.
-- Using `panic` instead of error propagation in service code will make incident debugging worse, not better.
+Tóm lại: cổng cú pháp nhanh. Cổng vòng đời chậm.
 
-In short: syntax port is fast. Lifecycle port is slow.
+Và chính cái phần chậm chạp đó mới quyết định sự việc.
 
-And it is that slow part that determines the incident.
+## 2. HÌNH ẢNH
 
-## 2. VISUAL
+Bạn chỉ thấy sự khác biệt giữa TypeScript và Go khi xem xét vòng đời yêu cầu song song. Hai sơ đồ này cho góc chính xác đó.
 
-You only see the difference between TypeScript and Go when looking at the parallel request lifecycle. These two diagrams give that exact angle.
-
-### Level 1
-
-```text
+### Cấp 1```text
 TypeScript request
 request
   -> async function
@@ -80,15 +72,9 @@ request
       -> errgroup.WithContext(ctx)
           -> g.Go(...) x N
               -> g.Wait()
-```
+```![Errors concurrency context compare card](./images/03-errors-concurrency-context-compare.png) *Hình: Cấp 1 cho thấy rằng fan-out Go không chỉ "chạy song song" mà còn là một vòng đời với ngữ cảnh rõ ràng và lỗi fan-in.*.
 
-![Errors concurrency context compare card](./images/03-errors-concurrency-context-compare.png)
-
-*Figure: Level 1 shows that Go fan-out is not just "running in parallel", but is also a lifecycle with clear context and error fan-in.*.
-
-### Level 2
-
-```text
+### Cấp 2```text
 request starts
   -> spawn goroutines
       -> one downstream fails
@@ -96,23 +82,19 @@ request starts
               -> siblings must observe ctx.Done()
                   -> return early
                       -> g.Wait() closes the loop
-```
+```*Hình: Cấp độ 2 nhấn mạnh những yếu tố quyết định chất lượng sản xuất: một lỗi ở một nhánh phải cố ý dừng các nhánh còn lại chứ không phải do may mắn.*.
 
-*Figure: Level 2 emphasizes what determines production quality: an error in one branch must stop the remaining branches on purpose, not by luck.*.
+## 3. MÃ
 
-## 3. CODE
+Hầu hết các lỗi di chuyển nằm ở luồng lỗi và việc hủy được viết "tương tự". Ba ví dụ bên dưới khóa phiên bản an toàn hơn trong sản xuất.
 
-Most migration bugs lie in error flow and cancellation being written "similarly". The three examples below lock down the more production-safe version.
+### Ví dụ 1: Cơ bản - gói lỗi bằng ngữ cảnh thay vì đưa ra các ngoại lệ mơ hồ.
 
-### Example 1: Basic — wrap errors with context instead of throwing vague exceptions.
+> **Mục tiêu**: Xây dựng mẫu bao bọc `return err` + với ngữ cảnh ở mỗi ranh giới.
+> **Phương pháp tiếp cận**: Phân tích cú pháp riêng biệt, xác thực và duy trì. Mỗi lớp thêm ngữ cảnh vào lỗi.
+> **Ví dụ**: Tạo người dùng có thông tin nhập không hợp lệ hoặc lỗi lưu trữ.
 
-> **Goal**: Build a `return err` + wrap pattern with context at each boundary.
-> **Approach**: Separate parse, validate, and persist. Each layer adds context to the error.
-> **Example**: Creating a user with invalid input or a storage failure.
-
-Common TypeScript versions:
-
-```typescript
+Các phiên bản TypeScript phổ biến:```typescript
 type User = { email: string };
 
 function parseEmail(rawEmail: string): string {
@@ -137,11 +119,7 @@ async function createUser(rawEmail: string): Promise<User> {
     throw new Error(`create user failed: ${String(error)}`);
   }
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import "fmt"
@@ -184,21 +162,17 @@ func main() {
 	}
 	fmt.Println(user.Email)
 }
-```
+```> **Takeaway**: Trong Go , mức độ chi tiết phù hợp mang lại cho bạn khả năng gỡ lỗi với chi phí thấp vào lúc 3 giờ sáng.
 
-> **Takeaway**: In Go, the right verbosity gives you the ability to debug cheaply at 3 AM.
+Việc gói lỗi đúng cách sẽ giúp bạn biết chuyện gì đang xảy ra. Việc sản xuất cũng yêu cầu bạn phải dừng những nhánh không nên tiếp tục.
 
-Wrapping the error properly helps you know what's going on. Production also requires you to stop the branches that should not be continued.
+### Ví dụ 2: Trung cấp — `Promise.all` nên map đến `errgroup` + ngữ cảnh chung.
 
-### Example 2: Intermediate — `Promise.all` should map to `errgroup` + shared context.
+> **Mục tiêu**: Tách ra 3 cuộc gọi xuôi dòng có thời gian chờ và an toàn không nhanh.
+> **Phương pháp tiếp cận**: Sử dụng `errgroup.WithContext` để thu thập lỗi và tuyên truyền việc hủy bỏ.
+> **Ví dụ**: Tải song song hồ sơ, số dư và hóa đơn trong vòng 500ms.
 
-> **Goal**: Fan-out 3 downstream calls with timeout and fail-fast safety.
-> **Approach**: Use `errgroup.WithContext` to collect errors and propagate cancellation.
-> **Example**: Load profile, balance, and invoices in parallel within 500ms.
-
-Familiar TypeScript version:
-
-```typescript
+Phiên bản TypeScript quen thuộc:```typescript
 async function fetchPart(name: string, delayMs: number, signal: AbortSignal): Promise<string> {
   await new Promise((resolve, reject) => {
     const timer = setTimeout(resolve, delayMs);
@@ -230,11 +204,7 @@ async function loadDashboard(): Promise<Record<string, string>> {
     clearTimeout(timeout);
   }
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -291,23 +261,19 @@ func main() {
 	fmt.Println("results:", out)
 	fmt.Println("error:", err)
 }
-```
+```> **Tại sao?** Đây là cách tương đương gần nhất với `Promise.all` , nhưng có một điểm khác biệt quan trọng về mặt sản xuất: `errgroup` liên kết fan-out với bối cảnh được chia sẻ. Nếu một nhánh bị lỗi, các nhánh còn lại có thể bị hủy và dừng sớm thay vì tiếp tục một cách vô nghĩa.
 
-> **Why?** This is the closest equivalent to `Promise.all`, but with one production-critical difference: `errgroup` ties fan-out to a shared context. If one branch fails, the remaining branches can observe cancellation and stop early, rather than continuing pointlessly.
+> **Takeaway**: Khi chuyển `Promise.all` , hãy nghĩ ngay đến `errgroup + context` , chứ không phải "3 goroutines và hy vọng điều tốt nhất".
 
-> **Takeaway**: When porting `Promise.all`, think immediately of `errgroup + context`, not "3 goroutines and hope for the best".
+Fail-fast có sẵn. Nhưng nếu lô tăng lên 1.000 công việc, câu hỏi sẽ thay đổi thành: bạn cho phép chạy bao nhiêu công việc cùng một lúc?
 
-Fail-fast is available. But if the batch grows to 1,000 jobs, the question changes to: how many jobs do you allow to run at once?
+### Ví dụ 3: Nâng cao — giới hạn concurrency + hủy là phiên bản sản xuất của "sa thải nhiều tác vụ".
 
-### Example 3: Advanced — bounded concurrency + cancellation is the production version of "fire many tasks".
+> **Mục tiêu**: Tránh sinh ra vô hạn goroutines khi xử lý lô lớn.
+> **Phương pháp tiếp cận**: Giới hạn số lượng nhân viên, tôn trọng `ctx.Done()` và đóng channels bằng kỷ luật.
+> **Ví dụ**: Xử lý 6 công việc với tối đa 2 công nhân.
 
-> **Goal**: Avoid spawning infinite goroutines when processing large batches.
-> **Approach**: Limit worker count, respect `ctx.Done()`, and close channels with discipline.
-> **Example**: Handle 6 jobs with a maximum of 2 workers.
-
-TypeScript version with explicitly limited pool:
-
-```typescript
+Phiên bản TypeScript với nhóm giới hạn rõ ràng:```typescript
 async function runWorkerPool(jobs: number[], workerCount: number): Promise<string[]> {
   const results: string[] = [];
   let nextIndex = 0;
@@ -326,11 +292,7 @@ async function runWorkerPool(jobs: number[], workerCount: number): Promise<strin
 
   return results;
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -387,44 +349,42 @@ func main() {
 		fmt.Println(result)
 	}
 }
-```
+```> **Tại sao?** Các nhóm TypeScript đã quen với I/O async rất rẻ, vì vậy họ thường vô thức coi "more concurrency " là một mặc định tốt. Go cho phép bạn tiến xa hơn nhưng cũng yêu cầu bạn quản lý vòng đời của mọi goroutine .
 
-> **Why?** TypeScript teams are used to very cheap async I/O, so they often unconsciously treat "more concurrency" as a good default. Go allows you to go further, but also requires you to manage the lifecycle of every goroutine.
+> **Bài học rút ra**: Khi số lượng lô lớn hoặc quá trình hạ nguồn tốn kém, việc giới hạn concurrency là một yêu cầu vận hành chứ không phải tối ưu hóa tùy ý.
 
-> **Takeaway**: When batches are large or downstream is expensive, limiting concurrency is an operational requirement, not arbitrary optimization.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
+Ba lỗi dưới đây đều có một điểm chung: đánh giá có vẻ hợp lý bằng mắt thường.
 
-The three errors below all have one thing in common: reviews seem reasonable to the naked eye.
+Chúng chỉ hiển thị khi hết thời gian chờ, thử lại và lưu lượng truy cập đến cùng một time .
 
-They only show up when timeout, retry, and traffic arrive at the same time.
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Use `panic` as `throw` in a regular flow service | Crash goroutine or process, lost error context right boundary | Return `error`, wrap error, panic only in narrow invariant or process startup |
-| 2 | 🟡 Common | Spawn goroutine without `context` or stop condition | Goroutine leak, keeps connection/open file useless | Pass `ctx` throughout and always design an escape route |
-| 3 | 🔵 Minor | Use channel when `errgroup` or return value is sufficient | Code is harder to read and reason than necessary | Starting from the simplest primitive; Only add channels when there is a real streaming/co-ordination need |
+| 1 | 🔴 Gây tử vong | Sử dụng `panic` làm `throw` trong dịch vụ luồng thông thường | Sự cố goroutine hoặc xử lý, mất ranh giới ngữ cảnh bên phải | Trả về `error` , lỗi gói, panic chỉ trong bất biến hẹp hoặc khởi động quy trình |
+| 2 | 🟡 Chung | Sinh sản goroutine không có `context` hoặc điều kiện dừng | Goroutine bị rò rỉ, khiến kết nối/mở tệp không còn tác dụng | Vượt `ctx` xuyên suốt và luôn thiết kế lối thoát hiểm |
+| 3 | 🔵 Nhỏ | Sử dụng channel khi `errgroup` hoặc giá trị trả về là đủ | Mã khó đọc và khó suy luận hơn mức cần thiết | Bắt đầu từ nguyên thủy đơn giản nhất; Chỉ thêm channels khi có nhu cầu phát trực tuyến/điều phối thực sự |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| Go for Cloud & Network Services | Official | https://go.dev/solutions/cloud | Official source for Go concurrency, services, tooling |
-| `context` package | Official | https://pkg.go.dev/context | Source of truth for cancellation, timeout, and deadlines |
-| Effective Go — Errors | Official | https://go.dev/doc/effective_go#errors | The standard convention for `error` return, wrap, and boundary handles error handling |
+| Go cho Dịch vụ Mạng & Đám mây | Chính thức | https://go.dev/solutions/cloud | Nguồn chính thức cho Go concurrency , dịch vụ, dụng cụ |
+| `context` package | Chính thức | https://pkg.go.dev/context | Nguồn sự thật về việc hủy, hết thời gian và thời hạn |
+| Hiệu lực Go — Lỗi | Chính thức | https://go.dev/doc/effect_go#errors | Quy ước tiêu chuẩn cho việc xử lý lỗi trả về, bao bọc và xử lý ranh giới `error` |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Errors, Concurrency & Context** is clear. The extension branches below help you bring error handling and concurrency into production with project layout, tooling, and testing.
+Cốt lõi của **Lỗi, Concurrency & Ngữ cảnh** rất rõ ràng. Các nhánh tiện ích mở rộng bên dưới giúp bạn đưa việc xử lý lỗi và concurrency vào sản xuất với bố cục, công cụ và thử nghiệm dự án.
 
-The next part is to turn that reflection into a team pattern that can be used every day.
+Phần tiếp theo là biến sự phản ánh đó thành mô hình nhóm có thể được sử dụng hàng ngày.
 
-| Extension | When | Rationale | Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Promise & Async | When the team still thinks in `Promise.all`, `AbortController`, or async combinators | Closest mapping recipe after understanding Go's lifecycle control | [→ 04-promise-async](../helper/04-promise-async.md) |
-| Error Handling | When `throw`, `try/catch`, and wrapping strategy are still confusing | Connects directly from TypeScript error model to Go error chain | [→ 07-error-handling](../helper/07-error-handling.md) |
-| Table-driven Tests & Mocking | When the async flow is solid and you need to harden it with tests | Go testing rhythm is significantly different from TS/Jest | [→ 01-table-driven-mocking](../testing/01-table-driven-mocking.md) |
-| Project Layout, Tooling, Testing | When the team starts standardizing the new codebase | Correct error/concurrency must be accompanied by correct workflow | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
-| Go Concurrency Overview | When you want to go deeper into goroutine/channel patterns | Next step after TS-to-Go mapping | [→ Concurrency README](../../concurrency/README.md) |
+| Promise & Async | Khi nhóm vẫn còn suy nghĩ về các tổ hợp `Promise.all` , `AbortController` hoặc async | Công thức ánh xạ gần nhất sau khi hiểu kiểm soát vòng đời của Go | [→ 04-promise-async](../helper/04-promise-async.md) |
+| Xử lý lỗi | Khi `throw` , `try/catch` và gói strategy vẫn còn khó hiểu | Kết nối trực tiếp từ mô hình lỗi TypeScript tới chuỗi lỗi Go | [→ 07-error-handling](../helper/07-error-handling.md) |
+| Kiểm tra dựa trên bảng & Mocking | Khi luồng async là solid và bạn cần làm cứng nó bằng các bài kiểm tra | Nhịp điệu thử nghiệm Go khác biệt đáng kể so với TS/Jest | [→ 01-table-driven-mocking](../testing/01-table-driven-mocking.md) |
+| Bố cục dự án, Dụng cụ, Kiểm tra | Khi nhóm bắt đầu chuẩn hóa cơ sở mã mới | Lỗi đúng/ concurrency phải đi kèm với quy trình làm việc đúng | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
+| Go Concurrency Tổng quan | Khi bạn muốn đi sâu hơn vào các mẫu goroutine / channel | Bước tiếp theo sau khi ánh xạ TS-to- Go | [→ Concurrency README](../../concurrency/README.md) |
 
-**Navigation**: [← Previous](./02-types-data-modeling.md) · [→ Next](./04-project-layout-tooling-testing.md)
+**Điều hướng**: [← Previous](./02-types-data-modeling.md) · [→ Next](./04-project-layout-tooling-testing.md)

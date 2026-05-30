@@ -1,31 +1,24 @@
-<!-- tags: golang -->
-# 📡 SSE & WebSocket — Real-time Delivery Patterns in Gin
+<!-- tags: golang --> # 📡 SSE & WebSocket — Mô hình phân phối thời gian thực ở Gin
 
-> **Library**: SSE for server-push feeds, WebSocket for bidirectional real-time via `gorilla/websocket` + channel-based Hub.
+> **Thư viện**: SSE cho nguồn cấp dữ liệu đẩy máy chủ, WebSocket cho thời gian thực hai chiều thông qua `gorilla/websocket` + Hub dựa trên kênh.
 
-📅 Updated: 2026-04-19 · ⏱️ 17 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 17 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-SSE pushes events from server to client over a single HTTP connection (`text/event-stream`). WebSocket upgrades HTTP to a persistent, full-duplex TCP connection. In Gin, SSE uses `c.Writer.Flush()` with `text/event-stream` headers; WebSocket uses `gorilla/websocket` upgrader.
+SSE đẩy các sự kiện từ máy chủ đến máy khách qua một kết nối HTTP ( `text/event-stream` ). WebSocket nâng cấp HTTP lên kết nối TCP song công, liên tục. Trong Gin, SSE sử dụng `c.Writer.Flush()` với tiêu đề `text/event-stream` ; WebSocket sử dụng trình nâng cấp `gorilla/websocket` .
 
-| Standard  | Core Advantage                            |
+| Tiêu chuẩn | Lợi thế cốt lõi |
 | --------- | ----------------------------------------- |
-| SSE       | Unidirectional, auto-reconnect, HTTP/2 OK |
-| WebSocket | Bidirectional, persistent, low latency    |
+| SSE | Đơn hướng, tự động kết nối lại, HTTP/2 OK |
+| WebSocket | Hai chiều, liên tục, độ trễ thấp |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always check `c.Request.Context().Done()` in SSE loops.** Without it, disconnected clients leak goroutines.
-- **Use a Hub pattern for broadcast WebSocket.** Direct conn-to-conn sends don’t scale and create race conditions.
+- **Luôn kiểm tra `c.Request.Context().Done()` trong vòng lặp SSE.** Không có nó, các máy khách bị ngắt kết nối sẽ rò rỉ goroutines.
+- **Sử dụng mẫu Hub để phát WebSocket.** Gửi kết nối trực tiếp không mở rộng quy mô và tạo điều kiện cạnh tranh.
 
-## 2. VISUAL
-
-![Advanced real-time patterns — SSE Broker fan-out and WebSocket Hub with Redis Pub/Sub scaling](./images/06-realtime-advanced.png)
-
-*Figure: SSE Broker (fan-out to subscriber channels) + WebSocket Hub (readPump/writePump per client, select on register/unregister/broadcast). Scale via Redis Pub/Sub across pods.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Advanced real-time patterns — SSE Broker fan-out and WebSocket Hub with Redis Pub/Sub scaling](./images/06-realtime-advanced.png) *Hình: SSE Broker (phân nhánh ra các kênh thuê bao) + WebSocket Hub (readPump/writePump cho mỗi khách hàng, chọn khi đăng ký/hủy đăng ký/phát sóng). Chia tỷ lệ thông qua Redis Pub/Sub trên các nhóm.*```mermaid
 sequenceDiagram
     participant C as Client
     participant S as Gin Server
@@ -43,23 +36,15 @@ sequenceDiagram
         C->>S: {"type":"ping"}
         S-->>C: {"type":"pong"}
     end
-```
+```*Hình: SSE = máy chủ đẩy các sự kiện qua HTTP; WebSocket = hai chiều sau khi nâng cấp giao thức.*
 
-*Figure: SSE = server pushes events over HTTP; WebSocket = bidirectional after protocol upgrade.*
-
-### When to Use Which
-
-```text
+### Khi nào nên sử dụng cái nào```text
 SSE:       Notifications, progress bars, live dashboards (one-way)
 WebSocket: Chat, collaborative editing, gaming (two-way)
 Polling:   Last resort when SSE/WS are blocked by infra
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — SSE Feeds
-
-```go
+### Ví dụ 1: Cơ bản — Nguồn cấp dữ liệu SSE```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // SSE handler: set text/event-stream headers, loop with
     // ticker, flush after each write, exit on context cancel.
@@ -90,11 +75,7 @@ Polling:   Last resort when SSE/WS are blocked by infra
             }
         }
     }
-```
-
-### Example 2: Intermediate — WebSocket Echo
-
-```go
+```### Ví dụ 2: Trung cấp — WebSocket Echo```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // WebSocket echo: upgrade HTTP, read message, write it
     // back. Exit loop on read error (client disconnected).
@@ -129,11 +110,7 @@ Polling:   Last resort when SSE/WS are blocked by infra
             }
         }
     }
-```
-
-### Example 3: Advanced — Managed Broadcast Hub
-
-```go
+```### Ví dụ 3: Nâng cao — Managed Broadcast Hub```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Broadcast Hub: manage client registration/unregistration
     // via channels. Non-blocking send with default close.
@@ -180,29 +157,27 @@ Polling:   Last resort when SSE/WS are blocked by infra
             }
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | SSE loop without `ctx.Done()` check | Disconnected client leaks goroutine; thousands pile up | `select { case <-c.Request.Context().Done(): return }` |
-| 2 | 🔴 Fatal | WebSocket `CheckOrigin` returning `true` in production | Any origin can connect; enables CSWSH attacks | Validate origin against an allowlist |
+| 1 | 🔴 Gây tử vong | Vòng lặp SSE không có kiểm tra `ctx.Done()` | Máy khách bị ngắt kết nối sẽ rò rỉ goroutine; ngàn chồng chất | `select { case <-c.Request.Context().Done(): return }` |
+| 2 | 🔴 Gây tử vong | WebSocket `CheckOrigin` trả lại `true` trong sản xuất | Mọi nguồn gốc đều có thể kết nối; kích hoạt các cuộc tấn công CSWSH | Xác thực nguồn gốc theo danh sách cho phép |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Gorilla WS | [github.com/gorilla/websocket](https://github.com/gorilla/websocket) |
+| Khỉ đột WS | [github.com/gorilla/websocket](https://github.com/gorilla/websocket) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Testing Tools | When you need to test SSE/WebSocket handlers | Use `httptest` for SSE, `gorilla/websocket.Dial` for WS tests | [./01-testing-production.md](./01-testing-production.md) |
+| Công cụ kiểm tra | Khi bạn cần kiểm tra trình xử lý SSE/WebSocket | Sử dụng `httptest` cho SSE, `gorilla/websocket.Dial` cho các bài kiểm tra WS | [./01-testing-production.md](./01-testing-production.md) |

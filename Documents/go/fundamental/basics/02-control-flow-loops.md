@@ -1,112 +1,95 @@
-<!-- tags: golang -->
-# 🔀 Control Flow & Loops — if, for, switch, select
+<!-- tags: golang --> # 🔀 Điều khiển luồng & vòng lặp — if, for, switch, select > Go điều khiển luồng logic bằng bốn từ khóa. `for` thay thế `while` . `switch` tự động ngắt. `select` ghép kênh channels . Ít từ khóa hơn, ít lỗi hơn.
 
-> Go controls logic flow with four keywords. `for` replaces `while`. `switch` auto-breaks. `select` multiplexes channels. Fewer keywords, fewer bugs.
+📅 Đã tạo: 20-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 12 phút đọc
 
-📅 Created: 2026-03-20 · 🔄 Updated: 2026-04-19 · ⏱️ 12 min read
-
-| Aspect            | Detail                                                                       |
+| Khía cạnh | Chi tiết |
 | ----------------- | ---------------------------------------------------------------------------- |
-| **Concept**       | Go control flow primitives: `if`, `for`, `switch`, `select`                  |
-| **Use case**      | Logic branching, iteration, channel multiplexing                             |
-| **Key insight**   | `for` replaces `while`. `switch` auto-breaks. `select` handles channels.     |
-| **Go philosophy** | Fewer keywords → less cognitive load → fewer bugs                            |
+| **Khái niệm** | Go điều khiển luồng nguyên thủy: `if` , `for` , `switch` , `select` |
+| **Trường hợp sử dụng** | Phân nhánh logic, lặp, ghép kênh channel |
+| **Thông tin chi tiết quan trọng** | `for` thay thế `while` . `switch` tự động ngắt. `select` xử lý channels . |
+| ** Go triết lý** | Ít từ khóa hơn → ít tải nhận thức hơn → ít lỗi hơn |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-You switch from Java to Go and reach for `while`. The compiler rejects it. You write a `switch` case and forget `break`. The code works — because Go auto-breaks. You try `forEach` on a slice. It does not exist. `for range` does the job.
+Bạn chuyển từ Java sang Go và tiếp cận `while` . Trình biên dịch từ chối nó. Bạn viết một trường hợp `switch` và quên `break` . Mã hoạt động - vì Go tự động ngắt. Bạn thử `forEach` trên slice . Nó không tồn tại. `for range` thực hiện công việc. Go thu gọn 6–8 từ khóa luồng điều khiển điển hình được tìm thấy trong C/Java thành bốn: `if` , `for` , `switch` và `select` . Mỗi từ khóa hấp thụ nhiều vai trò. Kết quả: ít cú pháp để ghi nhớ hơn, ít cơ hội hơn cho các lỗi cổ điển như lỗi sai `switch` của C hoặc lỗi vô hạn ngẫu nhiên của Java `while(true)` .
 
-Go collapses the typical 6–8 control flow keywords found in C/Java into four: `if`, `for`, `switch`, and `select`. Each keyword absorbs multiple roles. The result: less syntax to memorize, fewer opportunities for classic bugs like C's fall-through `switch` or Java's accidental infinite `while(true)`.
+### 1.1 Từ khóa luồng điều khiển
 
-### 1.1 Control Flow Keywords
-
-| Statement | Purpose                         | Example                         |
+| Tuyên bố | Mục đích | Ví dụ |
 | --------- | ------------------------------- | ------------------------------- |
-| `if`      | Conditional with optional init  | `if err := fn(); err != nil {}` |
-| `for`     | The only loop keyword           | `for i := 0; i < n; i++ {}`    |
-| `switch`  | Multi-branch with auto-break    | `switch v.(type) {}`            |
-| `select`  | Channel multiplexer             | `select { case <-ch: }`         |
-| `goto`    | Label jump (rare)               | Error cleanup paths             |
-| `defer`   | Deferred call (LIFO stack)      | `defer f.Close()`               |
+| `if` | Có điều kiện với tùy chọn init | `if err := fn(); err != nil {}` |
+| `for` | Từ khóa vòng lặp duy nhất | `for i := 0; i < n; i++ {}` |
+| `switch` | Đa nhánh có tính năng tự động ngắt | `switch v.(type) {}` |
+| `select` | bộ ghép kênh Channel | `select { case <-ch: }` |
+| `goto` | Nhảy nhãn (hiếm) | Đường dẫn dọn dẹp lỗi |
+| `defer` | Cuộc gọi hoãn lại (LIFO stack ) | `defer f.Close()` |
 
-> **Why no `while`?** Rob Pike: *"If `for` can do everything, why add `while`?"* `for condition {}` is a while loop. `for {}` is an infinite loop. One keyword. Zero ambiguity.
+> **Tại sao không `while` ?** Rob Pike: *"Nếu `for` có thể làm mọi thứ, tại sao lại thêm `while` ?"* `for condition {}` là một vòng lặp while. `for {}` là một vòng lặp vô hạn. Một từ khóa. Không mơ hồ.
 
-### 1.2 For Loop Variants
+### 1.2 Đối với các biến thể vòng lặp
 
-| Variant       | Syntax                        | Equivalent in C/Java |
+| Biến thể | Cú pháp | Tương đương trong C/Java |
 | ------------- | ----------------------------- | -------------------- |
-| Classic       | `for i := 0; i < n; i++ {}`  | C-style for          |
-| While         | `for condition {}`            | while loop           |
-| Infinite      | `for {}`                      | while(true)          |
-| Range slice   | `for i, v := range slice {}`  | forEach              |
-| Range map     | `for k, v := range map {}`   | forEach key-value    |
-| Range string  | `for i, r := range "utf8" {}` | Unicode rune iter    |
-| Range channel | `for v := range ch {}`        | Receive until close  |
-| Range integer | `for i := range 5 {}`         | Go 1.22+ only        |
+| Cổ điển | `for i := 0; i < n; i++ {}` | Kiểu C cho |
+| Trong khi | `for condition {}` | vòng lặp while |
+| Vô hạn | `for {}` | trong khi (đúng) |
+| Phạm vi slice | `for i, v := range slice {}` | forEach |
+| Phạm vi map | `for k, v := range map {}` | forEach khóa-giá trị |
+| Chuỗi phạm vi | `for i, r := range "utf8" {}` | Lặp lại rune Unicode |
+| Phạm vi channel | `for v := range ch {}` | Nhận cho đến khi đóng |
+| Số nguyên phạm vi | `for i := range 5 {}` | Go 1.22+ chỉ |
 
-> **Why does `range string` yield runes?** Go strings are UTF-8 byte sequences. A single character like "世" occupies 3 bytes. `range` decodes each character into a rune, returning `(byteIndex, rune)` — correct Unicode handling without manual decoding.
+> **Tại sao chuỗi `range string` yield rune?** Go chuỗi là chuỗi byte UTF-8. Một ký tự đơn như "世" chiếm 3 byte. `range` giải mã từng ký tự thành một chữ rune, trả về `(byteIndex, rune)` — xử lý Unicode chính xác mà không cần giải mã thủ công.
 
-### 1.3 Switch Mechanics
+### 1.3 Cơ chế chuyển mạch
 
-| Feature          | Description                                  |
+| Tính năng | Mô tả |
 | ---------------- | -------------------------------------------- |
-| Auto-break       | Each case terminates automatically           |
-| Multi-value      | `case "a", "b", "c":` matches any            |
-| Expressionless   | `switch { case x > 0: }` replaces if-else   |
-| Type switch      | `switch v := x.(type) { case int: }`         |
-| `fallthrough`    | Explicit opt-in to execute the next case     |
+| Tự động ngắt | Mỗi trường hợp tự động chấm dứt |
+| Đa giá trị | `case "a", "b", "c":` khớp với any |
+| Vô cảm | `switch { case x > 0: }` thay thế if-else |
+| Công tắc loại | `switch v := x.(type) { case int: }` |
+| `fallthrough` | Chọn tham gia rõ ràng để thực hiện trường hợp tiếp theo |
 
-> **Why auto-break?** Forgetting `break` in C switch statements causes silent fall-through bugs. Go inverts the default: cases break automatically. Use `fallthrough` only when you genuinely need it.
+> **Tại sao tự động ngắt?** Việc quên `break` trong câu lệnh chuyển đổi C sẽ gây ra lỗi ngầm. Go đảo ngược mặc định: các trường hợp tự động bị hỏng. Chỉ sử dụng `fallthrough` khi bạn thực sự cần nó.
 
-### 1.4 Select Multiplexing
+### 1.4 Select Ghép kênh `select` chặn cho đến khi một trong các thao tác channel của nó sẵn sàng:
 
-`select` blocks until one of its channel operations is ready:
-
-| Pattern       | Syntax                               | Behavior                   |
+| Mẫu | Cú pháp | Hành vi |
 | ------------- | ------------------------------------ | -------------------------- |
-| Multi-channel | `select { case <-ch1: case <-ch2: }` | Blocks until one is ready  |
-| Timeout       | `case <-time.After(1s):`             | Bounds the wait duration   |
-| Non-blocking  | `default:` case                      | Proceeds immediately       |
-| Cancellation  | `case <-ctx.Done():`                 | Respects context signals   |
+| Đa- channel | `select { case <-ch1: case <-ch2: }` | Chặn cho đến khi sẵn sàng |
+| Hết giờ | `case <-time.After(1s):` | Giới hạn thời gian chờ đợi |
+| Không chặn | trường hợp `default:` | Tiến hành ngay lập tức |
+| Hủy bỏ | `case <-ctx.Done():` | Tôn trọng tín hiệu ngữ cảnh |
 
-> **What if two channels are ready simultaneously?** Go selects one at random. This prevents starvation and guarantees fairness across channels.
+> **Điều gì sẽ xảy ra nếu hai channels sẵn sàng đồng thời?** Go chọn ngẫu nhiên một. Điều này ngăn ngừa nạn đói và đảm bảo sự công bằng trên channels .
 
-### 1.5 Failure Modes
+### 1.5 Chế độ lỗi
 
-| Error                        | Cause                                    | Fix                                    |
+| Lỗi | Nguyên nhân | Sửa chữa |
 | ---------------------------- | ---------------------------------------- | -------------------------------------- |
-| Infinite loop                | Missing loop exit condition              | Always have a bounded condition or `break` |
-| `time.After` leak in loop    | Creates a new timer every iteration      | Use `time.NewTimer` with `.Stop()`     |
-| Nested `break` misfire       | `break` exits `select`, not outer `for`  | Use labeled break: `break outerLoop`   |
-| Range copy mutation          | Modifying the copy, not the original     | Use index: `slice[i].field = val`      |
+| Vòng lặp vô hạn | Thiếu điều kiện thoát vòng lặp | Luôn có điều kiện giới hạn hoặc `break` |
+| `time.After` rò rỉ trong vòng lặp | Tạo bộ đếm thời gian mới mỗi lần lặp | Sử dụng `time.NewTimer` với `.Stop()` |
+| Lồng nhau `break` sai lửa | `break` thoát khỏi `select` , không phải bên ngoài `for` | Sử dụng dấu ngắt có nhãn: `break outerLoop` |
+| Đột biến sao chép phạm vi | Sửa đổi bản sao, không phải bản gốc | Sử dụng chỉ mục: `slice[i].field = val` |
 
 ---
 
-The keywords and their mechanics are clear. But how do you choose the right one when facing a branching decision for the first time?
+Các từ khóa và cơ chế của chúng rất rõ ràng. Nhưng làm thế nào để bạn chọn đúng khi phải đối mặt với quyết định phân nhánh cho time đầu tiên?
 
-## 2. VISUAL
+## 2. HÌNH ẢNH ![Control flow decision map](./images/02-control-flow-loops-decision-map.png) *Hình: Quyết định map cho luồng điều khiển Go — bắt đầu với loại câu hỏi (nhánh? lặp lại? đợi channel ?) và đi đến từ khóa chính xác. `if` cho các nhánh đơn giản, `switch` cho hơn 3 điều kiện, `for` cho tất cả các vòng lặp, `select` cho ghép kênh channel .*
 
-![Control flow decision map](./images/02-control-flow-loops-decision-map.png)
+Quyết định map trả lời "từ khóa nào?" Các ví dụ bên dưới cho thấy cách mỗi từ khóa hoạt động trong mã sản xuất. ![For loop — one keyword, four forms](./images/02-for-loop-variants.png) _Hình: Bốn dạng đặc trưng của vòng lặp Go 's `for` — cổ điển, while, vô hạn và phạm vi — mỗi dạng được chọn theo những gì bạn cần kiểm soát. Một từ khóa thay thế `for` , `while` , `do-while` và `forEach` ._
 
-*Figure: Decision map for Go control flow — start with the question type (branch? repeat? wait for channel?) and arrive at the correct keyword. `if` for simple branches, `switch` for 3+ conditions, `for` for all loops, `select` for channel multiplexing.*
+## 3. MÃ
 
-The decision map answers "which keyword?" The examples below show how each keyword behaves in production code.
+### Ví dụ 1: Cơ bản — Câu lệnh If init & For Range
 
-![For loop — one keyword, four forms](./images/02-for-loop-variants.png)
-
-_Figure: The four idiomatic forms of Go's `for` loop — classic, while, infinite, and range — each selected by what you need to control. One keyword replaces `for`, `while`, `do-while`, and `forEach`._
-
-## 3. CODE
-
-### Example 1: Basic — If Init Statement & For Range
-
-> **Goal**: Scope error variables tightly using `if` init statements.
-> **Approach**: Combine `if` initialization with `for range` iteration.
-> **Complexity**: Basic
-
-```go
+> **Mục tiêu**: Phạm vi chặt chẽ các biến lỗi bằng cách sử dụng câu lệnh init `if` .
+> **Phương pháp tiếp cận**: Kết hợp việc khởi tạo `if` với lần lặp `for range` .
+> **Độ phức tạp**: Cơ bản```go
 package main
 
 import (
@@ -134,17 +117,11 @@ func main() {
         fmt.Print(i, " ")
     }
 }
-```
+```> **Bài học rút ra**: Câu lệnh init `if` giới hạn `err` trong khối có liên quan. `for range` xử lý các chỉ số và giá trị trong một dòng, thay thế các vòng đếm thủ công.
 
-> **Takeaway**: The `if` init statement confines `err` to the block where it is relevant. `for range` handles indices and values in one line, replacing manual counter loops.
-
-### Example 2: Intermediate — Switch Patterns & Type Switch
-
-> **Goal**: Replace long `if-else` chains with cleaner switch expressions.
-> **Approach**: Use expressionless switch for ranges and type switch for runtime type inspection.
-> **Complexity**: Intermediate
-
-```go
+### Ví dụ 2: Trung cấp — Chuyển mẫu & Type Switch > **Mục tiêu**: Thay thế chuỗi `if-else` dài bằng biểu thức chuyển đổi rõ ràng hơn.
+> **Phương pháp tiếp cận**: Sử dụng công tắc vô cảm cho phạm vi và type switch để kiểm tra loại runtime .
+> **Độ phức tạp**: Trung cấp```go
 package main
 
 import "fmt"
@@ -177,17 +154,13 @@ func main() {
     fmt.Println(classify(85))   // B — Good
     fmt.Println(describe(42))   // integer: 42
 }
-```
+```> **Điểm rút ra**: Vô biểu thức `switch` đọc rõ ràng hơn chuỗi `if-else` khi so sánh các phạm vi. Công tắc loại trích xuất một cách an toàn các loại cụ thể từ các giá trị `any` / `interface{}` mà không cần xác nhận thủ công.
 
-> **Takeaway**: Expressionless `switch` reads cleaner than `if-else` chains when comparing ranges. Type switches safely extract concrete types from `any` / `interface{}` values without manual assertion.
+### Ví dụ 3: Nâng cao — Select + Hết thời gian + Hủy ngữ cảnh
 
-### Example 3: Advanced — Select + Timeout + Context Cancellation
-
-> **Goal**: Multiplex channels with timeout and cancellation support.
-> **Approach**: Use `select` to race a result channel against `time.After`, and `ctx.Done()` for graceful shutdown.
-> **Complexity**: Advanced
-
-```go
+> **Mục tiêu**: Ghép kênh channels với hỗ trợ thời gian chờ và hủy.
+> **Phương pháp tiếp cận**: Sử dụng `select` để chạy đua kết quả channel với `time.After` và `ctx.Done()` để tắt máy một cách nhẹ nhàng.
+> **Độ phức tạp**: Nâng cao```go
 package main
 
 import (
@@ -237,45 +210,43 @@ func main() {
         fmt.Println(data)
     }
 }
-```
-
-> **Takeaway**: `select` turns channel operations into a decision point — whichever channel fires first wins. `time.After` provides a timeout boundary. `ctx.Done()` enables the parent to signal shutdown without force-killing goroutines.
+```> **Takeaway**: `select` biến các thao tác channel thành điểm quyết định — bất kỳ channel nào kích hoạt trước sẽ thắng. `time.After` cung cấp ranh giới thời gian chờ. `ctx.Done()` cho phép cha mẹ ra hiệu tắt máy mà không cần buộc phải tắt goroutines .
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-| #   | Severity  | Pitfall                                       | Consequence                                 | Fix                                                |
-| --- | --------- | --------------------------------------------- | ------------------------------------------- | -------------------------------------------------- |
-| 1   | 🔴 Fatal  | `time.After` inside a tight loop              | Creates a new timer each iteration → memory leak | Use `time.NewTimer` and call `.Stop()` after use   |
-| 2   | 🔴 Fatal  | `break` inside `select` within a `for` loop   | Breaks `select`, not the outer loop         | Use a labeled break: `break outerLoop`             |
-| 3   | 🟡 Common | Modifying `for range` loop variable           | Changes a copy, not the original element    | Use index access: `slice[i].field = val`           |
-| 4   | 🟡 Common | Relying on map iteration order                | Order is randomized — tests become flaky    | Sort keys before iteration                         |
-| 5   | 🔵 Minor  | Using `fallthrough` in switch                 | Confuses reviewers; rarely the right choice | Leave auto-break; use `fallthrough` only when unavoidable |
-
----
-
-## 5. REF
-
-| Resource               | Type     | Link                                                                                            | Note                            |
-| ---------------------- | -------- | ----------------------------------------------------------------------------------------------- | ------------------------------- |
-| Go Spec — Statements   | Official | [go.dev/ref/spec#Statements](https://go.dev/ref/spec#Statements)                                | Authoritative language spec     |
-| Go Tour — Flow Control | Official | [go.dev/tour/flowcontrol/1](https://go.dev/tour/flowcontrol/1)                                  | Interactive tutorial             |
-| Effective Go — Control | Official | [go.dev/doc/effective_go#control-structures](https://go.dev/doc/effective_go#control-structures) | Idiomatic patterns              |
+| # | Mức độ nghiêm trọng | Cạm bẫy | Hậu quả | Sửa chữa |
+| --- | --------- | --------------------------------------------- | --------------------------------------------- | -------------------------------------------------- |
+| 1 | 🔴 Gây tử vong | `time.After` bên trong một vòng lặp chặt chẽ | Tạo bộ đếm thời gian mới mỗi lần lặp → rò rỉ bộ nhớ | Sử dụng `time.NewTimer` và gọi `.Stop()` sau khi sử dụng |
+| 2 | 🔴 Gây tử vong | `break` bên trong `select` trong vòng lặp `for` | Phá vỡ `select` , không phải vòng lặp bên ngoài | Sử dụng dấu ngắt có nhãn: `break outerLoop` |
+| 3 | 🟡 Chung | Sửa đổi biến vòng lặp `for range` | Thay đổi bản sao chứ không phải phần tử gốc | Sử dụng quyền truy cập chỉ mục: `slice[i].field = val` |
+| 4 | 🟡 Chung | Dựa vào thứ tự lặp map | Thứ tự được sắp xếp ngẫu nhiên — các bài kiểm tra trở nên không ổn định | Sắp xếp các khóa trước khi lặp |
+| 5 | 🔵 Nhỏ | Sử dụng `fallthrough` trong switch | Gây nhầm lẫn cho người đánh giá; hiếm khi có sự lựa chọn đúng đắn | Để lại tự động ngắt; chỉ sử dụng `fallthrough` khi không thể tránh khỏi |
 
 ---
 
-## 6. RECOMMEND
+## 5. GIỚI THIỆU
 
-Control flow tells the program what to do. The next question: what happens when things go wrong — files left open, panics crashing production, resources leaking?
-
-| Expand to                 | When                                    | Reason                                                  | File                                                            |
-| ------------------------- | --------------------------------------- | ------------------------------------------------------- | --------------------------------------------------------------- |
-| Defer, Panic, Recover     | Resource cleanup across return paths    | `defer` guarantees cleanup; `recover` catches panics    | [03-defer-panic-recover.md](./03-defer-panic-recover.md)        |
-| Pointers & Memory         | Understanding pass-by-value vs pointer  | Go passes copies by default; pointers modify the original | [04-pointers-memory.md](./04-pointers-memory.md)               |
-| Syntax & Variables        | Reviewing `var` vs `:=` declaration     | Foundational syntax that this article builds on         | [01-syntax-variables.md](./01-syntax-variables.md)              |
-| Goroutines & Channels     | Taking `select` deeper into concurrency | `select` is the gateway to Go concurrency patterns      | [../../concurrency/01-goroutines-and-channels.md](../../concurrency/01-goroutines-and-channels.md) |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
+| ---------------------- | -------- | --------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| Go Spec — Tuyên bố | Chính thức | [go.dev/ref/spec#Statements](https://go.dev/ref/spec#Statements) | Thông số ngôn ngữ có thẩm quyền |
+| Go Tour — Kiểm soát luồng | Chính thức | [go.dev/tour/flowcontrol/1](https://go.dev/tour/flowcontrol/1) | Hướng dẫn tương tác |
+| Hiệu quả Go — Kiểm soát | Chính thức | [go.dev/doc/effective_go#control-structures](https://go.dev/doc/effective_go#control-structures) | Mẫu thành ngữ |
 
 ---
 
-**Navigation**: [← Syntax & Variables](./01-syntax-variables.md) · [→ Defer, Panic, Recover](./03-defer-panic-recover.md)
+## 6. KHUYẾN NGHỊ
+
+Luồng điều khiển cho chương trình biết phải làm gì. Câu hỏi tiếp theo: điều gì xảy ra khi có sự cố xảy ra - các tập tin vẫn mở, hoạt động sản xuất bị gián đoạn, tài nguyên bị rò rỉ?
+
+| Mở rộng sang | Khi nào | Lý do | Tập tin |
+| ------------------------- | ------------------------------ | ---------------------------------------------- | --------------------------------------------------------------- |
+| Defer , Panic , Recover | Dọn dẹp tài nguyên trên các đường dẫn trở lại | `defer` đảm bảo dọn dẹp; `recover` bắt hoảng loạn | [03-defer-panic-recover.md](./03-defer-panic-recover.md) |
+| Pointers & Bộ nhớ | Hiểu từng giá trị so với pointer | Go chuyển các bản sao theo mặc định; pointers sửa đổi bản gốc | [04-pointers-memory.md](./04-pointers-memory.md) |
+| Cú pháp & Biến | Xem lại khai báo `var` so với `:=` | Cú pháp cơ bản mà bài viết này xây dựng trên | [01-syntax-variables.md](./01-syntax-variables.md) |
+| Goroutines & Channels | Đưa `select` đi sâu hơn vào concurrency | `select` là cổng vào các mẫu Go concurrency | [../../concurrency/01-goroutines-and-channels.md](../../concurrency/01-goroutines-and-channels.md) |
+
+---
+
+**Điều hướng**: [← Syntax & Variables](./01-syntax-variables.md) · [→ Defer, Panic, Recover](./03-defer-panic-recover.md)

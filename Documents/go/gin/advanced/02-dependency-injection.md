@@ -1,55 +1,40 @@
-<!-- tags: golang -->
-# 💉 Dependency Injection — NestJS DI Container → Go Manual/Wire/fx
+<!-- tags: golang --> # 💉 Tiêm phụ thuộc — NestJS DI Container → Hướng dẫn sử dụng/Dây/fx
 
-> **Library**: Manual constructor injection or compile-time code generation with Google Wire — replacing NestJS DI container.
+> **Thư viện**: Chèn hàm tạo thủ công hoặc tạo mã thời gian biên dịch bằng Google Wire — thay thế vùng chứa NestJS DI.
 
-📅 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 14 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS has a built-in IoC container with `@Injectable()` decorators. Go has no runtime DI — you wire dependencies manually in `main.go` or use compile-time code generation tools like Google Wire. Both approaches accept interfaces, enabling mock injection in tests.
+NestJS có bộ chứa IoC tích hợp với các bộ trang trí `@Injectable()` . Go không có DI thời gian chạy — bạn kết nối các phần phụ thuộc theo cách thủ công trong `main.go` hoặc sử dụng các công cụ tạo mã tại thời gian biên dịch như Google Wire. Cả hai phương pháp đều chấp nhận giao diện, cho phép chèn mô hình vào thử nghiệm.
 
-| NestJS                               | Go Equivalent                             |
+| NestJS | Đi tương đương |
 | ------------------------------------ | ----------------------------------------- |
-| `@Injectable()` + `@Inject()`        | Explicit runtime constructor arguments    |
-| `@Module({ providers: [...] })`      | `main.go` wiring or Google Wire files     |
-| `useClass`, `useValue`, `useFactory` | Direct instantiation returning interfaces |
+| `@Injectable()` + `@Inject()` | Đối số hàm tạo thời gian chạy rõ ràng |
+| `@Module({ providers: [...] })` | `main.go` dây hoặc tệp Google Wire |
+| `useClass` , `useValue` , `useFactory` | Giao diện trả về khởi tạo trực tiếp |
 
-### Key Invariants
+### Bất biến chính
 
-- **Accept interfaces, return structs.** Constructors take `UserRepository` (interface), return `*UserService` (concrete).
-- **Wire in `main.go`, not in domain packages.** Domain code should not know how it’s assembled.
+- **Chấp nhận giao diện, trả về cấu trúc.** Trình xây dựng lấy `UserRepository` (giao diện), return `*UserService` (cụ thể).
+- **Dây vào `main.go` , không phải trong các gói miền.** Mã miền không nên biết nó được tập hợp như thế nào.
 
-## 2. VISUAL
-
-![DI patterns — Manual constructor, Google Wire (compile-time), Uber fx (runtime)](./images/02-dependency-injection.png)
-
-*Figure: Three Go DI approaches — Manual (explicit, main() wiring), Google Wire (compile-time codegen, no reflection), Uber fx (runtime container like NestJS).*
-
-```mermaid
+## 2. HÌNH ẢNH ![DI patterns — Manual constructor, Google Wire (compile-time), Uber fx (runtime)](./images/02-dependency-injection.png) *Hình: Ba cách tiếp cận Go DI — Thủ công (rõ ràng, nối dây chính()), Google Wire (codegen thời gian biên dịch, không phản chiếu), Uber fx (vùng chứa thời gian chạy như NestJS).*```mermaid
 flowchart TD
     A["main.go"] -->|"NewPostgresRepo(db)"| B["UserRepository iface"]
     A -->|"NewService(repo)"| C["UserService"]
     A -->|"NewHandler(svc)"| D["UserHandler"]
     D -->|"register routes"| E["gin.Engine"]
     style B stroke-dasharray: 5 5
-```
+```*Hình: Đi dây DI trong `main.go` — loại bê tông chảy xuống, bề mặt tiếp xúc hướng lên trên. Các gói miền không bao giờ nhập `main` .*
 
-*Figure: DI wiring in `main.go` — concrete types flow down, interfaces face up. Domain packages never import `main`.*
-
-### DI Approaches
-
-```text
+### Phương pháp tiếp cận DI```text
 Manual:  main.go creates all deps in order (simplest, ~20 deps)
 Wire:    compile-time codegen from provider sets (scales to 100+ deps)
 fx:      runtime container with lifecycle hooks (Uber pattern)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Manual Injection
-
-```go
+### Ví dụ 1: Cơ bản — Chèn thủ công```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Manual DI: create deps in main.go, pass via constructors.
     // Each New* function accepts interfaces, returns concrete.
@@ -79,11 +64,7 @@ fx:      runtime container with lifecycle hooks (Uber pattern)
 
         log.Fatal(r.Run(":" + cfg.App.Port))
     }
-```
-
-### Example 2: Intermediate — Compile-Time Wire
-
-```go
+```### Ví dụ 2: Trung cấp — Compile-Time Wire```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Google Wire: declare provider sets, Wire generates
     // the InitializeApp() function at compile time.
@@ -127,29 +108,27 @@ fx:      runtime container with lifecycle hooks (Uber pattern)
         users.RegisterRoutes(api, userHandler)
         return r
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Accepting concrete types in constructors instead of interfaces | Cannot swap implementations for testing; handler is coupled to Postgres | `NewService(repo UserRepository)` not `NewService(repo *PostgresRepo)` |
-| 2 | 🟡 Common | Circular dependency between packages | Compile error or init deadlock | Extract shared interfaces into a separate `domain` package |
+| 1 | 🔴 Gây tử vong | Chấp nhận các kiểu cụ thể trong hàm tạo thay vì giao diện | Không thể hoán đổi việc triển khai để thử nghiệm; trình xử lý được ghép nối với Postgres | `NewService(repo UserRepository)` không phải `NewService(repo *PostgresRepo)` |
+| 2 | 🟡 Chung | Sự phụ thuộc vòng tròn giữa các gói | Lỗi biên dịch hoặc bế tắc ban đầu | Trích xuất các giao diện dùng chung thành gói `domain` riêng biệt |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Google Wire | [github.com/google/wire](https://github.com/google/wire) |
+| Dây Google | [github.com/google/wire](https://github.com/google/wire) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Lifecycle Hooks | When you need startup/shutdown orchestration | Manage DB connections, cache warmup, and graceful drain | [./03-lifecycle-hooks.md](./03-lifecycle-hooks.md) |
+| Móc vòng đời | Khi bạn cần điều phối khởi động/tắt máy | Quản lý kết nối DB, khởi động bộ đệm và thoát nước nhẹ nhàng | [./03-lifecycle-hooks.md](./03-lifecycle-hooks.md) |

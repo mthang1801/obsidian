@@ -1,82 +1,72 @@
-<!-- tags: golang, error-handling -->
+<!-- tags: golang, error-handling --> # 🔗 Lỗi Sentinel, Gói & lỗi.Join — Go Mẫu lỗi
 
-# 🔗 Sentinel Errors, Wrapping & errors.Join — Go Error Patterns
+> Go 1.13+ được giới thiệu error wrapping với `%w` . Go 1.20 đã thêm `errors.Join` để tổng hợp nhiều lỗi. Cùng với các biến trọng điểm và các loại tùy chỉnh, các công cụ này hình thành nên khả năng xử lý lỗi hoàn chỉnh của Go strategy .
 
-> Go 1.13+ introduced error wrapping with `%w`. Go 1.20 added `errors.Join` for multi-error aggregation. Together with sentinel variables and custom types, these tools form Go's complete error handling strategy.
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 14 phút đọc
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 14 min read
-
-| TS/NestJS                           | Go                                         |
+| TS/NestJS | Go |
 | ----------------------------------- | ------------------------------------------ |
-| `throw new Error("msg")`            | `errors.New("msg")`                        |
+| `throw new Error("msg")` | `errors.New("msg")` |
 | `class NotFoundError extends Error` | `var ErrNotFound = errors.New("not found")` |
-| `error.cause`                       | `fmt.Errorf("...: %w", err)`              |
-| `AggregateError`                    | `errors.Join(err1, err2)` (Go 1.20+)      |
-| `instanceof NotFoundError`          | `errors.Is(err, ErrNotFound)`              |
-| `error as CustomError`              | `errors.As(err, &target)`                 |
+| `error.cause` | `fmt.Errorf("...: %w", err)` |
+| `AggregateError` | `errors.Join(err1, err2)` ( Go 1.20+) |
+| `instanceof NotFoundError` | `errors.Is(err, ErrNotFound)` |
+| `error as CustomError` | `errors.As(err, &target)` |
 
-| Aspect          | Detail                                                        |
+| Khía cạnh | Chi tiết |
 | --------------- | ------------------------------------------------------------- |
-| **Concept**     | Sentinel errors, semantic wrapping, and multi-error aggregation |
-| **Use case**    | Type-safe error routing across service layers                  |
-| **Key insight** | `errors.Is()` walks the entire chain to find a sentinel match   |
-| **Go proverb**  | "Errors are values — program with them"                       |
+| **Khái niệm** | Lỗi trọng điểm, gói ngữ nghĩa và tổng hợp nhiều lỗi |
+| **Trường hợp sử dụng** | Định tuyến lỗi an toàn loại trên các lớp dịch vụ |
+| **Thông tin chi tiết quan trọng** | `errors.Is()` đi khắp chuỗi để tìm trận đấu trọng điểm |
+| ** Go tục ngữ** | "Lỗi là giá trị — lập trình với chúng" |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA `GetUser(id)` của bạn trả về `"not found"` dưới dạng một chuỗi. Nhưng "không tìm thấy" có hai nghĩa khác nhau: một bản ghi database bị thiếu (trả về HTTP 404) và thời gian chờ mạng trong đó database không thể truy cập được (trả về HTTP 503). So sánh `err.Error() == "not found"` không thể phân biệt được chúng. Khi trình điều khiển database cập nhật thông báo của nó từ `"not found"` thành `"no rows in result set"` , phép so sánh của bạn sẽ không hoạt động — không có lỗi biên dịch, không có lỗi kiểm tra, chỉ là mã trạng thái HTTP sai trong quá trình sản xuất.
 
-Your `GetUser(id)` returns `"not found"` as a string. But "not found" means two different things: a missing database record (return HTTP 404) and a network timeout where the database was unreachable (return HTTP 503). Comparing `err.Error() == "not found"` cannot distinguish them. When the database driver updates its message from `"not found"` to `"no rows in result set"`, your comparison breaks silently — no compile error, no test failure, just a wrong HTTP status code in production.
+Lỗi Sentinel giải quyết điều này. `var ErrNotFound = errors.New("not found")` tạo ra pointer ổn định. `errors.Is(err, ErrNotFound)` so sánh theo danh tính, không phải theo nội dung chuỗi. Người lái xe có thể tự do thay đổi tin nhắn của mình — việc kiểm tra trọng điểm của bạn vẫn hoạt động.
 
-Sentinel errors solve this. `var ErrNotFound = errors.New("not found")` creates a stable pointer. `errors.Is(err, ErrNotFound)` compares by identity, not by string content. The driver can change its message freely — your sentinel check still works.
+Nhưng chỉ lính gác thôi thì chưa đủ. Khi kho lưu trữ đưa lỗi GORM vào trọng điểm của bạn, bạn sẽ mất dấu vết stack ban đầu. `fmt.Errorf("UserRepo.FindByID: %w", err)` bảo tồn chuỗi. Và khi quá trình xác thực tạo ra ba lỗi cùng một lúc, `errors.Join` sẽ tổng hợp chúng thành một lỗi duy nhất mà `errors.Is` vẫn có thể kiểm tra.
 
-But sentinels alone are not enough. When a repository wraps a GORM error into your sentinel, you lose the original stack trace. `fmt.Errorf("UserRepo.FindByID: %w", err)` preserves the chain. And when validation produces three failures at once, `errors.Join` aggregates them into a single error that `errors.Is` can still inspect.
+### Mẫu lỗi kiến trúc
 
-### Architectural Error Patterns
-
-| Technique           | Description                                           | Use case                                     |
+| Kỹ thuật | Mô tả | Trường hợp sử dụng |
 | ------------------- | ----------------------------------------------------- | -------------------------------------------- |
-| **Sentinel errors** | Package-level `var ErrFoo = errors.New(...)`          | Stable identity checks across packages        |
-| **Wrapping `%w`**   | `fmt.Errorf("context: %w", err)` preserves the chain | Adding breadcrumbs while keeping root cause   |
-| **`errors.Is`**     | Walks the chain to match a specific sentinel          | Routing decisions (404 vs 500)                |
-| **`errors.As`**     | Walks the chain to extract a specific error type      | Accessing metadata (HTTP code, operation name) |
-| **`errors.Join`**   | Aggregates multiple errors into one (Go 1.20+)        | Validation failures, batch operations         |
+| **Lỗi trọng điểm** | Package -level `var ErrFoo = errors.New(...)` | Kiểm tra danh tính ổn định trên packages |
+| **Gói `%w` ** | `fmt.Errorf("context: %w", err)` bảo toàn chuỗi | Thêm mẩu bánh mì trong khi vẫn giữ nguyên nguyên nhân gốc rễ |
+| ** `errors.Is` ** | Đi theo chuỗi để phù hợp với một lính canh cụ thể | Quyết định định tuyến (404 so với 500) |
+| ** `errors.As` ** | Đi theo chuỗi để trích xuất một loại lỗi cụ thể | Truy cập siêu dữ liệu (mã HTTP, tên hoạt động) |
+| ** `errors.Join` ** | Tổng hợp nhiều lỗi thành một ( Go 1.20+) | Lỗi xác thực, hoạt động hàng loạt |
 
-### Failure Modes
+### Chế độ lỗi
 
-| #   | Severity  | Defect                                   | Consequence                                 | Fix                                                 |
-| --- | --------- | ---------------------------------------- | ------------------------------------------- | --------------------------------------------------- |
-| 1   | 🔴 Fatal  | Creating `errors.New()` inside a function | Each call returns a different pointer — `errors.Is` never matches | Define sentinels at package level as `var` |
-| 2   | 🔴 Fatal  | Missing `Unwrap()` on a custom error type | `errors.Is/As` cannot traverse through it   | Implement `Unwrap() error` on every wrapper type    |
-| 3   | 🟡 Common | Forgetting `nil` check after `errors.Join` | `errors.Join` returns `nil` when passed zero errors — safe, but callers may not expect it | Document that empty join = nil            |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Hậu quả | Sửa chữa |
+| --- | --------- | ---------------------------------------- | --------------------------------------------- | --------------------------------------------------- |
+| 1 | 🔴 Gây tử vong | Tạo `errors.New()` bên trong một hàm | Mỗi lệnh gọi trả về một pointer khác nhau — `errors.Is` không bao giờ khớp | Xác định trọng điểm ở cấp độ package là `var` |
+| 2 | 🔴 Gây tử vong | Thiếu `Unwrap()` trên loại custom error | `errors.Is/As` không thể đi qua nó | Triển khai `Unwrap() error` trên mọi loại trình bao bọc |
+| 3 | 🟡 Chung | Quên `nil` kiểm tra sau `errors.Join` | `errors.Join` trả về `nil` khi không có lỗi nào — an toàn, nhưng người gọi có thể không mong đợi điều đó | Tài liệu tham gia trống = nil |
 
 ---
 
-With the theory established, the visual below shows how sentinel, wrapping, and join interact in a real service architecture.
+Với lý thuyết đã được thiết lập, hình ảnh bên dưới cho thấy cách trọng điểm, gói và liên kết tương tác với nhau trong kiến trúc dịch vụ thực tế.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The hardest part of error handling is seeing the chain. Three layers of wrapping produce a linked list of errors. `errors.Is` walks this list from top to bottom. `errors.Join` creates a tree instead of a list — one error with multiple children.
+Phần khó nhất trong việc xử lý lỗi là nhìn thấy chuỗi. Ba lớp gói tạo ra một danh sách lỗi được liên kết. `errors.Is` duyệt danh sách này từ trên xuống dưới. `errors.Join` tạo một cây thay vì danh sách — một lỗi với nhiều con. ![Sentinel wrapping join decision map](./images/02-sentinel-wrapping-join-decision-map.png) *Hình: Quyết định map để lựa chọn giữa trọng điểm, gói, loại tùy chỉnh và tham gia. Bắt đầu với tùy chọn đơn giản nhất (sentinel) và chỉ chuyển lên cấp cao hơn khi trường hợp sử dụng yêu cầu tổng hợp hoặc siêu dữ liệu phong phú hơn.*
 
-![Sentinel wrapping join decision map](./images/02-sentinel-wrapping-join-decision-map.png)
+Với quyết định map được định tuyến, phần mã bên dưới thể hiện từng mẫu một cách riêng biệt và sau đó kết hợp chúng trong trình xử lý lỗi kiểu sản xuất.
 
-*Figure: Decision map for choosing between sentinel, wrapping, custom type, and join. Start with the simplest option (sentinel) and escalate only when the use case demands richer metadata or aggregation.*
+## 3. MÃ
 
-With the decision map routed, the code section below demonstrates each pattern in isolation and then combines them in a production-style error handler.
+Quyết định map được thiết lập. Giờ đây, chúng tôi neo từng nhánh trong mã: lỗi trọng điểm để so sánh ổn định, gói chuỗi để theo dõi đường dẫn cuộc gọi, loại tùy chỉnh cho siêu dữ liệu có cấu trúc và `errors.Join` để xác thực nhiều lỗi.
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Lỗi Sentinel
 
-The decision map is established. Now we anchor each branch in code: sentinel errors for stable comparisons, wrapping chains for call-path tracing, custom types for structured metadata, and `errors.Join` for multi-error validation.
+Ứng dụng của bạn có sáu chế độ lỗi phổ biến: không tìm thấy, trái phép, bị cấm, xung đột, xác thực và lỗi nội bộ. Mỗi người cần một danh tính ổn định mà người gọi có thể kiểm tra mà không cần phân tích chuỗi.
 
-### Example 1: Basic — Sentinel Errors
-
-Your application has six common failure modes: not found, unauthorized, forbidden, conflict, validation, and internal error. Each one needs a stable identity that callers can check without parsing strings.
-
-> **Objective**: Define package-level sentinel errors with stable pointer identity.
-> **Approach**: `var ErrNotFound = errors.New("not found")` at package level — one pointer, shared across all callers.
-> **Rule**: Never create sentinels inside functions. `errors.New()` inside a function returns a new pointer on every call — `errors.Is` will never match.
-
-```go
+> **Mục tiêu**: Xác định các lỗi trọng điểm cấp độ package với nhận dạng pointer ổn định.
+> **Phương pháp tiếp cận**: `var ErrNotFound = errors.New("not found")` ở cấp độ package — một pointer , được chia sẻ giữa tất cả người gọi.
+> **Quy tắc**: Không bao giờ tạo trọng điểm bên trong hàm. `errors.New()` bên trong một hàm trả về một pointer mới trên mỗi lệnh gọi — `errors.Is` sẽ không bao giờ khớp.```go
 package apperror
 
 import "errors"
@@ -95,25 +85,19 @@ var (
 // Usage:
 //   return apperror.ErrNotFound
 //   if errors.Is(err, apperror.ErrNotFound) { ... }
-```
-
-> **Conclusion**: Sentinel variables give callers a stable comparison target. `errors.Is(err, apperror.ErrNotFound)` works regardless of how many layers wrap the error. The sentinel pointer never changes — unlike string messages, which break silently when upgraded.
+```> **Kết luận**: Các biến trọng điểm cung cấp cho người gọi một mục tiêu so sánh ổn định. `errors.Is(err, apperror.ErrNotFound)` hoạt động bất kể có bao nhiêu lớp bao bọc lỗi. Giá trị canh gác pointer không bao giờ thay đổi — không giống như các tin nhắn chuỗi, sẽ âm thầm ngắt khi được nâng cấp.
 >
-> **When to use**: Export sentinels when callers from other packages need to match specific failure conditions. Keep them in a dedicated `apperror` package for discoverability.
+> **Khi nào nên sử dụng**: Xuất thông tin cảnh báo khi người gọi từ packages khác cần khớp với các điều kiện lỗi cụ thể. Giữ chúng trong một `apperror` package chuyên dụng để có thể khám phá.
 
-Sentinels identify *what* went wrong. But when you need to trace *where* it went wrong — which repository, which service, which parameter — wrapping adds that context.
+Người canh gác xác định *điều gì* đã xảy ra. Nhưng khi bạn cần theo dõi *ở đâu* thì nó đã sai — kho lưu trữ nào, dịch vụ nào, tham số nào — việc gói sẽ thêm ngữ cảnh đó.
 
 ---
 
-### Example 2: Intermediate — Error Wrapping Chain
+### Ví dụ 2: Chuỗi trung gian — Error Wrapping Trình xử lý HTTP của bạn gọi một dịch vụ gọi một kho lưu trữ. Kho lưu trữ maps lỗi GORM vào trọng điểm của bạn. Dịch vụ bao bọc nó bằng tên hoạt động. Trình xử lý kiểm tra trọng điểm và trả về trạng thái HTTP chính xác.
 
-Your HTTP handler calls a service, which calls a repository. The repository maps a GORM error into your sentinel. The service wraps it with the operation name. The handler checks the sentinel and returns the correct HTTP status.
-
-> **Objective**: Build a 3-layer wrapping chain (repository → service → handler) that preserves sentinel identity.
-> **Approach**: Repository maps ORM errors to app sentinels. Service wraps with `%w`. Handler inspects with `errors.Is`.
-> **Example**: `FindByID` returns `apperror.ErrNotFound`. `GetByID` wraps it with the user ID. The handler matches `ErrNotFound` through the chain and returns HTTP 404.
-
-```go
+> **Mục tiêu**: Xây dựng chuỗi gói 3 lớp (kho lưu trữ → dịch vụ → trình xử lý) để duy trì danh tính trọng điểm.
+> **Phương pháp tiếp cận**: Lỗi kho lưu trữ maps ORM đối với trọng điểm ứng dụng. Dịch vụ kết thúc bằng `%w` . Trình xử lý kiểm tra với `errors.Is` .
+> **Ví dụ**: `FindByID` trả về `apperror.ErrNotFound` . `GetByID` bao bọc nó bằng ID người dùng. Trình xử lý khớp `ErrNotFound` qua chuỗi và trả về HTTP 404.```go
 package service
 
 import (
@@ -162,26 +146,22 @@ func handler(c fiber.Ctx) error {
 	}
 	return c.JSON(user)
 }
-```
-
-> **Why map GORM errors to app sentinels?**
-> Your handler should not know about GORM. If you switch from GORM to `pgx`, every `errors.Is(err, gorm.ErrRecordNotFound)` check in the handler layer breaks. The repository translates ORM-specific errors into app-level sentinels. The handler depends only on `apperror.ErrNotFound` — database implementation stays hidden behind the repository boundary.
+```> **Tại sao map GORM lại xảy ra lỗi với bộ phận giám sát ứng dụng?**
+> Người xử lý của bạn không nên biết về GORM . Nếu bạn chuyển từ GORM sang `pgx` , mọi kiểm tra `errors.Is(err, gorm.ErrRecordNotFound)` trong lớp xử lý sẽ bị hỏng. Kho lưu trữ dịch các lỗi cụ thể ORM thành các trọng điểm cấp ứng dụng. Trình xử lý chỉ phụ thuộc vào việc triển khai `apperror.ErrNotFound` - database vẫn bị ẩn sau ranh giới kho lưu trữ.
 >
-> **Conclusion**: The wrapping chain reads like a call stack: `UserService.GetByID(abc123): not found`. Each layer adds exactly one piece of context. `errors.Is` walks the chain from top to bottom and finds the sentinel at the root.
+> **Kết luận**: Chuỗi gói đọc giống như một lệnh gọi stack : `UserService.GetByID(abc123): not found` . Mỗi lớp thêm chính xác một phần bối cảnh. `errors.Is` đi theo chuỗi từ trên xuống dưới và tìm thấy trọng điểm ở gốc.
 
-Sentinel + wrapping covers identity checks with context. But when your error handler needs structured data — HTTP status code, error type slug, user-facing message — a custom error type carries that metadata.
+Sentinel + gói bao gồm việc kiểm tra danh tính bằng ngữ cảnh. Nhưng khi trình xử lý lỗi của bạn cần dữ liệu có cấu trúc - mã trạng thái HTTP, phần mở rộng loại lỗi, thông báo hướng tới người dùng - loại custom error mang siêu dữ liệu đó.
 
 ---
 
-### Example 3: Advanced — Custom Error Type + errors.As
+### Ví dụ 3: Nâng cao — Custom Error Loại + lỗi.Như
 
-Your API returns JSON error responses with a `type` field (`NOT_FOUND`, `BAD_REQUEST`), an HTTP status code, and a human-readable message. A plain `error` interface cannot carry these fields. You need a struct.
+API của bạn trả về phản hồi lỗi JSON với trường `type` ( `NOT_FOUND` , `BAD_REQUEST` ), mã trạng thái HTTP và thông báo mà con người có thể đọc được. Một `error` interface đơn giản không thể mang các trường này. Bạn cần một struct .
 
-> **Objective**: Build a custom error type that carries HTTP status, error type, message, and the underlying cause.
-> **Approach**: `AppError` struct with `Error()` and `Unwrap()`. Constructor helpers enforce consistency. A central error handler uses `errors.As` to extract the struct.
-> **Example**: The handler calls `errors.As(err, &appErr)` to extract the HTTP status code and return a structured JSON response.
-
-```go
+> **Mục tiêu**: Xây dựng loại custom error mang trạng thái HTTP, loại lỗi, thông báo và nguyên nhân cơ bản.
+> **Cách tiếp cận**: `AppError` struct với `Error()` và `Unwrap()` . Trình trợ giúp của hàm xây dựng thực thi tính nhất quán. Trình xử lý lỗi trung tâm sử dụng `errors.As` để trích xuất struct .
+> **Ví dụ**: Trình xử lý gọi `errors.As(err, &appErr)` để trích xuất mã trạng thái HTTP và trả về phản hồi JSON có cấu trúc.```go
 package apperror
 
 import "fmt"
@@ -227,26 +207,22 @@ func errorHandler(c fiber.Ctx, err error) error {
 	// Fallback — unknown error type
 	return c.Status(500).JSON(fiber.Map{"message": "internal error"})
 }
-```
-
-> **Why `errors.As` instead of type assertion?**
-> A direct type assertion `err.(*AppError)` only matches the top-level error. If the `AppError` is wrapped inside another error, the assertion fails. `errors.As` walks the entire chain — it finds the `AppError` even through multiple wrapping layers. This makes your error handler resilient to future wrapping changes.
+```> **Tại sao `errors.As` thay vì type assertion ?**
+> type assertion `err.(*AppError)` trực tiếp chỉ phù hợp với lỗi cấp cao nhất. Nếu `AppError` được gói trong một lỗi khác, xác nhận sẽ không thành công. `errors.As` đi qua toàn bộ chuỗi - nó tìm thấy `AppError` thậm chí qua nhiều lớp gói. Điều này làm cho trình xử lý lỗi của bạn có khả năng phục hồi tốt trước những thay đổi về gói trong tương lai.
 >
-> **Conclusion**: Custom error types turn Go's `error` interface into structured data. The central error handler uses `errors.As` once, extracting all metadata in a single check. New error types (e.g., `NewForbidden`, `NewConflict`) slot in without changing the handler logic.
+> **Kết luận**: Các loại lỗi tùy chỉnh biến Go 's `error` interface thành dữ liệu có cấu trúc. Trình xử lý lỗi trung tâm sử dụng `errors.As` một lần, trích xuất tất cả siêu dữ liệu trong một lần kiểm tra. Các loại lỗi mới (ví dụ: `NewForbidden` , `NewConflict` ) được đưa vào mà không thay đổi logic xử lý.
 
-Custom types handle single errors with metadata. But validation routinely produces multiple errors at once. Go 1.20's `errors.Join` solves this.
+Các loại tùy chỉnh xử lý các lỗi đơn lẻ bằng siêu dữ liệu. Nhưng việc xác thực thường xuyên tạo ra nhiều lỗi cùng một lúc. Go 1.20's `errors.Join` giải quyết vấn đề này.
 
 ---
 
-### Example 4: Expert — errors.Join (Go 1.20+)
+### Ví dụ 4: Expert — error.Join ( Go 1.20+)
 
-Your `validateUser` function checks name, email, and age. All three can fail independently. Instead of returning on the first failure, you collect all errors and return them as one.
+Hàm `validateUser` của bạn sẽ kiểm tra tên, email và tuổi. Cả ba đều có thể thất bại một cách độc lập. Thay vì quay lại lần thất bại đầu tiên, bạn thu thập tất cả các lỗi và trả lại chúng như một lỗi.
 
-> **Objective**: Aggregate multiple validation errors into a single `error` value that `errors.Is` can still inspect.
-> **Approach**: Collect errors into a `[]error` slice. `errors.Join(errs...)` combines them. Returns `nil` when the slice is empty.
-> **Example**: `validateUser` with empty name and invalid age returns both errors in one value.
-
-```go
+> **Mục tiêu**: Tổng hợp nhiều lỗi xác thực thành một giá trị `error` mà `errors.Is` vẫn có thể kiểm tra.
+> **Phương pháp tiếp cận**: Thu thập lỗi vào một `[]error` slice . `errors.Join(errs...)` kết hợp chúng. Trả về `nil` khi slice trống.
+> **Ví dụ**: `validateUser` với tên trống và tuổi không hợp lệ sẽ trả về cả hai lỗi trong một giá trị.```go
 package validation
 
 import "errors"
@@ -277,48 +253,46 @@ func validateUser(u *User) error {
 //     // must be 18+
 // }
 // errors.Is(err, specificErr) still works — Join preserves Is/As traversal
-```
-
-> **Why `errors.Join` instead of a custom `ValidationError` struct?**
-> `errors.Join` is a standard library function — no custom types, no boilerplate. It returns `nil` when passed zero errors, which eliminates the need for an `if len(errs) > 0` check. And `errors.Is` can inspect each individual error inside the joined result. For most validation use cases, `errors.Join` is simpler than a dedicated struct.
+```> **Tại sao `errors.Join` thay vì `ValidationError` struct tùy chỉnh ?**
+> `errors.Join` là một hàm thư viện tiêu chuẩn — không có kiểu tùy chỉnh, không có bản soạn sẵn. Nó trả về `nil` khi không có lỗi nào, điều này giúp loại bỏ sự cần thiết phải kiểm tra `if len(errs) > 0` . Và `errors.Is` có thể kiểm tra từng lỗi riêng lẻ bên trong kết quả đã nối. Đối với hầu hết các trường hợp sử dụng xác thực, `errors.Join` đơn giản hơn struct chuyên dụng.
 >
-> **When to prefer a custom struct**: When you need structured fields (HTTP code, field name, validation rule) attached to each error. In that case, create a `ValidationError` struct and join multiple instances.
+> **Khi nào nên ưu tiên một tùy chỉnh struct **: Khi bạn cần các trường có cấu trúc (mã HTTP, tên trường, quy tắc xác thực) được đính kèm với mỗi lỗi. Trong trường hợp đó, hãy tạo một `ValidationError` struct và nối nhiều phiên bản.
 >
-> **Conclusion**: `errors.Join` aggregates multiple independent failures into one error value. `errors.Is` inspects each child. Combined with sentinel errors, this covers batch validation, parallel operations, and cleanup teardown where multiple steps can fail independently.
+> **Kết luận**: `errors.Join` tổng hợp nhiều lỗi độc lập thành một giá trị lỗi. `errors.Is` kiểm tra từng đứa trẻ. Kết hợp với các lỗi nghiêm trọng, điều này bao gồm việc xác thực hàng loạt, các hoạt động song song và dọn dẹp trong đó nhiều bước có thể bị lỗi một cách độc lập.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The syntax of sentinels, wrapping, and join is straightforward. The bugs hide in subtle misuse that compiles, passes tests, and breaks in production.
+Cú pháp của canh gác, gói và nối rất đơn giản. Các lỗi ẩn giấu trong việc sử dụng sai mục đích một cách tinh vi trong quá trình biên dịch, vượt qua các bài kiểm tra và gián đoạn trong quá trình sản xuất.
 
-| #   | Severity  | Defect                                       | Consequence                                    | Fix                                                  |
-| --- | --------- | -------------------------------------------- | ---------------------------------------------- | ---------------------------------------------------- |
-| 1   | 🔴 Fatal  | Using `%v` instead of `%w`                  | Chain breaks — `errors.Is/As` return false      | Always use `%w` in `fmt.Errorf`                      |
-| 2   | 🔴 Fatal  | Creating sentinels inside functions           | Each call returns a new pointer — `errors.Is` never matches | Define sentinels at package level as `var`     |
-| 3   | 🟡 Common | Over-wrapping at every layer                 | Error message becomes a 300-character chain    | Wrap only when the layer adds new context             |
-| 4   | 🟡 Common | Logging and wrapping at the same layer       | Same error appears twice in logs               | Either log or wrap — not both                        |
-| 5   | 🔵 Minor  | Ignoring `errors.Join` return value of `nil` | Safe but surprising — joining zero errors returns `nil`, not an empty error | Document that empty join = nil          |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Hậu quả | Sửa chữa |
+| --- | --------- | -------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------- |
+| 1 | 🔴 Gây tử vong | Sử dụng `%v` thay vì `%w` | Ngắt chuỗi - `errors.Is/As` trả về sai | Luôn sử dụng `%w` trong `fmt.Errorf` |
+| 2 | 🔴 Gây tử vong | Tạo trọng điểm bên trong các hàm | Mỗi cuộc gọi trả về một pointer mới — `errors.Is` không bao giờ khớp | Xác định trọng điểm ở cấp độ package là `var` |
+| 3 | 🟡 Chung | Bao bọc quá mức ở mọi lớp | Thông báo lỗi trở thành chuỗi 300 ký tự | Chỉ gói khi lớp thêm ngữ cảnh mới |
+| 4 | 🟡 Chung | Ghi nhật ký và gói ở cùng một lớp | Lỗi tương tự xuất hiện hai lần trong nhật ký | Hoặc ghi hoặc gói - không phải cả hai |
+| 5 | 🔵 Nhỏ | Bỏ qua giá trị trả về `errors.Join` của `nil` | An toàn nhưng đáng ngạc nhiên - việc tham gia không có lỗi nào trả về `nil` , không phải lỗi trống | Tài liệu tham gia trống = nil |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource        | Type     | Link                                                                     | Notes                                          |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | --------------- | -------- | ------------------------------------------------------------------------ | ---------------------------------------------- |
-| Go Blog         | Official | [go.dev/blog/go1.13-errors](https://go.dev/blog/go1.13-errors)           | Introduces `%w`, `errors.Is`, `errors.As`       |
-| Effective Go    | Official | [go.dev/doc/effective_go#errors](https://go.dev/doc/effective_go#errors) | Idiomatic error handling patterns and conventions |
+| Go Blog | Chính thức | [go.dev/blog/go1.13-errors](https://go.dev/blog/go1.13-errors) | Giới thiệu `%w` , `errors.Is` , `errors.As` |
+| Có hiệu lực Go | Chính thức | [go.dev/doc/effective_go#errors](https://go.dev/doc/effective_go#errors) | Các mẫu và quy ước xử lý lỗi thành ngữ |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-Sentinel errors, wrapping, custom types, and join are covered. The next step depends on whether you need to revisit the basics or dive into testing error chains.
+Các lỗi trọng điểm, cách gói, loại tùy chỉnh và phép nối đều được đề cập. Bước tiếp theo phụ thuộc vào việc bạn cần xem lại những điều cơ bản hay đi sâu vào kiểm tra chuỗi lỗi.
 
-| Expansion               | When                                     | Rationale                                                        | File/Link                                          |
-| ----------------------- | ---------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
-| Error Wrapping Basics   | When you need a refresher on `%w`, `errors.Is/As` fundamentals | Covers the three code examples (basic, intermediate, advanced) from scratch | [01-wrapping-custom.md](./01-wrapping-custom.md) |
+| Mở rộng | Khi nào | Cơ sở lý luận | Tệp/Liên kết |
+| -------------- | ---------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------- |
+| Error Wrapping Khái niệm cơ bản | Khi bạn cần ôn lại các nguyên tắc cơ bản về `%w` , `errors.Is/As` | Bao gồm ba ví dụ về mã (cơ bản, trung cấp, nâng cao) từ đầu | [01-wrapping-custom.md](./01-wrapping-custom.md) |
 
 ---
 
-**Navigation**: [← Error Wrapping](./01-wrapping-custom.md) · [→ Interfaces](../interfaces/01-implicit-io-patterns.md)
+**Điều hướng**: [← Error Wrapping](./01-wrapping-custom.md) · [→ Interfaces](../interfaces/01-implicit-io-patterns.md)

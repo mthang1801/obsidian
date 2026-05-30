@@ -1,34 +1,27 @@
-<!-- tags: golang -->
-# 🗄️ Database & ORM — NestJS TypeORM → Go GORM/sqlx
+<!-- tags: golang --> # 🗄️ Cơ sở dữ liệu & ORM — NestJS TypeORM → Đi GORM/sqlx
 
-> **Library**: Connect to PostgreSQL via GORM (ORM) or sqlx (raw SQL), implement the Repository pattern, and avoid N+1 queries.
+> **Thư viện**: Kết nối với PostgreSQL thông qua GORM (ORM) hoặc sqlx (SQL thô), triển khai mẫu Kho lưu trữ và tránh các truy vấn N+1.
 
-📅 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 14 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-GORM maps Go structs to database tables via struct tags. For NestJS developers: `@Entity()` becomes a struct, `repository.find()` becomes `db.Find(&users)`, and `@ManyToOne` becomes `gorm:"foreignKey:AuthorID"`.
+Bản đồ GORM Chuyển cấu trúc tới các bảng cơ sở dữ liệu thông qua thẻ struct. Đối với các nhà phát triển NestJS: `@Entity()` trở thành một cấu trúc, `repository.find()` trở thành `db.Find(&users)` và `@ManyToOne` trở thành `gorm:"foreignKey:AuthorID"` .
 
-| NestJS / TypeORM                | Go / GORM Equivalent                      |
+| NestJS / TypeORM | Đi/Tương đương GORM |
 | ------------------------------- | ----------------------------------------- |
-| `@Entity()` decorator           | Plain struct + GORM tags                  |
-| `@Column()`, `@PrimaryColumn()` | `gorm:"primaryKey"`, `gorm:"column:name"` |
-| `TypeOrmModule.forRoot()`       | `gorm.Open(postgres.Open(dsn), &gorm.Config{})` |
-| `repository.find()`             | `db.Find(&users)`                         |
-| Relations: `@ManyToOne`         | `gorm:"foreignKey:UserID"`                |
+| `@Entity()` trang trí | Cấu trúc đơn giản + thẻ GORM |
+| `@Column()` , `@PrimaryColumn()` | `gorm:"primaryKey"` , `gorm:"column:name"` |
+| `TypeOrmModule.forRoot()` | `gorm.Open(postgres.Open(dsn), &gorm.Config{})` |
+| `repository.find()` | `db.Find(&users)` |
+| Quan hệ: `@ManyToOne` | `gorm:"foreignKey:UserID"` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always `db.Preload("Posts")` for relations.** Without it, GORM loads only the parent — leading to nil slices.
-- **Use the Repository pattern.** Handlers should never touch `*gorm.DB` directly.
+- **Luôn luôn `db.Preload("Posts")` cho các mối quan hệ.** Nếu không có nó, GORM chỉ tải phần tử mẹ — dẫn đến các lát cắt không có giá trị.
+- **Sử dụng mẫu Kho lưu trữ.** Trình xử lý không bao giờ được chạm trực tiếp vào `*gorm.DB` .
 
-## 2. VISUAL
-
-![GORM database layer — Handler → Service → Repository with GORM/sqlx options](./images/02-database-orm.png)
-
-*Figure: Database layer — Handler (HTTP) → Service (business logic) → Repository (GORM ORM or sqlx raw SQL) → PostgreSQL with connection pool tuning.*
-
-```mermaid
+## 2. HÌNH ẢNH ![GORM database layer — Handler → Service → Repository with GORM/sqlx options](./images/02-database-orm.png) *Hình: Lớp cơ sở dữ liệu — Trình xử lý (HTTP) → Dịch vụ (logic nghiệp vụ) → Kho lưu trữ (GORM ORM hoặc sqlx raw SQL) → PostgreSQL với điều chỉnh nhóm kết nối.*```mermaid
 flowchart LR
     A["Handler"] -->|"repo.FindByID(id)"| B["Repository"]
     B -->|"db.Preload('Posts').First()"| C["GORM"]
@@ -36,25 +29,17 @@ flowchart LR
     D -->|"rows"| C
     C -->|"User{Posts}"| B
     B -->|"User DTO"| A
-```
+```*Hình: Trình xử lý → Kho lưu trữ → GORM → PostgreSQL. Trình xử lý không bao giờ chạm trực tiếp vào `*gorm.DB` .*
 
-*Figure: Handler → Repository → GORM → PostgreSQL. The handler never touches `*gorm.DB` directly.*
-
-### Data Flow
-
-```text
+### Luồng dữ liệu```text
 GET /users/:id
     └── Handler calls repo.FindByID(id)
         └── Repository calls db.Preload("Posts").First(&user, id)
             └── GORM generates: SELECT * FROM users WHERE id = $1;
                               SELECT * FROM posts WHERE author_id = $1;
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — GORM Setup
-
-```go
+### Ví dụ 1: Cơ bản — Thiết lập GORM```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Open GORM connection, AutoMigrate User table.
     // Handlers use db directly (fine for tiny apps).
@@ -107,11 +92,7 @@ GET /users/:id
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — Repository Pattern
-
-```go
+```### Ví dụ 2: Trung cấp — Mẫu kho lưu trữ```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Repository pattern: inject *gorm.DB via constructor.
     // Preload("Posts") avoids N+1 on HasMany relations.
@@ -163,30 +144,28 @@ GET /users/:id
         err := r.db.Preload("Posts").First(&user, id).Error
         return &user, err
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Calling `db.Find(&users)` inside a loop for related data | N+1 queries: 1 query per parent row | Use `db.Preload("Posts")` for eager loading |
-| 2 | 🟡 Common | Using `db.AutoMigrate` in production | Uncontrolled schema changes with no rollback | Use a migration tool (goose, golang-migrate) |
+| 1 | 🔴 Gây tử vong | Gọi `db.Find(&users)` bên trong vòng lặp cho dữ liệu liên quan | Truy vấn N+1: 1 truy vấn trên mỗi hàng gốc | Sử dụng `db.Preload("Posts")` để tải háo hức |
+| 2 | 🟡 Chung | Sử dụng `db.AutoMigrate` trong sản xuất | Thay đổi lược đồ không được kiểm soát mà không cần khôi phục | Sử dụng công cụ di chuyển (goose, golang-migrate) |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| GORM Docs | [gorm.io/docs](https://gorm.io/docs/) |
+| Tài liệu GORM | [gorm.io/docs](https://gorm.io/docs/) |
 | sqlx | [github.com/jmoiron/sqlx](https://github.com/jmoiron/sqlx) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Validation & DTO | When binding request data before saving to DB | Validate input structs before they reach GORM | [./03-validation-dto.md](./03-validation-dto.md) |
+| Xác thực & DTO | Khi liên kết dữ liệu yêu cầu trước khi lưu vào DB | Xác thực cấu trúc đầu vào trước khi chúng đạt GORM | [./03-validation-dto.md](./03-validation-dto.md) |

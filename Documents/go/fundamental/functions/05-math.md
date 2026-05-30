@@ -1,89 +1,74 @@
-<!-- tags: golang -->
-# 🔢 Math — Numeric Functions & Constants
+<!-- tags: golang --> # 🔢 Toán — Hàm số & Hằng
 
-> Package `math` provides fundamental mathematical functions: abs, min/max, round, sqrt, pow, trigonometry — and critical constants like Pi and MaxInt.
+> Package `math` cung cấp các hàm toán học cơ bản: abs, min/max, round, sqrt, pow, lượng giác — và các hằng số tới hạn như Pi và MaxInt.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 16 phút đọc
 
-| Aspect         | Detail                                        |
+| Khía cạnh | Chi tiết |
 | -------------- | --------------------------------------------- |
-| **Package**    | `math`, `math/rand/v2`, `math/big`            |
-| **Use case**   | Arithmetic, random numbers, arbitrary precision |
-| **Input type** | `float64` (mostly), `int` (min/max Go 1.21+)  |
-| **Key rule**   | Always check NaN/Inf when working with floats  |
+| ** Package ** | `math` , `math/rand/v2` , `math/big` |
+| **Trường hợp sử dụng** | Số học, số ngẫu nhiên, độ chính xác tùy ý |
+| **Loại đầu vào** | `float64` (chủ yếu), `int` (tối thiểu/tối đa Go 1,21+) |
+| **Quy tắc chính** | Luôn kiểm tra NaN/Inf khi làm việc với float |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-> *You are calculating shipping fees based on distance. Or rounding prices for an invoice. Or implementing a clustering algorithm that needs Euclidean distance. Or generating unpredictable random test data. All of these require `math` — Go's standard library includes `math`, `math/rand/v2`, and `math/big`.*
+> *Bạn đang tính phí vận chuyển dựa trên khoảng cách. Hoặc làm tròn giá cho một hóa đơn. Hoặc thực hiện thuật toán phân cụm cần khoảng cách Euclide. Hoặc tạo ra dữ liệu thử nghiệm ngẫu nhiên không thể đoán trước. Tất cả những thứ này đều yêu cầu thư viện chuẩn của `math` — Go bao gồm `math` , `math/rand/v2` và `math/big` .*
 >
-> *The first thing to know: most functions in `math` accept and return `float64`. This is why you cannot call `math.Sqrt(25)` with an `int` — you must cast: `math.Sqrt(float64(25))`. Go 1.21 added built-in `min`/`max` for any comparable type — reducing boilerplate significantly. And `math/rand/v2` (Go 1.22+) completely replaces the old `math/rand` with a simpler API and a cryptographically stronger default source.*
+> *Điều đầu tiên cần biết: hầu hết các hàm trong `math` đều chấp nhận và trả về `float64` . Đây là lý do tại sao bạn không thể gọi `math.Sqrt(25)` bằng `int` - bạn phải truyền: `math.Sqrt(float64(25))` . Go 1.21 đã thêm `min` / `max` tích hợp cho loại any comparable — giảm đáng kể bản soạn sẵn. Và `math/rand/v2` ( Go 1.22+) thay thế hoàn toàn `math/rand` cũ bằng API đơn giản hơn và nguồn mặc định mạnh hơn về mặt mật mã.*
 
-### Function Families
+### Nhóm chức năng `math` package được tổ chức thành **6 nhóm chức năng** — mỗi nhóm giải quyết một miền khác nhau:
 
-The `math` package is organized into **6 functional groups** — each addressing a different domain:
-
-| Family         | Functions                                                |
+| Gia đình | Chức năng |
 | -------------- | -------------------------------------------------------- |
-| **Basic**      | `Abs`, `Max`, `Min`, `Ceil`, `Floor`, `Round`            |
-| **Power/Root** | `Pow`, `Sqrt`, `Cbrt`, `Exp`, `Log`, `Log2`, `Log10`     |
-| **Trig**       | `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`     |
-| **Special**    | `IsNaN`, `IsInf`, `NaN`, `Inf`, `Mod`, `Remainder`       |
-| **Bit**        | `math/bits` — `OnesCount`, `Len`, `LeadingZeros`         |
-| **Random**     | `math/rand/v2` — `IntN`, `Float64`, `N[T]`               |
-| **Big**        | `math/big` — `Int`, `Float`, `Rat` (arbitrary precision) |
+| **Cơ bản** | `Abs` , `Max` , `Min` , `Ceil` , `Floor` , `Round` |
+| **Nguồn/Gốc** | `Pow` , `Sqrt` , `Cbrt` , `Exp` , `Log` , `Log2` , `Log10` |
+| **Trig** | `Sin` , `Cos` , `Tan` , `Asin` , `Acos` , `Atan` , `Atan2` |
+| **Đặc biệt** | `IsNaN` , `IsInf` , `NaN` , `Inf` , `Mod` , `Remainder` |
+| **Một chút** | `math/bits` — `OnesCount` , `Len` , `LeadingZeros` |
+| **Ngẫu nhiên** | `math/rand/v2` — `IntN` , `Float64` , `N[T]` |
+| **Lớn** | `math/big` — `Int` , `Float` , `Rat` (độ chính xác tùy ý) |
 
-**Why `math/rand/v2` instead of `math/rand`?** The old package has global state, is not thread-safe without manual seeding, and has a verbose API (`rand.Intn(n)` vs v2's `rand.IntN(n)`). v2 uses the `ChaCha8` PRNG by default — faster, better distribution, and no manual seeding required.
+**Tại sao `math/rand/v2` thay vì `math/rand` ?** package cũ có trạng thái toàn cầu, không thread -safe nếu không gieo hạt thủ công và có API dài dòng ( `rand.Intn(n)` so với `rand.IntN(n)` của v2). v2 sử dụng `ChaCha8` PRNG theo mặc định — phân phối nhanh hơn, tốt hơn và không cần gieo hạt thủ công.
 
-### Important Constants
+### Các hằng số quan trọng
 
-| Constant                      | Value / Description                  |
+| Hằng số | Giá trị / Mô tả |
 | ----------------------------- | ------------------------------------ |
-| `math.Pi`                     | 3.14159265358979...                  |
-| `math.E`                      | 2.71828182845904... (Euler's number) |
-| `math.MaxInt`                 | Max value of `int`                   |
-| `math.MinInt`                 | Min value of `int`                   |
-| `math.MaxFloat64`             | 1.7976931348623157e+308              |
-| `math.SmallestNonzeroFloat64` | 5e-324                               |
-| `math.MaxInt64`               | 9223372036854775807                  |
+| `math.Pi` | 3.14159265358979... |
+| `math.E` | 2.71828182845904... (số Euler) |
+| `math.MaxInt` | Giá trị tối đa của `int` |
+| `math.MinInt` | Giá trị tối thiểu của `int` |
+| `math.MaxFloat64` | 1.7976931348623157e+308 |
+| `math.SmallestNonzeroFloat64` | 5e-324 |
+| `math.MaxInt64` | 9223372036854775807 |
 
-### Built-in min/max (Go 1.21+)
-
-```text
+### Tích hợp tối thiểu/tối đa ( Go 1.21+)```text
 Go < 1.21:  math.Max(float64, float64) float64  ← float64 only
 Go >= 1.21: min(x, y)  /  max(x, y)             ← built-in, any comparable type
-```
-
-**Why did it take until Go 1.21?** Built-in generic functions required generics (Go 1.18+) and additional time to generalize the type system. Before that, you had to write type-specific helpers or use `math.Max` with float64.
+```**Tại sao phải đến Go 1.21?** Các hàm generic tích hợp cần có generics ( Go 1.18+) và time bổ sung để khái quát hóa hệ thống loại. Trước đó, bạn phải viết các trình trợ giúp theo loại cụ thể hoặc sử dụng `math.Max` với float64.
 
 ---
 
-These math functions look standard — but dangerous traps exist: float64 comparison with `==` fails due to precision loss, and integer overflow wraps around silently. Those traps surface in PITFALLS.
+Các hàm toán học này trông có vẻ chuẩn — nhưng vẫn tồn tại những bẫy nguy hiểm: so sánh float64 với `==` không thành công do mất độ chính xác và tràn số nguyên diễn ra âm thầm. Những cái bẫy đó xuất hiện trong PITFALS.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-With `math`, the issue is not that the package lacks organization. The issue is that you easily lump all numeric functions into one mental bucket and forget that each group answers a fundamentally different type of question. The visual below separates those families first.
+Với `math` , vấn đề không phải là package thiếu tổ chức. Vấn đề là bạn dễ dàng gộp tất cả các hàm số vào một nhóm tinh thần và quên rằng mỗi nhóm trả lời một loại câu hỏi về cơ bản khác nhau. Hình ảnh dưới đây phân tách các nhóm đó trước tiên. ![Math taxonomy](./images/05-math-taxonomy.png) *Hình: Thẻ phân loại cho làn `math` chia package theo nhóm bài toán: bề mặt làm tròn, lõi toán học, hằng số và giới hạn số, cùng với các phần mở rộng như ngẫu nhiên, số lớn và trợ giúp bit.*
 
-![Math taxonomy](./images/05-math-taxonomy.png)
+Sau khi đã rõ loại vấn đề, mã bên dưới sẽ hiển thị các chi tiết đáng tập trung vào: cách các số âm thay đổi hành vi làm tròn, nơi xuất hiện sự mất độ chính xác và khi nào bạn phải để lại `math` cho `math/big` hoặc `math/bits` .
 
-*Figure: Taxonomy card for the `math` lane dividing the package by problem family: rounding surface, math core, constants and numeric limits, plus extensions like random, big numbers, and bit helpers.*
+## 3. MÃ
 
-Once the problem family is clear, the code below reveals the details worth focusing on: how negative numbers change rounding behavior, where precision loss appears, and when you must leave `math` for `math/big` or `math/bits`.
+Với **Toán học — Hàm số & Hằng số**, giờ đây chúng ta có map của các phép toán số. Hãy bước vào mã để xem mỗi lựa chọn — `math.Round` so với cắt ngắn thủ công, `math/rand` so với `crypto/rand` — thực sự thay đổi độ chính xác và bảo mật như thế nào.
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Hàm & Hằng toán học
 
-With **Math — Numeric Functions & Constants**, we now have the map of numeric operations. Let's step into the code to see how each choice — `math.Round` vs manual truncation, `math/rand` vs `crypto/rand` — actually changes precision and security.
+Bạn đang tính khoảng cách Euclide giữa 2 điểm: `d = √((x₂-x₁)² + (y₂-y₁)²)` . Bạn cần `math.Sqrt` , `math.Pow` . Tính chu vi của một hình tròn: `C = 2πr` — mã cứng `3.14159` ? Thay vào đó, hãy sử dụng `math.Pi` - nó chính xác đến hơn 15 chữ số. Package `math` cung cấp các hằng số ( `Pi` , `E` , `MaxFloat64` ) và các hàm ( `Abs` , `Ceil` , `Floor` , `Round` ) cho tất cả các nhu cầu số học cơ bản.
 
-### Example 1: Basic — Math Functions & Constants
-
-You are calculating the Euclidean distance between 2 points: `d = √((x₂-x₁)² + (y₂-y₁)²)`. You need `math.Sqrt`, `math.Pow`. Calculating the circumference of a circle: `C = 2πr` — hardcode `3.14159`? Use `math.Pi` instead — it is accurate to 15+ digits.
-
-Package `math` provides constants (`Pi`, `E`, `MaxFloat64`) and functions (`Abs`, `Ceil`, `Floor`, `Round`) for all fundamental arithmetic needs.
-
-Input: `math.Sqrt(16)` · Output: `4` · `math.Pi` · Output: `3.141592653589793`
-
-```go
+Đầu vào: `math.Sqrt(16)` · Đầu ra: `4` · `math.Pi` · Đầu ra: `3.141592653589793````go
 package main
 
 import (
@@ -134,21 +119,17 @@ func main() {
 	fmt.Println(math.IsInf(math.Inf(1), 1))            // true (positive infinity)
 	fmt.Println(math.IsInf(math.Inf(-1), -1))          // true (negative infinity)
 }
-```
+```> Các nhà thiết kế Go đã quyết định chống lại việc nạp chồng hàm. `Abs` cho `int` là tầm thường: `if n < 0 { n = -n }` . Go 1.21+ có loại `min` / `max` tích hợp cho any comparable loại - nhưng vẫn không có loại generic `Abs` tích hợp sẵn. Làm tròn đến N chữ số thập phân: `math.Round(x*100)/100` — thủ thuật nhân rồi chia.
 
-> Go designers decided against function overloading. `Abs` for `int` is trivial: `if n < 0 { n = -n }`. Go 1.21+ has built-in `min`/`max` for any comparable type — but there is still no built-in generic `Abs`. Rounding to N decimal places: `math.Round(x*100)/100` — the multiply-then-divide trick.
+> **Bài học rút ra**: `math.Pi` , `math.E` cho các hằng số. Tích hợp `min` / `max` ( Go 1.21+) thay thế `math.Max/Min` . `math.Round(x*N)/N` cho N chữ số thập phân. Luôn kiểm tra `IsNaN` / `IsInf` sau các thao tác float.
 
-> **Takeaway**: `math.Pi`, `math.E` for constants. Built-in `min`/`max` (Go 1.21+) replaces `math.Max/Min`. `math.Round(x*N)/N` for N decimal places. Always check `IsNaN`/`IsInf` after float operations.
+Những điều cơ bản về toán học được bao phủ. Nhưng số học dấu phẩy động có những bẫy chính xác mà nhiều nhà phát triển bỏ qua.
 
-Math basics are covered. But floating-point arithmetic has precision traps that many developers overlook.
+### Ví dụ 2: Trung cấp — Số ngẫu nhiên (toán/rand/v2)
 
-### Example 2: Intermediate — Random Numbers (math/rand/v2)
+Bạn cần tạo mã thông báo ngẫu nhiên cho ID session , một cổng ngẫu nhiên để kiểm tra hoặc xáo trộn danh sách phát. Go 1.22+ cung cấp cho `math/rand/v2` một API sạch hơn và tự động gieo hạt (không còn `rand.Seed()` như v1). Nhưng `math/rand` không an toàn về mặt mật mã - phù hợp với logic trò chơi, nhưng đối với mã thông báo bảo mật, bạn phải sử dụng `crypto/rand` .
 
-You need to generate a random token for session IDs, a random port for testing, or shuffle a playlist. Go 1.22+ provides `math/rand/v2` with a cleaner API and auto-seeding (no more `rand.Seed()` like v1). But `math/rand` is not cryptographically secure — fine for game logic, but for security tokens you must use `crypto/rand`.
-
-Input: `rand.IntN(100)` · Output: random int in `[0, 100)` · `rand.Float64()` · Output: random float in `[0, 1)`
-
-```go
+Đầu vào: `rand.IntN(100)` · Đầu ra: int ngẫu nhiên trong `[0, 100)` · `rand.Float64()` · Đầu ra: float ngẫu nhiên trong `[0, 1)````go
 package main
 
 import (
@@ -199,23 +180,19 @@ func main() {
 	}
 	fmt.Println("Random ID:", randomString(8))
 }
-```
+```> package cũ : trạng thái toàn cầu, thủ công `rand.Seed()` , API chi tiết ( `Intn` so với `IntN` ). v2 sử dụng `ChaCha8` PRNG — gieo hạt tự động, thread -an toàn, phân phối tốt hơn. Generic `rand.N[T]()` cho loại ngẫu nhiên an toàn. `Shuffle` sử dụng Fisher-Yates - O(n) tại chỗ.
 
-> The old package: global state, manual `rand.Seed()`, verbose API (`Intn` vs `IntN`). v2 uses `ChaCha8` PRNG — auto-seeded, thread-safe, better distribution. Generic `rand.N[T]()` for type-safe random. `Shuffle` uses Fisher-Yates — O(n) in-place.
+> **Bài học rút ra**: `rand.IntN(n)` cho [0,n), `rand.Float64()` cho [0,1). `Shuffle` để ngẫu nhiên hóa slices . Chuỗi ngẫu nhiên: xây dựng từ bộ ký tự với `IntN(len(charset))` .
 
-> **Takeaway**: `rand.IntN(n)` for [0,n), `rand.Float64()` for [0,1). `Shuffle` to randomize slices. Random string: build from charset with `IntN(len(charset))`.
+Độ chính xác của phao được bảo hiểm. Tiếp theo: `math/big` cho độ chính xác tùy ý, `crypto/rand` cho số học ngẫu nhiên an toàn và an toàn tràn.
 
-Float precision is covered. Next: `math/big` for arbitrary precision, `crypto/rand` for secure random, and overflow-safe arithmetic.
+### Ví dụ 3: Nâng cao — Hình học, Thống kê & Số lớn
 
-### Example 3: Advanced — Geometry, Statistics & Big Numbers
+Tính toán Fibonacci(200)? `int64` tràn ở mức Fibonacci(93). Tính lãi kép trên 500 kỳ? `float64` mất độ chính xác. Package `math/big` giải quyết vấn đề này: `big.Int` cho số nguyên có kích thước không giới hạn, `big.Float` cho số học chính xác tùy ý.
 
-Computing Fibonacci(200)? `int64` overflows at Fibonacci(93). Calculating compound interest over 500 periods? `float64` loses precision. Package `math/big` solves this: `big.Int` for integers of unlimited size, `big.Float` for arbitrary precision arithmetic.
+Kết hợp với hình học (khoảng cách, diện tích) và thống kê (trung bình, độ lệch chuẩn) để hiển thị `math` package trong bối cảnh sản xuất.
 
-Combined with geometry (distance, area) and statistics (mean, standard deviation) to show the `math` package in production context.
-
-Input: `big.NewInt(0).Fib(200)` · Output: a 42-digit number, no overflow
-
-```go
+Đầu vào: `big.NewInt(0).Fib(200)` · Đầu ra: số có 42 chữ số, không tràn```go
 package main
 
 import (
@@ -303,66 +280,60 @@ func main() {
 	}
 	fmt.Printf("50! = %s\n", factorial.String())
 }
-```
+```> **Tại sao nên sử dụng `math.Hypot` thay vì `sqrt(x²+y²)` thủ công ?**
+> `Hypot` xử lý tràn/tràn theo cách ổn định về mặt số học — khi `x` hoặc `y` cực kỳ lớn hoặc nhỏ, công thức thủ công có thể tràn tại `x²` . `Hypot` chuẩn hóa trước khi tính toán. Các hàm thống kê (trung bình/trung bình/stddev) là các khối xây dựng - stdlib của Go không bao gồm chúng; bạn phải tự thực hiện chúng hoặc sử dụng `gonum` .
 
-> **Why use `math.Hypot` instead of manual `sqrt(x²+y²)`?**
-> `Hypot` handles overflow/underflow in a numerically stable way — when `x` or `y` is extremely large or small, the manual formula can overflow at `x²`. `Hypot` normalizes before computing. Statistics functions (mean/median/stddev) are building blocks — Go's stdlib does not include them; you must implement them yourself or use `gonum`.
-
-> **Takeaway**: `math/big` for arbitrary precision (beyond int64/float64). `math.Hypot` for numerically stable distance. Statistics require manual implementation or an external library.
+> **Takeaway**: `math/big` để có độ chính xác tùy ý (ngoài int64/float64). `math.Hypot` cho khoảng cách ổn định về mặt số lượng. Thống kê yêu cầu thực hiện thủ công hoặc thư viện bên ngoài.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The core mechanics of **Math — Numeric Functions & Constants** are clear. What remains is recognizing syntax that looks _almost right_ but introduces floating-point bugs or security issues into production.
+Cơ chế cốt lõi của **Toán học — Hàm số & Hằng số** rất rõ ràng. Những gì còn lại là cú pháp nhận dạng có vẻ _gần như đúng_ nhưng lại đưa ra các lỗi dấu phẩy động hoặc các vấn đề bảo mật trong quá trình sản xuất.
 
-| # | Severity | Bug | Consequence | Fix |
-|---|----------|-----|-------------|-----|
-| 1 | 🔴 Fatal | NaN comparison: `NaN != NaN` | Condition is always false | Use `math.IsNaN()` |
-| 2 | 🔴 Fatal | Integer overflow does not error | Silent wrong value | Check: `if a > math.MaxInt64 - b` |
-| 3 | 🟡 Common | Float precision: `0.1 + 0.2 != 0.3` | Logic error in comparisons | Epsilon: `math.Abs(a-b) < 1e-9` |
-| 4 | 🟡 Common | `math.Max/Min` only accepts float64 (pre Go 1.21) | Type conversion overhead | Built-in `min()`/`max()` Go 1.21+ |
-| 5 | 🔵 Minor | `rand.IntN(0)` panics | Runtime crash | Check `n > 0` before calling |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|------|-------------|------|
+| 1 | 🔴 Gây tử vong | So sánh NaN: `NaN != NaN` | Điều kiện luôn sai | Sử dụng `math.IsNaN()` |
+| 2 | 🔴 Gây tử vong | Tràn số nguyên không có lỗi | Giá trị sai im lặng | Kiểm tra: `if a > math.MaxInt64 - b` |
+| 3 | 🟡 Chung | Độ chính xác nổi: `0.1 + 0.2 != 0.3` | Lỗi logic khi so sánh | Epsilon: `math.Abs(a-b) < 1e-9` |
+| 4 | 🟡 Chung | `math.Max/Min` chỉ chấp nhận float64 (trước Go 1.21) | Chi phí chuyển đổi loại | Tích hợp `min()` / `max()` Go 1.21+ |
+| 5 | 🔵 Nhỏ | `rand.IntN(0)` hoảng loạn | Runtime sự cố | Kiểm tra `n > 0` trước khi gọi |
 
-### 🔴 Pitfall #1 — NaN is a "virus" in your code
+### 🔴 Cạm bẫy số 1 — NaN là một "vi-rút" trong mã của bạn `NaN` (Không phải số) là một giá trị đặc biệt: **mọi so sánh với NaN đều trả về sai**, bao gồm `NaN == NaN` . Khi NaN xuất hiện trong một phép tính pipeline , nó sẽ lan truyền qua mọi thao tác: `NaN + 5 = NaN` , `NaN * 0 = NaN` . Kết quả: một báo cáo hiển thị `NaN` cho cột doanh thu và không ai biết nó bắt đầu sai từ khi nào.
 
-`NaN` (Not a Number) is a special value: **every comparison with NaN returns false**, including `NaN == NaN`. Once NaN appears in a computation pipeline, it propagates through every operation: `NaN + 5 = NaN`, `NaN * 0 = NaN`. The result: a report displays `NaN` for the revenue column and nobody knows when it started going wrong.
+**Khắc phục**: Kiểm tra `math.IsNaN()` sau mỗi lần chia float. Đặc biệt lưu ý rằng `0.0 / 0.0 = NaN` (nó không panic thích chia số nguyên cho 0).
 
-**Fix**: Check `math.IsNaN()` after every float division. Especially note that `0.0 / 0.0 = NaN` (it does not panic like integer division by zero).
+### 🔴 Cạm bẫy #2 — Tràn số nguyên ở chế độ im lặng Go không panic khi tràn số nguyên - nó **bao quanh** bằng cách sử dụng số học mô-đun. `math.MaxInt64 + 1` bằng `math.MinInt64` (một số âm!). Trong tính toán tài chính, điều này biến `+$9.2 quintillion` thành `-$9.2 quintillion` mà không có bất kỳ lỗi nào.
 
-### 🔴 Pitfall #2 — Integer overflow is silent
-
-Go does not panic on integer overflow — it **wraps around** using modular arithmetic. `math.MaxInt64 + 1` equals `math.MinInt64` (a negative number!). In financial calculations, this turns `+$9.2 quintillion` into `-$9.2 quintillion` with no error whatsoever.
-
-**Fix**: Check before adding: `if a > math.MaxInt64 - b { /* overflow */ }`. Or use `math/big` for numbers exceeding the range.
+**Khắc phục**: Kiểm tra trước khi thêm: `if a > math.MaxInt64 - b { /* overflow */ }` . Hoặc sử dụng `math/big` cho các số vượt quá phạm vi.
 
 ---
 
-You have explored the math package from basics through arbitrary precision. The resources below go deeper.
+Bạn đã khám phá phép toán package từ cơ bản đến độ chính xác tùy ý. Các tài nguyên dưới đây đi sâu hơn.
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource       | Type     | Link                                                       | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | -------------- | -------- | ---------------------------------------------------------- | ----- |
-| `math` package | Official | [pkg.go.dev/math](https://pkg.go.dev/math)                 | API reference |
-| `math/rand/v2` | Official | [pkg.go.dev/math/rand/v2](https://pkg.go.dev/math/rand/v2) | Go 1.22+ random |
-| `math/big`     | Official | [pkg.go.dev/math/big](https://pkg.go.dev/math/big)         | Arbitrary precision |
-| `math/bits`    | Official | [pkg.go.dev/math/bits](https://pkg.go.dev/math/bits)       | Bit manipulation |
+| `math` package | Chính thức | [pkg.go.dev/math](https://pkg.go.dev/math) | Tham chiếu API |
+| `math/rand/v2` | Chính thức | [pkg.go.dev/math/rand/v2](https://pkg.go.dev/math/rand/v2) | Go 1.22+ ngẫu nhiên |
+| `math/big` | Chính thức | [pkg.go.dev/math/big](https://pkg.go.dev/math/big) | Độ chính xác tùy ý |
+| `math/bits` | Chính thức | [pkg.go.dev/math/bits](https://pkg.go.dev/math/bits) | Thao tác bit |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The foundations of **Math — Numeric Functions & Constants** are clear. The extensions below help you bring numeric operations into production with crypto-safe random, big numbers, and scientific computing.
+Nền tảng của **Toán học — Hàm số & Hằng số** rất rõ ràng. Các tiện ích mở rộng bên dưới giúp bạn đưa các phép toán số vào sản xuất với tính toán ngẫu nhiên, số lớn và tính toán khoa học an toàn bằng tiền điện tử.
 
-| Extension                 | When                     | Why                             | File/Link |
+| Gia hạn | Khi nào | Tại sao | Tệp/Liên kết |
 | ------------------------- | ------------------------ | ------------------------------- | --------- |
-| `math/bits`               | Bit manipulation         | OnesCount, Len, RotateLeft      | [pkg.go.dev/math/bits](https://pkg.go.dev/math/bits) |
-| `crypto/rand`             | Security-critical random | Cryptographic random numbers    | [pkg.go.dev/crypto/rand](https://pkg.go.dev/crypto/rand) |
-| `gonum.org/v1/gonum`      | Scientific computing     | Linear algebra, statistics, FFT | [gonum.org](https://gonum.org) |
-| `math/cmplx`              | Complex numbers          | Mandelbrot, signal processing   | [pkg.go.dev/math/cmplx](https://pkg.go.dev/math/cmplx) |
-| `constraints` generic     | Type-safe math           | Clamp, Abs for any numeric type | [pkg.go.dev/golang.org/x/exp/constraints](https://pkg.go.dev/golang.org/x/exp/constraints) |
+| `math/bits` | Thao tác bit | OnesCount, Len, RotateLeft | [pkg.go.dev/math/bits](https://pkg.go.dev/math/bits) |
+| `crypto/rand` | Bảo mật quan trọng ngẫu nhiên | Số ngẫu nhiên mật mã | [pkg.go.dev/crypto/rand](https://pkg.go.dev/crypto/rand) |
+| `gonum.org/v1/gonum` | Máy tính khoa học | Đại số tuyến tính, thống kê, FFT | [gonum.org](https://gonum.org) |
+| `math/cmplx` | số phức | Mandelbrot, xử lý tín hiệu | [pkg.go.dev/math/cmplx](https://pkg.go.dev/math/cmplx) |
+| `constraints` generic | Toán an toàn kiểu | Kẹp, Abs cho loại số any | [pkg.go.dev/golang.org/x/exp/constraints](https://pkg.go.dev/golang.org/x/exp/constraints) |
 
 ---
 
-**Navigation**: [← fmt](./04-fmt.md) · [→ slices & maps](./06-slices-maps.md)
+**Điều hướng**: [← fmt](./04-fmt.md) · [→ slices & maps](./06-slices-maps.md)

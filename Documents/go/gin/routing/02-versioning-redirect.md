@@ -1,45 +1,34 @@
-<!-- tags: golang -->
-# 🔀 Versioning & Redirects — NestJS Versioning → Gin Routes
+<!-- tags: golang --> # 🔀 Lập phiên bản & Chuyển hướng - Phiên bản NestJS → Tuyến đường Gin
 
-> **Library**: API versioning via route groups, header-based version negotiation, and redirect strategies for deprecated endpoints.
+> **Thư viện**: Lập phiên bản API thông qua các nhóm tuyến, đàm phán phiên bản dựa trên tiêu đề và chiến lược chuyển hướng cho các điểm cuối không được dùng nữa.
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Breaking API changes destroy existing clients. Gin has no built-in versioning — you implement it through route groups (`/v1/`, `/v2/`), header middleware (`Accept-Version`), or redirect rules. This article covers all three patterns.
+Các thay đổi API vi phạm sẽ phá hủy các ứng dụng khách hiện có. Gin không có phiên bản tích hợp sẵn - bạn triển khai nó thông qua các nhóm tuyến đường ( `/v1/` , `/v2/` ), phần mềm trung gian tiêu đề ( `Accept-Version` ) hoặc quy tắc chuyển hướng. Bài viết này bao gồm cả ba mẫu.
 
-| NestJS                           | Gin                                      |
+| NestJS | Gin |
 | -------------------------------- | ---------------------------------------- |
-| `app.enableVersioning()`         | Route group: `r.Group("/v1")`            |
-| `@Version('1')`                  | Handler attached to a versioned group    |
-| `res.redirect('/new-path')`      | `c.Redirect(301, "/new")`                |
-| `app.use(VersioningType.HEADER)` | Custom middleware reading `Accept-Version` |
+| `app.enableVersioning()` | Nhóm tuyến: `r.Group("/v1")` |
+| `@Version('1')` | Trình xử lý được gắn vào một nhóm được phiên bản |
+| `res.redirect('/new-path')` | `c.Redirect(301, "/new")` |
+| `app.use(VersioningType.HEADER)` | Đọc phần mềm trung gian tùy chỉnh `Accept-Version` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Use 308 (Permanent Redirect), not 301, for API redirects.** 301 may change POST to GET in some clients.
-- **Never create redirect loops.** `/v1/users` → `/v2/users` → `/v1/users` crashes the client.
+- **Sử dụng 308 (Chuyển hướng vĩnh viễn), không phải 301, cho các chuyển hướng API.** 301 có thể thay đổi POST thành GET trong một số ứng dụng khách.
+- **Không bao giờ tạo vòng lặp chuyển hướng.** `/v1/users` → `/v2/users` → `/v1/users` làm hỏng máy khách.
 
-## 2. VISUAL
-
-![API versioning strategies — path, header, redirect](./images/02-versioning-redirect-strategies.png)
-
-*Figure: Three versioning strategies — URL path (`/v1/`, `/v2/`), header-based (`Accept-Version` middleware), and redirect (308 Permanent Redirect from unversioned to latest).*
-
-```mermaid
+## 2. HÌNH ẢNH ![API versioning strategies — path, header, redirect](./images/02-versioning-redirect-strategies.png) *Hình: Ba chiến lược tạo phiên bản — đường dẫn URL ( `/v1/` , `/v2/` ), phần mềm trung gian dựa trên tiêu đề ( `Accept-Version` ) và chuyển hướng (Chuyển hướng vĩnh viễn 308 từ không phiên bản sang mới nhất).*```mermaid
 flowchart LR
     A["Client"] --> B{"/api/v1 or /api/v2?"}
     B -->|v1| C["v1 Group handlers"]
     B -->|v2| D["v2 Group handlers"]
     E["GET /old-path"] -->|"301 Redirect"| F["GET /new-path"]
-```
+```*Hình: Lập phiên bản đường dẫn URL — các nhóm tuyến đường riêng biệt cho mỗi phiên bản. Chuyển hướng phần mềm trung gian ánh xạ các đường dẫn cũ sang đường dẫn mới.*
 
-*Figure: URL-path versioning — separate route groups per version. Redirect middleware maps old paths to new ones.*
-
-### Version Resolution Flow
-
-```text
+### Luồng phân giải phiên bản```text
 Client sends GET /api/v1/users
     → v1 group matches → listUsersV1 handler (legacy response)
 
@@ -48,13 +37,9 @@ Client sends GET /api/v2/users
 
 Client sends GET /api/users (no version)
     → redirect rule → 308 to /api/v2/users
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Specific Path Handlers
-
-```go
+### Ví dụ 1: Cơ bản — Trình xử lý đường dẫn cụ thể```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Path-based versioning: /api/v1 and /api/v2 are separate groups.
     // v2 adds pagination metadata to the response.
@@ -101,11 +86,7 @@ Client sends GET /api/users (no version)
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — Metadata Versioning
-
-```go
+```### Ví dụ 2: Trung cấp — Phiên bản siêu dữ liệu```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Header-based versioning: middleware reads Accept-Version header,
     // stores it in context, and handler switches behavior by version.
@@ -138,11 +119,7 @@ Client sends GET /api/users (no version)
             })
         }
     }
-```
-
-### Example 3: Advanced — Fallback Routes
-
-```go
+```### Ví dụ 3: Nâng cao — Tuyến đường dự phòng```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Redirect unversioned paths to the latest version.
     // NoRoute and NoMethod return structured JSON errors.
@@ -178,30 +155,28 @@ Client sends GET /api/users (no version)
 
         r.Run(":8080")
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Redirect loop: `/v1/users` → `/v2/users` → `/v1/users` | Browser/client hangs or errors with "too many redirects" | Always redirect to an absolute destination; never chain redirects |
-| 2 | 🟡 Common | Using 301 (Moved Permanently) for API redirects | Some HTTP clients change POST to GET on 301 | Use 308 (Permanent Redirect) to preserve the HTTP method |
+| 1 | 🔴 Gây tử vong | Vòng lặp chuyển hướng: `/v1/users` → `/v2/users` → `/v1/users` | Trình duyệt/máy khách bị treo hoặc lỗi "quá nhiều chuyển hướng" | Luôn chuyển hướng đến một đích tuyệt đối; không bao giờ chuyển hướng chuỗi |
+| 2 | 🟡 Chung | Sử dụng 301 (Đã di chuyển vĩnh viễn) để chuyển hướng API | Một số máy khách HTTP thay đổi POST thành GET trên 301 | Sử dụng 308 (Chuyển hướng vĩnh viễn) để duy trì phương thức HTTP |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| NestJS Versioning | [docs.nestjs.com/techniques/versioning](https://docs.nestjs.com/techniques/versioning) |
-| Gin Redirects | [gin-gonic.com/docs/examples/redirects](https://gin-gonic.com/docs/examples/redirects/) |
+| Phiên bản NestJS | [docs.nestjs.com/techniques/versioning](https://docs.nestjs.com/techniques/versioning) |
+| Chuyển hướng Gin | [gin-gonic.com/docs/examples/redirects](https://gin-gonic.com/docs/examples/redirects/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Binding & Validation | When you need to validate request bodies and query params | Struct tags (`binding:"required"`) catch bad input before it reaches your service | [../binding/01-json-form-validation.md](../binding/01-json-form-validation.md) |
+| Ràng buộc & Xác nhận | Khi bạn cần xác thực nội dung yêu cầu và thông số truy vấn | Thẻ cấu trúc ( `binding:"required"` ) phát hiện đầu vào xấu trước khi nó đến dịch vụ của bạn | [../binding/01-json-form-validation.md](../binding/01-json-form-validation.md) |

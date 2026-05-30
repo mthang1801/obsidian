@@ -1,57 +1,42 @@
-<!-- tags: golang -->
-# 📋 Logging — NestJS Logger → Go slog/zap/zerolog
+<!-- tags: golang --> # 📋 Ghi nhật ký — NestJS Logger → Đi slog/zap/zerolog
 
-> **Library**: Structured logging with Go 1.21+ `log/slog`, request-scoped context, and correlation IDs.
+> **Thư viện**: Ghi nhật ký có cấu trúc với Go 1.21+ `log/slog` , ngữ cảnh trong phạm vi yêu cầu và ID tương quan.
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-`fmt.Println` logs are unsearchable. Structured JSON logs with request IDs, method, path, status, and duration let you `grep` any request in production. Go 1.21+ ships `log/slog` in the standard library.
+ Nhật ký `fmt.Println` không thể tìm kiếm được. Nhật ký JSON có cấu trúc với ID yêu cầu, phương thức, đường dẫn, trạng thái và thời lượng cho phép bạn `grep` bất kỳ yêu cầu nào trong quá trình sản xuất. Đi 1.21+ gửi `log/slog` trong thư viện tiêu chuẩn.
 
-| NestJS                         | Go Equivalent                         |
+| NestJS | Đi tương đương |
 | ------------------------------ | ------------------------------------- |
-| `Logger.log/warn/error()`      | `slog.Info/Warn/Error()`              |
-| `app.useLogger(WinstonModule)` | `slog.SetDefault(jsonHandler)`        |
-| `@Injectable() LoggerService`  | Inject `*slog.Logger` via constructor |
-| Request logs                   | Middleware logs method/path/status/duration |
+| `Logger.log/warn/error()` | `slog.Info/Warn/Error()` |
+| `app.useLogger(WinstonModule)` | `slog.SetDefault(jsonHandler)` |
+| `@Injectable() LoggerService` | Tiêm `*slog.Logger` qua hàm tạo |
+| Yêu cầu nhật ký | Phương thức/đường dẫn/trạng thái/thời lượng nhật ký phần mềm trung gian |
 
-### Key Invariants
+### Bất biến chính
 
-- **Log request ID in every line.** Without it, you can’t correlate logs across middleware and handlers.
-- **Never log passwords, tokens, or PII.** Scrub sensitive fields before logging.
+- **ID yêu cầu nhật ký ở mỗi dòng.** Nếu không có ID này, bạn không thể liên kết nhật ký giữa phần mềm trung gian và trình xử lý.
+- **Không bao giờ đăng nhập mật khẩu, mã thông báo hoặc PII.** Xóa các trường nhạy cảm trước khi đăng nhập.
 
-## 2. VISUAL
-
-![Structured logging flow — RequestID + Logger middleware with slog/zerolog/zap comparison](./images/05-logging.png)
-
-*Figure: Logging flow — RequestID middleware generates UUID → Logger middleware wraps c.Next() with timing → structured JSON output with method, path, status, latency, request_id.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Structured logging flow — RequestID + Logger middleware with slog/zerolog/zap comparison](./images/05-logging.png) *Hình: Luồng ghi nhật ký — Phần mềm trung gian requestID tạo UUID → Phần mềm trung gian ghi nhật ký kết thúc c.Next() với thời gian → đầu ra JSON có cấu trúc với phương thức, đường dẫn, trạng thái, độ trễ, request_id.*```mermaid
 flowchart LR
     A["Request"] --> B["Logger Middleware"]
     B -->|"inject logger+reqID"| C["Handler"]
     C -->|"logger.Info(msg)"| D["slog.JSONHandler"]
     D --> E["stdout / file"]
-```
+```*Hình: Yêu cầu → phần mềm trung gian chèn X-Request-ID vào trình ghi nhật ký phạm vi yêu cầu → trình xử lý nhật ký có cấu trúc JSON thông qua slog.*
 
-*Figure: Request → middleware injects request-scoped logger with X-Request-ID → handler logs structured JSON via slog.*
-
-### Log Correlation
-
-```text
+### Tương quan nhật ký```text
 Request arrives → RequestID middleware generates UUID
     → Creates slog.Logger.With("request_id", uuid)
     → Stores in c.Set("logger", logger)
     → Handler: logger.Info("user created", "user_id", 42)
     → Output: {"level":"INFO","request_id":"abc-123","msg":"user created","user_id":42}
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Native Structure Logging
-
-```go
+### Ví dụ 1: Cơ bản — Ghi nhật ký cấu trúc gốc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // slog.NewJSONHandler outputs structured JSON logs.
     // RequestLogger middleware logs method/path/status/duration.
@@ -97,11 +82,7 @@ Request arrives → RequestID middleware generates UUID
             )
         }
     }
-```
-
-### Example 2: Intermediate — Contextual Scoping
-
-```go
+```### Ví dụ 2: Trung cấp — Phạm vi theo ngữ cảnh```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // RequestID middleware: generates UUID, creates scoped logger,
     // stores in gin.Context for downstream handlers.
@@ -133,29 +114,27 @@ Request arrives → RequestID middleware generates UUID
             c.Next()
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Logging passwords, JWT tokens, or credit card numbers | Credentials exposed in log aggregators | Scrub sensitive fields; never log `Authorization` header values |
-| 2 | 🟡 Common | Using `fmt.Println` instead of structured logger | Logs are unsearchable, no request correlation | Use `slog` with JSON handler and request ID |
+| 1 | 🔴 Gây tử vong | Ghi nhật ký mật khẩu, mã thông báo JWT hoặc số thẻ tín dụng | Thông tin xác thực được hiển thị trong trình tổng hợp nhật ký | Chà sạch các lĩnh vực nhạy cảm; không bao giờ ghi lại giá trị tiêu đề `Authorization` |
+| 2 | 🟡 Chung | Sử dụng `fmt.Println` thay vì trình ghi nhật ký có cấu trúc | Nhật ký không thể tìm kiếm được, không có mối tương quan với yêu cầu | Sử dụng `slog` với trình xử lý JSON và ID yêu cầu |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| log/slog | [pkg.go.dev/log/slog](https://pkg.go.dev/log/slog) |
+| nhật ký/slog | [pkg.go.dev/log/slog](https://pkg.go.dev/log/slog) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Sessions & Cookies | When you need to persist user state across requests | Session data ties to request IDs for debugging auth flows | [./06-session-cookies.md](./06-session-cookies.md) |
+| Phiên & Cookie | Khi bạn cần duy trì trạng thái người dùng qua các yêu cầu | Dữ liệu phiên liên kết với ID yêu cầu để gỡ lỗi luồng xác thực | [./06-session-cookies.md](./06-session-cookies.md) |

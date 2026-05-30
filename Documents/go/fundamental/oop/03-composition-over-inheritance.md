@@ -1,64 +1,53 @@
-<!-- tags: golang, oop, composition, embedding -->
-# 🧩 Composition over Inheritance — Go Omits extends by Design
+<!-- tags: golang, oop, composition, embedding --> # 🧩 Composition trên Inheritance — Go Thiếu sót mở rộng theo thiết kế
 
-> **Struct Embedding**: Delegate to discrete components instead of deep inheritance hierarchies.
+> ** Struct Embedding **: Ủy quyền cho các thành phần riêng biệt thay vì phân cấp inheritance sâu.
 
-📅 Created: 2026-04-10 · 🔄 Updated: 2026-04-19 · ⏱️ 17 min read
+📅 Đã tạo: 2026-04-10 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 17 phút đọc
 
-| Aspect            | Detail                                                |
+| Khía cạnh | Chi tiết |
 | ----------------- | ----------------------------------------------------- |
-| **Concept**       | Struct embedding and delegation patterns |
-| **Use case**      | Domain aggregates mixing component capabilities |
-| **Key insight**   | Method promotion handles delegation without inheritance |
-| **Go philosophy** | Flat data beats nested parent hierarchies |
+| **Khái niệm** | Struct embedding và các mẫu ủy quyền |
+| **Trường hợp sử dụng** | Khả năng thành phần trộn tổng hợp miền |
+| **Thông tin chi tiết quan trọng** | Phương thức xúc tiến xử lý việc ủy ​​quyền mà không cần inheritance |
+| ** Go triết lý** | Dữ liệu phẳng đánh bại hệ thống phân cấp cha mẹ lồng nhau |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Consider migrating Java domains to Go. Legacy systems build sprawling class hierarchies with multiple parent levels that silently break downstream dependencies. 
+Hãy cân nhắc việc di chuyển các miền Java sang Go . Các hệ thống kế thừa xây dựng hệ thống phân cấp lớp rộng khắp với nhiều cấp độ gốc giúp âm thầm phá vỡ các mối phụ thuộc ở cấp dưới. Go đi theo một con đường khác. Không có từ khóa `extends` . Structs nhúng các tham chiếu được nhắm mục tiêu để sử dụng lại mã mà không tạo hệ thống phân cấp ghép nối. Composition thay thế hoàn toàn các lớp cha.
 
-Go takes a different path. There is no `extends` keyword. Structs embed targeted references for code reuse without creating coupling hierarchies. Composition replaces parent layers entirely.
-
-### Embedding vs Named Field vs Interface
-
-| Technique | Syntax | Role |
+### Embedding so với Trường được đặt tên so với Interface | Kỹ thuật | Cú pháp | Vai trò |
 | --- | --- | --- |
-| **Embedding** | `type User struct { Timestamps }` | Method promotion mapping specific functional routes |
-| **Named field** | `type User struct { ts Timestamps }` | Explicit dependency access defining distinct targets |
-| **Interface** | `type Saver interface { Save() error }` | Contract paths establishing basic execution constraints |
+| ** Embedding ** | `type User struct { Timestamps }` | Phương pháp xúc tiến lập bản đồ các tuyến chức năng cụ thể |
+| **Trường được đặt tên** | `type User struct { ts Timestamps }` | Truy cập phụ thuộc rõ ràng xác định các mục tiêu riêng biệt |
+| ** Interface ** | `type Saver interface { Save() error }` | Đường dẫn hợp đồng thiết lập các ràng buộc thực thi cơ bản |
 
-### When to Embed Structs?
+### Khi nào nên nhúng Structs ?
 
-- Methods map explicit behavioral checks checking structural identity limits.
-- Target structures avoid recursive field overlap blocking native runtime errors.
-- Target logic implements explicit interfaces delegating nested behavior structures.
+- Phương thức map kiểm tra hành vi rõ ràng kiểm tra giới hạn nhận dạng cấu trúc.
+- Cấu trúc mục tiêu tránh các lỗi gốc chặn chồng chéo trường đệ quy runtime .
+- Logic mục tiêu triển khai các cấu trúc hành vi lồng nhau interfaces rõ ràng.
 
-### Failure Modes
+### Chế độ lỗi
 
-| Error | Consequence | Fix |
+| Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- |
-| Embedding simple utilities | `user.Execute()` promotes HTTP methods, confusing the API | Use named fields for utilities |
-| Multiple embedded collisions | Identical method signatures cause compiler errors | Define explicit wrapper methods to resolve ambiguity |
-| Treating embedding as inheritance | Go rejects type assignments between embedded types | Use interfaces for polymorphism |
+| Embedding tiện ích đơn giản | `user.Execute()` quảng bá các phương thức HTTP, gây nhầm lẫn cho API | Sử dụng các trường được đặt tên cho các tiện ích |
+| Nhiều va chạm nhúng | Phương thức giống hệt signatures gây ra lỗi trình biên dịch | Xác định các phương thức bao bọc rõ ràng để giải quyết sự mơ hồ |
+| Xử lý embedding là inheritance | Go từ chối việc gán loại giữa các loại được nhúng | Sử dụng interfaces cho polymorphism |
 
-## 2. VISUAL
+## 2. HÌNH ẢNH ![Composition over inheritance compare card](./images/03-composition-over-inheritance-compare.png) *Hình: Java duy trì các chuỗi dọc sâu. Go sử dụng các thành phần đồ thị phẳng với mục tiêu phụ thuộc chính xác.*
 
-![Composition over inheritance compare card](./images/03-composition-over-inheritance-compare.png)
+Độ phân giải phương thức phát hiện các xung đột khi biên dịch time , chặn các phương thức được quảng bá không rõ ràng.
 
-*Figure: Java maintains deep vertical chains. Go uses flat graph components with precise dependency targeting.*
+## 3. MÃ
 
-Method resolution catches conflicts at compile time, blocking ambiguous promoted methods.
+### Ví dụ 1: Cơ bản — Embedding Trường & Phương thức được Quảng cáo
 
-## 3. CODE
-
-### Example 1: Basic — Embedding Promoted Fields & Methods
-
-> **Goal**: Share `Timestamps` fields across structs without base classes.
-> **Approach**: Embed `Timestamps` directly; methods are promoted automatically.
-> **Complexity**: Basic
-
-```go
+> **Mục tiêu**: Chia sẻ các trường `Timestamps` trên structs mà không cần các lớp cơ sở.
+> **Phương pháp**: Nhúng trực tiếp `Timestamps` ; các phương pháp được quảng bá tự động.
+> **Độ phức tạp**: Cơ bản```go
 package model
 
 import "time"
@@ -87,17 +76,13 @@ func main() {
 	u.Touch() // Invokes Timestamps.Touch() resolving operations natively
 	_ = u.CreatedAt
 }
-```
+```> **Takeaway**: Anonymous embedding ​​quảng bá các trường và phương thức. Composition giữ nguyên các định nghĩa trong khi chia sẻ hành vi.
 
-> **Takeaway**: Anonymous embedding promotes fields and methods. Composition keeps definitions flat while sharing behavior.
+### Ví dụ 2: Trung cấp — Nhiều Embedding & Shadowing phương thức
 
-### Example 2: Intermediate — Multiple Embedding & Method Shadowing
-
-> **Goal**: Resolve ambiguous method signatures when multiple embedded types collide.
-> **Approach**: Define an explicit wrapper method that delegates to the correct embedded type.
-> **Complexity**: Intermediate
-
-```go
+> **Mục tiêu**: Giải quyết phương thức không rõ ràng signatures khi nhiều loại nhúng xung đột.
+> **Phương pháp tiếp cận**: Xác định một phương thức trình bao bọc rõ ràng ủy quyền cho loại được nhúng chính xác.
+> **Độ phức tạp**: Trung cấp```go
 package model
 
 import "fmt"
@@ -132,17 +117,11 @@ func main() {
 	}
 	fmt.Println(a.String())
 }
-```
+```> **Takeaway**: Go ​​ngăn ngừa xung đột giữa các phương thức im lặng. Xác định các phương pháp rõ ràng để giải quyết sự mơ hồ giữa các loại được nhúng.
 
-> **Takeaway**: Go prevents silent method collisions. Define explicit methods to resolve ambiguity between embedded types.
-
-### Example 3: Advanced — DDD Aggregate with Composition
-
-> **Goal**: Build a DDD Aggregate with embedded event collection and transition invariants.
-> **Approach**: Embed `AggregateRoot` for event tracking; validate state transitions in domain methods.
-> **Complexity**: Advanced
-
-```go
+### Ví dụ 3: Nâng cao — Tổng hợp DDD với Composition > **Mục tiêu**: Xây dựng Tập hợp DDD với bộ sưu tập sự kiện được nhúng và các bất biến chuyển tiếp.
+> **Phương pháp tiếp cận**: Nhúng `AggregateRoot` để theo dõi sự kiện; xác thực chuyển đổi trạng thái trong các phương thức miền.
+> **Độ phức tạp**: Nâng cao```go
 package domain
 
 import (
@@ -190,25 +169,21 @@ func (o *Order) AddItem() error {
 	o.AddEvent(&ItemAddedEvent{OrderID: o.ID()})
 	return nil
 }
-```
+```> **Takeaway**: Các gốc tổng hợp theo dõi các sự kiện miền thông qua composition được nhúng. Embedding tạo các đối tượng chức năng thực thi các bất biến kinh doanh một cách tự nhiên.
 
-> **Takeaway**: Aggregate roots track domain events via embedded composition. Embedding creates functional objects that enforce business invariants natively.
+## 4. Cạm bẫy Composition thay thế hệ thống phân cấp inheritance . Những bẫy chính cần tránh:
 
-## 4. PITFALLS
-
-Composition replaces inheritance hierarchies. Key traps to avoid:
-
-| # | Severity | Defect | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Treating embedded structs as parent types, expecting assignment polymorphism | Use interfaces for polymorphism, not type assignment |
-| 2 | 🔴 Fatal | Embedding utility structs that pollute the domain API surface | Use named fields to isolate utility access |
-| 3 | 🟡 Common | Chaining multi-level embeddings that obscure field origins | Limit embedding depth; prefer named fields for clarity |
+| 1 | 🔴 Gây tử vong | Xử lý structs được nhúng làm kiểu cha mẹ, mong đợi sự phân công polymorphism ​​| Sử dụng interfaces cho polymorphism , không phải gõ bài tập |
+| 2 | 🔴 Gây tử vong | Embedding tiện ích structs gây ô nhiễm bề mặt API miền | Sử dụng các trường được đặt tên để cách ly quyền truy cập tiện ích |
+| 3 | 🟡 Chung | Xâu chuỗi các phần nhúng đa cấp che khuất nguồn gốc trường | Giới hạn độ sâu embedding ; thích các trường được đặt tên cho rõ ràng |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link | Note |
+| Tài nguyên | Liên kết | Lưu ý |
 | --- | --- | --- |
-| Effective Go | [https://go.dev/doc/effective_go#embedding](https://go.dev/doc/effective_go#embedding) | Embedding semantics and rules |
-| Go Blog | [https://go.dev/blog/embedding](https://go.dev/blog/embedding) | Composition patterns |
+| Có hiệu lực Go | [https://go.dev/doc/effective_go#embedding](https://go.dev/doc/effective_go#embedding) | Embedding ngữ nghĩa và quy tắc |
+| Go Blog | [https://go.dev/blog/embedding](https://go.dev/blog/embedding) | mẫu Composition |
 
 ---

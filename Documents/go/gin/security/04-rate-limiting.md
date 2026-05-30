@@ -1,55 +1,40 @@
-<!-- tags: golang -->
-# ⏱️ Rate Limiting — NestJS Throttler → Gin Limiter
+<!-- tags: golang --> # ⏱️ Giới hạn tỷ lệ — NestJS Throttler → Gin Limiter
 
-> **Library**: Throttle requests per IP using in-memory counters or Redis-backed `ulule/limiter`.
+> **Thư viện**: Yêu cầu điều tiết trên mỗi IP sử dụng bộ đếm trong bộ nhớ hoặc được Redis hỗ trợ `ulule/limiter` .
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Without rate limiting, a single client can exhaust your database connections or brute-force login endpoints. NestJS uses `@nestjs/throttler`. In Go, use a per-IP counter (in-memory) or `ulule/limiter` (Redis) as middleware.
+Không giới hạn tốc độ, một khách hàng có thể làm cạn kiệt các kết nối cơ sở dữ liệu của bạn hoặc các điểm cuối đăng nhập cưỡng bức. NestJS sử dụng `@nestjs/throttler` . Trong Go, hãy sử dụng bộ đếm mỗi IP (trong bộ nhớ) hoặc `ulule/limiter` (Redis) làm phần mềm trung gian.
 
-| NestJS                      | Gin Equivalent                          |
-| --------------------------- | --------------------------------------- |
-| `ThrottlerModule.forRoot()` | `limiter.New(store, rate)` + middleware |
-| `@Throttle(10, 60)`         | `NewRateLimiter(10, 1*time.Minute)`     |
-| `@SkipThrottle()`           | Don't attach limiter middleware to route |
-| Redis storage               | `sredis.NewStoreWithOptions(client)`    |
+| NestJS | Tương đương Gin |
+| ----------------------------- | ------------------------------ |
+| `ThrottlerModule.forRoot()` | `limiter.New(store, rate)` + phần mềm trung gian |
+| `@Throttle(10, 60)` | `NewRateLimiter(10, 1*time.Minute)` |
+| `@SkipThrottle()` | Không đính kèm phần mềm trung gian giới hạn vào tuyến đường |
+| Lưu trữ Redis | `sredis.NewStoreWithOptions(client)` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Trust `X-Forwarded-For` only from known proxies.** Call `r.SetTrustedProxies()` to avoid spoofed client IPs.
-- **Use Redis for multi-instance deployments.** In-memory counters reset per pod.
+- **Chỉ tin cậy `X-Forwarded-For` từ các proxy đã biết.** Gọi `r.SetTrustedProxies()` để tránh IP máy khách giả mạo.
+- **Sử dụng Redis để triển khai nhiều phiên bản.** Đặt lại bộ đếm trong bộ nhớ cho mỗi nhóm.
 
-## 2. VISUAL
-
-![Rate limiting flow — counter check with in-memory vs Redis storage comparison](./images/04-rate-limiting.png)
-
-*Figure: Rate limit flow — per-IP counter ≤ limit → increment + c.Next(); over limit → 429 + Retry-After. Storage: in-memory (fast, per-pod) vs Redis (shared across instances).*
-
-```mermaid
+## 2. HÌNH ẢNH ![Rate limiting flow — counter check with in-memory vs Redis storage comparison](./images/04-rate-limiting.png) *Hình: Luồng giới hạn tốc độ — bộ đếm trên mỗi IP ≤ giới hạn → mức tăng + c.Next(); vượt quá giới hạn → 429 + Thử lại sau. Bộ nhớ: trong bộ nhớ (nhanh, mỗi nhóm) so với Redis (được chia sẻ giữa các phiên bản).*```mermaid
 flowchart TD
     A["Request (IP)"] --> B["Rate Limiter"]
     B --> C{"counter\n≤ limit?"}
     C -->|Yes| D["Increment counter\nc.Next()"]
     C -->|No| E["429 Too Many Requests\nretry_after: window"]
-```
+```*Hình: Phần mềm trung gian giới hạn tốc độ — kiểm tra bộ đếm trên mỗi IP, mức tăng, trả về `429 Too Many Requests` khi vượt quá.*
 
-*Figure: Rate limiter middleware — check counter per IP, increment, return `429 Too Many Requests` when exceeded.*
-
-### Rate Limit Flow
-
-```text
+### Luồng giới hạn tốc độ```text
 GET /api/data (IP: 10.0.0.1)
     ├── Counter: 99/100 → increment to 100 → c.Next()
     └── Counter: 101/100 → 429 {"error": "rate limit exceeded", "retry_after": 60}
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — In-Memory Buckets
-
-```go
+### Ví dụ 1: Cơ bản — Nhóm trong bộ nhớ```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // In-memory rate limiter: per-IP counter with sliding window.
     // Background goroutine cleans expired entries.
@@ -131,11 +116,7 @@ GET /api/data (IP: 10.0.0.1)
             c.Next()
         }
     }
-```
-
-### Example 2: Intermediate — Per-Route Policies
-
-```go
+```### Ví dụ 2: Trung cấp — Chính sách theo từng tuyến đường```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Per-route rate limits: strict for login/OTP, relaxed for general API.
     // Global limiter applies to all routes.
@@ -163,11 +144,7 @@ GET /api/data (IP: 10.0.0.1)
 
         r.Run(":8080")
     }
-```
-
-### Example 3: Advanced — Redis Store
-
-```go
+```### Ví dụ 3: Nâng cao — Redis Store```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Redis-backed limiter via ulule/limiter.
     // Shared counters across all pods.
@@ -210,29 +187,27 @@ GET /api/data (IP: 10.0.0.1)
 
         r.Run(":8080")
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Using `c.ClientIP()` without `SetTrustedProxies` | Attacker spoofs `X-Forwarded-For` to bypass rate limits | Call `r.SetTrustedProxies([]string{"10.0.0.0/8"})` |
-| 2 | 🟡 Common | In-memory counters in multi-pod Kubernetes deploy | Each pod has separate counters; effective limit = limit × pods | Use Redis-backed store for shared state |
+| 1 | 🔴 Gây tử vong | Sử dụng `c.ClientIP()` mà không có `SetTrustedProxies` | Kẻ tấn công giả mạo `X-Forwarded-For` để vượt qua giới hạn tốc độ | Gọi `r.SetTrustedProxies([]string{"10.0.0.0/8"})` |
+| 2 | 🟡 Chung | Bộ đếm trong bộ nhớ khi triển khai Kubernetes nhiều nhóm | Mỗi nhóm có bộ đếm riêng biệt; giới hạn hiệu quả = giới hạn × nhóm | Sử dụng cửa hàng được Redis hỗ trợ cho trạng thái chia sẻ |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| ulule/limiter | [github.com/ulule/limiter](https://github.com/ulule/limiter) |
+| ulule/bộ giới hạn | [github.com/ulule/limiter](https://github.com/ulule/limiter) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Configuration | When rate limits need to be configurable | Load limit/window from config instead of hardcoding | [../techniques/01-configuration.md](../techniques/01-configuration.md) |
+| Cấu hình | Khi cần cấu hình giới hạn tốc độ | Tải giới hạn/cửa sổ từ cấu hình thay vì mã hóa cứng | [../techniques/01-configuration.md](../techniques/01-configuration.md) |

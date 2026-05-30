@@ -1,78 +1,69 @@
-<!-- tags: golang, testing -->
-# 🧪 Testing — Table-driven, Benchmarks, Mocking
+<!-- tags: golang, testing --> # 🧪 Kiểm tra — Điều khiển theo bảng, Benchmarks , Mocking > Go 's `testing` package được tích hợp vào ngôn ngữ. Các thử nghiệm dựa trên bảng xử lý các ma trận đầu vào, `testify` cung cấp các xác nhận và `testify/mock` thay thế các phần phụ thuộc bằng các giả mạo được kiểm soát.
 
-> Go's `testing` package is built into the language. Table-driven tests handle input matrices, `testify` provides assertions, and `testify/mock` replaces dependencies with controlled fakes.
+📅 Đã tạo: 2026-03-20 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-📅 Created: 2026-03-20 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
-
-| Aspect          | Detail                                        |
+| Khía cạnh | Chi tiết |
 | --------------- | --------------------------------------------- |
-| **Tool**        | Built-in `testing` package — no external framework required |
-| **Use case**    | Unit tests, benchmarks, coverage, race detection |
-| **Key insight** | Table-driven tests scale input coverage without code duplication |
-| **CLI**         | `go test`, `go test -bench`, `go test -cover` |
+| **Công cụ** | Tích hợp `testing` package — không cần khung bên ngoài |
+| **Trường hợp sử dụng** | Kiểm tra đơn vị, benchmarks , phạm vi bảo hiểm, phát hiện chủng tộc |
+| **Thông tin chi tiết quan trọng** | Kiểm tra dựa trên bảng mở rộng phạm vi đầu vào mà không cần sao chép mã |
+| **CLI** | `go test` , `go test -bench` , `go test -cover` |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-You write `TestDivide_Normal`, `TestDivide_ByZero`, `TestDivide_NegativeResult`, `TestDivide_LargeNumbers`. Four functions, identical structure, only the inputs differ. A new edge case means a new function. Bug in the assertion pattern? Fix four places. Pull request review? Read four nearly identical blocks.
+Bạn viết `TestDivide_Normal` , `TestDivide_ByZero` , `TestDivide_NegativeResult` , `TestDivide_LargeNumbers` . Bốn chức năng, cấu trúc giống hệt nhau, chỉ khác nhau ở đầu vào. Vỏ cạnh mới có nghĩa là một chức năng mới. Lỗi trong mẫu khẳng định? Sửa bốn chỗ. Kéo yêu cầu xem xét? Đọc bốn khối gần giống nhau.
 
-> *Table-driven testing eliminates this duplication. You define a `[]struct{ name, input, expected }` slice — one row per test case. The loop calls `t.Run(tt.name, ...)` for each row. Adding a case means adding one struct literal. The assertion logic exists exactly once. The test output groups results by name: `TestDivide/normal`, `TestDivide/by_zero` — readable, filterable with `-run`.*
+> * Table-driven testing loại bỏ sự trùng lặp này. Bạn xác định một `[]struct{ name, input, expected }` slice - một hàng cho mỗi trường hợp thử nghiệm. Vòng lặp gọi `t.Run(tt.name, ...)` cho mỗi hàng. Thêm một trường hợp có nghĩa là thêm một chữ struct . Logic xác nhận tồn tại chính xác một lần. Các nhóm kết quả đầu ra thử nghiệm theo tên: `TestDivide/normal` , `TestDivide/by_zero` — có thể đọc được, có thể lọc được bằng `-run` .*
 >
-> *But table-driven tests only verify the code you control. When your function depends on a database, an HTTP client, or a message broker, you need to replace that dependency with a controlled fake. Go solves this with interfaces: define the dependency as an interface, inject a mock in tests. `testify/mock` automates expectation setup and verification.*
+> *Nhưng các bài kiểm tra dựa trên bảng chỉ xác minh mã bạn kiểm soát. Khi chức năng của bạn phụ thuộc vào database , ứng dụng khách HTTP hoặc nhà môi giới tin nhắn, bạn cần thay thế sự phụ thuộc đó bằng một giả mạo được kiểm soát. Go giải quyết vấn đề này bằng interfaces : xác định sự phụ thuộc là interface , thêm mock vào các thử nghiệm. `testify/mock` tự động hóa việc thiết lập và xác minh kỳ vọng.*
 
-### Test Types
+### Các loại thử nghiệm Go cung cấp bốn mẫu chức năng kiểm tra. Mỗi tệp tồn tại trong các tệp `_test.go` và bị loại trừ khỏi các tệp nhị phân sản xuất:
 
-Go provides four test function patterns. Each lives in `_test.go` files and is excluded from production binaries:
-
-| Type          | File suffix | Function prefix | Purpose                             |
+| Loại | Hậu tố tệp | Tiền tố hàm | Mục đích |
 | ------------- | ----------- | --------------- | ----------------------------------- |
-| **Unit test** | `_test.go`  | `TestXxx`       | Verify correctness of a single unit |
-| **Benchmark** | `_test.go`  | `BenchmarkXxx`  | Measure performance (ns/op, B/op)   |
-| **Example**   | `_test.go`  | `ExampleXxx`    | Executable documentation            |
-| **Fuzz**      | `_test.go`  | `FuzzXxx`       | Find edge cases via random input (Go 1.18+) |
+| **Kiểm tra đơn vị** | `_test.go` | `TestXxx` | Xác minh tính đúng đắn của một đơn vị |
+| ** Benchmark ** | `_test.go` | `BenchmarkXxx` | Đo hiệu suất (ns/op, B/op) |
+| **Ví dụ** | `_test.go` | `ExampleXxx` | Tài liệu thực thi |
+| **Lông tơ** | `_test.go` | `FuzzXxx` | Tìm các trường hợp cạnh thông qua đầu vào ngẫu nhiên ( Go 1.18+) |
 
-> **Why `_test.go`?** The Go compiler excludes all `_test.go` files from production binaries. Test helpers, mock structs, and test data never ship to production — zero overhead, no build tags needed.
+> **Tại sao `_test.go` ?** Trình biên dịch Go loại trừ tất cả các tệp `_test.go` khỏi các tệp nhị phân sản xuất. Trình trợ giúp kiểm tra, mock structs và dữ liệu kiểm tra không bao giờ được gửi đến sản xuất - không có chi phí, không cần thẻ xây dựng.
 
-### Test Commands
+### Lệnh kiểm tra
 
-| Command                       | Purpose                              |
+| Lệnh | Mục đích |
 | ----------------------------- | ------------------------------------ |
-| `go test ./...`               | Run all tests in all packages        |
-| `go test -v`                  | Verbose output with test names       |
-| `go test -run TestName`       | Run a specific test by name          |
-| `go test -cover`              | Show coverage percentage             |
-| `go test -coverprofile=c.out` | Write coverage data to file          |
-| `go test -bench .`            | Run benchmarks                       |
-| `go test -race`               | Enable race detector                 |
-| `go test -count=1`            | Disable test caching                 |
+| `go test ./...` | Chạy tất cả các bài kiểm tra trong tất cả packages |
+| `go test -v` | Đầu ra dài dòng với tên bài kiểm tra |
+| `go test -run TestName` | Chạy thử nghiệm cụ thể theo tên |
+| `go test -cover` | Hiển thị tỷ lệ phủ sóng |
+| `go test -coverprofile=c.out` | Ghi dữ liệu bảo hiểm vào tập tin |
+| `go test -bench .` | Chạy benchmarks |
+| `go test -race` | Kích hoạt tính năng phát hiện cuộc đua |
+| `go test -count=1` | Tắt kiểm tra caching |
 
-> **Why `-race`?** The race detector instruments memory access at runtime. It catches data races that unit tests miss — goroutines reading and writing the same variable without synchronization. Run `-race` in CI for every PR.
+> **Tại sao `-race` ?** Truy cập bộ nhớ của thiết bị phát hiện cuộc đua tại runtime . Nó nắm bắt các cuộc chạy đua dữ liệu mà các bài kiểm tra đơn vị bỏ lỡ - goroutines đọc và ghi cùng một biến mà không đồng bộ hóa. Chạy `-race` trong CI cho mọi PR.
 
 ---
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The gap between "tests pass" and "tests catch bugs" is the input matrix. Table-driven testing forces you to think about edge cases as data, not as code. The workflow below shows how a single test function handles all cases through a loop.
+Khoảng cách giữa "kiểm tra vượt qua" và "kiểm tra bắt lỗi" là ma trận đầu vào. Table-driven testing buộc bạn phải nghĩ về các trường hợp đặc biệt dưới dạng dữ liệu chứ không phải dưới dạng mã. Quy trình làm việc bên dưới cho thấy cách một hàm kiểm tra duy nhất xử lý tất cả các trường hợp thông qua một vòng lặp.
 
-![Table driven mocking workflow](./images/01-table-driven-mocking-workflow.png)
+![Table driven mocking workflow](./images/01-table-driven-mocking-workflow.png) *Hình: quy trình làm việc Table-driven test . Các trường hợp đầu vào được xác định là struct slices . Một vòng lặp duy nhất lặp lại các trường hợp, gọi `t.Run` cho các thử nghiệm phụ được đặt tên và xác nhận kết quả. Thêm trường hợp có nghĩa là thêm một hàng — không có chức năng mới.*
 
-*Figure: Table-driven test workflow. Input cases are defined as struct slices. A single loop iterates over cases, calls `t.Run` for named sub-tests, and asserts results. Adding a case means adding one row — no new functions.*
+## 3. MÃ
 
-## 3. CODE
+Với **Kiểm tra — Dựa trên bảng, Benchmarks , Mocking **, các loại và lệnh kiểm tra được thiết lập. Bây giờ, chúng tôi neo chúng trong mã: các thử nghiệm dựa trên bảng cho ma trận đầu vào, interface mocking để cách ly phần phụ thuộc và benchmarks để đo lường hiệu suất.
 
-With **Testing — Table-driven, Benchmarks, Mocking**, the testing types and commands are established. Now we anchor them in code: table-driven tests for input matrices, interface mocking for dependency isolation, and benchmarks for performance measurement.
+### Ví dụ 1: Cơ bản — Kiểm thử theo bảng
 
-### Example 1: Basic — Table-driven Tests
+Hàm `Add` của bạn lấy hai số nguyên và trả về tổng của chúng. Hàm `Divide` của bạn nhận hai số float và trả về kết quả hoặc lỗi. Cả hai đều cần nhiều trường hợp thử nghiệm - trường hợp dương, âm, 0, cạnh.
 
-Your `Add` function takes two integers and returns their sum. Your `Divide` function takes two floats and returns a result or an error. Both need multiple test cases — positive, negative, zero, edge cases.
-
-> **Objective**: Test `Add` and `Divide` with multiple inputs using a single test function per target.
-> **Approach**: Define test cases as a `[]struct` slice. Loop with `t.Run` for named sub-tests.
-> **Example**: `TestDivide` handles normal division, decimal results, and division by zero in one function.
-
-```go
+> **Mục tiêu**: Kiểm tra `Add` và `Divide` với nhiều đầu vào bằng cách sử dụng một chức năng kiểm tra duy nhất cho mỗi mục tiêu.
+> **Phương pháp tiếp cận**: Xác định các trường hợp thử nghiệm dưới dạng `[]struct` slice . Lặp lại với `t.Run` cho các thử nghiệm phụ được đặt tên.
+> **Ví dụ**: `TestDivide` xử lý phép chia thông thường, kết quả thập phân và phép chia cho 0 trong một hàm.```go
 // math.go
 package math
 
@@ -142,26 +133,20 @@ func TestDivide(t *testing.T) {
         })
     }
 }
-```
-
-> **Why `require` for errors and `assert` for values?**
-> `require.Error` stops the test immediately if the error is nil — no point checking the result of a failed operation. `assert.Equal` reports the failure but continues the test, which is useful when you want to see all failing assertions at once. Rule: `require` for preconditions, `assert` for value checks.
+```> **Tại sao `require` cho lỗi và `assert` cho các giá trị?**
+> `require.Error` dừng kiểm tra ngay lập tức nếu lỗi là nil — không ích gì khi kiểm tra kết quả của một thao tác thất bại. `assert.Equal` báo cáo lỗi nhưng vẫn tiếp tục kiểm tra, điều này rất hữu ích khi bạn muốn xem tất cả các xác nhận không thành công cùng một lúc. Quy tắc: `require` cho các điều kiện tiên quyết, `assert` để kiểm tra giá trị.
 >
-> **Conclusion**: Table-driven tests separate test data from test logic. Adding a new edge case is one struct literal — no new function, no copied assertion code. The `wantErr` pattern handles both success and error paths in the same table.
+> **Kết luận**: Kiểm tra dựa trên bảng tách biệt dữ liệu kiểm tra khỏi logic kiểm tra. Việc thêm trường hợp cạnh mới là một chữ struct - không có hàm mới, không có mã xác nhận được sao chép. Mẫu `wantErr` xử lý cả đường dẫn thành công và lỗi trong cùng một bảng.
 
-Table-driven tests cover pure functions. But when your function calls a database, you need to replace that dependency with a controlled fake. That requires interfaces.
+Kiểm thử dựa trên bảng bao gồm các hàm thuần túy. Nhưng khi hàm của bạn gọi database , bạn cần thay thế phần phụ thuộc đó bằng một phần giả mạo được kiểm soát. Điều đó đòi hỏi interfaces .
 
 ---
 
-### Example 2: Intermediate — Mocking with Interfaces
+### Ví dụ 2: Trung cấp — Mocking với Interfaces `UserService.GetUser` của bạn xác thực ID, sau đó gọi `repo.FindByID` . Quá trình kiểm tra phải xác minh ba đường dẫn: thành công, không tìm thấy và ID không hợp lệ. Bài kiểm tra không được chạm vào database thực.
 
-Your `UserService.GetUser` validates the ID, then calls `repo.FindByID`. The test must verify three paths: success, not found, and invalid ID. The test must not touch a real database.
-
-> **Objective**: Test a service method with three paths (success, not found, invalid input) using a mock repository.
-> **Approach**: Define `UserRepository` as an interface. Create `MockUserRepo` using `testify/mock`. Configure expectations with `.On().Return()`.
-> **Example**: The "invalid id" test passes `nil` as the repository — the service rejects the input before calling the repo.
-
-```go
+> **Mục tiêu**: Kiểm tra một phương thức dịch vụ có ba đường dẫn (thành công, không tìm thấy, đầu vào không hợp lệ) bằng cách sử dụng kho lưu trữ mock .
+> **Cách tiếp cận**: Xác định `UserRepository` dưới dạng interface . Tạo `MockUserRepo` bằng cách sử dụng `testify/mock` . Định cấu hình kỳ vọng với `.On().Return()` .
+> **Ví dụ**: Kiểm tra "id không hợp lệ" vượt qua `nil` làm kho lưu trữ — dịch vụ từ chối đầu vào trước khi gọi repo.```go
 // service.go
 package user
 
@@ -246,26 +231,22 @@ func TestGetUser(t *testing.T) {
         assert.EqualError(t, err, "invalid id")
     })
 }
-```
-
-> **Why `mockRepo.AssertExpectations(t)`?**
-> `AssertExpectations` verifies that every `.On(...)` expectation was actually called. Without it, you could remove the `repo.FindByID(id)` call from the service — the test would still pass because no assertion checks that the repo was called. `AssertExpectations` catches missing calls.
+```> **Tại sao `mockRepo.AssertExpectations(t)` ?**
+> `AssertExpectations` xác minh rằng mọi kỳ vọng `.On(...)` thực sự đã được gọi. Nếu không có nó, bạn có thể xóa lệnh gọi `repo.FindByID(id)` khỏi dịch vụ — thử nghiệm vẫn sẽ vượt qua vì không có xác nhận nào kiểm tra xem repo đã được gọi hay chưa. `AssertExpectations` bắt cuộc gọi nhỡ.
 >
-> **Conclusion**: Interface mocking decouples tests from infrastructure. The mock controls exactly what the repository returns. `AssertExpectations` ensures the service actually calls the repository. The "invalid id" test proves early validation by passing `nil` — no mock needed for input rejection.
+> **Kết luận**: Interface mocking tách các thử nghiệm khỏi cơ sở hạ tầng. mock kiểm soát chính xác những gì kho lưu trữ trả về. `AssertExpectations` đảm bảo dịch vụ thực sự gọi kho lưu trữ. Kiểm tra "id không hợp lệ" chứng minh xác thực sớm bằng cách chuyển `nil` — không cần mock để từ chối đầu vào.
 
-Unit tests and mocking cover correctness. Benchmarks measure performance: nanoseconds per operation, bytes allocated, allocations per call.
+Kiểm tra đơn vị và [[E24]]] bao gồm tính chính xác. Benchmarks đo lường hiệu suất: nano giây trên mỗi thao tác, số byte được phân bổ, số phân bổ trên mỗi cuộc gọi.
 
 ---
 
-### Example 3: Advanced — Benchmarks & Coverage
+### Ví dụ 3: Nâng cao — Benchmarks & Bảo hiểm
 
-Your `Add` function runs in nanoseconds. Your string concatenation has two implementations — `+` operator and `strings.Builder`. You want to know which is faster and whether it allocates memory.
+Hàm `Add` của bạn chạy trong vài nano giây. Nối chuỗi của bạn có hai cách triển khai - toán tử `+` và `strings.Builder` . Bạn muốn biết cái nào nhanh hơn và liệu nó có phân bổ bộ nhớ hay không.
 
-> **Objective**: Benchmark `Add` and compare two string concatenation strategies with allocation tracking.
-> **Approach**: `BenchmarkXxx(b *testing.B)` with `b.Loop()` (Go 1.24+) or `for range b.N` (Go 1.22+). Sub-benchmarks for parameterized comparison.
-> **Example**: `BenchmarkStringConcat` compares `+` vs `strings.Builder`. `-benchmem` reveals allocation differences.
-
-```go
+> **Mục tiêu**: Benchmark `Add` và so sánh hai chiến lược nối chuỗi với theo dõi phân bổ.
+> **Cách tiếp cận**: `BenchmarkXxx(b *testing.B)` với `b.Loop()` ( Go 1.24+) hoặc `for range b.N` ( Go 1.22+). Sub- benchmarks để so sánh tham số.
+> **Ví dụ**: `BenchmarkStringConcat` so sánh `+` với `strings.Builder` . `-benchmem` tiết lộ sự khác biệt về phân bổ.```go
 // benchmark_test.go
 package math
 
@@ -317,45 +298,43 @@ go tool cover -html=coverage.out  # Open browser
 
 # ✅ Race detection
 go test -race ./...
-```
-
-> **Why `-benchmem`?**
-> `ns/op` measures time but hides memory pressure. A function that runs in 10ns but allocates 3 times per call will create GC pressure at scale. `-benchmem` reports `B/op` (bytes per operation) and `allocs/op` — essential for identifying hot-path allocations.
+```> **Tại sao `-benchmem` ?**
+> `ns/op` đo time nhưng ẩn áp lực bộ nhớ. Một hàm chạy trong 10ns nhưng phân bổ 3 lần cho mỗi lệnh gọi sẽ tạo ra áp lực GC trên quy mô lớn. `-benchmem` báo cáo `B/op` (byte trên mỗi thao tác) và `allocs/op` — cần thiết để xác định phân bổ đường dẫn nóng.
 >
-> **Conclusion**: Benchmarks measure what unit tests cannot: time, memory, and allocation cost. Sub-benchmarks compare strategies side by side. `-benchmem` reveals hidden allocations. `-race` catches data races that no assertion can detect.
+> **Kết luận**: Benchmarks đo lường những gì bài kiểm tra đơn vị không thể: time , bộ nhớ và chi phí phân bổ. Sub- benchmarks so sánh các chiến lược cạnh nhau. `-benchmem` tiết lộ phân bổ ẩn. `-race` nắm bắt các cuộc đua dữ liệu mà không có xác nhận nào có thể phát hiện được.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The syntax of Go testing is minimal. The bugs hide in test design — caching, parallelism, and mock verification.
+Cú pháp kiểm tra Go là tối thiểu. Các lỗi ẩn trong thiết kế thử nghiệm - xác minh caching , song song và mock .
 
-| # | Severity  | Error                               | Consequence                              | Fix                                       |
-|---|-----------|-------------------------------------|------------------------------------------|--------------------------------------------|
-| 1 | 🔴 Fatal  | Not calling `AssertExpectations`   | Mock expectations silently ignored        | Always call `mockRepo.AssertExpectations(t)` |
-| 2 | 🟡 Common | Cached test results                 | `go test` skips re-run if code unchanged | Use `go test -count=1` to disable cache    |
-| 3 | 🟡 Common | Forgetting `-race` in CI           | Data races pass CI and crash in production | Add `-race` to the CI test command         |
-| 4 | 🟡 Common | `assert` instead of `require` for preconditions | Test continues with `nil` pointer after error → panic | Use `require` for error/nil checks        |
-| 5 | 🔵 Minor  | Not using `t.Parallel()`           | Sequential tests waste CI time            | Mark independent tests with `t.Parallel()` |
-
----
-
-## 5. REF
-
-| Resource           | Type     | Link                                                                 | Notes                              |
-| ------------------ | -------- | -------------------------------------------------------------------- | ---------------------------------- |
-| Go Testing         | Official | [pkg.go.dev/testing](https://pkg.go.dev/testing)                     | Built-in testing API reference     |
-| Table-driven Tests | Official | [go.dev/wiki/TableDrivenTests](https://go.dev/wiki/TableDrivenTests) | Canonical table-driven test pattern |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|--------------|--------------------------------------|------------------------------------------|---------------------------------------------------|
+| 1 | 🔴 Gây tử vong | Không gọi `AssertExpectations` | Mock kỳ vọng âm thầm bị bỏ qua | Luôn gọi `mockRepo.AssertExpectations(t)` |
+| 2 | 🟡 Chung | Kết quả kiểm tra được lưu trong bộ nhớ đệm | `go test` bỏ qua việc chạy lại nếu mã không thay đổi | Sử dụng `go test -count=1` để tắt bộ đệm |
+| 3 | 🟡 Chung | Quên `-race` trong CI | Cuộc đua dữ liệu vượt qua CI và gặp sự cố trong quá trình sản xuất | Thêm `-race` vào lệnh kiểm tra CI |
+| 4 | 🟡 Chung | `assert` thay vì `require` cho các điều kiện tiên quyết | Quá trình kiểm tra tiếp tục với `nil` pointer sau lỗi → panic | Sử dụng `require` để kiểm tra lỗi/ nil |
+| 5 | 🔵 Nhỏ | Không sử dụng `t.Parallel()` | Kiểm tra tuần tự chất thải CI time | Đánh dấu các bài kiểm tra độc lập bằng `t.Parallel()` |
 
 ---
 
-## 6. RECOMMEND
+## 5. GIỚI THIỆU
 
-Table-driven tests, mocking, benchmarks, and coverage are covered. The branches below extend testing into performance profiling and real dependencies.
+| Tài nguyên | Loại | Liên kết | Ghi chú |
+| ------------------ | -------- | ----------------------------------------------------------------------------------- | ---------------------------------- |
+| Go Kiểm tra | Chính thức | [pkg.go.dev/testing](https://pkg.go.dev/testing) | Tài liệu tham khảo API thử nghiệm tích hợp |
+| Kiểm tra dựa trên bảng | Chính thức | [go.dev/wiki/TableDrivenTests](https://go.dev/wiki/TableDrivenTests) | Mẫu table-driven test chuẩn |
 
-| Expansion      | When                                  | Rationale                                    | File/Link                              |
+---
+
+## 6. KHUYẾN NGHỊ
+
+Các thử nghiệm dựa trên bảng, mocking , benchmarks và phạm vi bao phủ đều được đề cập. Các nhánh bên dưới mở rộng thử nghiệm sang hồ sơ hiệu suất và các phần phụ thuộc thực sự.
+
+| Mở rộng | Khi nào | Cơ sở lý luận | Tệp/Liên kết |
 | -------------- | ------------------------------------- | -------------------------------------------- | -------------------------------------- |
-| Benchmarks & Fuzz | When you need performance measurement and edge-case discovery | `b.Loop()` (Go 1.24+), fuzzing, `benchstat` | [02-benchmark-fuzz.md](./02-benchmark-fuzz.md) |
-| Integration Tests | When mocks are not enough — test real DB, Redis, Kafka | `testcontainers-go` spins up Docker containers per test | [03-integration-testcontainers.md](./03-integration-testcontainers.md) |
+| Benchmarks & Lông tơ | Khi bạn cần đo lường hiệu suất và khám phá trường hợp cụ thể | `b.Loop()` ( Go 1.24+), fuzzing , `benchstat` | [02-benchmark-fuzz.md](./02-benchmark-fuzz.md) |
+| Kiểm tra tích hợp | Khi mocks vẫn chưa đủ - hãy kiểm tra DB thực, Redis, Kafka | `testcontainers-go` quay các vùng chứa Docker cho mỗi lần kiểm tra | [03-integration-testcontainers.md](./03-integration-testcontainers.md) |
 
-**Navigation**: [← Packages](../packages/) · [← README](../README.md)
+**Điều hướng**: [← Packages](../packages/) · [← README](../README.md)

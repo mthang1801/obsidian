@@ -1,33 +1,26 @@
-<!-- tags: golang, modules -->
-# ♻️ Lifecycle Hooks — NestJS OnModuleInit → Go Startup/Shutdown
+<!-- tags: golang, modules --> # ♻️ Móc vòng đời — NestJS OnModuleInit → Khởi động/Tắt máy
 
-> **Library**: Startup init, graceful shutdown, and `errgroup` orchestration — replacing NestJS `OnModuleInit`/`OnApplicationShutdown`.
+> **Thư viện**: Khởi động, tắt máy nhẹ nhàng và điều phối `errgroup` — thay thế NestJS `OnModuleInit` / `OnApplicationShutdown` .
 
-📅 Updated: 2026-04-19 · ⏱️ 10 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 10 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS has lifecycle hooks (`OnModuleInit`, `OnApplicationShutdown`). In Go, you structure this manually: constructors for init, `defer` for cleanup, and `signal.Notify` + `context.WithTimeout` for graceful shutdown. For multiple long-running goroutines, `errgroup.Group` coordinates concurrent startup and fail-fast on any error.
+NestJS có các móc vòng đời ( `OnModuleInit` , `OnApplicationShutdown` ). Trong Go, bạn cấu trúc thủ công: hàm tạo cho init, `defer` để dọn dẹp và `signal.Notify` + `context.WithTimeout` để tắt máy một cách nhẹ nhàng. Đối với nhiều goroutine chạy dài, `errgroup.Group` điều phối việc khởi động đồng thời và xử lý nhanh mọi lỗi.
 
-| NestJS                      | Go Equivalent                            |
-| --------------------------- | ---------------------------------------- |
-| `OnModuleInit`              | Constructor / init function invocations  |
-| `OnApplicationBootstrap`    | Handlers after `gin.New()` startup calls |
-| `OnModuleDestroy`           | Defined `defer cleanup()` logic blocks   |
-| `OnApplicationShutdown`     | Explicit `srv.Shutdown(ctx)` loops       |
+| NestJS | Đi tương đương |
+| ----------------------------- | ---------------------------------------- |
+| `OnModuleInit` | Lời gọi hàm xây dựng/init |
+| `OnApplicationBootstrap` | Trình xử lý sau lệnh gọi khởi động `gin.New()` |
+| `OnModuleDestroy` | Các khối logic `defer cleanup()` được xác định |
+| `OnApplicationShutdown` | Vòng lặp `srv.Shutdown(ctx)` rõ ràng |
 
-### Key Invariants
+### Bất biến chính
 
-- **Shutdown order is reverse of init order.** Close server first (stop accepting), then cache, then DB.
-- **Always use `context.WithTimeout` for shutdown.** Without it, a stuck DB connection blocks shutdown forever.
+- **Thứ tự tắt máy ngược với thứ tự ban đầu.** Đóng máy chủ trước (dừng chấp nhận), sau đó vào bộ đệm, sau đó là DB.
+- **Luôn sử dụng `context.WithTimeout` để tắt máy.** Nếu không có nó, kết nối DB bị kẹt sẽ chặn việc tắt máy vĩnh viễn.
 
-## 2. VISUAL
-
-![Application lifecycle — Init → Boot → Serve → Signal → Drain → Close](./images/03-lifecycle-hooks.png)
-
-*Figure: Lifecycle timeline — Startup (errgroup parallel init) → Running (serve + health probes) → Signal (SIGTERM) → Graceful Shutdown (drain requests, close DB/Redis).*
-
-```mermaid
+## 2. HÌNH ẢNH ![Application lifecycle — Init → Boot → Serve → Signal → Drain → Close](./images/03-lifecycle-hooks.png) *Hình: Dòng thời gian của vòng đời — Khởi động (init song song của nhóm lỗi) → Đang chạy (phục vụ + thăm dò tình trạng) → Tín hiệu (SIGTERM) → Tắt máy duyên dáng (yêu cầu thoát, đóng DB/Redis).*```mermaid
 flowchart TD
     A["main()"] -->|"1. Load config"| B["NewApp(cfg)"]
     B -->|"2. Connect DB + Cache"| C["app.Bootstrap()"]
@@ -36,23 +29,15 @@ flowchart TD
     E -->|"4. srv.Shutdown"| F["5. cache.Close"]
     F --> G["6. db.Close"]
     G --> H["✅ Exit 0"]
-```
+```*Hình: Luồng vòng đời — khởi tạo theo thứ tự (cấu hình → DB → bộ đệm → tuyến), tắt theo chiều ngược lại (máy chủ → bộ đệm → DB).*
 
-*Figure: Lifecycle flow — init in order (config → DB → cache → routes), shutdown in reverse (server → cache → DB).*
-
-### Lifecycle Phases
-
-```text
+### Các giai đoạn của vòng đời```text
 Init:     LoadConfig → NewDatabase → NewCache → Bootstrap (routes)
 Run:      ListenAndServe (blocks until signal)
 Shutdown: srv.Shutdown → cache.Close → db.Close (reverse order)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Modular App Structure
-
-```go
+### Ví dụ 1: Cơ bản — Cấu trúc ứng dụng mô-đun```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // App struct owns all resources. NewApp() inits DB + cache.
     // Bootstrap() sets up routes. Shutdown() tears down in reverse.
@@ -136,11 +121,7 @@ Shutdown: srv.Shutdown → cache.Close → db.Close (reverse order)
         defer cancel()
         app.Shutdown(ctx)
     }
-```
-
-### Example 2: Intermediate — Orchestrating Error Groups
-
-```go
+```### Ví dụ 2: Trung cấp — Nhóm lỗi điều phối```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // errgroup: run API server, metrics server, and consumer
     // concurrently. If any fails, context cancels all others.
@@ -178,29 +159,27 @@ Shutdown: srv.Shutdown → cache.Close → db.Close (reverse order)
 
         return g.Wait()
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Shutting down DB before server stops accepting requests | In-flight requests get "connection closed" errors | Shutdown server first, then dependencies in reverse init order |
-| 2 | 🟡 Common | No timeout on shutdown context | Stuck DB connection blocks shutdown indefinitely | `context.WithTimeout(ctx, 30*time.Second)` |
+| 1 | 🔴 Gây tử vong | Tắt DB trước khi máy chủ ngừng nhận yêu cầu | Các yêu cầu trên chuyến bay gặp lỗi "đóng kết nối" | Tắt máy chủ trước, sau đó phụ thuộc theo thứ tự ban đầu ngược lại |
+| 2 | 🟡 Chung | Không có thời gian chờ khi tắt máy | Bị kẹt kết nối DB chặn tắt vô thời hạn | `context.WithTimeout(ctx, 30*time.Second)` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | net/http Server.Shutdown | [pkg.go.dev/net/http#Server.Shutdown](https://pkg.go.dev/net/http#Server.Shutdown) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Auth + Rate Limit | When you need layered production API protection | Combines JWT auth, RBAC, and per-user rate limiting | [./04-auth-rate-limit-production.md](./04-auth-rate-limit-production.md) |
+| Xác thực + Giới hạn tỷ lệ | Khi bạn cần bảo vệ API sản xuất theo lớp | Kết hợp xác thực JWT, RBAC và giới hạn tốc độ cho mỗi người dùng | [./04-auth-rate-limit-production.md](./04-auth-rate-limit-production.md) |

@@ -1,52 +1,45 @@
-<!-- tags: golang, data-structures, arrays -->
-# 🔗 Array Pipeline — Map, Filter, Reduce, Some, Every
+<!-- tags: golang, data-structures, arrays --> # 🔗 Array Pipeline — Map , Lọc, Giảm, Một số, Mọi
 
-> JavaScript chains `.filter().map().reduce()` with implicit garbage collection. Go demands explicit `for` loops — each functional pipeline allocates a new slice. Generics (Go 1.18+) bring type safety to utility functions, but hot paths still need manual loops.
+> Chuỗi JavaScript `.filter().map().reduce()` với tính năng thu thập rác tiềm ẩn. Go yêu cầu các vòng lặp `for` rõ ràng - mỗi chức năng pipeline phân bổ một slice mới. Generics ( Go 1.18+) mang lại sự an toàn về loại cho các chức năng tiện ích, nhưng các đường dẫn nóng vẫn cần các vòng lặp thủ công.
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 18 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 18 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A senior frontend developer processes 50,000 employee records using `Filter(employees).Map(extractName)`. Each pipeline step allocates a fresh slice and copies structs. Two steps on 50K records = 100K allocations. The container runs out of memory.
+Một nhà phát triển giao diện người dùng cấp cao xử lý 50.000 hồ sơ nhân viên bằng cách sử dụng `Filter(employees).Map(extractName)` . Mỗi bước pipeline phân bổ một slice mới và sao chép structs . Hai bước trên bản ghi 50K = phân bổ 100K. Vùng chứa hết bộ nhớ.
 
-JavaScript hides this cost behind its garbage collector. Go makes it explicit: every `append` to a new slice costs memory. Generics (Go 1.18+) let you write type-safe `Map`, `Filter`, and `Reduce` functions — but they still allocate intermediate slices. For hot paths, a manual `for` loop with a single pre-allocated result slice is 3-5x faster.
+JavaScript ẩn chi phí này đằng sau garbage collector của nó. Go làm cho nó rõ ràng: mọi `append` sang một slice mới đều tốn bộ nhớ. Generics ( Go 1.18+) cho phép bạn viết các hàm an toàn kiểu `Map` , `Filter` và `Reduce` — nhưng chúng vẫn phân bổ các hàm trung gian slices . Đối với các đường dẫn nóng, vòng lặp `for` thủ công với một kết quả được phân bổ trước duy nhất slice nhanh hơn 3-5 lần.
 
-### 1.1 Invariants & Failure Modes
+### 1.1 Các kiểu bất biến và lỗi
 
-| Boundary | Core Responsibility |
+| Ranh giới | Trách nhiệm cốt lõi |
 | --- | --- |
-| **Pipeline types** | JavaScript chains mutate data implicitly. Go utilities pass explicit closures over typed slices. |
-| **Performance** | Declarative pipelines prioritize readability. Hot-path loops prioritize minimal allocations. |
+| ** Pipeline loại** | Chuỗi JavaScript biến đổi dữ liệu một cách ngầm định. Các tiện ích Go chuyển rõ ràng closures qua gõ slices . |
+| **Hiệu suất** | Đường dẫn khai báo ưu tiên khả năng đọc. Vòng lặp đường dẫn nóng ưu tiên phân bổ tối thiểu. |
 
-| Rule | Rationale |
+| Quy tắc | Cơ sở lý luận |
 | --- | --- |
-| **Avoid deep chaining** | `Reduce(Map(Filter(data)))` destroys readability. Break into intermediate variables. |
-| **Value copies vs pointers** | `Map` over `[]User` copies each struct. For large structs, use `[]*User` to avoid copying. |
+| **Tránh xâu chuỗi sâu** | `Reduce(Map(Filter(data)))` phá hủy khả năng đọc. Chia thành các biến trung gian. |
+| **Bản sao giá trị so với pointers ** | `Map` qua `[]User` sao chép mỗi struct . Đối với structs lớn, hãy sử dụng `[]*User` để tránh sao chép. |
 
-### 1.2 Failure Cascades
+### 1.2 Chuỗi thất bại
 
-- **The phantom element:** `Find` returns a zero-value struct and `false` when no match exists. If you ignore the boolean, you process `User{ID: 0}` — which might accidentally match a real record in your database.
-- **The comparable crash:** `Includes(slice, target)` requires `comparable` constraint. Passing a slice of maps triggers a compile error. Use `Some` with a predicate instead.
+- **Phần tử ảo:** `Find` trả về giá trị 0 struct và `false` khi không có kết quả khớp nào tồn tại. Nếu bạn bỏ qua boolean, bạn xử lý `User{ID: 0}` - điều này có thể vô tình khớp với một bản ghi thực trong database của bạn.
+- **Sự cố comparable :** `Includes(slice, target)` yêu cầu ràng buộc `comparable` . Việc truyền slice của maps sẽ gây ra lỗi biên dịch. Thay vào đó hãy sử dụng `Some` với một vị ngữ.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The gap between JavaScript chaining and Go explicit loops is the allocation model. The visual maps each JS array method to its Go equivalent.
+Khoảng cách giữa chuỗi JavaScript và vòng lặp rõ ràng Go là mô hình phân bổ. Hình ảnh maps mỗi phương thức JS array tương đương với Go của nó. ![Array Pipeline Operations](./images/02-array-pipeline-compare.png) *Hình: Các phương thức JS array được ánh xạ tới Go generic tương đương. Mỗi hàm Go chấp nhận một kiểu gõ slice và một closure . Không giống như JS, mỗi bước phân bổ một slice mới.*
 
-![Array Pipeline Operations](./images/02-array-pipeline-compare.png)
+## 3. MÃ
 
-*Figure: JS array methods mapped to Go generic equivalents. Each Go function accepts a typed slice and a closure. Unlike JS, each step allocates a new slice.*
+Với sự cân bằng phân bổ được thiết lập, mã bên dưới xây dựng năm tiện ích cốt lõi ( `Map` , `Filter` , `Reduce` , `Find` , `Includes` ) và hai tiện ích nâng cao ( `FlatMap` , `Chunk` ).
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — 5 tiện ích cốt lõi
 
-With the allocation trade-offs established, the code below builds the five core utilities (`Map`, `Filter`, `Reduce`, `Find`, `Includes`) and two advanced helpers (`FlatMap`, `Chunk`).
-
-### Example 1: Basic — The Core 5 Utilities
-
-> **Goal**: Build type-safe `Map`, `Filter`, and `Reduce` using Go generics.
-> **Approach**: Each function takes a `[]T` and a closure, returning a new slice.
-> **Complexity**: O(N) per function — one pass over the input slice.
-
-```go
+> **Mục tiêu**: Xây dựng loại an toàn `Map` , `Filter` và `Reduce` bằng cách sử dụng Go generics .
+> **Phương pháp tiếp cận**: Mỗi hàm nhận một `[]T` và một closure , trả về một slice mới .
+> **Độ phức tạp**: O(N) cho mỗi hàm — một lần chuyển qua đầu vào slice .```go
 // core_pipeline.go
 package utils
 
@@ -78,19 +71,15 @@ func Reduce[T any, R any](slice []T, reducer func(R, T) R, initial R) R {
 	}
 	return result
 }
-```
-
-> **Takeaway**: `make([]R, len(slice))` pre-allocates the exact capacity for `Map`. `Filter` uses `append` because the output size is unknown. Pre-allocating with `make([]T, 0, len(slice))` reduces reallocations when the filter retains most elements.
+```> **Takeaway**: `make([]R, len(slice))` phân bổ trước dung lượng chính xác cho `Map` . `Filter` sử dụng `append` vì kích thước đầu ra không xác định. Phân bổ trước bằng `make([]T, 0, len(slice))` giúp giảm phân bổ lại khi bộ lọc giữ lại hầu hết các phần tử.
 
 ---
 
-### Example 2: Intermediate — Search and Validation
+### Ví dụ 2: Trung cấp — Tìm kiếm và xác thực
 
-> **Goal**: Find elements and validate slice conditions with early termination.
-> **Approach**: `Find` returns `(T, bool)` — the boolean replaces JavaScript's `undefined`. `Includes` requires the `comparable` constraint.
-> **Complexity**: O(1) best case — both short-circuit on first match.
-
-```go
+> **Mục tiêu**: Tìm các phần tử và xác thực các điều kiện slice bằng cách kết thúc sớm.
+> **Phương pháp tiếp cận**: `Find` trả về `(T, bool)` — boolean thay thế `undefined` của JavaScript. `Includes` yêu cầu ràng buộc `comparable` .
+> **Độ phức tạp**: Trường hợp tốt nhất O(1) — cả hai đều bị đoản mạch trong trận đấu đầu tiên.```go
 // validation_logic.go
 package utils
 
@@ -116,19 +105,15 @@ func Includes[T comparable](slice []T, target T) bool {
 	}
 	return false
 }
-```
-
-> **Takeaway**: Always check the boolean return from `Find`. The zero value of a struct is a valid value — `User{ID: 0}` is a real struct, not `nil`. Ignoring the boolean leads to processing phantom records.
+```> **Takeaway**: Luôn kiểm tra giá trị trả về boolean từ `Find` . Giá trị 0 của struct là giá trị hợp lệ - `User{ID: 0}` là giá trị thực struct , không phải `nil` . Việc bỏ qua boolean sẽ dẫn đến việc xử lý các bản ghi ảo.
 
 ---
 
-### Example 3: Advanced — FlatMap and Chunk
+### Ví dụ 3: Nâng cao — FlatMap và Chunk
 
-> **Goal**: Flatten nested slices and split large collections into batches.
-> **Approach**: `FlatMap` maps each element to a slice and concatenates. `Chunk` splits by fixed size.
-> **Complexity**: O(N×M) for `FlatMap` expansion; O(N) for `Chunk`.
-
-```go
+> **Mục tiêu**: Làm phẳng slices lồng nhau và chia các bộ sưu tập lớn thành các đợt.
+> **Cách tiếp cận**: `FlatMap` maps mỗi phần tử thành một slice và nối. `Chunk` chia theo kích thước cố định.
+> **Độ phức tạp**: O(N×M) cho việc mở rộng `FlatMap` ; O(N) cho `Chunk` .```go
 // complex_restructuring.go
 package utils
 
@@ -158,31 +143,29 @@ func Chunk[T any](slice []T, size int) [][]T {
 	}
 	return result
 }
-```
+```> **Takeaway**: `Chunk` sub- slices chia sẻ phần hỗ trợ array với bản gốc slice . Sửa đổi các phần tử trong một đoạn sẽ sửa đổi bản gốc. Nếu bạn cần cách ly, hãy sao chép từng đoạn bằng `slices.Clone` .
 
-> **Takeaway**: `Chunk` sub-slices share the backing array with the original slice. Modifying elements in a chunk modifies the original. If you need isolation, copy each chunk with `slices.Clone`.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Nesting `Reduce(Map(Filter(...)))` into one expression | Break into intermediate variables — readability matters more than one-liners |
-| 2 | Ignoring the boolean return from `Find` | Always check `ok` — zero values are valid structs, not null |
-| 3 | Using generic `Map` on hot paths with large structs | Replace with a manual `for` loop that pre-allocates and avoids copies |
-| 4 | Modifying slice elements inside `Filter` | Slice elements are copies for value types. For mutation, use `[]*T` |
+| 1 | Lồng `Reduce(Map(Filter(...)))` vào một biểu thức | Chia thành các biến trung gian - khả năng đọc quan trọng hơn một dòng |
+| 2 | Bỏ qua trả về boolean từ `Find` | Luôn kiểm tra `ok` - giá trị 0 là hợp lệ structs , không phải null |
+| 3 | Sử dụng generic `Map` trên các đường dẫn nóng có structs lớn | Thay thế bằng vòng lặp `for` thủ công để phân bổ trước và tránh các bản sao |
+| 4 | Sửa đổi các phần tử slice bên trong `Filter` | Phần tử Slice là bản sao cho các loại giá trị. Để đột biến, hãy sử dụng `[]*T` |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| `samber/lo` Utility Library | [github.com/samber/lo](https://github.com/samber/lo) |
-| Standard `slices` Package | [pkg.go.dev/slices](https://pkg.go.dev/slices) |
+| `samber/lo` Thư viện tiện ích | [github.com/samber/lo](https://github.com/samber/lo) |
+| Tiêu chuẩn `slices` Package | [pkg.go.dev/slices](https://pkg.go.dev/slices) |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale |
+| Gia hạn | Khi nào | Cơ sở lý luận |
 | --- | --- | --- |
-| [Object Maps](./03-object-map-utils.md) | When working with dynamic key-value data | Generic `Keys`, `Merge`, `Pick` for `map[K]V` |
-| [Optional Types](./11-optional-nullable.md) | When handling nullable or absent values | `Find` returns zero values — optionals make absence explicit |
+| [Object Maps](./03-object-map-utils.md) | Khi làm việc với dữ liệu khóa-giá trị động | Generic `Keys` , `Merge` , `Pick` cho `map[K]V` |
+| [Optional Types](./11-optional-nullable.md) | Khi xử lý các giá trị rỗng hoặc vắng mặt | `Find` trả về giá trị 0 — các tùy chọn làm cho sự vắng mặt trở nên rõ ràng |
 
-**Navigation**: [← Data Conversion](./01-data-conversion.md) · [→ Object Maps](./03-object-map-utils.md)
+**Điều hướng**: [← Data Conversion](./01-data-conversion.md) · [→ Object Maps](./03-object-map-utils.md)

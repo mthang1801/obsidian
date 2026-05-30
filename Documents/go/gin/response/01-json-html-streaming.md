@@ -1,57 +1,42 @@
-<!-- tags: golang -->
-# 📤 Response — JSON, HTML, Streaming, SSE
+<!-- tags: golang --> # 📤 Phản hồi - JSON, HTML, Truyền phát, SSE
 
-> **Library**: Gin response methods — `c.JSON`, `c.HTML`, `c.File`, `c.Stream` — and building a consistent API envelope.
+> **Thư viện**: Phương thức phản hồi Gin — `c.JSON` , `c.HTML` , `c.File` , `c.Stream` — và xây dựng một phạm vi API nhất quán.
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Gin provides typed response methods that set `Content-Type` and serialize data in one call. Wrap them in a shared `APIResponse` envelope so every endpoint returns `{success, data, error}`.
+Gin cung cấp các phương thức phản hồi được nhập để đặt `Content-Type` và tuần tự hóa dữ liệu trong một lệnh gọi. Gói chúng trong một phong bì chung `APIResponse` để mọi điểm cuối đều trả về `{success, data, error}` .
 
-| Method                         | Content-Type                 | Use case         |
+| Phương pháp | Loại nội dung | Trường hợp sử dụng |
 | ------------------------------ | ---------------------------- | ---------------- |
-| `c.JSON(code, obj)`            | `application/json`           | REST API         |
-| `c.String(code, fmt, args)`    | `text/plain`                 | Simple text      |
-| `c.HTML(code, name, data)`     | `text/html`                  | Templates        |
-| `c.File(path)`                 | Auto-detect                  | Download/preview |
+| `c.JSON(code, obj)` | `application/json` | API REST |
+| `c.String(code, fmt, args)` | `text/plain` | Văn bản đơn giản |
+| `c.HTML(code, name, data)` | `text/html` | Mẫu |
+| `c.File(path)` | Tự động phát hiện | Tải xuống/xem trước |
 
-### Key Invariants
+### Bất biến chính
 
-- **Write only once per request.** Calling `c.JSON` after `c.HTML` panics with "headers already written."
-- **Always `return` after an error response.** Otherwise the handler writes a second body.
+- **Chỉ viết một lần cho mỗi yêu cầu.** Gọi `c.JSON` sau `c.HTML` gây hoảng loạn với "tiêu đề đã được viết."
+- **Luôn luôn `return` sau một phản hồi lỗi.** Nếu không, trình xử lý sẽ ghi phần nội dung thứ hai.
 
-## 2. VISUAL
-
-![Response methods comparison — JSON, HTML, File, SSE Stream](./images/01-response-methods.png)
-
-*Figure: Four response lanes — JSON API (c.JSON), HTML Template (c.HTML), File Download (c.File/c.FileAttachment), SSE Stream (c.Stream + c.SSEvent). Write only once per request.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Response methods comparison — JSON, HTML, File, SSE Stream](./images/01-response-methods.png) *Hình: Bốn làn phản hồi — API JSON (c.JSON), Mẫu HTML (c.HTML), Tải xuống tệp (c.File/c.FileAttachment), Luồng SSE (c.Stream + c.SSEvent). Chỉ viết một lần cho mỗi yêu cầu.*```mermaid
 flowchart TD
     A["Handler"] --> B{"Response type?"}
     B -->|"JSON"| C["c.JSON(200, data)"]
     B -->|"HTML"| D["c.HTML(200, 'tpl', data)"]
     B -->|"Stream"| E["c.Stream(callback)"]
     B -->|"File"| F["c.File(path)"]
-```
+```*Hình: Hình dạng phản hồi — JSON cho API, HTML cho mẫu, Luồng cho thời gian thực, Tệp để tải xuống.*
 
-*Figure: Response shapes — JSON for APIs, HTML for templates, Stream for real-time, File for downloads.*
-
-### Response Decision
-
-```text
+### Quyết định phản hồi```text
 Structured API data?        → c.JSON(status, envelope)
 Server-rendered HTML?       → c.HTML(status, template, data)
 File download/preview?      → c.File(path) / c.FileAttachment(path, name)
 Real-time server push?      → c.Stream() + c.SSEvent()
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — JSON Envelopes
-
-```go
+### Ví dụ 1: Cơ bản — Phong bì JSON```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Unified envelope: {success, data, error}.
     // RespondOK/RespondError ensure every endpoint matches this shape.
@@ -105,11 +90,7 @@ Real-time server push?      → c.Stream() + c.SSEvent()
 
         r.Run(":8080")
     }
-```
-
-### Example 2: Intermediate — File Responses
-
-```go
+```### Ví dụ 2: Trung cấp — Tệp phản hồi```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // c.File serves inline; c.FileAttachment forces download.
     // c.Data writes raw bytes with a custom Content-Type.
@@ -133,11 +114,7 @@ Real-time server push?      → c.Stream() + c.SSEvent()
             c.Data(http.StatusOK, "text/csv", []byte(data))
         })
     }
-```
-
-### Example 3: Advanced — Live Streaming
-
-```go
+```### Ví dụ 3: Nâng cao — Phát trực tiếp```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // SSE via c.Stream + c.SSEvent. Ping keeps connection alive.
     // Context.Done() detects client disconnect.
@@ -162,29 +139,27 @@ Real-time server push?      → c.Stream() + c.SSEvent()
             }
         })
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Calling `c.JSON()` twice in same handler | Panic: "headers already written" | Always `return` after error response |
-| 2 | 🟡 Common | Using `c.File()` with unsanitized user input | Path traversal attack | Use `filepath.Clean` and restrict to upload dir |
+| 1 | 🔴 Gây tử vong | Gọi `c.JSON()` hai lần trong cùng một trình xử lý | Hoảng loạn: "tiêu đề đã được viết" | Luôn `return` sau khi phản hồi lỗi |
+| 2 | 🟡 Chung | Sử dụng `c.File()` với đầu vào của người dùng chưa được dọn dẹp | Tấn công truyền tải đường đi | Sử dụng `filepath.Clean` và hạn chế tải lên thư mục |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Gin Rendering | [gin-gonic.com/en/docs](https://gin-gonic.com/en/docs/) |
+| Kết xuất Gin | [gin-gonic.com/en/docs](https://gin-gonic.com/en/docs/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| SSE & WebSocket | When you need real-time bidirectional communication | SSE for server push, WebSocket for full-duplex | [./02-sse-websocket.md](./02-sse-websocket.md) |
+| SSE & WebSocket | Khi bạn cần liên lạc hai chiều theo thời gian thực | SSE để đẩy máy chủ, WebSocket cho song công hoàn toàn | [./02-sse-websocket.md](./02-sse-websocket.md) |

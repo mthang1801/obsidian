@@ -1,65 +1,58 @@
-<!-- tags: golang, oop, design-patterns -->
-# 🏗️ Design Patterns, the Go Way — Simpler Than Anticipated
+<!-- tags: golang, oop, design-patterns --> # 🏗️ Design Patterns , Cách Go — Đơn giản hơn mong đợi
 
-> Many design patterns simplify dramatically in Go. Factories become functions. Strategies become interfaces. Observers run via channels. Singletons wrap in `sync.Once`. This guide shows idiomatic Go implementations.
+> Nhiều design patterns đơn giản hóa đáng kể trong Go . Các nhà máy trở thành chức năng. Chiến lược trở thành interfaces . Người quan sát chạy qua channels . Singletons bọc trong `sync.Once` . Hướng dẫn này hiển thị các cách triển khai Go thành ngữ.
 
-📅 Created: 2026-04-10 · 🔄 Updated: 2026-04-19 · ⏱️ 18 min read
+📅 Đã tạo: 2026-04-10 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 18 phút đọc
 
-| Aspect            | Detail                                              |
+| Khía cạnh | Chi tiết |
 | ----------------- | --------------------------------------------------- |
-| **Concept**       | GoF design patterns re-implemented in Go idioms |
-| **Use case**      | Code design, architecture decisions |
-| **Key insight**   | Many patterns simplify. Some disappear. None require class hierarchies. |
-| **Go philosophy** | Do not implement a pattern until you need it |
+| **Khái niệm** | GoF design patterns được triển khai lại trong thành ngữ Go |
+| **Trường hợp sử dụng** | Thiết kế mã, quyết định kiến ​​trúc |
+| **Thông tin chi tiết quan trọng** | Nhiều mẫu đơn giản hóa. Một số biến mất. Không yêu cầu phân cấp lớp. |
+| ** Go triết lý** | Đừng triển khai một mẫu cho đến khi bạn cần nó |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A new development team starts writing Go. You review a PR generating `AbstractPaymentProcessorFactory` — containing 4 files, 3 interfaces, 2 abstract base structs, spanning 150 lines.
+Một nhóm phát triển mới bắt đầu viết Go . Bạn xem xét một PR tạo `AbstractPaymentProcessorFactory` — chứa 4 tệp, 3 interfaces , 2 cơ sở trừu tượng structs , trải dài 150 dòng.
 
-The senior code reviewer comments: "You only require `NewStripeProcessor()`. A function. 8 lines total."
-
-```go
+Người đánh giá mã cấp cao nhận xét: "Bạn chỉ yêu cầu `NewStripeProcessor()` . Một hàm. Tổng cộng có 8 dòng."```go
 func NewStripeProcessor(apiKey string) *StripeProcessor {
     return &StripeProcessor{apiKey: apiKey}
 }
-```
+```Bạn so sánh `AbstractPaymentProcessorFactory` và nhận ra: Java cần 150 dòng vì `new` bỏ qua xác thực, các hàm tạo không thể trả về lỗi và hệ thống phân cấp lớp cần một lớp trừu tượng cho polymorphism . Go : Các hàm `NewXxx()` xác thực, trả về lỗi và các loại cụ thể yield . Mẫu Factory giảm xuống còn 1 hàm.
 
-You compare `AbstractPaymentProcessorFactory` and realize: Java needs 150 lines because `new` ignores validation, constructors cannot return errors, and class hierarchies need an abstract layer for polymorphism. Go: `NewXxx()` functions validate, return errors, and yield concrete types. The Factory pattern reduces to 1 function.
+**Không phải mọi mẫu đều đơn giản hóa như nhau** — Strategy , Observer và Middleware vẫn cần cấu trúc. Nhưng cấu trúc đó nhẹ hơn cấu trúc tương đương của Java.
 
-**Not every pattern simplifies equally** — Strategy, Observer, and Middleware still need structure. But that structure is lighter than Java equivalents.
+### Ma trận chuyển đổi mẫu
 
-### Pattern Transformation Matrix
-
-| Legacy Pattern | Java Format Implementation | Go Format Implementation | Simplification Results |
+| Mẫu kế thừa | Triển khai Java Format | Go Format Thực hiện | Kết quả đơn giản hóa |
 | --- | --- | --- | --- |
-| **Factory** | Abstract factory + concrete factory legacy classes | `NewXxx()` exact function | Classes → 1 native function |
-| **Builder** | Builder class logic + formal Director | Functional options format `With...()` | Class elements → pure functions |
-| **Singleton** | Double-checked locking + rigid static fields | `sync.Once` + target package-level variable | 20 lines reducing → 5 lines |
-| **Strategy** | Interface + abstract definition + concrete classes | Native interface + raw structural struct | No abstract base class formatting needed |
-| **Observer** | EventListener mapping + EventManager orchestration | Channels parameters + executing goroutines | Zero registration lists, zero distinct callback chains |
-| **Decorator** | Deep wrapper classes formally extending base | Middleware function pattern `func(H) H` | Zero base classes required |
-| **Iterator** | Iterator format interface + concrete loops | Target `range` logic + structural channels | Formally built directly into compiler language elements |
-| **Template Method** | Abstract class inheritance + required override | Basic interface protocol + native default func | Zero abstract classes |
+| ** Factory ** | Các lớp kế thừa factory + cụ thể factory | `NewXxx()` chức năng chính xác | Lớp học → 1 hàm gốc |
+| ** Builder ** | Builder lớp logic + Giám đốc chính thức | Tùy chọn chức năng format `With...()` | Phần tử lớp → hàm thuần túy |
+| ** Singleton ** | Khóa kiểm tra hai lần + trường tĩnh cứng nhắc | `sync.Once` + target package -biến cấp độ | Giảm 20 dòng → 5 dòng |
+| ** Strategy ** | Interface + định nghĩa trừu tượng + lớp cụ thể | Bản địa interface + cấu trúc thô struct | Không cần định dạng lớp cơ sở trừu tượng |
+| ** Observer ** | Ánh xạ EventListener + Điều phối EventManager | Channels tham số + thực thi goroutines | Không có danh sách đăng ký, không có chuỗi callback riêng biệt |
+| ** Decorator ** | Các lớp bao bọc sâu chính thức mở rộng cơ sở | Mẫu hàm phần mềm trung gian `func(H) H` | Không cần lớp cơ sở |
+| ** Iterator ** | Iterator format interface + vòng bê tông | Đích `range` logic + cấu trúc channels | Được xây dựng chính thức trực tiếp vào các thành phần ngôn ngữ trình biên dịch |
+| **Phương pháp mẫu** | Lớp trừu tượng inheritance + ghi đè bắt buộc | Giao thức interface cơ bản + chức năng mặc định gốc | Không có lớp trừu tượng |
 
-### Failure Modes
+### Chế độ lỗi
 
-| Structural Defect | Root Cause | Ripple Effect |
+| Khiếm khuyết cấu trúc | Nguyên nhân gốc rễ | Hiệu ứng gợn sóng |
 | --- | --- | --- |
-| Translating Java patterns 1:1 | "Must have abstract factories" | Over-engineered, non-idiomatic |
-| Skipping patterns entirely | "Go is simple, no patterns needed" | Spaghetti code at scale |
-| Building patterns prematurely | Implementing before 3 concrete use cases | Unnecessary abstraction |
+| Dịch các mẫu Java 1:1 | "Phải có nhà máy trừu tượng" | Kỹ thuật quá mức, không thành ngữ |
+| Bỏ qua hoàn toàn các mẫu | " Go rất đơn giản, không cần mẫu" | Mã spaghetti ở quy mô |
+| Xây dựng mô hình sớm | Triển khai trước 3 trường hợp sử dụng cụ thể | Trừu tượng không cần thiết |
 
-The pattern map is clear. Let’s implement 3 critical patterns — starting with Factory.
+Mẫu map rõ ràng. Hãy triển khai 3 mẫu quan trọng - bắt đầu bằng Factory .
 
 ---
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-### Java versus Go Structural Complexity
-
-```mermaid
+### Java so với Go Độ phức tạp về cấu trúc```mermaid
 flowchart LR
     subgraph Java["Java Native Patterns"]
         direction TB
@@ -81,15 +74,9 @@ flowchart LR
     J2 -.->|"-60% lines"| G2
     J3 -.->|"-70% lines"| G3
     J4 -.->|"-75% lines"| G4
-```
+```![Design patterns Go way taxonomy card](./images/06-design-patterns-go-way-taxonomy.png) *Hình: Mục tiêu giảm độ phức tạp khi vận hành: Factory –95%, Singleton –75%, Observer –70%, Strategy –60%. Các tính năng ngôn ngữ tích hợp sẽ loại bỏ hoàn toàn bản mẫu soạn sẵn cũ.*
 
-![Design patterns Go way taxonomy card](./images/06-design-patterns-go-way-taxonomy.png)
-
-*Figure: Operating complexity reduction targets: Factory –95%, Singleton –75%, Observer –70%, Strategy –60%. Built-in language features eliminate legacy pattern boilerplate entirely.*
-
-### Structural Pattern Decision Tree Model
-
-```mermaid
+### Mô hình cây quyết định mẫu cấu trúc```mermaid
 flowchart TD
     A[Require dynamically generating new memory objects?] -->|Executing validation at pure construction stage| B["Factory pattern: NewXxx() target execution"]
     A -->|Configuring numerous distinct optional specific initialization parameters| C["Builder pattern logic: Functional Options variables"]
@@ -98,20 +85,16 @@ flowchart TD
     G[Require broadcasting fundamental system events functionally?] -->|Targeting distinct async decoupled operations| H["Observer architectural format: Pure native channels operations"]
     G -->|Execution via tight synchronous execution callback requirements| I["Event callback handling logic: Simple formal func structure slice"]
     J[Require rigid global exact strict native singleton instance definition?] --> K["Singleton structural parameter definition: Native sync.Once variables"]
-```
-
-*Figure: 7 common patterns translated to idiomatic Go. No abstract classes anywhere.*
+```*Hình: 7 mẫu phổ biến được dịch sang thành ngữ Go . Không có lớp trừu tượng ở bất cứ đâu.*
 
 ---
-### Example 1: Basic — Factory + Functional Options.
+### Ví dụ 1: Cơ bản — Factory + Tùy chọn chức năng.
 
-Factory pattern in Java: AbstractFactory → ConcreteFactory → Product. Go: `NewXxx()` function. When multiple optional params are needed: functional options.
+ Mẫu Factory trong Java: abstractFactory → ConcreteFactory → Product. Hàm Go : `NewXxx()` . Khi cần nhiều thông số tùy chọn: các tùy chọn chức năng.
 
-> **Goal**: Factory pattern + Builder alternative (functional options).
-> **Approach**: `NewServer()` required params + `WithXxx()` optional params.
-> **Example**: HTTP server with configurable timeout, logger, TLS.
-
-```go
+> **Mục tiêu**: mẫu Factory + Builder thay thế (tùy chọn chức năng).
+> **Phương pháp tiếp cận**: `NewServer()` thông số bắt buộc + `WithXxx()` thông số tùy chọn.
+> **Ví dụ**: Máy chủ HTTP có thời gian chờ, trình ghi nhật ký, TLS có thể định cấu hình.```go
 // factory.go — Factory + Functional Options pattern
 package server
 
@@ -183,26 +166,18 @@ func NewServer(host string, port int, opts ...Option) (*Server, error) {
 //     WithTLS(tlsConfig),
 //     WithLogger(customLogger),
 // )
-```
+```> **Tại sao có lớp Tùy chọn chức năng thay vì lớp Builder ?**
+> Lớp Builder : `ServerBuilder.SetHost().SetPort().Build()` — đối tượng builder có thể thay đổi, các phương thức xâu chuỗi, bước Build() riêng biệt. Tùy chọn chức năng: hàm bất biến, có thể kết hợp, không có trạng thái trung gian. Dave Cheney ( nhóm cốt lõi Go ): "Các tùy chọn chức năng là cách giống Go nhất để xây dựng các đối tượng phức tạp." Cần một lựa chọn khác sau này? Thêm 1 chức năng - mã hiện tại không thay đổi.
 
-> **Why Functional Options instead of Builder class?**
-> Builder class: `ServerBuilder.SetHost().SetPort().Build()` — mutable builder object, chaining methods, separate Build() step. Functional Options: immutable functions, composable, no intermediate state. Dave Cheney (Go core team): "Functional options are the most Go-like way to build complex objects." Need another option later? Add 1 function — existing code unchanged.
-
-> **Takeaway**: Factory = `NewXxx()` function. Builder = Functional Options `WithXxx()`. Both Java patterns collapse into one Go pattern — simpler, idiomatic.
-
-Factory cover object creation. Strategy cover behavior swap — the most important pattern for OCP.
+> **Takeaway**: hàm Factory = `NewXxx()` . Builder = Tùy chọn chức năng `WithXxx()` . Cả hai mẫu Java đều thu gọn thành một mẫu Go - đơn giản hơn, thành ngữ hơn. Factory bao gồm việc tạo đối tượng. Strategy hoán đổi hành vi bìa - mẫu quan trọng nhất đối với OCP.
 
 ---
 
-### Example 2: Intermediate — Strategy + Middleware (Decorator).
+### Ví dụ 2: Trung cấp — Strategy + Middleware ( Decorator ). Strategy : thuật toán hoán đổi tại runtime thông qua interface tiêm. Phần mềm trung gian: mẫu decorator cho đường dẫn HTTP.
 
-Strategy: swap algorithm at runtime via interface injection. Middleware: decorator pattern for HTTP pipelines.
-
-> **Goal**: Strategy pattern + Decorator as middleware.
-> **Approach**: `Compressor` interface (strategy). `Middleware func(http.Handler) http.Handler` (decorator).
-> **Example**: File compressor swapping gzip/zstd. HTTP middleware chain.
-
-```go
+> **Mục tiêu**: mẫu Strategy + Decorator làm phần mềm trung gian.
+> **Cách tiếp cận**: `Compressor` interface ( strategy ). `Middleware func(http.Handler) http.Handler` ( decorator ).
+> **Ví dụ**: Trình nén tệp hoán đổi gzip/zstd. Chuỗi phần mềm trung gian HTTP.```go
 // strategy.go — Strategy pattern
 package compress
 
@@ -322,26 +297,18 @@ func Chain(handler http.Handler, middlewares ...Middleware) http.Handler {
 //     RequireAuth(validateToken),
 //     RateLimit(100),
 // )
-```
+```> **Tại sao lại là phần mềm trung gian thay vì lớp Decorator ?**
+> Java Decorator : `class LoggingHandler extends HandlerWrapper { ... }` — lớp trên decorator , mở rộng base. Go : `func(http.Handler) http.Handler` — 1 hàm = 1 decorator . Không có lớp, không mở rộng, không có cơ sở. Soạn với `Chain()` . Cùng một mẫu.
 
-> **Why middleware instead of Decorator class?**
-> Java Decorator: `class LoggingHandler extends HandlerWrapper { ... }` — class per decorator, extends base. Go: `func(http.Handler) http.Handler` — 1 function = 1 decorator. No class, no extends, no base. Compose with `Chain()`. Same pattern.
-
-> **Takeaway**: Strategy = interface + injection — like Java, minus the abstract class. Middleware = decorator via function composition — Go’s functional side shines here.
-
-Factory, Strategy, Decorator cover "structural + behavioral" patterns. Observer — pattern for event-driven — Go has a built-in tool: channels.
+> **Takeaway**: Strategy = interface + tiêm — giống như Java, trừ lớp trừu tượng. Middleware = decorator thông qua hàm composition - Go Mặt chức năng của Go tỏa sáng ở đây. Factory , Strategy , Decorator bao gồm các mẫu "cấu trúc + hành vi". Observer - mẫu dành cho hướng sự kiện - Go có một công cụ tích hợp: channels .
 
 ---
 
-### Example 3: Advanced — Observer via Channels + Singleton via sync.Once.
+### Ví dụ 3: Nâng cao — Observer qua Channels + Singleton qua sync.Once. Observer trong Go không cần EventListener interface — channels LÀ cơ chế. Singleton : `sync.Once` thay vì khóa được kiểm tra hai lần.
 
-Observer in Go does not need an EventListener interface — channels IS the mechanism. Singleton: `sync.Once` instead of double-checked locking.
-
-> **Goal**: Observer pattern via channels. Singleton via sync.Once.
-> **Approach**: Event channel + subscriber goroutines. Package-level var + sync.Once.
-> **Example**: Event bus publish/subscribe. Config singleton.
-
-```go
+> **Mục tiêu**: mẫu Observer qua channels . Singleton qua sync.Once.
+> **Phương pháp tiếp cận**: Sự kiện channel + người đăng ký goroutines . Package -level var + sync.Once.
+> **Ví dụ**: Xuất bản/đăng ký xe buýt sự kiện. Cấu hình singleton .```go
 // observer.go — Observer pattern via channels
 package eventbus
 
@@ -463,51 +430,49 @@ func getEnvOr(key, fallback string) string {
 // Usage: cfg := config.Get()
 // First call: initializes. All subsequent calls: returns same instance.
 // Thread-safe. No mutex needed after initialization.
-```
-
-> **Why channel instead of callback/EventListener?**.
-> Java Observer: `listener.onEvent(event)` — synchronous callback, listener must implement interface, unregister complex. Go channels: async by default, buffered for decoupling, `range` for iteration, `close()` for teardown. Channel back-pressure built-in (full buffer = publisher blocked or drops). No EventListener, no unregister dance.
+```> **Tại sao channel thay vì callback /EventListener?**.
+> Java Observer : `listener.onEvent(event)` — đồng bộ callback , người nghe phải triển khai interface , hủy đăng ký phức tạp. Go channels : async theo mặc định, được lưu vào bộ đệm để tách rời, `range` để lặp lại, `close()` để phân tách. Channel tích hợp áp suất ngược (bộ đệm đầy = nhà xuất bản bị chặn hoặc bị rớt). Không có EventListener, không có điệu nhảy hủy đăng ký.
 >
-> **sync.Once vs double-checked locking?**
-> Java DCL: 10 lines, `volatile` + `synchronized` + null check × 2. Easy to get wrong. Go `sync.Once`: guaranteed by runtime, zero chance of race. 5 lines total. Done.
+> **đồng bộ hóa.Một lần so với khóa được kiểm tra hai lần?**
+> Java DCL: 10 dòng, `volatile` + `synchronized` + kiểm tra null × 2. Dễ mắc lỗi. Go `sync.Once` : được đảm bảo bởi runtime , không có cơ hội chạy đua. Tổng cộng 5 dòng. Xong.
 
-> **Takeaway**: Observer = channels + goroutines — Go’s concurrency primitives ARE the pattern. Singleton = `sync.Once` — 5 lines, thread-safe, done. Many GoF patterns are simplified or absorbed by Go’s built-in features.
+> **Takeaway**: Observer = channels + goroutines — Go ’s concurrency nguyên thủy LÀ mẫu. Singleton = `sync.Once` — 5 dòng, thread -an toàn, xong. Nhiều mẫu GoF được đơn giản hóa hoặc hấp thụ bởi các tính năng tích hợp của Go .
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Translate Java patterns 1:1 (AbstractFactory, Builder class) | Over-engineered, non-idiomatic | `NewXxx()` + functional options |
-| 2 | 🔴 Fatal | Observer with goroutine leak — subscriber never closes | Memory leak, goroutine count grows forever | Context cancellation + `Close()` cleanup + defer |
-| 3 | 🟡 Common | Singleton abuse (use for everything) | Hidden dependency, testing hell | Prefer explicit injection. Singleton only for config, logger |
-| 4 | 🟡 Common | Channel Observer without back-pressure | Publisher blocks when subscriber is slow | Buffered channel + `select default` drop or log |
-| 5 | 🔵 Minor | Premature pattern — apply before 3rd use case | Unnecessary abstraction | Wait for 3 concrete cases, then extract pattern |
+| 1 | 🔴 Gây tử vong | Dịch các mẫu Java 1:1 (lớp AbstractFactory, Builder ) | Kỹ thuật quá mức, không thành ngữ | `NewXxx()` + tùy chọn chức năng |
+| 2 | 🔴 Gây tử vong | Observer bị rò rỉ goroutine — người đăng ký không bao giờ đóng | Rò rỉ bộ nhớ, số lượng goroutine tăng mãi mãi | Hủy bối cảnh + dọn dẹp `Close()` + defer |
+| 3 | 🟡 Chung | Singleton lạm dụng (sử dụng cho mọi thứ) | Sự phụ thuộc ẩn giấu, thử nghiệm địa ngục | Thích tiêm rõ ràng. Singleton chỉ dành cho cấu hình, logger |
+| 4 | 🟡 Chung | Channel Observer không có áp suất ngược | Nhà xuất bản chặn khi người đăng ký chậm | Đã lưu vào bộ đệm channel + `select default` hoặc ghi |
+| 5 | 🔵 Nhỏ | Mẫu sớm - áp dụng trước trường hợp sử dụng thứ 3 | Trừu tượng không cần thiết | Đợi 3 trường hợp cụ thể rồi trích xuất mẫu |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| Go Design Patterns | Book | https://www.packtpub.com/product/go-design-patterns/9781786466204 | Comprehensive |
-| Dave Cheney — SOLID Go | Talk | https://dave.cheney.net/2016/08/20/solid-go-design | Patterns + SOLID |
-| Functional Options | Blog | https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis | Original proposal |
+| Go Design Patterns | Sách | https://www.packtpub.com/product/go-design-potypes/9781786466204 | Toàn diện |
+| Dave Cheney — SOLID Go | Nói chuyện | https://dave.cheney.net/2016/08/20/ solid -go-design | Mẫu + SOLID |
+| Tùy chọn chức năng | Blog | https://dave.cheney.net/2014/10/17/function-options-for-friend-apis | Đề xuất ban đầu |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Design Patterns — Go Way** is clear. The extension branches below help you bring design patterns into production with DDD, clean architecture, and microservices patterns.
+Cốt lõi của ** Design Patterns — Go Cách** rất rõ ràng. Các nhánh tiện ích mở rộng bên dưới giúp bạn đưa design patterns vào sản xuất với DDD, kiến ​​trúc sạch và các mẫu vi dịch vụ.
 
-| Extend | When | Reason | File/Link |
+| Gia hạn | Khi nào | Lý do | Tệp/Liên kết |
 | --- | --- | --- | --- |
-| [Go Concurrency](../../concurrency/) | When you need goroutines, channels, sync patterns | Observer pattern → concurrency deep dive | Go track |
-| [Go Design Patterns](../../design-patterns/) | When you need a full pattern catalog | All GoF patterns idiomatic | Go track |
-| [Clean Architecture](../../../architecture/go/) | When you need to structure the application | DDD + Clean Architecture in Go | Architecture |
-| [OOP Mental Model](./01-oop-mental-model.md) | When you need to review reframes | Entire Java map → Go | This folder |
+| [Go Concurrency](../../concurrency/) | Khi bạn cần goroutines , channels , hãy đồng bộ hóa các mẫu | mẫu Observer → concurrency lặn sâu | Go bài hát |
+| [Go Design Patterns](../../design-patterns/) | Khi bạn cần một danh mục mẫu đầy đủ | Tất cả các mẫu GoF đều thành ngữ | Go bài hát |
+| [Clean Architecture](../../../architecture/go/) | Khi bạn cần cấu trúc ứng dụng | DDD + Kiến trúc sạch trong Go | Kiến trúc |
+| [OOP Mental Model](./01-oop-mental-model.md) | Khi bạn cần xem lại khung hình | Toàn bộ Java map → Go | Thư mục này |
 
 ---
 
-**Navigation**: [← SOLID in Go](./05-solid-in-go.md) · [→ OOP in Go Hub](./README.md)
+**Điều hướng**: [← SOLID in Go](./05-solid-in-go.md) · [→ OOP in Go Hub](./README.md)

@@ -1,34 +1,27 @@
-<!-- tags: golang -->
-# 🔄 CQRS Pattern — NestJS @nestjs/cqrs → Go Command/Query Separation
+<!-- tags: golang --> # 🔄 Mẫu CQRS — NestJS @nestjs/cqrs → Phân tách lệnh/truy vấn
 
-> **Library**: Separate read and write models using Command/Query handlers with explicit data flow.
+> **Thư viện**: Tách biệt các mô hình đọc và ghi bằng trình xử lý Lệnh/Truy vấn với luồng dữ liệu rõ ràng.
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-CQRS splits read and write operations into separate handler types. NestJS has `@nestjs/cqrs` with `CommandBus`/`QueryBus`. In Go, you implement this as plain structs with a `Handle(ctx, input)` method — no bus abstraction needed for most projects.
+CQRS chia các hoạt động đọc và ghi thành các loại trình xử lý riêng biệt. NestJS có `@nestjs/cqrs` với `CommandBus` / `QueryBus` . Trong Go, bạn triển khai điều này dưới dạng cấu trúc đơn giản với phương thức `Handle(ctx, input)` — không cần trừu tượng hóa bus cho hầu hết các dự án.
 
-| NestJS                               | Gin / Go                                   |
+| NestJS | Gin / Đi |
 | ------------------------------------ | ------------------------------------------ |
-| `CommandBus.execute(command)`        | `handler.Handle(ctx, command)` direct call |
-| `QueryBus.execute(query)`            | `handler.Handle(ctx, query)` direct call   |
-| `@CommandHandler(CreateUserCommand)` | `type CreateUserHandler struct`            |
-| `EventBus.publish(event)`            | Channel-based or interface event bus       |
-| `@EventsHandler(UserCreatedEvent)`   | `type UserCreatedHandler struct`           |
+| `CommandBus.execute(command)` | `handler.Handle(ctx, command)` gọi trực tiếp |
+| `QueryBus.execute(query)` | `handler.Handle(ctx, query)` gọi trực tiếp |
+| `@CommandHandler(CreateUserCommand)` | `type CreateUserHandler struct` |
+| `EventBus.publish(event)` | Xe buýt sự kiện dựa trên kênh hoặc giao diện |
+| `@EventsHandler(UserCreatedEvent)` | `type UserCreatedHandler struct` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Commands return minimal data.** A command handler returns only an ID or error — not the full entity.
-- **Queries never mutate state.** If a query handler calls `db.Save()`, the separation is broken.
+- **Lệnh trả về dữ liệu tối thiểu.** Trình xử lý lệnh chỉ trả về ID hoặc lỗi — không phải toàn bộ thực thể.
+- **Truy vấn không bao giờ thay đổi trạng thái.** Nếu trình xử lý truy vấn gọi `db.Save()` , sự phân tách bị phá vỡ.
 
-## 2. VISUAL
-
-![CQRS pattern — Command (write) vs Query (read) separation](./images/03-cqrs-pattern.png)
-
-*Figure: CQRS — Command path (POST/PUT/DELETE → validate → write to primary DB) separated from Query path (GET → read from optimized store/cache). Independent scaling, clear responsibility.*
-
-```mermaid
+## 2. HÌNH ẢNH ![CQRS pattern — Command (write) vs Query (read) separation](./images/03-cqrs-pattern.png) *Hình: CQRS — Đường dẫn lệnh (POST/PUT/DELETE → xác thực → ghi vào DB chính) được tách biệt khỏi đường dẫn Truy vấn (GET → đọc từ kho lưu trữ/bộ đệm được tối ưu hóa). Mở rộng quy mô độc lập, trách nhiệm rõ ràng.*```mermaid
 flowchart LR
     A["POST /users"] --> B["Gin Handler"]
     B -->|"bind + validate"| C["CreateUserHandler"]
@@ -36,22 +29,14 @@ flowchart LR
     E["GET /users/:id"] --> F["Gin Handler"]
     F --> G["GetUserHandler"]
     G -->|"read"| H[("Read DB / Cache")]
-```
+```*Hình: Ranh giới CQRS - Các tuyến POST đi qua trình xử lý lệnh (đường dẫn ghi); Các tuyến GET đi qua trình xử lý truy vấn (đọc đường dẫn). Mỗi đường dẫn có thể mở rộng quy mô độc lập.*
 
-*Figure: CQRS boundary — POST routes go through command handlers (write path); GET routes go through query handlers (read path). Each path can scale independently.*
-
-### Command vs Query
-
-```text
+### Lệnh và Truy vấn```text
 Command: POST/PUT/DELETE → validates → mutates → returns ID or error
 Query:   GET              → reads     → returns DTO (never mutates)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Command Handler
-
-```go
+### Ví dụ 1: Cơ bản — Trình xử lý lệnh```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Command handler: validates input, hashes password,
     // creates user, returns minimal result (ID + email).
@@ -98,11 +83,7 @@ Query:   GET              → reads     → returns DTO (never mutates)
 
         return &CreateUserResult{ID: user.ID, Email: user.Email}, nil
     }
-```
-
-### Example 2: Intermediate — Query Handler
-
-```go
+```### Ví dụ 2: Trung cấp — Trình xử lý truy vấn```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Query handler: reads from read-optimized repo,
     // returns DTO directly — no mutation, no side effects.
@@ -133,11 +114,7 @@ Query:   GET              → reads     → returns DTO (never mutates)
     func (h *GetUserHandler) Handle(ctx context.Context, q GetUserQuery) (*UserDTO, error) {
         return h.readRepo.FindByID(ctx, q.ID)
     }
-```
-
-### Example 3: Advanced — Wiring CQRS in Gin Handler
-
-```go
+```### Ví dụ 3: Nâng cao — Đấu dây CQRS trong Gin Handler```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Wiring CQRS: Gin handler delegates to command/query
     // handlers. Handler never contains business logic.
@@ -198,29 +175,27 @@ Query:   GET              → reads     → returns DTO (never mutates)
 
         c.JSON(http.StatusOK, gin.H{"data": result})
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Query handler calls `db.Save()` or `db.Create()` | Breaks read/write separation; read replicas see stale data | Queries must only call read-only repository methods |
-| 2 | 🟡 Common | Using CQRS for simple CRUD with no read/write divergence | Adds handler boilerplate without benefit | Only adopt CQRS when read and write models genuinely differ |
+| 1 | 🔴 Gây tử vong | Trình xử lý truy vấn gọi `db.Save()` hoặc `db.Create()` | Phá vỡ sự phân tách đọc/ghi; đọc bản sao xem dữ liệu cũ | Truy vấn chỉ được gọi các phương thức kho lưu trữ chỉ đọc |
+| 2 | 🟡 Chung | Sử dụng CQRS cho CRUD đơn giản không có phân kỳ đọc/ghi | Thêm bản tóm tắt xử lý mà không mang lại lợi ích | Chỉ áp dụng CQRS khi các mô hình đọc và ghi thực sự khác nhau |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
 | Fowler CQRS | [martinfowler.com/bliki/CQRS.html](https://martinfowler.com/bliki/CQRS.html) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Database/ORM | When you need to persist CQRS entities | Repository pattern integrates cleanly with command/query handlers | [../techniques/02-database-orm.md](../techniques/02-database-orm.md) |
+| Cơ sở dữ liệu/ORM | Khi bạn cần duy trì các thực thể CQRS | Mẫu kho lưu trữ tích hợp rõ ràng với trình xử lý lệnh/truy vấn | [../techniques/02-database-orm.md](../techniques/02-database-orm.md) |

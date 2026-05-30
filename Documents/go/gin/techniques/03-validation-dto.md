@@ -1,57 +1,42 @@
-<!-- tags: golang -->
-# ✅ Validation & DTO — NestJS Pipes → Gin Binding Tags
+<!-- tags: golang --> # ✅ Xác thực & DTO — NestJS Pipes → Thẻ Gin Binding
 
-> **Library**: Validate request payloads using `binding:` struct tags, custom validators, and human-readable error messages.
+> **Thư viện**: Xác thực tải trọng yêu cầu bằng cách sử dụng thẻ cấu trúc `binding:` , trình xác thực tùy chỉnh và thông báo lỗi mà con người có thể đọc được.
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS uses `class-validator` decorators. Gin uses struct tags with `go-playground/validator`. The mental model is identical: declare rules on the DTO struct, and the framework rejects invalid input before your handler runs.
+NestJS sử dụng trang trí `class-validator` . Gin sử dụng thẻ struct với `go-playground/validator` . Mô hình tinh thần giống hệt nhau: khai báo các quy tắc trên cấu trúc DTO và khung từ chối đầu vào không hợp lệ trước khi trình xử lý của bạn chạy.
 
-| NestJS / class-validator       | Gin / validator Equivalent             |
+| NestJS / trình xác thực lớp | Gin / trình xác nhận tương đương |
 | ------------------------------ | -------------------------------------- |
-| `@IsString()`                  | Go type system enforces this at compile time |
-| `@IsEmail()`                   | `binding:"required,email"`             |
-| `@MinLength(3)`                | `binding:"min=3"`                      |
-| `@IsOptional()`                | Omit `required` from binding tag       |
-| `@ValidateNested()`            | `binding:"dive"` for nested structs    |
+| `@IsString()` | Hệ thống kiểu Go thực thi điều này tại thời điểm biên dịch |
+| `@IsEmail()` | `binding:"required,email"` |
+| `@MinLength(3)` | `binding:"min=3"` |
+| `@IsOptional()` | Bỏ qua `required` khỏi thẻ liên kết |
+| `@ValidateNested()` | `binding:"dive"` cho các cấu trúc lồng nhau |
 
-### Key Invariants
+### Bất biến chính
 
-- **Create separate DTOs for Create vs Update.** Update DTOs use pointer fields for PATCH semantics.
-- **Register custom validators once at startup.** Calling `RegisterValidation` per-request wastes CPU and causes races.
+- **Tạo các DTO riêng biệt cho Tạo và Cập nhật.** Cập nhật DTO sử dụng các trường con trỏ cho ngữ nghĩa PATCH.
+- **Đăng ký trình xác nhận tùy chỉnh một lần khi khởi động.** Gọi `RegisterValidation` theo yêu cầu sẽ gây lãng phí CPU và gây ra các cuộc đua.
 
-## 2. VISUAL
-
-![Validation and DTO pattern — request body → binding tags → valid struct or error response](./images/03-validation-dto.png)
-
-*Figure: DTO validation — request body decoded into struct with binding tags + custom validators. Valid = clean DTO for handler; invalid = structured field-level error response.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Validation and DTO pattern — request body → binding tags → valid struct or error response](./images/03-validation-dto.png) *Hình: Xác thực DTO — phần thân yêu cầu được giải mã thành cấu trúc với các thẻ liên kết + trình xác thực tùy chỉnh. Hợp lệ = DTO sạch cho trình xử lý; không hợp lệ = phản hồi lỗi cấp trường có cấu trúc.*```mermaid
 flowchart LR
     A["JSON Body"] -->|ShouldBindJSON| B["DTO Struct"]
     B --> C{"binding tags\nvalid?"}
     C -->|Yes| D["Handler Logic"]
     C -->|No| E["400 + field errors"]
-```
+```*Hình: Nội dung yêu cầu → Liên kết cấu trúc DTO → cổng xác thực. Các trường không hợp lệ trả về 400 kèm theo chi tiết lỗi trên mỗi trường.*
 
-*Figure: Request body → DTO struct binding → validation gate. Invalid fields return 400 with per-field error details.*
-
-### Validation Flow
-
-```text
+### Luồng xác thực```text
 POST /users {"name":"","email":"bad","age":10}
     ├── ShouldBindJSON decodes into CreateUserDTO
     ├── Validator checks: name min=2 → FAIL, email format → FAIL, age gte=18 → FAIL
     └── Handler returns 400 with per-field error details
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Struct Binding
-
-```go
+### Ví dụ 1: Cơ bản — Liên kết cấu trúc```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CreateUserDTO: binding tags validate all fields.
     // UpdateUserDTO: pointer fields for PATCH (nil = not sent).
@@ -83,11 +68,7 @@ POST /users {"name":"","email":"bad","age":10}
         if p.Limit == 0 { p.Limit = 20 }
         if p.Sort == "" { p.Sort = "desc" }
     }
-```
-
-### Example 2: Intermediate — Custom Validators
-
-```go
+```### Ví dụ 2: Trung cấp — Trình xác thực tùy chỉnh```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Custom validators: strongpassword, phone, slug.
     // Register once at startup via binding.Validator.Engine().
@@ -130,11 +111,7 @@ POST /users {"name":"","email":"bad","age":10}
             })
         }
     }
-```
-
-### Example 3: Advanced — Message Translations
-
-```go
+```### Ví dụ 3: Nâng cao — Dịch tin nhắn```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // FormatValidationErrors: converts validator.ValidationErrors
     // into a JSON-friendly array with field name, message, value.
@@ -189,29 +166,27 @@ POST /users {"name":"","email":"bad","age":10}
             "details": FormatValidationErrors(err),
         })
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Missing `binding:"dive"` on nested struct slices | Inner struct fields are never validated | Add `binding:"dive"` to the slice tag |
-| 2 | 🟡 Common | Returning raw `validator.ValidationErrors` to the client | Exposes internal Go struct names and tags | Use `FormatValidationErrors` to build a clean error array |
+| 1 | 🔴 Gây tử vong | Thiếu `binding:"dive"` trên các lát cấu trúc lồng nhau | Các trường cấu trúc bên trong không bao giờ được xác thực | Thêm `binding:"dive"` vào thẻ lát |
+| 2 | 🟡 Chung | Trả lại `validator.ValidationErrors` thô cho khách hàng | Hiển thị tên và thẻ cấu trúc Go nội bộ | Sử dụng `FormatValidationErrors` để xây dựng một mảng lỗi rõ ràng |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| go-playground | [pkg.go.dev/github.com/go-playground/validator/v10](https://pkg.go.dev/github.com/go-playground/validator/v10) |
+| go-sân chơi | [pkg.go.dev/github.com/go-playground/validator/v10](https://pkg.go.dev/github.com/go-playground/validator/v10) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Caching | When validated responses can be cached | Avoids re-querying for identical validated requests | [./04-caching.md](./04-caching.md) |
+| Bộ nhớ đệm | Khi phản hồi được xác thực có thể được lưu vào bộ đệm | Tránh truy vấn lại các yêu cầu được xác thực giống hệt nhau | [./04-caching.md](./04-caching.md) |

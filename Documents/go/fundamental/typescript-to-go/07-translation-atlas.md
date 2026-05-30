@@ -1,71 +1,55 @@
-<!-- tags: golang, typescript, nodejs, migration -->
-# 🗺️ Translation Atlas — Idiom Translation Map from TypeScript/Node.js to Go.
+<!-- tags: golang, typescript, nodejs, migration --> # 🗺️ Bản đồ dịch thuật — Dịch thành ngữ Map từ TypeScript/Node.js sang Go .
 
-> A practical crosswalk for TypeScript backend programmers: instead of translating line by line, this article maps each familiar "intent" of TS/Node to primitives, packages, and idiomatic workflows in Go.
+> Một lối đi thực tế dành cho các lập trình viên phụ trợ TypeScript: thay vì dịch từng dòng, bài viết này maps từng "ý định" quen thuộc của TS/Node sang các nguyên hàm, packages và các quy trình làm việc đặc trưng trong Go .
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | Syntax crosswalk, stdlib mapping, runtime-first translation |
-| **Use case** | First week porting services or tools from TypeScript/Node.js to Go |
-| **Key diff** | TS/Node assembles many capabilities around runtime objects and ecosystem; Go separates intent into distinct packages |
-| **Go stdlib** | `os`, `io`, `bufio`, `encoding/json`, `net/http`, `flag`, `regexp`, `context` |
+| **Tập trung** | Cú pháp qua đường, ánh xạ stdlib, runtime -bản dịch đầu tiên |
+| **Trường hợp sử dụng** | Tuần đầu tiên chuyển các dịch vụ hoặc công cụ từ TypeScript/Node.js sang Go |
+| **Khác biệt về phím** | TS/Node tập hợp nhiều khả năng xung quanh các đối tượng và hệ sinh thái runtime ; Go tách ý định thành packages |
+| ** Go stdlib** | `os` , `io` , `bufio` , `encoding/json` , `net/http` , `flag` , `regexp` , `context` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-You are porting a small utility backend from TypeScript to Go. In your head you have a very familiar list:
+Bạn đang chuyển một phụ trợ tiện ích nhỏ từ TypeScript sang Go . Trong đầu bạn có một danh sách rất quen thuộc:
 
-- `console.log`
-- `JSON.parse`
-- `fs.readFileSync`
-- `Promise.all`
-- `AbortController`
-- `class`, `constructor`, `this`
-- `process.argv`, `process.env`
+- `console.log` - `JSON.parse` - `fs.readFileSync` - `Promise.all` - `AbortController` - `class` , `constructor` , `this` - `process.argv` , `process.env` Vấn đề là khi bạn chuyển sang Go , bạn không tìm thấy "bản sao" của `process` , `fs` hoặc `Promise` . Mọi thứ dường như được chia thành nhiều nơi hơn: `fmt` , `os` , `bufio` , `encoding/json` , `net/http` , `context` , `flag` , `struct` , v.v.
 
-The problem is that when you switch to Go, you do not find a "copy" of `process`, `fs`, or `Promise`. Everything seems split into more places: `fmt`, `os`, `bufio`, `encoding/json`, `net/http`, `context`, `flag`, `struct`, and more.
+Hướng dẫn từ `miguelmota/golang-for-nodejs-developers` rất hữu ích ngay tại đó: nó cung cấp cho bạn một tập bản đồ như "X trong Node.js là Y trong Go ". Nhưng nếu bạn đưa tập bản đồ đó vào Go hiện đại mà không điều chỉnh các mẫu thành ngữ, bạn có nguy cơ dịch từng dòng một mà không hiểu ý chính.
 
-The guide from `miguelmota/golang-for-nodejs-developers` is very useful right there: it gives you an atlas like "X in Node.js is Y in Go". But if you bring that atlas into modern Go without adjusting for idiomatic patterns, you risk line-by-line translation that misses the point.
+### 1.1 Không dịch dựa trên từ khóa; Hãy dịch theo ý định.
 
-### 1.1 Don't translate based on keywords; Please translate according to intent.
+Một số ánh xạ gần như trực tiếp:
 
-Some mappings are almost direct:
+- `JSON.parse` -> `json.Unmarshal` - `JSON.stringify` -> `json.Marshal` - `process.env.FOO` -> `os.Getenv("FOO")` - `console.log` -> `fmt.Println` Nhưng nhiều ánh xạ chỉ đúng nếu nhìn từ mục đích:
 
-- `JSON.parse` -> `json.Unmarshal`
-- `JSON.stringify` -> `json.Marshal`
-- `process.env.FOO` -> `os.Getenv("FOO")`
-- `console.log` -> `fmt.Println`
+- `Promise.all` không nên được ánh xạ một cách máy móc thành "một bó channels "; Với yêu cầu phân bổ ra, thành ngữ hơn là `errgroup + context` .
+- `class` không map thành "lớp giả lập"; thường là `struct + constructor + methods + small interface` .
+- `fs` không map đến đối tượng trung tâm; Go tách tệp I/O thành `os` , `io` , `bufio` , đôi khi thêm `filepath` .
 
-But many mappings are only correct if viewed from the intent:
+### 1.2 Khi nào map này được sử dụng đúng?
 
-- `Promise.all` should not be mechanically mapped to "a bunch of channels"; With request fan-out, more idiomatic is `errgroup + context`.
-- `class` does not map to "simulator class"; usually `struct + constructor + methods + small interface`.
-- `fs` does not map to a central object; Go separates file I/O into `os`, `io`, `bufio`, sometimes adding `filepath`.
+Sử dụng tập bản đồ này khi:
 
-### 1.2 When is this map used correctly?
+- Bạn biết vấn đề mình muốn làm trong TS/Node, nhưng không biết package Go nguyên thủy nằm ở đâu.
+- Bạn đang xem lại cổng mã từ TypeScript và muốn phát hiện "bản dịch nghĩa đen nhưng sai lệch về ngữ nghĩa".
+- Đội cần một điểm vào nhanh trước khi tiến vào làn `helper/` .
 
-Use this atlas when:
+Đừng sử dụng tập bản đồ này làm cuốn sách quy tắc cuối cùng. Khi ánh xạ bắt đầu chạm đến mô hình miền, kiểm soát vòng đời hoặc ranh giới kiến ​​trúc, bạn phải quay lại các bài học cốt lõi trong cụm này.
 
-- You know the problem you want to do in TS/Node, but don't know which package Go primitive is in.
-- You are reviewing code port from TypeScript and want to detect "literal translation but semantic deviation".
-- The team needs a quick entry point before digging into the `helper/` lane.
+### 1.3 Các kiểu bất biến và lỗi
 
-Don't use this atlas as the final rulebook. When the mapping starts to touch the domain model, lifecycle control, or architectural boundary, you have to go back to the core lessons in this cluster.
+- Atlas này là một công cụ điều hướng, không phải là giấy phép để viết lại từng dòng một.
+- Hướng dẫn gốc sử dụng nhiều ví dụ gốc về Node.js; Trong quá trình sản xuất Go hiện đại, một số mẫu cần được nâng cao thành `context` , `errgroup` , các hàm tạo rõ ràng và dịch ranh giới để rõ ràng hơn.
+- Nếu việc ánh xạ khiến bạn thêm quá nhiều `any` , `interface{}` hoặc goroutines "trông giống như Promise ", thì đó thường là dấu hiệu cho thấy bạn đang dịch sai lớp trừu tượng.
 
-### 1.3 Invariants & Failure Modes
+Sự khác biệt thực sự không nằm ở việc ghi nhớ tên package . Nó nằm ở chỗ nhận ra cùng một ý định được “đóng gói” rất khác nhau giữa hai hệ thống. Sơ đồ dưới đây đưa điểm chính xác đó ra ánh sáng.
 
-- This Atlas is a navigational tool, not a license for line-by-line rewrite.
-- The original guide uses many original Node.js examples; In modern Go production, some patterns should be enhanced to `context`, `errgroup`, explicit constructors, and boundary translation to be clearer.
-- If a mapping causes you to add too many `any`, `interface{}`, or goroutines "to look like Promise", it's usually a sign you're mistranslating the abstract class.
+## 2. HÌNH ẢNH
 
-The real difference is not in memorizing the package name. It lies in recognizing the same intention "packaged" very differently between the two systems. The diagram below pulls that exact point into the light.
-
-## 2. VISUAL
-
-### Level 1
-
-```text
+### Cấp 1```text
 What are you looking to do in TS/Node?
 
 syntax + printing
@@ -85,15 +69,9 @@ Promise + async/await + cancellation
 
 tooling + package workflow
     -> go mod + go test + gofmt + go doc
-```
+```![Translation atlas API map](./images/07-translation-atlas-api-map.png) *Hình: Cấp độ 1 cho thấy câu hỏi đúng không phải là "Có đối tượng nào giống như `fs` trong Go không?", mà là "trong đó package trong Go ý định này tồn tại?".*.
 
-![Translation atlas API map](./images/07-translation-atlas-api-map.png)
-
-*Figure: Level 1 shows that the correct question is not "Is there an object like `fs` in Go?", but "in which package in Go does this intent live?".*.
-
-### Level 2
-
-```text
+### Cấp 2```text
 TS/Node runtime-shaped thinking
   -> process / fs / Buffer / Promise / class
 -> find equivalent object
@@ -105,24 +83,20 @@ Go intent-shaped thinking
   -> stream file?         -> os.Open + bufio.Scanner
   -> cli input?           -> flag + os.Args
   -> output/logging?      -> fmt / log / os.Stderr
-```
+```*Hình: Cấp độ 2 nhấn mạnh việc điều chỉnh lại quan trọng nhất: từ tra cứu lấy đối tượng làm trung tâm đến tra cứu lấy mục đích làm trung tâm.*.
 
-*Figure: Level 2 emphasizes the most important rewire: from object-centric lookup to intent-centric lookup.*.
+Trực quan là đủ để xác định vị trí package . Phần còn lại là xem tập bản đồ này giúp bạn tránh khỏi việc dịch từng dòng một khi xử lý mã thực như thế nào.
 
-Visual is enough to locate the package. The rest is to see how this atlas saves you from line-by-line translation when dealing with real code.
+## 3. MÃ
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — `fs` + `JSON.parse` + mặc định phải là giải mã ranh giới rõ ràng.
 
-### Example 1: Basic — `fs` + `JSON.parse` + defaults should be a clear boundary decode.
+> **Mục tiêu**: Map tập lệnh đọc cấu hình từ tệp JSON sang Go mà không trộn DTO tùy chọn với cấu hình miền.
+> **Phương pháp tiếp cận**: Giải mã đầu vào thô ở ranh giới, sau đó áp dụng các giá trị mặc định rõ ràng khi tạo cấu hình thực tế.
+> **Ví dụ**: `./config.json` → `ServiceConfig{ServiceName, Port, Debug}` .
+> **Độ phức tạp**: O(n) theo kích thước tệp; phần quan trọng là thiết kế ranh giới chính xác chứ không phải hiệu suất.
 
-> **Goal**: Map a script that reads config from a JSON file to Go without mixing the optional DTO with the domain config.
-> **Approach**: Decode raw input at the boundary, then apply explicit defaults when creating the actual config.
-> **Example**: `./config.json` → `ServiceConfig{ServiceName, Port, Debug}`.
-> **Complexity**: O(n) by file size; the important part is correct boundary design, not performance.
-
-Familiar TypeScript version:
-
-```typescript
+Phiên bản TypeScript quen thuộc:```typescript
 import { readFileSync } from "node:fs";
 
 type ServiceConfigInput = {
@@ -154,11 +128,7 @@ function loadConfig(path: string): ServiceConfig {
 
 const cfg = loadConfig("./config.json");
 console.log(`service=${cfg.serviceName} port=${cfg.port} debug=${cfg.debug}`);
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -218,24 +188,20 @@ func main() {
 
 	fmt.Printf("service=%s port=%d debug=%t\n", cfg.ServiceName, cfg.Port, cfg.Debug)
 }
-```
+```> **Tại sao?** Trong Node/TypeScript, `undefined` , `null` , các trường tùy chọn và việc hợp nhất đối tượng mặc định thường đi cùng nhau khá tự nhiên. Go buộc bạn phải phân tách chúng rõ ràng hơn. Đây không phải là nghi lễ thừa - nó giúp ranh giới JSON vẫn rõ ràng và có thể sửa lỗi.
 
-> **Why?** In Node/TypeScript, `undefined`, `null`, optional fields, and default object merging often go together quite naturally. Go forces you to separate them more clearly. It is not superfluous ceremony — it helps the JSON boundary remain explicit and debuggable.
+> **Takeaway**: Map `fs + JSON.parse` đến `os.ReadFile + json.Unmarshal` , nhưng giữ nguyên các giá trị mặc định và bất biến trong bước tạo đối tượng thực tế. Đừng nhét chúng vào DTO thô.
 
-> **Takeaway**: Map `fs + JSON.parse` to `os.ReadFile + json.Unmarshal`, but keep defaults and invariants in the actual object creation step. Do not stuff them into the raw DTO.
+Trường hợp cơ bản là ổn. Nhưng hầu hết các nhóm không chuyển đổi ngôn ngữ chỉ để đọc tệp JSON; Họ chuyển đổi khi các yêu cầu phân chia, hết thời gian chờ và hủy bắt đầu gây ảnh hưởng. Đó là lúc tập bản đồ phải thay đổi cú pháp.
 
-Basic case is fine. But most teams don't switch languages ​​just to read JSON files; They switch when requests fan-out, timeouts, and cancellations start to hurt. That's when the atlas had to change from syntax.
+### Ví dụ 2: Trung cấp — `Promise.all` nên được dịch theo vòng đời chứ không phải theo hình thức.
 
-### Example 2: Intermediate — `Promise.all` should be translated according to lifecycle, not form.
+> **Mục tiêu**: Map yêu cầu phân xuất bằng cách sử dụng `Promise.all` đến Go theo cách duy trì thời gian chờ và hủy toàn cầu.
+> **Cách tiếp cận**: Sử dụng `fetch` + `AbortController` trong TS, sau đó `errgroup + context` trong Go .
+> **Ví dụ**: Gọi song song ba điểm cuối `profile` , `billing` , `invoices` .
+> **Độ phức tạp**: O(k) theo số lượng hạ lưu; chi phí thực sự nằm ở I/O mạng.
 
-> **Goal**: Map a fan-out request using `Promise.all` to Go in a way that preserves global timeouts and cancellation.
-> **Approach**: Use `fetch` + `AbortController` in TS, then `errgroup + context` in Go.
-> **Example**: Call three endpoints `profile`, `billing`, `invoices` in parallel.
-> **Complexity**: O(k) by number of downstreams; the real cost lies in network I/O.
-
-TypeScript version with familiar lifecycle control:
-
-```typescript
+Phiên bản TypeScript với tính năng kiểm soát vòng đời quen thuộc:```typescript
 type Dashboard = {
   profile: unknown;
   billing: unknown;
@@ -266,11 +232,7 @@ async function loadDashboard(baseURL: string): Promise<Dashboard> {
     clearTimeout(timeout);
   }
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package dashboard
 
 import (
@@ -360,24 +322,20 @@ func LoadDashboard(ctx context.Context, baseURL string) (Dashboard, error) {
 		Invoices: invoices,
 	}, nil
 }
-```
+```> **Tại sao?** Ánh xạ hướng dẫn ban đầu `Promise` tới channel là một điểm khởi đầu tốt để hiểu các nguyên hàm của Go 's concurrency . Nhưng với phân xuất theo phạm vi yêu cầu hiện đại, `errgroup + context` là một bản dịch gần hơn với sản xuất: nếu một nhánh không thành công, bối cảnh được chia sẻ sẽ tự động hủy bỏ các nhánh tương tự.
 
-> **Why?** The original guide mapping `Promise` to channel is a good entry point for understanding Go's concurrency primitives. But with modern request-scoped fan-out, `errgroup + context` is a translation closer to production: if a branch fails, the shared context cancels siblings automatically.
+> **Takeaway**: Khi gặp `Promise.all` , đừng hỏi "[[E20]]] mỗi Promise thuộc về cái nào?". Hỏi "việc phân xuất này cần lỗi phân xuất, thời gian chờ và hủy ở đâu?".
 
-> **Takeaway**: When encountering `Promise.all`, do not ask "which channel does each Promise belong to?". Ask "where does this fan-out need error fan-in, timeout, and cancellation?".
+Sau khi yêu cầu phân xuất đã được thông qua, cú sốc tiếp theo thường đến từ các tập lệnh và CLI nhỏ. Nút đặt `process` , `fs` , `readline` , `stdout` rất gần nhau; Go chia chúng thành nhiều packages nhỏ hơn. Đó là.
 
-Once the fan-out request has passed, the next shock often comes from small scripts and CLIs. Node puts `process`, `fs`, `readline`, `stdout` very close together; Go spreads them out into many smaller packages. That's the.
+### Ví dụ 3: Nâng cao — các script dòng lệnh thường phải tách `process` thành nhiều Go packages nhỏ.
 
-### Example 3: Advanced — command line scripts often have to separate `process` into many small Go packages.
+> **Mục tiêu**: Chuyển một tiện ích đếm dòng nhật ký theo regex từ Node.js sang Go trong khi vẫn giữ luồng phát trực tuyến, đối số CLI và xử lý thiết bị xuất chuẩn/thiết bị xuất chuẩn rõ ràng.
+> **Cách tiếp cận**: TS sử dụng `process.argv` , `fs.createReadStream` , `readline` ; Go sử dụng `flag` , `os.Open` , `bufio.Scanner` , `regexp` .
+> **Ví dụ**: `errorcount -pattern 'WARN|ERROR' ./app.log` .
+> **Độ phức tạp**: O(n) theo số dòng; bộ nhớ ở gần O(1) do xử lý phát trực tuyến.
 
-> **Goal**: Port a utility that counts log lines by regex from Node.js to Go while keeping the streaming flow, CLI args, and stdout/stderr handling clear.
-> **Approach**: TS uses `process.argv`, `fs.createReadStream`, `readline`; Go uses `flag`, `os.Open`, `bufio.Scanner`, `regexp`.
-> **Example**: `errorcount -pattern 'WARN|ERROR' ./app.log`.
-> **Complexity**: O(n) by number of lines; memory stays close to O(1) because of streaming processing.
-
-TypeScript/Node versions usually start like this:
-
-```typescript
+Các phiên bản TypeScript/Node thường bắt đầu như thế này:```typescript
 import { createReadStream } from "node:fs";
 import * as readline from "node:readline";
 
@@ -409,11 +367,7 @@ void main().catch((err) => {
   console.error(err.message);
   process.exit(1);
 });
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -461,63 +415,61 @@ func main() {
 
 	fmt.Fprintln(os.Stdout, count)
 }
-```
+```> **Tại sao?** Đây là lúc tập bản đồ đặc biệt hữu ích: trong Node, nhiều khả năng nằm xung quanh `process` , `fs` và `readline` . Trong Go , không có "một đối tượng trung tâm" tương đương. Đổi lại, mỗi ý định có package rõ ràng hơn, nhỏ hơn.
 
-> **Why?** This is where the atlas is especially useful: in Node, many capabilities reside around `process`, `fs`, and `readline`. In Go, there is no equivalent "one central object". In return, each intent has a clearer, smaller package.
+> **Takeaway**: Đừng tìm Go `process` . Chấp nhận rằng các mối quan tâm về CLI/ runtime được trải rộng trên nhiều packages nhỏ - đó là cách Go giữ cho mã ít huyền diệu hơn.
 
-> **Takeaway**: Do not look for a Go `process`. Accept that CLI/runtime concerns are spread across many small packages — that is how Go keeps code less magical.
+Biết nơi người nguyên thủy sống là một nửa câu chuyện. Nửa còn lại dễ mắc sai sót khi sử dụng tập bản đồ làm từ điển song ngữ thay vì làm công cụ điều hướng.
 
-Knowing where primitives live is half the story. The other half are easy slip-ups when using an atlas as a bilingual dictionary instead of as a navigational tool.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Using the atlas as a line-by-line translation table and mapping `Promise` to raw channels | Code looks "right Go" on the surface but lacks timeouts, cancellation, and error fan-in | Translate according to lifecycle: request fan-out → `errgroup + context`, low-level signaling uses channel |
-| 2 | 🔴 Fatal | Trying to find a Go object equivalent to `process` or `fs` | Stuck feeling Go is disjointed, creating meaningless helper packages to imitate Node | Separate by intent: file → `os/io/bufio`, CLI → `flag`, output → `fmt`/`os.Stderr` |
-| 3 | 🟡 Common | Porting `class` to struct and exporting all fields for "ease of use" | Loss of invariant, API surface bloat, mutation is difficult to control | Keep fields unexported when needed, use explicit constructors and methods |
-| 4 | 🔵 Minor | Using the atlas while skipping the mental model and data modeling lessons | Translated the syntax but still made wrong design decisions | Use the atlas for quick navigation, then return to the corresponding core article for depth |
+| 1 | 🔴 Gây tử vong | Sử dụng tập bản đồ làm bảng dịch từng dòng và ánh xạ `Promise` sang thô channels | Nhìn bề ngoài, mã có vẻ "đúng Go " nhưng thiếu thời gian chờ, hủy và lỗi quạt vào | Dịch theo vòng đời: yêu cầu phân ra → `errgroup + context` , tín hiệu mức thấp sử dụng channel |
+| 2 | 🔴 Gây tử vong | Đang cố gắng tìm một đối tượng Go tương đương với `process` hoặc `fs` | Cảm giác bế tắc Go rời rạc, tạo ra trợ giúp vô nghĩa packages để bắt chước Node | Phân tách theo mục đích: file → `os/io/bufio` , CLI → `flag` , đầu ra → `fmt` / `os.Stderr` |
+| 3 | 🟡 Chung | Chuyển `class` sang struct và xuất tất cả các trường để "dễ sử dụng" | Mất tính bất biến, API phình bề mặt, đột biến khó kiểm soát | Giữ các trường không được xuất khi cần, sử dụng các hàm tạo và phương thức rõ ràng |
+| 4 | 🔵 Nhỏ | Sử dụng tập bản đồ trong khi bỏ qua các bài học về mô hình tư duy và mô hình dữ liệu | Dịch cú pháp nhưng vẫn đưa ra quyết định thiết kế sai lầm | Sử dụng tập bản đồ để điều hướng nhanh, sau đó quay lại bài viết cốt lõi tương ứng để tìm hiểu chuyên sâu |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| Golang for Node.js Developers | Community | https://github.com/miguelmota/golang-for-nodejs-developers?tab=readme-ov-file#examples | The original guide serves as the basis for this atlas; The current article chooses mappings |
-| Go Standard Library | Official | https://pkg.go.dev/std | Standard index to look up the destination package instead of guessing by namespace like Node |
-| A Tour of Go | Official | https://go.dev/tour/ | Needed if you are still unfamiliar with Go's basic syntax and package model |
-| Effective Go | Official | https://go.dev/doc/effective_go | Source of truth for idiomatic Go after knowing the syntax |
+| Golang dành cho nhà phát triển Node.js | Cộng đồng | https://github.com/miguelmota/golang-for-nodejs-developers?tab=readme-ov-file#examples | Hướng dẫn ban đầu làm cơ sở cho tập bản đồ này; Bài viết hiện tại chọn ánh xạ |
+| Go Thư viện chuẩn | Chính thức | https://pkg.go.dev/std | Chỉ mục chuẩn để tra cứu đích package thay vì đoán theo namespace như Node |
+| Chuyến tham quan Go | Chính thức | https://go.dev/tour/ | Cần thiết nếu bạn vẫn chưa quen với cú pháp cơ bản của Go và mô hình package |
+| Có hiệu lực Go | Chính thức | https://go.dev/doc/effect_go | Nguồn gốc của thành ngữ Go sau khi biết cú pháp |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **Translation Atlas** is clear. The extension branches below help you make this atlas a natural Go writing habit instead of translating from TypeScript.
+Cốt lõi của **Bản đồ dịch** rất rõ ràng. Các nhánh mở rộng bên dưới giúp bạn biến tập bản đồ này thành thói quen viết Go tự nhiên thay vì dịch từ TypeScript.
 
-It ends with knowing when to leave the atlas and return to the core to make better decisions.
+Nó kết thúc bằng việc biết khi nào nên rời khỏi tập bản đồ và quay trở lại cốt lõi để đưa ra quyết định tốt hơn.
 
-| Extension | When | Rationale | Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Mental Model & Runtime | When you keep asking "why doesn't Go have X like Node?" | The root problem is usually the mental model, not a missing API | [→ 01-mental-model-runtime](./01-mental-model-runtime.md) |
-| Types & Data Modeling | When porting DTOs, unions, optionals, and classes starts to hurt | Atlas shows the direction; this article locks data boundaries and invariants | [→ 02-types-data-modeling](./02-types-data-modeling.md) |
-| Errors, Concurrency, Context | When translation hits `Promise.all`, timeout, abort, or retry | Where syntax mapping must give way to lifecycle control | [→ 03-errors-concurrency-context](./03-errors-concurrency-context.md) |
-| Project Layout, Tooling, Testing | When the team asks "If Go lacks a framework/tooling, how can we ship?" | Connects the atlas with the real build-test-ship workflow | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
-| Promise & Async | When you need deeper recipes for `Promise.all`, `Promise.race`, `AbortController` | Pattern-by-pattern mapping at the helper level | [→ 04-promise-async](../helper/04-promise-async.md) |
-| Class → Struct | When the codebase is too heavy in class hierarchy | Helps cut one-to-one OOP port habits | [→ 12-class-struct](../helper/12-class-struct.md) |
-| Helper — TS/JS → Go Utilities | When you need multiple recipe-level mappings in a row | Use the helper cluster as a quick lookup, while the atlas serves as navigator | [→ Helper README](../helper/README.md) |
+| Mô hình tinh thần & Runtime | Khi bạn cứ hỏi "tại sao Go không có X như Node?" | Vấn đề gốc thường là mô hình tư duy chứ không phải thiếu API | [→ 01-mental-model-runtime](./01-mental-model-runtime.md) |
+| Các loại & mô hình hóa dữ liệu | Khi chuyển DTO, công đoàn, tùy chọn và lớp học bắt đầu bị ảnh hưởng | Atlas chỉ hướng; bài viết này khóa ranh giới dữ liệu và bất biến | [→ 02-types-data-modeling](./02-types-data-modeling.md) |
+| Lỗi, Concurrency , Ngữ cảnh | Khi bản dịch chạm vào `Promise.all` , hết thời gian chờ, hủy bỏ hoặc thử lại | Trường hợp ánh xạ cú pháp phải nhường chỗ cho việc kiểm soát vòng đời | [→ 03-errors-concurrency-context](./03-errors-concurrency-context.md) |
+| Bố cục dự án, Dụng cụ, Kiểm tra | Khi nhóm hỏi "Nếu Go thiếu khung/công cụ, chúng tôi có thể vận chuyển bằng cách nào?" | Kết nối tập bản đồ với quy trình đóng tàu thử nghiệm thực tế | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
+| Promise & Async | Khi bạn cần công thức nấu ăn sâu hơn cho `Promise.all` , `Promise.race` , `AbortController` | Ánh xạ từng mẫu ở cấp độ trợ giúp | [→ 04-promise-async](../helper/04-promise-async.md) |
+| Lớp → Struct | Khi codebase quá nặng về phân cấp lớp | Giúp cắt giảm thói quen sử dụng cổng OOP một-một | [→ 12-class-struct](../helper/12-class-struct.md) |
+| Người trợ giúp — TS/JS → Go Tiện ích | Khi bạn cần nhiều ánh xạ cấp công thức liên tiếp | Sử dụng cụm trợ giúp để tra cứu nhanh, trong khi tập bản đồ đóng vai trò là công cụ điều hướng | [→ Helper README](../helper/README.md) |
 
-## 7. QUICK REF
+## 7. THAM KHẢO NHANH
 
-The table below is the reward at the end of the lesson: used to rescan in 20-30 seconds without having to reread the entire arc above.
+Bảng bên dưới là phần thưởng cuối bài: dùng để scan lại trong 20-30 giây mà không cần phải đọc lại toàn bộ cung trên.
 
-| # | TS/Node idiom | Go equivalent | Note |
+| # | Thành ngữ TS/Node | Go tương đương | Lưu ý |
 | --- | --- | --- | --- |
-| 1 | `console.log`, `console.error` | `fmt.Println`, `fmt.Fprintf(os.Stderr, ...)`, `log.Println` | `fmt` for direct output; `log` when timestamp/prefix is needed |
-| 2 | `JSON.parse`, `JSON.stringify` | `json.Unmarshal`, `json.Marshal`, `json.NewDecoder` | Boundary JSON almost always goes through `encoding/json` |
-| 3 | `Buffer` | `[]byte`, `bytes.Buffer`, `encoding/hex`, `encoding/binary` | `[]byte` is the most important primitive, not the object wrapper |
-| 4 | `fs.readFileSync`, `createReadStream` | `os.ReadFile`, `os.Open`, `bufio.Scanner`, `io.Reader` | Files/streams are split according to intent instead of being grouped into one namespace |
-| 5 | `Promise.all` | `errgroup.WithContext` | Request fan-out should think in terms of lifecycle instead of raw channel |
-| 6 | `AbortController` | `context.WithCancel`, `context.WithTimeout` | Cancellation is an explicit contract in Go |
-| 7 | `class`, `constructor`, `this` | `struct`, `NewXxx`, methods, small interfaces | Start from composition, do not simulate inheritance |
-| 8 | `process.argv`, `process.env` | `flag`, `os.Args`, `os.Getenv` | CLI args and env are separate, not passing through a common object |
-| 9 | `EventEmitter` | explicit interfaces, callbacks, sometimes channel | Channel is not a one-to-one copy of the emitter |
-| 10 | `npm install`, `package.json scripts`, `jest`, `bench` | `go mod`, `go test`, `go test -bench`, `go doc` | Collect multiple workflows into a more standard toolchain |
+| 1 | `console.log` , `console.error` | `fmt.Println` , `fmt.Fprintf(os.Stderr, ...)` , `log.Println` | `fmt` cho đầu ra trực tiếp; `log` khi cần dấu thời gian/tiền tố |
+| 2 | `JSON.parse` , `JSON.stringify` | `json.Unmarshal` , `json.Marshal` , `json.NewDecoder` | JSON ranh giới hầu như luôn đi qua `encoding/json` |
+| 3 | `Buffer` | `[]byte` , `bytes.Buffer` , `encoding/hex` , `encoding/binary` | `[]byte` là nguyên thủy quan trọng nhất, không phải là trình bao bọc đối tượng |
+| 4 | `fs.readFileSync` , `createReadStream` | `os.ReadFile` , `os.Open` , `bufio.Scanner` , `io.Reader` | Các tệp/luồng được phân chia theo mục đích thay vì được nhóm thành một không gian tên |
+| 5 | `Promise.all` | `errgroup.WithContext` | Yêu cầu phân xuất riêng nên xem xét theo vòng đời thay vì thô channel |
+| 6 | `AbortController` | `context.WithCancel` , `context.WithTimeout` | Việc hủy bỏ là một hợp đồng rõ ràng trong Go |
+| 7 | `class` , `constructor` , `this` | `struct` , `NewXxx` , các phương thức, nhỏ interfaces | Bắt đầu từ composition , không mô phỏng inheritance |
+| 8 | `process.argv` , `process.env` | `flag` , `os.Args` , `os.Getenv` | CLI args và env là riêng biệt, không đi qua một đối tượng chung |
+| 9 | `EventEmitter` | rõ ràng interfaces , callbacks , đôi khi channel | Channel không phải là bản sao một-một của bộ phát |
+| 10 | `npm install` , `package.json scripts` , `jest` , `bench` | `go mod` , `go test` , `go test -bench` , `go doc` | Thu thập nhiều quy trình công việc thành một chuỗi công cụ tiêu chuẩn hơn |
 
-**Navigation**: [← Previous](./06-migration-playbook.md) · [→ Next](./README.md)
+**Điều hướng**: [← Previous](./06-migration-playbook.md) · [→ Next](./README.md)

@@ -1,32 +1,25 @@
-<!-- tags: golang -->
-# 🛡️ Middleware — Logger, Recovery, Auth, CORS, Custom
+<!-- tags: golang --> # 🛡️ Middleware — Logger, Recovery, Auth, CORS, Custom
 
-> **Library**: Chain middleware functions that run before/after every handler — logging, recovery, auth, CORS, request ID.
+> **Thư viện**: Chuỗi các hàm phần mềm trung gian chạy trước/sau mỗi trình xử lý — ghi nhật ký, khôi phục, xác thực, CORS, ID yêu cầu.
 
-📅 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-A Gin middleware is a `gin.HandlerFunc` that runs in a chain before (and optionally after) the final handler. `c.Next()` advances to the next middleware; `c.Abort()` stops the chain. Middleware can be applied globally, per group, or per route.
+Phần mềm trung gian Gin là `gin.HandlerFunc` chạy trong một chuỗi trước (và tùy chọn sau) trình xử lý cuối cùng. `c.Next()` chuyển sang phần mềm trung gian tiếp theo; `c.Abort()` dừng chuỗi. Middleware có thể được áp dụng trên toàn cầu, theo nhóm hoặc theo tuyến.
 
-| Scope      | Application    | Use case                     |
+| Phạm vi | Ứng dụng | Trường hợp sử dụng |
 | ---------- | -------------- | ---------------------------- |
-| **Global** | `r.Use(mw)`    | Logger, recovery, CORS       |
-| **Group**  | `g.Use(mw)`    | Auth for `/api/v1` routes    |
-| **Route**  | `r.GET(p, mw, h)` | Rate limit on a single endpoint |
+| **Toàn cầu** | `r.Use(mw)` | Trình ghi nhật ký, phục hồi, CORS |
+| **Nhóm** | `g.Use(mw)` | Xác thực cho các tuyến đường `/api/v1` |
+| **Tuyến đường** | `r.GET(p, mw, h)` | Giới hạn tốc độ trên một điểm cuối duy nhất |
 
-### Key Invariants
+### Bất biến chính
 
-- **Call `c.Next()` to continue the chain.** Without it, downstream handlers never execute.
-- **Call `return` after `c.Abort*()`.** Without `return`, the current middleware continues executing after the abort.
+- **Gọi `c.Next()` để tiếp tục chuỗi.** Nếu không có nó, trình xử lý xuôi dòng sẽ không bao giờ thực thi.
+- **Gọi `return` sau `c.Abort*()` .** Nếu không có `return` , phần mềm trung gian hiện tại sẽ tiếp tục thực thi sau khi hủy bỏ.
 
-## 2. VISUAL
-
-![Middleware chain execution — global, group, and route scopes with c.Next() and c.Abort() paths](./images/01-middleware-chain.png)
-
-*Figure: Middleware chain — Logger and RequestID are global (r.Use), Auth is group-scoped (g.Use). Happy path flows via c.Next(); abort path short-circuits with c.AbortWithStatusJSON(401).*
-
-```mermaid
+## 2. HÌNH ẢNH ![Middleware chain execution — global, group, and route scopes with c.Next() and c.Abort() paths](./images/01-middleware-chain.png) *Hình: Chuỗi phần mềm trung gian — Trình ghi nhật ký và ID yêu cầu là toàn cầu (r.Use), Auth nằm trong phạm vi nhóm (g.Use). Con đường hạnh phúc chảy qua c.Next(); hủy bỏ đường dẫn ngắn mạch với c.AbortWithStatusJSON(401).*```mermaid
 flowchart LR
     A["Request"] --> B["Logger MW"]
     B --> C["RequestID MW"]
@@ -36,32 +29,20 @@ flowchart LR
     D --> C
     C --> B
     B -->|"log status"| F["Response"]
-```
-
-*Figure: Middleware chain — Logger → RequestID → Auth → Handler → (post-handler logging on the way back up).*
-
-```text
+```*Hình: Chuỗi phần mềm trung gian — Trình ghi nhật ký → ID yêu cầu → Xác thực → Trình xử lý → (ghi nhật ký trình xử lý sau trong quá trình sao lưu).*```text
 Before c.Next() → pre-processing (set headers, validate, start timer)
 c.Next()         → runs next middleware / handler
 After c.Next()   → post-processing (log status, record duration)
-```
+```*Hình: Luồng trước/sau — `c.Next()` chạy xuôi dòng, sau đó điều khiển quay trở lại để xử lý hậu kỳ (thời gian, ghi nhật ký trạng thái).*
 
-*Figure: Before/after flow — `c.Next()` runs downstream, then control returns for post-processing (timing, status logging).*
-
-### Execution Order
-
-```text
+### Lệnh thi hành```text
 Request arrives
   → Logger (before)  → RequestID (before)  → Handler executes
   ← Logger (after: logs status + duration) ← RequestID (after)
 Response sent
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Built-in Chains
-
-```go
+### Ví dụ 1: Cơ bản — Chuỗi tích hợp```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Two custom middleware: RequestLogger (before/after via c.Next)
     // and RequestID (reads or generates X-Request-Id header).
@@ -125,11 +106,7 @@ Response sent
     func generateID() string {
         return fmt.Sprintf("%d", time.Now().UnixNano())
     }
-```
-
-### Example 2: Intermediate — JWT and CORS Protection
-
-```go
+```### Ví dụ 2: Trung cấp — Bảo vệ JWT và CORS```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // JWTAuth: aborts with 401 if Authorization header is missing.
     // CORSMiddleware: sets CORS headers; handles OPTIONS preflight.
@@ -165,11 +142,7 @@ Response sent
             c.Next()
         }
     }
-```
-
-### Example 3: Advanced — Custom Recovery
-
-```go
+```### Ví dụ 3: Nâng cao — Khôi phục tùy chỉnh```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CustomRecovery replaces gin.Recovery() to return JSON error
     // bodies instead of default text/plain panic output.
@@ -184,30 +157,28 @@ Response sent
             })
         })
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Calling `c.Abort()` without `return` in the same function | Code after Abort still executes; may write conflicting responses | Always write `c.AbortWithStatusJSON(...); return` |
-| 2 | 🔴 Fatal | Placing Recovery middleware after Logger | Panics in Logger crash the process without recovery | Recovery must be the first middleware in the chain |
+| 1 | 🔴 Gây tử vong | Gọi `c.Abort()` không có `return` trong cùng chức năng | Mã sau khi hủy bỏ vẫn thực thi; có thể viết những phản hồi trái ngược nhau | Luôn viết `c.AbortWithStatusJSON(...); return` |
+| 2 | 🔴 Gây tử vong | Đặt phần mềm trung gian Recovery sau Logger | Sự hoảng loạn trong Logger làm hỏng quá trình mà không thể khôi phục | Recovery phải là phần mềm trung gian đầu tiên trong chuỗi |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Custom Middleware | [gin-gonic.com/docs/examples/custom-middleware](https://gin-gonic.com/docs/examples/custom-middleware/) |
+| Phần mềm trung gian tùy chỉnh | [gin-gonic.com/docs/examples/custom-middleware](https://gin-gonic.com/docs/examples/custom-middleware/) |
 | Gin CORS | [github.com/gin-contrib/cors](https://github.com/gin-contrib/cors) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Guards & Interceptors | When you need role-based access or structured error handling | Builds on middleware to implement NestJS-style Guards/Interceptors/Filters | [./02-guards-interceptors.md](./02-guards-interceptors.md) |
+| Vệ binh & Đánh chặn | Khi bạn cần quyền truy cập dựa trên vai trò hoặc xử lý lỗi có cấu trúc | Xây dựng trên phần mềm trung gian để triển khai Bộ bảo vệ/Bộ chặn/Bộ lọc kiểu NestJS | [./02-guards-interceptors.md](./02-guards-interceptors.md) |

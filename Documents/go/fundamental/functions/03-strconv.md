@@ -1,71 +1,58 @@
-<!-- tags: golang -->
-# 🔄 Strconv — Type Conversion & Parsing
+<!-- tags: golang --> # 🔄 Strconv — Chuyển đổi kiểu & phân tích cú pháp
 
-> Package `strconv` converts between strings and fundamental data types: int, float, bool. This is the most essential parsing and formatting toolkit in Go.
+> Package `strconv` chuyển đổi giữa các chuỗi và các kiểu dữ liệu cơ bản: int, float, bool. Đây là bộ công cụ phân tích cú pháp và định dạng cần thiết nhất trong Go .
 
-📅 Created: 2026-03-23 · 🔄 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Đã tạo: 23-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 14 phút đọc
 
-| Aspect        | Detail                                        |
+| Khía cạnh | Chi tiết |
 | ------------- | --------------------------------------------- |
-| **Package**   | `strconv`                                     |
-| **Use case**  | Parse string → number, format number → string |
-| **Go stdlib** | `strconv`, `fmt` (alternative)                |
-| **Key rule**  | Always handle errors encountered during parsing |
+| ** Package ** | `strconv` |
+| **Trường hợp sử dụng** | Phân tích chuỗi → số, format số → chuỗi |
+| ** Go stdlib** | `strconv` , `fmt` (thay thế) |
+| **Quy tắc chính** | Luôn xử lý các lỗi gặp phải trong quá trình phân tích cú pháp |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA `strconv.Atoi("42")` trả về `(42, nil)` . `strconv.Atoi("42.5")` trả về `(0, error)` . `strconv.Atoi("")` cũng trả về `(0, error)` . Ba kết quả riêng biệt cho ba đầu vào có vẻ hợp lệ — và nếu bạn bỏ qua kết quả trả về `error` thì giá trị 0 `0` sẽ trở thành một vectơ im lặng dẫn đến hỏng dữ liệu.
 
-`strconv.Atoi("42")` returns `(42, nil)`. `strconv.Atoi("42.5")` returns `(0, error)`. `strconv.Atoi("")` also returns `(0, error)`. Three distinct outcomes for three seemingly valid inputs — and if you ignore the `error` return, the zero value `0` becomes a silent vector for data corruption.
-
-> *Every piece of data arriving over HTTP is a string. URL parameters: `?page=2&limit=50`. Query strings: `sort=desc`. Form fields: `price=99.9`. Configuration files: `timeout=30`. Even environment variables: `PORT=8080`.*
+> *Mỗi phần dữ liệu đến qua HTTP đều là một chuỗi. Tham số URL: `?page=2&limit=50` . Chuỗi truy vấn: `sort=desc` . Các trường biểu mẫu: `price=99.9` . Tệp cấu hình: `timeout=30` . Các biến môi trường chẵn: `PORT=8080` .*
 >
-> *To use these values in business logic, you must convert them safely: `page` to `int`, `price` to `float64`, `debug` to `bool`. The `strconv` package handles this — parsing string inputs and formatting data back into strings. Always check errors during parsing, because user input can be `"hello"` when you expect `"42"`.*
+> *Để sử dụng các giá trị này trong logic nghiệp vụ, bạn phải chuyển đổi chúng một cách an toàn: `page` thành `int` , `price` thành `float64` , `debug` thành `bool` . `strconv` package xử lý việc này - phân tích cú pháp đầu vào chuỗi và định dạng lại dữ liệu thành chuỗi. Luôn kiểm tra lỗi trong quá trình phân tích cú pháp, vì đầu vào của người dùng có thể là `"hello"` khi bạn mong đợi `"42"` .*
 
-### Core Function Families
+### Nhóm chức năng cốt lõi
 
-| Family      | Parse (string → type) | Format (type → string)     |
+| Gia đình | Phân tích cú pháp (chuỗi → loại) | Format (loại → chuỗi) |
 | ----------- | --------------------- | -------------------------- |
-| **Integer** | `Atoi`, `ParseInt`    | `Itoa`, `FormatInt`        |
-| **Float**   | `ParseFloat`          | `FormatFloat`              |
-| **Bool**    | `ParseBool`           | `FormatBool`               |
-| **Quote**   | `Unquote`             | `Quote`, `QuoteRune`       |
-| **Append**  | —                     | `AppendInt`, `AppendFloat` |
+| **Số nguyên** | `Atoi` , `ParseInt` | `Itoa` , `FormatInt` |
+| **Nổi** | `ParseFloat` | `FormatFloat` |
+| **Bôn** | `ParseBool` | `FormatBool` |
+| **Trích dẫn** | `Unquote` | `Quote` , `QuoteRune` |
+| **Nối** | — | `AppendInt` , `AppendFloat` |
 
-### Parse vs Format Naming Convention
-
-```text
+### Quy ước đặt tên và phân tích cú pháp Format```text
 Parse___()   → string to type  (may fail → returns an error)
 Format___()  → type to string  (cannot fail)
 Atoi()       → "ASCII to Integer" (idiomatic shortcut for ParseInt)
 Itoa()       → "Integer to ASCII" (idiomatic shortcut for FormatInt)
-```
+```---
 
----
+Các hàm chuyển đổi này trông đơn giản — nhưng tồn tại các bẫy thầm lặng: gọi `Atoi` và bỏ qua lỗi sẽ đưa ra giá trị 0 vô hình và độ chính xác của float có thể giảm trong format /các chuyến đi khứ hồi. Những cái bẫy đó được giải nén trong những cái bẫy.
 
-These conversion functions look simple — but silent traps exist: calling `Atoi` and ignoring the error gives invisible zero-value injection, and float precision can degrade during format/parse round-trips. Those traps are unpacked in PITFALLS.
+## 2. HÌNH ẢNH
 
-## 2. VISUAL
+Lỗi phổ biến nhất với `strconv` là truy cập chức năng trợ giúp quen thuộc theo tên trước khi khóa hướng truyền dữ liệu. Hình ảnh bên dưới buộc phải trả lời trước câu hỏi chính xác đó: văn bản có nhập vào hệ thống loại hay giá trị đã nhập sẽ xuất hiện trên dây dưới dạng chuỗi? ![Strconv decision map](./images/03-strconv-decision-map.png) *Hình: Quyết định `strconv` map chia bốn hướng hoạt động chính: phân tích cú pháp, format , nối thêm các đường dẫn nóng và chế độ lỗi im lặng được kích hoạt nếu lỗi hoặc kiểm tra độ chính xác bị bỏ qua.*
 
-The most common mistake with `strconv` is reaching for a familiar helper function by name before locking down the direction of the data transfer. The visual below forces that exact question upfront: is text entering the type system, or is a typed value exiting onto the wire as a string?
+Khi ranh giới định hướng được thiết lập, các khối mã bên dưới sẽ đọc tự nhiên hơn nhiều. Bạn không còn xem `Atoi` , `ParseInt` và `FormatFloat` dưới dạng các API bị ngắt kết nối mà là các cổng riêng biệt hoạt động trên cùng một ranh giới chuyển văn bản thành loại.
 
-![Strconv decision map](./images/03-strconv-decision-map.png)
+## 3. MÃ
 
-*Figure: The `strconv` decision map splits the four primary operational directions: parse, format, append for hot paths, and the silent failure modes triggered if errors or precision checks are ignored.*
+Với ** Strconv — Chuyển đổi loại và phân tích cú pháp**, chúng tôi đã thiết lập map cho cơ chế phân tích cú pháp và format . Bây giờ, hãy xem mã để xem cách chọn `Atoi` trên `ParseInt` hoặc `FormatFloat` trên `Sprintf` , ảnh hưởng trực tiếp đến độ chính xác của phép tính và xử lý lỗi.
 
-Once the directional boundary is established, the code blocks below read much more naturally. You no longer view `Atoi`, `ParseInt`, and `FormatFloat` as disconnected APIs, but as distinct gateways operating on the exact same text-to-type boundary.
+### Ví dụ 1: Cơ bản — Atoi, Itoa & ParseBool
 
-## 3. CODE
+Chuỗi truy vấn HTTP là `string` s: `?page=3&limit=50&active=true` . Bạn phải chuyển đổi chúng thành `int` và `bool` cho truy vấn database . `fmt.Sscanf` ? Quá chậm và thiếu an toàn về loại. `strconv.Atoi` và `strconv.ParseBool` là tiêu chuẩn: nhanh và chúng trả về lỗi khi đầu vào không hợp lệ.
 
-With **Strconv — Type Conversion & Parsing**, we established the map for parse and format mechanics. Now, let's step down into the code to see how choosing `Atoi` over `ParseInt`, or `FormatFloat` over `Sprintf`, directly influences calculation precision and error handling.
-
-### Example 1: Basic — Atoi, Itoa & ParseBool
-
-HTTP query strings are `string`s: `?page=3&limit=50&active=true`. You must convert these to `int` and `bool` for database queries. `fmt.Sscanf`? Too slow and lacks type safety. `strconv.Atoi` and `strconv.ParseBool` are the standard: fast and they return errors on bad input.
-
-Input: `strconv.Atoi("42")` · Output: `(42, nil)` · `strconv.Atoi("abc")` · Output: `(0, error)`
-
-```go
+Đầu vào: `strconv.Atoi("42")` · Đầu ra: `(42, nil)` · `strconv.Atoi("abc")` · Đầu ra: `(0, error)````go
 package main
 
 import (
@@ -109,24 +96,18 @@ func main() {
 	fmt.Println(strconv.FormatBool(true))  // "true"
 	fmt.Println(strconv.FormatBool(false)) // "false"
 }
-```
+```> **Tại sao `Atoi` có thể tràn trên hệ thống 32-bit?**
+> `Atoi` trả về `int` — kích thước của nó phụ thuộc vào kiến trúc nền tảng (32-bit so với 64-bit). Trên thiết bị 32 bit, đầu vào vượt quá phạm vi `int32` → lỗi. Đối với các ranh giới quan trọng, hãy sử dụng `ParseInt` với kích thước bit rõ ràng.
 
-> **Why can `Atoi` overflow on 32-bit systems?**
-> `Atoi` returns `int` — its size depends on platform architecture (32-bit vs 64-bit). On a 32-bit device, input exceeding `int32` range → error. For critical boundaries, use `ParseInt` with explicit bit size.
+> **Takeaway**: Sử dụng `Atoi` / `Itoa` để chuyển đổi đơn giản. `ParseBool` chấp nhận các biến thể ( `"1"` , `"t"` , `"true"` ) — thuận tiện cho việc phân tích cú pháp cấu hình. Luôn kiểm tra lỗi trả về.
 
-> **Takeaway**: Use `Atoi`/`Itoa` for simple conversions. `ParseBool` accepts variants (`"1"`, `"t"`, `"true"`) — convenient for config parsing. Always check returned errors.
+Chuyển đổi cơ bản là tiêu chuẩn. Tuy nhiên, việc kiểm soát các giới hạn độ chính xác khoa học thông qua `FormatFloat` , kết hợp với các chuyển đổi cơ sở riêng biệt, đòi hỏi sự hiểu biết cơ học sâu sắc hơn.
 
-Basic conversions are standard. However, controlling scientific precision limits via `FormatFloat`, combined with distinct base conversions, demands deeper mechanical understanding.
+### Ví dụ 2: Trung cấp — ParseInt, ParseFloat & FormatFloat
 
-### Example 2: Intermediate — ParseInt, ParseFloat & FormatFloat
+Tệp cấu hình cung cấp `timeout=30` , `rate=0.75` và `port=0x1F90` (thập lục phân). `Atoi` chỉ xử lý cơ sở 10. Bạn cần `ParseInt` với tham số cơ sở và `ParseFloat` với kích thước bit rõ ràng. `FormatFloat` kiểm soát độ chính xác: `'f'` (thập phân), `'e'` (khoa học), `'g'` (thu gọn) — trao quyền kiểm soát đến từng chữ số riêng lẻ.
 
-A configuration file provides `timeout=30`, `rate=0.75`, and `port=0x1F90` (hexadecimal). `Atoi` only handles base-10. You need `ParseInt` with a base parameter, and `ParseFloat` with explicit bit-size.
-
-`FormatFloat` controls precision: `'f'` (decimal), `'e'` (scientific), `'g'` (compact) — giving control down to individual digits.
-
-Input: `strconv.ParseInt("1F90", 16, 64)` · Output: `(8080, nil)`
-
-```go
+Đầu vào: `strconv.ParseInt("1F90", 16, 64)` · Đầu ra: `(8080, nil)````go
 package main
 
 import (
@@ -182,24 +163,22 @@ func main() {
 	fmt.Println(strconv.FormatFloat(3.14159, 'g', -1, 64))  // "3.14159"
 	fmt.Println(strconv.FormatFloat(100000.0, 'g', -1, 64)) // "100000"
 }
-```
+```> **Tại sao `FormatFloat` yêu cầu bốn tham số riêng biệt?**
+> Việc chuẩn hóa kiến trúc float cực kỳ phức tạp: `fmt` đảm bảo mục đích định dạng ('f' so với 'e'), `prec` khóa các ràng buộc phân rã số (-1 đảm bảo khả năng đọc an toàn tối thiểu) và `bitSize` thực thi làm tròn toán học nghiêm ngặt (các float 32 bit hoạt động hoàn toàn khác so với các lớp 64 bit). Luôn liên kết `ParseFloat` với các kiến ​​trúc 64-bit một cách phổ biến trừ khi xử lý được tối ưu hóa nhiều `float32` arrays .
 
-> **Why does `FormatFloat` require four distinct parameters?**
-> Standardizing float architectures is incredibly complex: `fmt` secures formatting intent ('f' vs 'e'), `prec` locks numeric decay constraints (-1 guaranteeing minimum safe readability), and `bitSize` enforces strict mathematical rounding (32-bit floats behave drastically differently than 64-bit layers). Always bind `ParseFloat` to 64-bit architectures universally unless processing heavily optimized `float32` arrays.
+> **Takeaway**: `ParseInt` với các tiền tố base=0 tự động phát hiện `0x` , `0o` , `0b` — hữu ích cho việc phân tích cú pháp cấu hình. `FormatFloat` với prec=-1 cho đầu ra duy nhất tối thiểu. Sử dụng `ParseUint` cho các giá trị không dấu.
 
-> **Takeaway**: `ParseInt` with base=0 auto-detects `0x`, `0o`, `0b` prefixes — useful for config parsing. `FormatFloat` with prec=-1 gives minimal unique output. Use `ParseUint` for unsigned values.
+Định dạng được bảo hiểm. Tiếp theo: phân tích cú pháp chuyên biệt, hoạt động byte thô và xử lý trích dẫn.
 
-Formatting is covered. Next: specialized parsing, raw byte operations, and quotation handling.
+### Ví dụ 3: Nâng cao - Trích dẫn, Nối thêm & Các mẫu trong thế giới thực
 
-### Example 3: Advanced — Quote, Append & Real-world Patterns
+Bạn đang xây dựng một công cụ ghi nhật ký JSON cần các chuỗi thoát an toàn chứa dấu ngoặc kép `"` , dòng mới `
+` và Unicode. `fmt.Sprintf("%q", s)` hoạt động nhưng chậm do chi phí phân tích cú pháp format . `strconv.Quote` nhanh hơn ~3 lần, dành riêng cho việc thoát chuỗi ASCII/Unicode.
 
-You are building a JSON logging engine that needs safely escaped strings containing quotes `"`, newlines `\n`, and Unicode. `fmt.Sprintf("%q", s)` works but is slow due to format parsing overhead. `strconv.Quote` is ~3x faster, dedicated to ASCII/Unicode string escaping.
+Các hàm `Append*` ( `AppendInt` , `AppendFloat` , `AppendBool` ) vẫn nhanh hơn — chúng nối trực tiếp vào `[]byte` slices mà không tạo các chuỗi tạm thời.
 
-The `Append*` functions (`AppendInt`, `AppendFloat`, `AppendBool`) are faster still — they append directly to `[]byte` slices without creating temporary strings.
-
-Input: `strconv.Quote("hello\nworld")` · Output: `"\"hello\\nworld\""`
-
-```go
+Đầu vào: `strconv.Quote("hello
+world")` · Đầu ra: `"\"hello\nworld\""````go
 package main
 
 import (
@@ -274,62 +253,56 @@ func main() {
 	fmt.Println(b.String())
 	// 1,"Alice",3.14,true
 }
-```
+```> **Tại sao nên sử dụng `AppendInt` thay vì `FormatInt` khi xây dựng bộ đệm `[]byte` ?**
+> `FormatInt` phân bổ một chuỗi trung gian, sau đó yêu cầu chuyển đổi thứ hai thành `[]byte` — hai phân bổ cho mỗi số trong đường dẫn nóng của bạn. `AppendInt` ghi trực tiếp vào byte hiện có slice , loại bỏ hoàn toàn chuỗi trung gian. Ưu tiên điều này bất cứ khi nào viết mã ghi nhật ký hoặc mã tuần tự hóa thông lượng cao.
 
-> **Why use `AppendInt` instead of `FormatInt` when building `[]byte` buffers?**
-> `FormatInt` allocates an intermediate string, which then requires a second conversion to `[]byte` — two allocations per number in your hot path. `AppendInt` writes directly into the existing byte slice, eliminating the intermediate string entirely. Prefer this whenever writing high-throughput logging or serialization code.
-
-> **Takeaway**: Use `Quote`/`Unquote` wherever escape handling is needed. Favor `AppendXxx` in high-performance pipelines. Real-world use cases: config parsing, CSV building, and HTTP query string construction.
+> **Takeaway**: Sử dụng `Quote` / `Unquote` bất cứ khi nào cần xử lý thoát. Ưu tiên `AppendXxx` trong các đường ống hiệu suất cao. Các trường hợp sử dụng trong thế giới thực: phân tích cú pháp cấu hình, xây dựng CSV và xây dựng chuỗi truy vấn HTTP.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The mechanics of **Strconv** are clear. What remains is recognizing code that looks correct but hides silent runtime bugs.
+Cơ chế của ** Strconv ** rất rõ ràng. Những gì còn lại là nhận dạng mã có vẻ chính xác nhưng lại ẩn các lỗi runtime im lặng.
 
-| # | Severity | Bug | Consequence | Fix |
-|---|----------|-----|-------------|-----|
-| 1 | 🔴 Fatal | Ignoring error returns from parsing functions | Silent zero-value injection or panics | Always check `err != nil` |
-| 2 | 🔴 Fatal | `Atoi` silent overflow on 32-bit platforms | Incorrect numeric values without error | Use `ParseInt` with explicit `bitSize` |
-| 3 | 🟡 Common | Using `fmt.Sprintf` instead of `strconv` for number conversion | Up to 5x slower processing | Prefer `strconv.Itoa` or `FormatFloat` |
-| 4 | 🔵 Minor | Misunderstanding `-1` precision in `FormatFloat` | Correct output but with trailing digits | `-1` means "minimum digits to represent the value uniquely" |
-| 5 | 🔵 Minor | `ParseFloat` accepts `NaN` and `Inf` as valid inputs | Logic errors if not explicitly checked | Validate with `math.IsNaN()` / `math.IsInf()` |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|------|-------------|------|
+| 1 | 🔴 Gây tử vong | Bỏ qua lỗi trả về từ các hàm phân tích cú pháp | Im lặng tiêm giá trị 0 hoặc hoảng loạn | Luôn kiểm tra `err != nil` |
+| 2 | 🔴 Gây tử vong | `Atoi` tràn im lặng trên nền tảng 32 bit | Giá trị số không chính xác mà không có lỗi | Sử dụng `ParseInt` với `bitSize` |
+| 3 | 🟡 Chung | Sử dụng `fmt.Sprintf` thay vì `strconv` để chuyển đổi số | Xử lý chậm hơn tới 5 lần | Thích `strconv.Itoa` hoặc `FormatFloat` |
+| 4 | 🔵 Nhỏ | Hiểu sai độ chính xác của `-1` trong `FormatFloat` | Đầu ra đúng nhưng có chữ số ở cuối | `-1` có nghĩa là "chữ số tối thiểu để biểu thị giá trị duy nhất" |
+| 5 | 🔵 Nhỏ | `ParseFloat` chấp nhận `NaN` và `Inf` làm đầu vào hợp lệ | Lỗi logic nếu không được kiểm tra rõ ràng | Xác thực bằng `math.IsNaN()` / `math.IsInf()` |
 
-### 🔴 Pitfall #1 — Ignoring error checks creates silent zero-value bombs
+### 🔴 Cạm bẫy số 1 - Bỏ qua việc kiểm tra lỗi sẽ tạo ra những quả bom có giá trị bằng 0 thầm lặng `strconv.Atoi("hello")` trả về `(0, error)` . Nếu mã của bạn chạy `port, _ := strconv.Atoi(os.Getenv("PORT"))` và biến môi trường bị thiếu hoặc không hợp lệ — giá trị cổng của bạn là `0` . Liên kết máy chủ với cổng `0` yêu cầu HĐH chọn một cổng trống ngẫu nhiên → tất cả các dịch vụ hạ nguồn đều mất kết nối. Máy chủ khởi động thành công nhưng không thể truy cập được và không có gì được ghi lại.
 
-`strconv.Atoi("hello")` returns `(0, error)`. If your code runs `port, _ := strconv.Atoi(os.Getenv("PORT"))` and the environment variable is missing or invalid — your port value is `0`. Binding a server to port `0` tells the OS to pick a random free port → all downstream services lose connectivity. The server starts successfully but is unreachable, and nothing is logged.
+**Khắc phục**: Luôn kiểm tra lỗi chuyển đổi. Đối với các giá trị cấu hình quan trọng, hãy nhanh chóng thực hiện: `if err != nil { log.Fatalf("invalid PORT: %v", err) }` .
 
-**Fix**: Always check the conversion error. For critical config values, fail fast: `if err != nil { log.Fatalf("invalid PORT: %v", err) }`.
-
-### 🔴 Pitfall #2 — Atoi overflow on 32-bit platforms
-
-`Atoi` returns a platform-dependent `int`. Parsing `Atoi("3000000000")` on a 32-bit system overflows silently, returning an incorrect value. Use `ParseInt(s, 10, 64)` when you need guaranteed 64-bit width.
+### 🔴 Cạm bẫy #2 — Tràn Atoi trên nền tảng 32-bit `Atoi` trả về phụ thuộc vào nền tảng `int` . Phân tích cú pháp `Atoi("3000000000")` trên hệ thống 32 bit tràn âm thầm, trả về giá trị không chính xác. Sử dụng `ParseInt(s, 10, 64)` khi bạn cần đảm bảo độ rộng 64-bit.
 
 ---
 
-You have explored strconv from basic `Atoi` through advanced formatting. The resources below go deeper.
+Bạn đã khám phá strconv từ `Atoi` cơ bản đến định dạng nâng cao. Các tài nguyên dưới đây đi sâu hơn.
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource              | Type     | Link                                                               | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | --------------------- | -------- | ------------------------------------------------------------------ | ----- |
-| `strconv` package     | Official | [pkg.go.dev/strconv](https://pkg.go.dev/strconv)                   | API reference |
-| Go Blog — Constants   | Blog     | [go.dev/blog/constants](https://go.dev/blog/constants)             | How untyped constants work in Go |
-| Go Spec — Conversions | Official | [go.dev/ref/spec#Conversions](https://go.dev/ref/spec#Conversions) | Language-level conversion rules and limits |
+| `strconv` package | Chính thức | [pkg.go.dev/strconv](https://pkg.go.dev/strconv) | Tham chiếu API |
+| Go Blog — Hằng số | Blog | [go.dev/blog/constants](https://go.dev/blog/constants) | Cách các hằng số chưa được gõ hoạt động trong Go |
+| Go Spec — Chuyển đổi | Chính thức | [go.dev/ref/spec#Conversions](https://go.dev/ref/spec#Conversions) | Quy tắc và giới hạn chuyển đổi cấp độ ngôn ngữ |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The foundations of **Strconv — Type Conversion & Parsing** are clear. The extensions below take you into more complex data transformation scenarios.
+Nền tảng của ** Strconv — Chuyển đổi loại & phân tích cú pháp** rất rõ ràng. Các tiện ích mở rộng bên dưới sẽ đưa bạn vào các tình huống chuyển đổi dữ liệu phức tạp hơn.
 
-| Extension                          | When                             | Why                          | File/Link |
+| Gia hạn | Khi nào | Tại sao | Tệp/Liên kết |
 | ---------------------------------- | -------------------------------- | ---------------------------- | --------- |
-| `fmt.Sprintf`                      | Complex string interpolation     | Better readability with many variables | [./04-fmt.md](./04-fmt.md) |
-| `encoding/json`                    | Marshaling structs and maps      | Automates typed data → string conversion | [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json) |
-| `math/big`                         | Arbitrarily large numbers        | Required when values exceed int64/float64 | [./05-math.md](./05-math.md) |
-| `golang.org/x/exp/constraints`     | Generic numeric constraints      | Type-safe math across generic functions | [pkg.go.dev/golang.org/x/exp](https://pkg.go.dev/golang.org/x/exp) |
+| `fmt.Sprintf` | Nội suy chuỗi phức tạp | Khả năng đọc tốt hơn với nhiều biến | [./04-fmt.md](./04-fmt.md) |
+| `encoding/json` | Thống chế structs và maps | Tự động nhập dữ liệu → chuyển đổi chuỗi | [pkg.go.dev/encoding/json](https://pkg.go.dev/encoding/json) |
+| `math/big` | Số lượng lớn tùy ý | Bắt buộc khi giá trị vượt quá int64/float64 | [./05-math.md](./05-math.md) |
+| `golang.org/x/exp/constraints` | Generic ràng buộc số | Toán học an toàn kiểu trên các hàm generic | [pkg.go.dev/golang.org/x/exp](https://pkg.go.dev/golang.org/x/exp) |
 
 ---
 
-**Navigation**: [← strings](./02-strings.md) · [→ fmt](./04-fmt.md)
+**Điều hướng**: [← strings](./02-strings.md) · [→ fmt](./04-fmt.md)

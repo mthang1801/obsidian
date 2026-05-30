@@ -1,59 +1,44 @@
-<!-- tags: golang, error-handling -->
-# ❌ Error Handling — NestJS Exception Filters → Gin Error Middleware
+<!-- tags: golang, error-handling --> # ❌ Xử lý lỗi — Bộ lọc ngoại lệ NestJS → Lỗi Gin Middleware
 
-> **Library**: Domain error types (`AppError`), global error middleware, and custom recovery for panics.
+> **Thư viện**: Các loại lỗi miền ( `AppError` ), phần mềm trung gian lỗi toàn cầu và khôi phục tùy chỉnh cho các lỗi hoảng loạn.
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-NestJS throws `HttpException` subclasses caught by `@Catch()` filters. Gin uses `c.Error(err)` to collect errors, then a middleware reads `c.Errors` after `c.Next()` to build the response. Define an `AppError` struct for typed errors; unknown errors become 500.
+NestJS ném các lớp con `HttpException` bị bắt bởi các bộ lọc `@Catch()` . Gin sử dụng `c.Error(err)` để thu thập lỗi, sau đó phần mềm trung gian đọc `c.Errors` sau `c.Next()` để xây dựng phản hồi. Xác định cấu trúc `AppError` cho các lỗi đánh máy; lỗi không xác định trở thành 500.
 
-| NestJS                              | Gin Equivalent                            |
+| NestJS | Tương đương Gin |
 | ----------------------------------- | ----------------------------------------- |
 | `throw new HttpException(msg, 400)` | `c.Error(apperror.BadRequest(msg)); return` |
-| `throw new NotFoundException()`     | `c.Error(apperror.NotFound(msg)); return`  |
-| `@Catch() ExceptionFilter`          | `ErrorHandler()` middleware after `c.Next()` |
-| `app.useGlobalFilters(filter)`      | `r.Use(ErrorHandler())`                   |
+| `throw new NotFoundException()` | `c.Error(apperror.NotFound(msg)); return` |
+| `@Catch() ExceptionFilter` | `ErrorHandler()` phần mềm trung gian sau `c.Next()` |
+| `app.useGlobalFilters(filter)` | `r.Use(ErrorHandler())` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always `return` after `c.Error()`.** Without it, the handler continues and may write a second response.
-- **Mount Recovery before ErrorHandler.** Panics must be caught before the error middleware runs.
+- **Luôn luôn `return` sau `c.Error()` .** Nếu không có nó, trình xử lý sẽ tiếp tục và có thể viết phản hồi thứ hai.
+- **Mount Recovery trước ErrorHandler.** Phải phát hiện được sự hoảng loạn trước khi phần mềm trung gian lỗi chạy.
 
-## 2. VISUAL
-
-![Error handling paths — AppError (typed), unknown errors (500), and panic recovery](./images/07-error-handling.png)
-
-*Figure: Three error paths — AppError (typed, custom HTTP status) via c.Error → error middleware; unknown errors → 500 + logged stack; panics → gin.CustomRecovery catches and returns 500.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Error handling paths — AppError (typed), unknown errors (500), and panic recovery](./images/07-error-handling.png) *Hình: Ba đường dẫn lỗi — AppError (đã nhập, trạng thái HTTP tùy chỉnh) thông qua c.Error → phần mềm trung gian lỗi; lỗi không xác định → 500 + ngăn xếp được ghi lại; hoảng sợ → gin.CustomRecovery bắt và trả về 500.*```mermaid
 flowchart TD
     A["Handler"] -->|"c.Error(err)"| B["ErrorHandler Middleware"]
     B --> C{"errors.As\n*AppError?"}
     C -->|Yes| D["c.JSON(status, code+message)"]
     C -->|No| E["slog.Error + c.JSON(500)"]
     F["panic()"] -->|"Recovery middleware"| E
-```
+```*Hình: Luồng lỗi — trình xử lý gọi `c.Error(err)` → ErrorHandler ánh xạ AppError tới JSON hoặc trả về 500 đối với các lỗi không xác định. Quá trình phục hồi gây hoảng loạn.*
 
-*Figure: Error flow — handler calls `c.Error(err)` → ErrorHandler maps AppError to JSON or returns 500 for unknown errors. Recovery catches panics.*
-
-### Error Resolution
-
-```text
+### Giải quyết lỗi```text
 Handler: c.Error(apperror.NotFound("user not found")); return
     → ErrorHandler reads c.Errors.Last()
     → errors.As → *AppError matched → c.JSON(404, {code, message})
 
 Handler: c.Error(fmt.Errorf("unexpected"))
     → ErrorHandler: no *AppError match → log + c.JSON(500, generic error)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Domain Error Types
-
-```go
+### Ví dụ 1: Cơ bản — Các loại lỗi tên miền```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // AppError carries HTTP status + error code + message.
     // Factory functions (BadRequest, NotFound, etc.) for each status.
@@ -107,11 +92,7 @@ Handler: c.Error(fmt.Errorf("unexpected"))
         e.Detail = fmt.Sprintf(format, args...)
         return e
     }
-```
-
-### Example 2: Intermediate — Global Error Handlers
-
-```go
+```### Ví dụ 2: Trung gian — Trình xử lý lỗi toàn cục```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // ErrorHandler runs after c.Next(), reads c.Errors.
     // Recovery catches panics and returns 500 JSON.
@@ -163,29 +144,27 @@ Handler: c.Error(fmt.Errorf("unexpected"))
             })
         })
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Returning raw Go error messages to the client | Internal details leaked (file paths, SQL) | Use `AppError` for client-facing errors; log raw errors server-side |
-| 2 | 🔴 Fatal | Recovery middleware placed after ErrorHandler | Panics bypass ErrorHandler and crash the process | Mount: `r.Use(Recovery(), ErrorHandler())` — Recovery first |
+| 1 | 🔴 Gây tử vong | Trả lại thông báo lỗi Go thô cho máy khách | Chi tiết nội bộ bị rò rỉ (đường dẫn tệp, SQL) | Sử dụng `AppError` cho các lỗi xảy ra với máy khách; ghi lỗi thô phía máy chủ |
+| 2 | 🔴 Gây tử vong | Phần mềm trung gian khôi phục được đặt sau ErrorHandler | Hoảng loạn bỏ qua ErrorHandler và làm hỏng quá trình | Mount: `r.Use(Recovery(), ErrorHandler())` — Phục hồi trước |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Gin Errors | [gin-gonic.com/en/docs/examples/error-handling-middleware](https://gin-gonic.com/en/docs/examples/error-handling-middleware/) |
+| Lỗi Gin | [gin-gonic.com/en/docs/examples/error-handling-middleware](https://gin-gonic.com/en/docs/examples/error-handling-middleware/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Context & Timeout | When you need request deadlines and cancellation | Context propagation ensures DB queries cancel when client disconnects | [../advanced/01-context-timeout.md](../advanced/01-context-timeout.md) |
+| Bối cảnh & Thời gian chờ | Khi bạn cần thời hạn yêu cầu và hủy bỏ | Truyền bá bối cảnh đảm bảo các truy vấn DB bị hủy khi máy khách ngắt kết nối | [../advanced/01-context-timeout.md](../advanced/01-context-timeout.md) |

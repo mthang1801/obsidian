@@ -1,69 +1,59 @@
-<!-- tags: golang, typescript, data-structures -->
-# 🧱 Types & Data Modeling — From Union, Optional, Class to Structure and Named Types.
+<!-- tags: golang, typescript, data-structures --> # 🧱 Loại & Mô hình hóa dữ liệu - Từ Liên kết, Tùy chọn, Lớp đến Cấu trúc và Các loại được đặt tên.
 
-> How to map shape data from TypeScript to Go without dropping invariants: optionals, enums, unions, interfaces, slices/maps, and boundaries between DTO and domain.
+> Cách map định hình dữ liệu từ TypeScript sang Go mà không bỏ đi các bất biến: tùy chọn, enum, liên kết, interfaces , slices / maps và ranh giới giữa DTO và miền.
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 17 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 17 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | Structs, named types, optionals, enum-like types, interfaces |
-| **Use case** | Port DTO, entity, config, request/response contract from TypeScript to Go |
-| **Key diff** | TypeScript prioritizes shape flexibility; Go prioritizes explicit data models and invariant near data |
-| **Go stdlib** | `encoding/json`, `errors`, `fmt` |
+| **Tập trung** | Structs , loại được đặt tên, tùy chọn, loại giống như enum, interfaces |
+| **Trường hợp sử dụng** | Cổng DTO, thực thể, cấu hình, hợp đồng yêu cầu/phản hồi từ TypeScript đến Go |
+| **Khác biệt về phím** | TypeScript ưu tiên tính linh hoạt của hình dạng; Go ưu tiên các mô hình dữ liệu rõ ràng và dữ liệu gần bất biến |
+| ** Go stdlib** | `encoding/json` , `errors` , `fmt` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-You are porting a contract API from TypeScript:
+Bạn đang chuyển API hợp đồng từ TypeScript:
 
-- `status: "draft" | "paid" | "cancelled"`
-- `couponCode?: string`
-- `customer: User | Guest`
-- `class Order { ... }`
+- `status: "draft" | "paid" | "cancelled"` - `couponCode?: string` - `customer: User | Guest` - `class Order { ... }` Nếu cố gắng dịch từng dòng một thành Go , bạn sẽ nhanh chóng rơi vào ba lỗi quen thuộc:
 
-If you try to translate line by line into Go, you will quickly fall into three familiar mistakes:
+- Biến tất cả các trường tùy chọn thành pointers , khiến mô hình nặng và khó đọc.
+- Sử dụng `interface{}` hoặc `map[string]any` để mô phỏng các đoàn thể một cách nhanh chóng.
+- Chèn hành vi miền vào mọi struct như thể bảo toàn mô hình lớp TypeScript. Go không cấm bạn làm như vậy. Nhưng nó cũng không thưởng cho bạn khi làm như vậy. Các mô hình dữ liệu tốt trong Go thường nhỏ, rõ ràng và mã hóa ranh giới rõ ràng: DTO là DTO, miền là miền, tính bền vững là tính bền vững.
 
-- Turn all optional fields into pointers, making the model heavy and difficult to read.
-- Use `interface{}` or `map[string]any` to simulate unions quickly.
-- Insert domain behavior into every struct as if preserving the TypeScript class model.
+### 1.1 Kiểu gõ cấu trúc của TypeScript và kiểu được đặt tên của Go khác nhau như thế nào?
 
-Go does not prohibit you from doing so. But it also does not reward you for doing so. Good data models in Go are usually small, explicit, and encode boundaries clearly: DTO is DTO, domain is domain, persistence is persistence.
+TypeScript rất mạnh trong việc suy ra khả năng tương thích hình dạng giữa các đối tượng. Điều đó cực kỳ hữu ích cho các cơ sở mã nặng về giao diện người dùng và API nặng. Go ưu tiên các loại, bộ phương thức và khả năng hiển thị trường được đặt tên rõ ràng hơn. Interfaces trong Go hoàn toàn được thỏa mãn — struct chỉ cần các phương pháp phù hợp.
 
-### 1.1 How are TypeScript's structural typing and Go's named types different?
+Một quy tắc thực dụng:
 
-TypeScript is very powerful at inferring shape compatibility between objects. That is extremely useful for frontend-heavy and API-heavy codebases. Go prioritizes named types, method sets, and field visibility more explicitly. Interfaces in Go are satisfied implicitly — the struct just needs the right methods.
+- Nếu dữ liệu vượt qua ranh giới mạng hoặc tệp: sử dụng struct với thẻ rõ ràng.
+- Nếu giá trị có ý nghĩa miền riêng: tạo loại được đặt tên thay vì để trống `string` .
+- Nếu trạng thái có tập hữu hạn: sử dụng `type Status string` + hằng số + xác thực.
 
-A pragmatic rule:
+### 1.2 Tùy chọn, nullable, giá trị 0: ba thứ này không phải là một.
 
-- If data goes across network or file boundary: use struct with clear tags.
-- If the value has its own domain meaning: create a named type instead of leaving the `string` bare.
-- If status has a finite set: use `type Status string` + constants + validation.
+Trong TypeScript, `field?: string` , `field: string | null` và `field: string | undefined` thường được sử dụng khá linh hoạt. Trong Go , bạn nên phân tách rõ ràng:
 
-### 1.2 Optional, nullable, zero value: these three things are not one.
+- **Trường bắt buộc nhưng có giá trị 0 hợp lệ**: sử dụng trực tiếp loại giá trị.
+- **Trường thực sự là tùy chọn ở ranh giới**: sử dụng pointer hoặc trình bao bọc tùy chỉnh.
+- **Trường bắt buộc trong miền nhưng tùy chọn trong đầu vào**: DTO có thể sử dụng pointer , miền không thể.
 
-In TypeScript, `field?: string`, `field: string | null`, and `field: string | undefined` is often used quite flexibly. In Go, you should clearly separate:
+Đừng để toàn bộ mô hình biến thành một khu rừng pointer chỉ vì đầu vào JSON cho phép nó để trống.
 
-- **Required field but has a valid zero value**: use value type directly.
-- **Field is truly optional at boundary**: use pointer or custom wrapper.
-- **Field required in domain but optional in input**: DTO can use pointer, domain cannot.
+### 1.3 Các kiểu bất biến và lỗi
 
-Don't let the entire model turn into a pointer forest just because the JSON input allows it to be left blank.
+- `nil map` có thể đọc được, nhưng viết sẽ panic .
+- `nil slice` an toàn hơn `nil map` ; nối thêm, hành vi JSON sẽ khác nhau tùy thuộc vào mục đích của API.
+- `map[string]any` và `interface{}` là cách thoát nhanh nhưng cũng là cách nhanh nhất để mang tính năng gõ động trở lại.
 
-### 1.3 Invariants & Failure Modes
+Trước khi viết một `struct` khác, hãy xem vấn đề này như một phép chuyển đổi dữ liệu pipeline .
 
-- `nil map` can be read, but writing will panic.
-- `nil slice` is safer than `nil map`; append, JSON behavior is different depending on the intent of the API.
-- `map[string]any` and `interface{}` are a quick exit, but also the fastest way to bring dynamic typing back.
+## 2. HÌNH ẢNH
 
-Before writing another `struct`, look at this problem as a data transformation pipeline.
+Điểm nguy hiểm nhất của mô hình hóa dữ liệu không nằm ở cú pháp mà nằm ở việc trộn lẫn ranh giới và bất biến. Sơ đồ dưới đây phân tách chúng.
 
-## 2. VISUAL
-
-The most dangerous point of data modeling is not in the syntax, but in mixing boundary and invariant. The diagram below separates them.
-
-### Level 1
-
-```text
+### Cấp 1```text
 TypeScript input shape
     -> DTO / schema
         -> domain object
@@ -74,15 +64,9 @@ Go input shape
         -> validation / translation
             -> domain struct with invariants
                 -> storage DTO or row model
-```
+```![Types data modeling compare card](./images/02-types-data-modeling-compare.png) *Hình: Cấp độ 1 nhấn mạnh rằng Go khuyến khích bạn dịch dữ liệu qua các ranh giới thay vì giữ nguyên hình dạng "sử dụng ở mọi nơi".*.
 
-![Types data modeling compare card](./images/02-types-data-modeling-compare.png)
-
-*Figure: Level 1 emphasizes that Go encourages you to translate data across boundaries instead of keeping a "use-everywhere" shape.*.
-
-### Level 2
-
-```text
+### Cấp 2```text
 TS concept                Go mapping
 ------------------------------------------------------------
 optional field            pointer field or separate DTO layer
@@ -91,23 +75,19 @@ class with methods        struct + methods or service around struct
 discriminated union       interface + concrete structs + type switch
 Record<string, T>         map[string]T
 readonly domain field     unexported field + constructor/getter
-```
+```*Hình ảnh: Cấp độ 2 không phải là bảng dịch một-một tuyệt đối; đây là điểm khởi đầu an toàn để tránh chuyển quá mức cú pháp.*.
 
-*Image: Level 2 is not an absolute one-to-one translation table; it is a safe starting point to avoid syntax over-porting.*.
+## 3. MÃ
 
-## 3. CODE
+Nếu mô hình tinh thần đúng nhưng mô hình dữ liệu sai, bạn vẫn sẽ gặp lỗi. Ba ví dụ dưới đây khóa các ánh xạ quan trọng nhất.
 
-If the mental model is correct but the data model is wrong, you will still have a bug. The three examples below lock down the most important mappings.
+### Ví dụ 1: Cơ bản - DTO tùy chọn ở ranh giới, miền rõ ràng.
 
-### Example 1: Basic — DTO optional at boundary, domain is explicit.
+> **Mục tiêu**: Tách yêu cầu DTO khỏi đối tượng miền thay vì sử dụng một struct cho mọi thứ.
+> **Phương pháp tiếp cận**: Yêu cầu struct sử dụng pointers ​​cho các trường tùy chọn; đối tượng miền thực thi các bất biến thông qua hàm tạo của nó.
+> **Ví dụ**: `couponCode` có thể vắng mặt trong JSON, nhưng miền `Order` không cần phải bao gồm tất cả các tùy chọn đó.
 
-> **Goal**: Separate request DTO from domain object instead of using one struct for everything.
-> **Approach**: The request struct uses pointers for optional fields; the domain object enforces invariants via its constructor.
-> **Example**: `couponCode` can be absent from the JSON, but the `Order` domain does not need to embrace all that optionality.
-
-Your TypeScript version is usually available at the API boundary:
-
-```typescript
+Phiên bản TypeScript của bạn thường có sẵn ở ranh giới API:```typescript
 type CreateOrderRequest = {
   id: string;
   amount: number;
@@ -128,11 +108,7 @@ class Order {
 const req: CreateOrderRequest = { id: "ord-1", amount: 1200 };
 const order = new Order(req.id, req.amount, req.couponCode ?? "");
 console.log(order);
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -182,21 +158,17 @@ func main() {
 
 	fmt.Printf("%+v\n", order)
 }
-```
+```> **Takeaway**: Tính tùy chọn là mối quan tâm về ranh giới. Các đối tượng miền phải bất biến hơn các đối tượng ranh giới.
 
-> **Takeaway**: Optionality is a boundary concern. Domain objects should be more invariant than boundary objects.
+Ranh giới đã tách xong. Nhưng nếu trạng thái vẫn còn trống `string` , thì bất biến vẫn bị rò rỉ ở một nơi khác.
 
-Boundary has finished separating. But if the state is still a bare `string`, the invariant is still leaking somewhere else.
+### Ví dụ 2: Trung cấp — liên kết chuỗi trong TypeScript phải là loại được đặt tên có xác thực.
 
-### Example 2: Intermediate — string union in TypeScript should be a named type with validation.
+> **Mục tiêu**: Tránh `string` trống đối với các giá trị trạng thái có tập hợp hữu hạn các tùy chọn hợp lệ.
+> **Phương pháp tiếp cận**: Sử dụng loại chuỗi được đặt tên với các hằng số và phương thức `Validate()` .
+> **Ví dụ**: `OrderStatus` thay vì `"draft" | "paid" | "cancelled"` .
 
-> **Goal**: Avoid bare `string` for state values that have a finite set of valid options.
-> **Approach**: Use a named string type with constants and a `Validate()` method.
-> **Example**: `OrderStatus` instead of `"draft" | "paid" | "cancelled"`.
-
-TypeScript versions usually start from a literal union:
-
-```typescript
+Các phiên bản TypeScript thường bắt đầu từ một sự kết hợp theo nghĩa đen:```typescript
 type OrderStatus = "draft" | "paid" | "cancelled";
 
 type Order = {
@@ -212,11 +184,7 @@ function createOrder(id: string, status: OrderStatus): Order {
 }
 
 console.log(createOrder("ord-2", "paid"));
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import "fmt"
@@ -260,23 +228,19 @@ func main() {
 	}
 	fmt.Printf("%+v\n", order)
 }
-```
+```> **Tại sao?** Các kết hợp theo nghĩa đen của TypeScript cung cấp cho bạn các ràng buộc biên dịch- time một cách rất tự nhiên. Trong Go , loại được đặt tên + hằng số + xác thực là cách đơn giản nhất để duy trì cùng một mục đích mà không cần kỹ thuật quá mức. Nó rõ ràng hơn và có quy mô tốt.
 
-> **Why?** TypeScript literal unions give you compile-time constraints very naturally. In Go, named type + constants + validation is the simplest way to preserve the same intent without over-engineering. It is more explicit and scales well.
+> **Bài học rút ra**: Nếu một giá trị có ý nghĩa miền riêng, hãy đặt loại riêng cho giá trị đó. Bare `string` là một trách nhiệm đắt đỏ khi cơ sở mã phát triển.
 
-> **Takeaway**: If a value has its own domain meaning, give it its own type. Bare `string` is an expensive liability as the codebase grows.
+Tại thời điểm này, hình dạng dữ liệu nhiều hơn solid . Phần còn lại là khi một giá trị có nhiều biến thể hành vi chứ không chỉ nhiều trường.
 
-At this point, the data shape is more solid. The rest is when a value has many behavioral variations, not just many fields.
+### Ví dụ 3: Nâng cao — hành vi kết hợp phải là một loại công tắc được điều khiển interface + nhỏ.
 
-### Example 3: Advanced — union behavior should be a small interface + controlled switch type.
+> **Mục tiêu**: Xem cách Go xử lý "một trong nhiều biến thể" mà không rơi vào `map[string]any` .
+> **Phương pháp tiếp cận**: Sử dụng interfaces nhỏ cho hành vi thông thường, sau đó nhập công tắc khi cần các nhánh cụ thể.
+> **Ví dụ**: `Customer` có thể là khách hoặc người dùng đã đăng ký.
 
-> **Goal**: See how Go handles "one of many variations" without falling into `map[string]any`.
-> **Approach**: Use small interfaces for common behavior, then type switches when specific branches are needed.
-> **Example**: `Customer` can be a guest or a registered user.
-
-TypeScript version with discriminated union:
-
-```typescript
+Phiên bản TypeScript với sự kết hợp phân biệt đối xử:```typescript
 type GuestCustomer = {
   kind: "guest";
   email: string;
@@ -298,11 +262,7 @@ function shippingRule(customer: Customer): string {
       return `saved profile checkout for ${customer.email}`;
   }
 }
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import "fmt"
@@ -348,45 +308,43 @@ func main() {
 		fmt.Println(c.Label(), "->", shippingRule(c))
 	}
 }
-```
+```> **Tại sao?** Các kết hợp phân biệt đối xử của TypeScript rất mạnh mẽ nhờ việc thu hẹp luồng điều khiển. Go không có cùng cơ chế, do đó, mẫu thực tế nhất là một interface nhỏ dành cho hành vi phổ biến và chuyển đổi loại tại chính xác các điểm mà bạn cần logic dành riêng cho biến thể.
 
-> **Why?** TypeScript discriminated unions are powerful because of control-flow narrowing. Go does not have the same mechanism, so the most practical pattern is a small interface for common behavior and type switches at exactly the points where you need variant-specific logic.
+> **Bài học rút ra**: Khi bạn cần lập mô hình giống liên kết, hãy bắt đầu từ hành vi chung và phân nhánh ở ranh giới. Đừng nhảy thẳng tới động maps .
 
-> **Takeaway**: When you need union-like modeling, start from common behavior and branch at the boundary. Do not jump straight to dynamic maps.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
+Đây là lúc nhiều cổng vẫn có vẻ tốt trên PR nhưng bắt đầu bị lỗi sau một vài lần chạy nước rút.
 
-This is when many ports still look good on PR but start to fail after a few sprints.
+Lỗi không đến từ cú pháp. Nó xuất phát từ một mô hình không chính xác về mặt ngữ nghĩa.
 
-Bugs don't come from syntax. It comes from a semantically incorrect model.
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Using `map[string]any` to quickly simulate flexible unions/objects | Loss of compile-time guarantees, increased type assertion errors | Use dynamic maps only at deserialization boundaries; create named types everywhere else |
-| 2 | 🟡 Common | Turning every optional field into a pointer | Model is heavy, code checks nil everywhere | Use pointers only for meaningful optionality at the boundary; domain holds required fields explicitly |
-| 3 | 🔵 Minor | Using bare `string` for status, role, kind | Invalid state penetrates deeply into the system, revealing bugs late | Create named type + constants + validation |
+| 1 | 🔴 Gây tử vong | Sử dụng `map[string]any` để mô phỏng nhanh các đoàn thể/đối tượng linh hoạt | Mất bảo đảm biên dịch- time , lỗi type assertion gia tăng | Chỉ sử dụng maps động tại các ranh giới khử lưu huỳnh; tạo các loại được đặt tên ở mọi nơi khác |
+| 2 | 🟡 Chung | Biến mọi trường tùy chọn thành pointer | Mô hình nặng, kiểm tra mã nil ở mọi nơi | Chỉ sử dụng pointers cho tùy chọn có ý nghĩa ở ranh giới; miền chứa các trường bắt buộc một cách rõ ràng |
+| 3 | 🔵 Nhỏ | Sử dụng `string` trần cho trạng thái, vai trò, loại | Trạng thái không hợp lệ xâm nhập sâu vào hệ thống, phát hiện lỗi muộn | Tạo loại được đặt tên + hằng số + xác thực |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| Type Compatibility | Official | https://www.typescriptlang.org/docs/handbook/type-compatibility.html | TypeScript's structural typing foundation |
-| Go Spec — Types | Official | https://go.dev/ref/spec#Types | Source of truth for named types, struct fields, assignability, and composite types |
-| Go Blog — JSON and Go | Official | https://go.dev/blog/json | Good reference for DTO boundary, tags, optionality, and serialization behavior |
+| Khả năng tương thích loại | Chính thức | https://www.typescriptlang.org/docs/handbook/type-compatibility.html | Nền tảng gõ cấu trúc của TypeScript |
+| Go Spec — Loại | Chính thức | https://go.dev/ref/spec#Types | Nguồn đáng tin cậy cho các loại được đặt tên, trường struct , khả năng gán và loại tổng hợp |
+| Go Blog — JSON và Go | Chính thức | https://go.dev/blog/json | Tài liệu tham khảo tốt về ranh giới DTO, thẻ, tùy chọn và hành vi tuần tự hóa |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core part of **Types & Data Modeling** is clear. The extension branches below help you bring the Go type system into production with errors, concurrency, and project layout.
+Phần cốt lõi của **Loại & mô hình hóa dữ liệu** rất rõ ràng. Các nhánh mở rộng bên dưới giúp bạn đưa hệ thống loại Go vào sản xuất khi có lỗi, concurrency và bố cục dự án.
 
-It is there that good or bad data models begin to show up under real load.
+Ở đó, các mô hình dữ liệu tốt hay xấu bắt đầu hiển thị dưới tải thực.
 
-| Extension | When | Rationale | Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Slices, Maps, Strings | When you need to understand Go's collection semantics at the runtime level | Primer for slice growth, map behavior, and string internals | [→ 01-slices-maps-strings](../types/01-slices-maps-strings.md) |
-| Enum & Union Types | When the model has a state machine, enum, or discriminated union | Helps choose named type, constants, or interface + type switch | [→ 06-enum-union-types](../helper/06-enum-union-types.md) |
-| Optional & Nullable | When input has `undefined`, `null`, partial updates, or nullable DB fields | Helps choose pointer, zero value, or wrapper type intentionally | [→ 11-optional-nullable](../helper/11-optional-nullable.md) |
-| Error Handling | Once the data model is locked and you start writing domain flow | Good invariants must come with a clear error model | [→ 07-error-handling](../helper/07-error-handling.md) |
-| Errors, Concurrency, Context | Once DTO/domain is solid and the service starts calling I/O in parallel | Where the data model meets runtime semantics | [→ 03-errors-concurrency-context](./03-errors-concurrency-context.md) |
-| Class → Struct | When the data model is still too class-heavy | Helps reduce unnecessary abstractions | [→ 12-class-struct](../helper/12-class-struct.md) |
+| Slices , Maps , Chuỗi | Khi bạn cần hiểu ngữ nghĩa bộ sưu tập của Go ở cấp độ runtime | Nền tảng cho sự tăng trưởng slice , hành vi map và nội bộ chuỗi | [→ 01-slices-maps-strings](../types/01-slices-maps-strings.md) |
+| Các loại Enum & Union | Khi mô hình có máy trạng thái, enum hoặc phân biệt đối xử | Giúp chọn loại, hằng số được đặt tên hoặc interface + type switch | [→ 06-enum-union-types](../helper/06-enum-union-types.md) |
+| Tùy chọn & Nullable | Khi đầu vào có `undefined` , `null` , cập nhật một phần hoặc các trường DB có thể rỗng | Giúp chọn pointer , giá trị 0 hoặc loại trình bao bọc có chủ ý | [→ 11-optional-nullable](../helper/11-optional-nullable.md) |
+| Xử lý lỗi | Sau khi mô hình dữ liệu bị khóa và bạn bắt đầu viết luồng miền | Bất biến tốt phải có mô hình lỗi rõ ràng | [→ 07-error-handling](../helper/07-error-handling.md) |
+| Lỗi, Concurrency , Ngữ cảnh | Khi DTO/domain là solid và dịch vụ bắt đầu gọi I/O song song | Trường hợp mô hình dữ liệu đáp ứng ngữ nghĩa runtime | [→ 03-errors-concurrency-context](./03-errors-concurrency-context.md) |
+| Lớp → Struct | Khi mô hình dữ liệu vẫn còn quá nặng nề | Giúp giảm sự trừu tượng không cần thiết | [→ 12-class-struct](../helper/12-class-struct.md) |
 
-**Navigation**: [← Previous](./01-mental-model-runtime.md) · [→ Next](./03-errors-concurrency-context.md)
+**Điều hướng**: [← Previous](./01-mental-model-runtime.md) · [→ Next](./03-errors-concurrency-context.md)

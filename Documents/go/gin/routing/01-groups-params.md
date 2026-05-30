@@ -1,33 +1,24 @@
-<!-- tags: golang -->
-# 🛤️ Routing — Groups, Params, Versioning
+<!-- tags: golang --> # 🛤️ Định tuyến - Nhóm, Thông số, Phiên bản
 
-> **Library**: Organize routes with `RouterGroup`, extract path/query params, and apply middleware to specific groups.
+> **Thư viện**: Sắp xếp các tuyến đường với `RouterGroup` , trích xuất thông số đường dẫn/truy vấn và áp dụng phần mềm trung gian cho các nhóm cụ thể.
 
-📅 Updated: 2026-04-19 · ⏱️ 12 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 12 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA `RouterGroup` của Gin cho phép bạn thêm tiền tố vào các tuyến đường, đính kèm phần mềm trung gian vào các tập hợp con và các nhóm lồng nhau để phân cấp tài nguyên. Nếu không có nhóm, mọi tuyến đường sẽ lặp lại phần đính kèm tiền tố và phần mềm trung gian — một cơn ác mộng về bảo trì trong các API có hơn 50 điểm cuối.
 
-Gin’s `RouterGroup` lets you prefix routes, attach middleware to subsets, and nest groups for resource hierarchies. Without groups, every route repeats its prefix and middleware attachment — a maintenance nightmare in APIs with 50+ endpoints.
-
-| Feature        | Role                                     | Syntax                            |
+| Tính năng | Vai trò | Cú pháp |
 | -------------- | ---------------------------------------- | --------------------------------- |
-| **Prefix**     | Shared URL prefix for a group of routes  | `r.Group("/api/v1")`              |
-| **Middleware** | Runs on every route in the group         | `r.Group("/", authMiddleware)`    |
-| **Nesting**    | Sub-groups for resource hierarchies      | `v1.Group("/users")`              |
-| **Static**     | Serves files from a local directory      | `r.Static("/assets", "./public")` |
+| **Tiền tố** | Tiền tố URL được chia sẻ cho một nhóm tuyến đường | `r.Group("/api/v1")` |
+| **Phần mềm trung gian** | Chạy trên mọi tuyến đường trong nhóm | `r.Group("/", authMiddleware)` |
+| **Lồng nhau** | Các nhóm con cho hệ thống phân cấp tài nguyên | `v1.Group("/users")` |
+| **Tĩnh** | Phục vụ các tập tin từ một thư mục cục bộ | `r.Static("/assets", "./public")` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Middleware order is call order.** `v1.Use(A, B)` runs A before B on every request in v1.
-- **Route conflicts are silent.** Two groups registering `GET /api/users` will shadow each other without error.
+- **Thứ tự phần mềm trung gian là thứ tự cuộc gọi.** `v1.Use(A, B)` chạy A trước B trên mọi yêu cầu trong v1.
+- **Xung đột tuyến đường diễn ra im lặng.** Hai nhóm đăng ký `GET /api/users` sẽ theo dõi nhau mà không có lỗi.
 
-## 2. VISUAL
-
-![Route group hierarchy with middleware scoping](./images/01-route-groups-hierarchy.png)
-
-*Figure: Route group hierarchy — Engine branches into public `/api` (no middleware) and protected `/api/v1` (with authMiddleware). Sub-groups `/users` and `/products` inherit the middleware scope.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Route group hierarchy with middleware scoping](./images/01-route-groups-hierarchy.png) *Hình: Phân cấp nhóm định tuyến — Công cụ phân nhánh thành `/api` công khai (không có phần mềm trung gian) và [[C10]]] được bảo vệ (với authMiddleware). Các nhóm con `/users` và `/products` kế thừa phạm vi phần mềm trung gian.*```mermaid
 flowchart TD
     A["r := gin.Default()"] --> B["api := r.Group('/api/v1')"]
     B --> C["users := api.Group('/users')"]
@@ -35,24 +26,16 @@ flowchart TD
     C --> E["GET /users/:id"]
     C --> F["POST /users"]
     B --> G["products := api.Group('/products')"]
-```
+```*Hình: Phân cấp tuyến đường — Động cơ → nhóm `/api/v1` → nhóm con `/users` với tuyến đường `:id` được tham số hóa.*
 
-*Figure: Route hierarchy — Engine → `/api/v1` group → `/users` sub-group with parameterized `:id` route.*
-
-### Route Resolution
-
-```text
+### Giải quyết lộ trình```text
 GET /api/health          → public group (no middleware)
 GET /api/v1/users        → v1 group → authMiddleware → listUsers handler
 GET /api/v1/users/:id    → v1 group → authMiddleware → getUser handler
 POST /api/v1/users       → v1 group → authMiddleware → createUser handler
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Endpoint Versioning
-
-```go
+### Ví dụ 1: Cơ bản — Phiên bản điểm cuối```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Public routes need no auth. Protected routes (v1) share authMiddleware.
     // c.Param("id") extracts :id from the path; c.DefaultQuery provides fallbacks.
@@ -118,11 +101,7 @@ POST /api/v1/users       → v1 group → authMiddleware → createUser handler
             c.Next()
         }
     }
-```
-
-### Example 2: Intermediate — Modular Route Registration
-
-```go
+```### Ví dụ 2: Trung cấp — Đăng ký tuyến đường mô-đun```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Each domain package owns a RegisterRoutes function.
     // Setup() wires public vs protected groups with their middleware.
@@ -149,30 +128,28 @@ POST /api/v1/users       → v1 group → authMiddleware → createUser handler
             users.POST("", handler.Create)
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Registering duplicate paths across groups (e.g., two `GET /api/users`) | Second handler silently shadows the first | Audit all groups for path conflicts; use `gin.DebugPrintRouteFunc` |
-| 2 | 🟡 Common | Applying auth middleware at the engine level instead of the group level | Health check and public endpoints also require tokens | Attach middleware to specific groups, not the engine |
+| 1 | 🔴 Gây tử vong | Đăng ký các đường dẫn trùng lặp giữa các nhóm (ví dụ: hai `GET /api/users` ) | Trình xử lý thứ hai âm thầm che giấu | Kiểm tra tất cả các nhóm về xung đột đường dẫn; sử dụng `gin.DebugPrintRouteFunc` |
+| 2 | 🟡 Chung | Áp dụng phần mềm trung gian xác thực ở cấp công cụ thay vì cấp nhóm | Kiểm tra tình trạng và điểm cuối công cộng cũng yêu cầu mã thông báo | Đính kèm phần mềm trung gian vào các nhóm cụ thể chứ không phải công cụ |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Gin Router | [gin-gonic.com/en/docs](https://gin-gonic.com/en/docs/) |
+| Bộ định tuyến Gin | [gin-gonic.com/en/docs](https://gin-gonic.com/en/docs/) |
 | HttpRouter | [github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| Versioning & Redirects | When you need to deprecate old API versions | Covers redirect rules and version negotiation patterns | [./02-versioning-redirect.md](./02-versioning-redirect.md) |
+| Lập phiên bản & Chuyển hướng | Khi bạn cần ngừng sử dụng các phiên bản API cũ | Bao gồm các quy tắc chuyển hướng và mẫu đàm phán phiên bản | [./02-versioning-redirect.md](./02-versioning-redirect.md) |

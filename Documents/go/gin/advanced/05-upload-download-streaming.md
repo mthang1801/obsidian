@@ -1,33 +1,26 @@
-<!-- tags: golang -->
-# 📤 Upload & Download Streaming — Large Files in Gin
+<!-- tags: golang --> # 📤 Tải lên và tải xuống trực tuyến — Tệp lớn trong Gin
 
-> **Library**: Stream large uploads via `io.Copy`, serve downloads with proper headers, offload to S3 pre-signed URLs.
+> **Thư viện**: Truyền phát các nội dung tải lên có dung lượng lớn qua `io.Copy` , phân phát các nội dung tải xuống có tiêu đề phù hợp, giảm tải cho các URL được ký trước của S3.
 
-📅 Updated: 2026-04-19 · ⏱️ 16 min read
+📅 Đã cập nhật: 2026-04-19 · ⏱️ 16 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Loading a 500MB file into memory with `ioutil.ReadAll` kills the process. Instead: use `http.MaxBytesReader` to cap body size, stream with `io.Copy` to avoid buffering, and for downloads set `Content-Disposition` + `Content-Length` headers. For production, offload to S3/GCS pre-signed URLs.
+Đang tải tệp 500 MB vào bộ nhớ bằng `ioutil.ReadAll` sẽ giết chết quá trình. Thay vào đó: hãy sử dụng `http.MaxBytesReader` để giới hạn kích thước nội dung, phát trực tiếp bằng `io.Copy` để tránh bị giật và đặt tiêu đề `Content-Disposition` + `Content-Length` để tải xuống. Để sản xuất, hãy chuyển sang các URL được ký trước S3/GCS.
 
-| Concern         | Solution                                  |
+| Mối quan tâm | Giải pháp |
 | --------------- | ----------------------------------------- |
-| Total Size      | `http.MaxBytesReader(w, body, maxBytes)`  |
-| Validation      | Check extension + MIME before saving      |
-| Safe Streaming  | `io.Copy(dst, file)` — no full buffer    |
-| Correct Headers | `Content-Disposition: attachment`          |
+| Tổng kích thước | `http.MaxBytesReader(w, body, maxBytes)` |
+| Xác thực | Kiểm tra tiện ích mở rộng + MIME trước khi lưu |
+| Truyền phát an toàn | `io.Copy(dst, file)` — không có bộ đệm đầy đủ |
+| Tiêu đề đúng | `Content-Disposition: attachment` |
 
-### Key Invariants
+### Bất biến chính
 
-- **Always set `MaxBytesReader` before reading body.** Without it, a 10GB upload consumes all RAM.
-- **Use `filepath.Base()` on user filenames.** Prevents path traversal attacks (`../../etc/passwd`).
+- **Luôn đặt `MaxBytesReader` trước nội dung đọc.** Nếu không có nó, tải lên 10 GB sẽ tiêu tốn toàn bộ RAM.
+- **Sử dụng `filepath.Base()` trên tên tệp người dùng.** Ngăn chặn các cuộc tấn công truyền tải đường dẫn ( `../../etc/passwd` ).
 
-## 2. VISUAL
-
-![Upload and download streaming — buffered vs io.Copy streaming with S3 pre-signed URLs](./images/05-upload-streaming.png)
-
-*Figure: Upload — small files buffer in memory (c.FormFile), large files stream via io.Copy. Download — c.File (static), c.FileAttachment (force download), io.Copy (stream from S3/DB).*
-
-```mermaid
+## 2. HÌNH ẢNH ![Upload and download streaming — buffered vs io.Copy streaming with S3 pre-signed URLs](./images/05-upload-streaming.png) *Hình: Tải lên — bộ đệm các tệp nhỏ trong bộ nhớ (c.FormFile), luồng tệp lớn qua io.Copy. Tải xuống — c.File (tĩnh), c.FileAttachment (bắt buộc tải xuống), io.Copy (luồng từ S3/DB).*```mermaid
 flowchart LR
     subgraph Upload
         A["multipart/form-data"] -->|"MaxBytesReader"| B["FormFile"]
@@ -41,23 +34,15 @@ flowchart LR
         G["GET /download"] --> H["S3.CreateDownloadURL"]
         H --> I["302 redirect"]
     end
-```
+```*Hình: Ba mẫu — tải luồng lên qua io.Copy, tải luồng xuống với tiêu đề phù hợp, giảm tải qua URL được ký trước.*
 
-*Figure: Three patterns — stream upload via io.Copy, stream download with proper headers, offload via pre-signed URL.*
-
-### Pattern Decision
-
-```text
+### Quyết định mẫu```text
 Small file (≤10MB):  c.SaveUploadedFile (Gin built-in)
 Large file (≥10MB):  MaxBytesReader + io.Copy (streamed)
 Production:          Pre-signed S3/GCS URL (no server bandwidth)
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — Multipart Write Streams
-
-```go
+### Ví dụ 1: Cơ bản — Luồng ghi nhiều phần```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Streamed upload: cap body with MaxBytesReader,
     // extract file, validate name, stream via io.Copy.
@@ -97,11 +82,7 @@ Production:          Pre-signed S3/GCS URL (no server bandwidth)
 
         c.JSON(http.StatusCreated, gin.H{"file": safeName})
     }
-```
-
-### Example 2: Intermediate — Response Streaming Headers
-
-```go
+```### Ví dụ 2: Trung cấp — Tiêu đề truyền phát phản hồi```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Streamed download: open file, set Content-Disposition
     // + Content-Length headers, stream via io.Copy.
@@ -136,11 +117,7 @@ Production:          Pre-signed S3/GCS URL (no server bandwidth)
         c.Status(http.StatusOK)
         _, _ = io.Copy(c.Writer, file)
     }
-```
-
-### Example 3: Advanced — Pre-Signed Object URLs
-
-```go
+```### Ví dụ 3: Nâng cao — URL đối tượng được ký trước```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // Pre-signed URL: generate time-limited S3 download URL.
     // Client downloads directly from S3, no server bandwidth.
@@ -172,29 +149,27 @@ Production:          Pre-signed S3/GCS URL (no server bandwidth)
             })
         }
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Not using `MaxBytesReader` on upload endpoints | 10GB upload consumes all RAM; process OOM-killed | `http.MaxBytesReader(c.Writer, c.Request.Body, 20<<20)` |
-| 2 | 🔴 Fatal | Using user-provided filename directly in `os.Create` | Path traversal: `../../etc/passwd` overwrites system files | `filepath.Base(header.Filename)` to strip path components |
+| 1 | 🔴 Gây tử vong | Không sử dụng `MaxBytesReader` trên điểm cuối tải lên | Tải lên 10GB sẽ tiêu tốn hết RAM; xử lý OOM-kill | `http.MaxBytesReader(c.Writer, c.Request.Body, 20<<20)` |
+| 2 | 🔴 Gây tử vong | Sử dụng tên tệp do người dùng cung cấp trực tiếp trong `os.Create` | Truyền tải đường dẫn: `../../etc/passwd` ghi đè các tệp hệ thống | `filepath.Base(header.Filename)` để loại bỏ các thành phần đường dẫn |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Mime/Multipart | [pkg.go.dev/mime/multipart](https://pkg.go.dev/mime/multipart) |
+| Kịch câm/Đa phần | [pkg.go.dev/mime/multipart](https://pkg.go.dev/mime/multipart) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| SSE & WebSocket | When you need real-time push to clients | SSE for one-way feeds, WebSocket for bidirectional chat/notifications | [./06-sse-websocket-real-time.md](./06-sse-websocket-real-time.md) |
+| SSE & WebSocket | Khi bạn cần đẩy thời gian thực tới khách hàng | SSE cho nguồn cấp dữ liệu một chiều, WebSocket cho thông báo/trò chuyện hai chiều | [./06-sse-websocket-real-time.md](./06-sse-websocket-real-time.md) |

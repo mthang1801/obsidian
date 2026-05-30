@@ -1,79 +1,70 @@
-<!-- tags: golang, data-structures -->
-# 📦 Type System — Slices, Maps, Strings
+<!-- tags: golang, data-structures --> # 📦 Hệ thống loại — Slices , Maps , Chuỗi
 
-> Go type system: built-in types, slices (dynamic arrays), maps (hashmaps), strings (immutable UTF-8)
+> Hệ thống loại Go : các loại tích hợp, slices (động arrays ), maps (hashmap), chuỗi (UTF-8 bất biến)
 
-📅 Created: 2026-03-20 · 🔄 Updated: 2026-04-19 · ⏱️ 15 min read
+📅 Đã tạo: 2026-03-20 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 15 phút đọc
 
-| Aspect            | Detail                                 |
+| Khía cạnh | Chi tiết |
 | ----------------- | -------------------------------------- |
-| **Concept**       | Value types vs reference types         |
-| **Use case**      | Data structures, collections           |
-| **Key insight**   | Slices = reference to underlying array |
-| **Go philosophy** | Composition > inheritance              |
+| **Khái niệm** | Loại giá trị so với loại tham chiếu |
+| **Trường hợp sử dụng** | Cấu trúc dữ liệu, bộ sưu tập |
+| **Thông tin chi tiết quan trọng** | Slices = tham chiếu đến array cơ bản |
+| ** Go triết lý** | Composition > inheritance |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA `sub := original[1:3]` — trông giống như một bản sao, nhưng việc thay đổi `sub[0]` sẽ âm thầm biến đổi `original[1]` . `var cache map[string]int` theo sau là `cache["key"] = 1` — panic . `len("Hello, 世界")` trả về 13, không phải 9. Ba vấn đề cổ điển này có chung một nguyên nhân gốc rễ: hệ thống kiểu của Go phân biệt ngữ nghĩa giá trị với ngữ nghĩa tham chiếu theo những cách mâu thuẫn với trực giác ban đầu của hầu hết các nhà phát triển.
 
-`sub := original[1:3]` — looks like a copy, but changing `sub[0]` silently mutates `original[1]`. `var cache map[string]int` followed by `cache["key"] = 1` — panic. `len("Hello, 世界")` returns 13, not 9. These three classic gotchas share the same root cause: Go's type system distinguishes value semantics from reference semantics in ways that contradict most developers' initial intuitions.
-
-> *You write `sub := original[1:3]` — it looks like a copy, but it is an alias. `sub[0] = 99` and `original[1]` becomes 99 too. Then you write `var cache map[string]int` and call `cache["key"] = 1` — instant panic because the map was never initialized.*
+> *Bạn viết `sub := original[1:3]` — nó trông giống như một bản sao, nhưng nó là bí danh. `sub[0] = 99` và `original[1]` cũng trở thành 99. Sau đó, bạn viết `var cache map[string]int` và gọi `cache["key"] = 1` — ngay lập tức panic vì map chưa bao giờ được khởi tạo.*
 >
-> *These are the classic gotchas of Go's type system: a slice is a reference to a backing array (not a copy), a map must be initialized before writing, and a string is an immutable UTF-8 byte sequence. Understanding these three facts prevents the majority of bugs newcomers encounter in Go.*
+> *Đây là những vấn đề cổ điển của hệ thống loại của Go : a slice là một tham chiếu đến phần sao lưu array (không phải bản sao), a map phải được khởi tạo trước khi ghi và một chuỗi là một chuỗi byte UTF-8 bất biến. Hiểu được ba sự thật này sẽ giúp ngăn ngừa phần lớn các lỗi mà người mới gặp phải trong Go .*
 
-### Built-in Types
+### Các loại tích hợp
 
-| Category    | Types                                            | Zero value |
+| Danh mục | Các loại | Giá trị 0 |
 | ----------- | ------------------------------------------------ | ---------- |
-| **Boolean** | `bool`                                           | `false`    |
-| **Integer** | `int`, `int8/16/32/64`, `uint`, `uint8/16/32/64` | `0`        |
-| **Float**   | `float32`, `float64`                             | `0`        |
-| **Complex** | `complex64`, `complex128`                        | `(0+0i)`   |
-| **String**  | `string` (immutable UTF-8)                       | `""`       |
-| **Byte**    | `byte` (alias `uint8`)                           | `0`        |
-| **Rune**    | `rune` (alias `int32`, Unicode)                  | `0`        |
+| **Boolean** | `bool` | `false` |
+| **Số nguyên** | `int` , `int8/16/32/64` , `uint` , `uint8/16/32/64` | `0` |
+| **Nổi** | `float32` , `float64` | `0` |
+| **Phức tạp** | `complex64` , `complex128` | `(0+0i)` |
+| **Chuỗi** | `string` (UTF-8 bất biến) | `""` |
+| **Byte** | `byte` (bí danh `uint8` ) | `0` |
+| **Chữ rune** | `rune` (bí danh `int32` , Unicode) | `0` |
 
-### Composite Types
+### Các loại tổng hợp
 
-| Type        | Description          | Mutable | Zero value      |
+| Loại | Mô tả | Có thể thay đổi | Giá trị 0 |
 | ----------- | -------------------- | ------- | --------------- |
-| **Array**   | Fixed size `[n]T`    | ✅      | Zeroed elements |
-| **Slice**   | Dynamic `[]T`        | ✅      | `nil`           |
-| **Map**     | Hash map `map[K]V`   | ✅      | `nil`           |
-| **Struct**  | Record `struct{...}` | ✅      | Zeroed fields   |
-| **Channel** | `chan T`             | ✅      | `nil`           |
+| ** Array ** | Kích thước cố định `[n]T` | ✅ | Phần tử không |
+| ** Slice ** | Động `[]T` | ✅ | `nil` |
+| ** Map ** | Băm map `map[K]V` | ✅ | `nil` |
+| ** Struct ** | Ghi `struct{...}` | ✅ | Trường không |
+| ** Channel ** | `chan T` | ✅ | `nil` |
 
-### Slice Internals
+### Slice Nội bộ
 
-| Field | Description                         |
+| Lĩnh vực | Mô tả |
 | ----- | ----------------------------------- |
-| `ptr` | Pointer to underlying array         |
-| `len` | Number of elements                  |
-| `cap` | Capacity (can grow before realloc)  |
+| `ptr` | Pointer đến array cơ bản |
+| `len` | Số phần tử |
+| `cap` | Năng lực (có thể tăng trước khi cấp vốn) |
 
-One classic trap remains: the slice header (ptr, len, cap) is a value type. Pass it into a function, append inside that function, and the caller never sees the new slice. That trap surfaces in PITFALLS.
+Vẫn còn một cái bẫy cổ điển: tiêu đề slice (ptr, len, cap) là một loại giá trị. Chuyển nó vào một hàm, nối vào bên trong hàm đó và người gọi không bao giờ nhìn thấy slice mới. Cái bẫy đó xuất hiện trong PITFALS.
 
 ---
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The hard part is not the type names — it is that these three value groups fail in three distinct ways. The visual below consolidates them into one mental-model card.
+Phần khó không phải là tên loại - đó là ba nhóm giá trị này thất bại theo ba cách khác nhau. Hình ảnh bên dưới hợp nhất chúng thành một thẻ mô hình tinh thần. ![Slices maps strings mental model](./images/01-slices-maps-strings-mental-model.png) *Hình: Bốn sự kiện quan trọng cần nắm giữ đồng thời — slice là một bộ mô tả, nil slice khác với nil map , một chuỗi là byte trước các ký tự và ranh giới đột biến là câu hỏi xem xét mã quan trọng.*
 
-![Slices maps strings mental model](./images/01-slices-maps-strings-mental-model.png)
+Với mô hình này đã được khóa, mỗi ví dụ mã bên dưới sẽ trở thành một bài kiểm tra ngữ nghĩa thay vì một bản demo API bị ngắt kết nối.
 
-*Figure: Four key facts to hold simultaneously — a slice is a descriptor, nil slice differs from nil map, a string is bytes before characters, and the mutation boundary is the critical code-review question.*
+## 3. MÃ
 
-With this model locked in, each code example below becomes a semantics test rather than a disconnected API demo.
+Mô hình tinh thần đã được thiết lập. Bây giờ map mỗi quyết định — sub- slice so với bản sao, nil map so với thực hiện, `+=` so với Builder — để viết mã tiết lộ hành vi thực tế.
 
-## 3. CODE
-
-The mental model is set. Now map each decision — sub-slice versus copy, nil map versus make, `+=` versus Builder — to code that reveals the actual behavior.
-
-### Example 1: Basic — Slices — Core Operations
-> **Goal**: Demonstrate slice creation, sub-slicing, full slice expression, copy, and deletion.
-> **Complexity**: O(1) per operation; append is amortized O(1).
-
-```go
+### Ví dụ 1: Cơ bản — Slices — Hoạt động cốt lõi
+> **Mục tiêu**: Thể hiện việc tạo, cắt phụ, biểu thức slice đầy đủ, sao chép và xóa.
+> **Độ phức tạp**: O(1) cho mỗi thao tác; phần bổ sung được khấu hao O(1).```go
 package main
 
 import "fmt"
@@ -117,17 +108,10 @@ fmt.Println(len(s1), cap(s1))  // 5, 5
 
 fmt.Println(s2, s3, sub, safe, dst, s)
 }
-```
+```> **Takeaway**: Slice sub- slices chia sẻ bộ nhớ — sử dụng `copy()` hoặc biểu thức slice đầy đủ `[a:b:b]` để tách. `append` có thể phân bổ array mới → luôn sử dụng `s = append(s, ...)` . Slices bao gồm dữ liệu tuần tự. Maps cung cấp tra cứu khóa-giá trị O(1) - nhưng việc ghi nil map là ngay lập tức panic .
 
-> **Takeaway**: Slice sub-slices share memory — use `copy()` or full slice expression `[a:b:b]` to detach. `append` can allocate a new array → always use `s = append(s, ...)`.
-
-Slices cover sequential data. Maps provide O(1) key-value lookup — but a nil map write is an instant panic.
-
-### Example 2: Intermediate — Maps
-> **Goal**: CRUD, comma-ok pattern, map-as-set, and nested map initialization.
-> **Complexity**: O(1) per lookup/insert/delete.
-
-```go
+### Ví dụ 2: Trung cấp — Maps > **Mục tiêu**: CRUD, mẫu dấu phẩy-ok, map -as-set và khởi tạo map lồng nhau.
+> **Độ phức tạp**: O(1) mỗi lần tra cứu/chèn/xóa.```go
 package main
 
 import "fmt"
@@ -170,20 +154,13 @@ func main() {
 
 fmt.Println(m, m2, score)
 }
-```
+```> **Tại sao `struct{}` cho map -as-set thay vì `bool` ?**
+> `struct{}` = 0 byte bộ nhớ. `bool` = 1 byte. Đối với map có 1M mục nhập: giúp tiết kiệm 1 MB. Ngoài ra, `struct{}{}` báo hiệu ý định rõ ràng: "chỉ sự tồn tại của khóa là quan trọng, giá trị là không liên quan".
 
-> **Why `struct{}` for map-as-set instead of `bool`?**
-> `struct{}` = 0 bytes of memory. `bool` = 1 byte. For a map with 1M entries: that saves 1MB. Additionally, `struct{}{}` signals intent clearly: "only the key's existence matters, the value is irrelevant".
+> **Bài học rút ra**: Thứ tự lặp lại Map là ngẫu nhiên — sắp xếp các khóa nếu cần kết quả đầu ra xác định. Mẫu dấu phẩy-ok kiểm tra sự tồn tại. `struct{}` cho mẫu map -as-set. Slices xử lý các chuỗi, maps xử lý tra cứu. Các chuỗi trông đơn giản nhưng lại ẩn chứa nhiều bẫy: `len()` đếm byte, `+=` trong một vòng lặp là O(n²).
 
-> **Takeaway**: Map iteration order is random — sort keys if deterministic output is needed. Comma-ok pattern checks existence. `struct{}` for the map-as-set pattern.
-
-Slices handle sequences, maps handle lookups. Strings look simple but hide traps: `len()` counts bytes, `+=` in a loop is O(n²).
-
-### Example 3: Advanced — Strings — UTF-8, Runes, Builder
-> **Goal**: Demonstrate byte vs rune semantics, `range` iteration, rune conversion, and `strings.Builder`.
-> **Complexity**: O(n) for iteration and Builder; O(n²) for naive `+=` concat.
-
-```go
+### Ví dụ 3: Nâng cao — Chuỗi — UTF-8, Runes, Builder > **Mục tiêu**: Thể hiện ngữ nghĩa byte và ngọc, phép lặp `range` , chuyển đổi ngọc và `strings.Builder` .
+> **Độ phức tạp**: O(n) cho phép lặp và Builder ; O(n²) cho concat `+=` ngây thơ.```go
 package main
 
 import (
@@ -226,61 +203,54 @@ func main() {
     // ❌ DON'T: s += "..." in loop (O(n²) allocations)
     // ✅ DO: strings.Builder or strings.Join
 }
-```
+```> **Tại sao `strings.Builder` thay vì `+=` trong một vòng lặp?**
+> `s += "x"` trong một vòng lặp: mỗi lần lặp lại phân bổ một chuỗi mới, sao chép toàn bộ nội dung hiện có cộng với phần mới → phân bổ O(n²). `strings.Builder` : phân bổ trước một bộ đệm, thêm vào tổng số O(1) khấu hao → O(n). Với 100 lần lặp: `+=` tạo ra ~5000 phân bổ, Builder ~4 phân bổ.
 
-> **Why `strings.Builder` instead of `+=` in a loop?**
-> `s += "x"` in a loop: each iteration allocates a new string, copying the entire existing content plus the new part → O(n²) allocations. `strings.Builder`: pre-allocates a buffer, appends in O(1) amortized → O(n) total. With 100 iterations: `+=` produces ~5000 allocs, Builder ~4 allocs.
-
-> **Takeaway**: `len(string)` = bytes, `utf8.RuneCountInString()` = characters. Strings are immutable → convert to `[]rune` to modify. Use `strings.Builder` for concatenation loops.
+> **Takeaway**: `len(string)` = byte, `utf8.RuneCountInString()` = ký tự. Chuỗi không thể thay đổi → chuyển đổi thành `[]rune` để sửa đổi. Sử dụng `strings.Builder` cho các vòng lặp nối.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The mechanics are clear. What remains is recognizing spots where _almost correct_ code carries wrong assumptions into production.
+Cơ chế rõ ràng. Điều còn lại là nhận ra những điểm mà mã _gần như đúng_ mang các giả định sai vào quá trình sản xuất.
 
-| # | Severity | Error | Consequence | Fix |
-|---|----------|-------|-------------|-----|
-| 1 | 🔴 Fatal | nil map write | `m["key"] = 1` panics when `m` was not `make()`d | Always `make(map[K]V)` before writing |
-| 2 | 🔴 Fatal | Slice sub-slice shares memory | Modifying the sub-slice → modifies original data | `copy()` or full slice `[a:b:b]` |
-| 3 | 🟡 Common | `len(string)` = bytes, not chars | Wrong count for UTF-8 strings | `utf8.RuneCountInString()` |
-| 4 | 🟡 Common | Map iteration order is random | Non-deterministic output | Sort keys: `slices.Sort(maps.Keys(m))` |
-| 5 | 🟡 Common | String concat `+=` in loop | O(n²) allocations, slow | `strings.Builder` or `strings.Join` |
-| 6 | 🔵 Minor | Append without reassignment | `append` can return a new slice, old variable becomes stale | Always `s = append(s, ...)` |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|-------|-------------|------|
+| 1 | 🔴 Gây tử vong | nil map viết | `m["key"] = 1` hoảng sợ khi `m` không được `make()` d | Luôn `make(map[K]V)` trước khi viết |
+| 2 | 🔴 Gây tử vong | Slice sub- slice chia sẻ bộ nhớ | Sửa đổi sub- slice → sửa đổi dữ liệu gốc | `copy()` hoặc đầy đủ slice `[a:b:b]` |
+| 3 | 🟡 Chung | `len(string)` = byte, không phải ký tự | Đếm sai chuỗi UTF-8 | `utf8.RuneCountInString()` |
+| 4 | 🟡 Chung | Thứ tự lặp Map là ngẫu nhiên | Đầu ra không xác định | Sắp xếp các khóa: `slices.Sort(maps.Keys(m))` |
+| 5 | 🟡 Chung | Chuỗi concat `+=` trong vòng lặp | Phân bổ O(n²), chậm | `strings.Builder` hoặc `strings.Join` |
+| 6 | 🔵 Nhỏ | Nối thêm mà không cần chỉ định lại | `append` có thể trả về một slice mới, biến cũ trở nên cũ | Luôn `s = append(s, ...)` |
 
-### 🔴 Pitfall #1 — Nil map write = instant panic
+### 🔴 Cạm bẫy #1 — Nil map write = instant panic `var m map[string]int; m["k"] = 1` → panic . A map phải là `make()` d trước khi viết. Đọc từ nil map trả về giá trị 0 (không panic ) - vì vậy lỗi chỉ xuất hiện khi ghi, có thể ở xa trang khai báo.
 
-`var m map[string]int; m["k"] = 1` → panic. A map must be `make()`d before writing. Reading from a nil map returns the zero value (no panic) — so the bug only appears on write, potentially far from the declaration site.
+### 🔴 Cạm bẫy #2 — Sub- slice chia sẻ bộ nhớ `sub := original[1:3]` không sao chép dữ liệu - `sub` và `original` có chung cơ sở array . Sửa đổi `sub[0]` → `original[1]` được thay đổi. Biểu thức slice đầy đủ `original[1:3:3]` giới hạn phụ- slice → `append` phải phân bổ một array mới.
 
-### 🔴 Pitfall #2 — Sub-slice shares memory
-
-`sub := original[1:3]` does not copy data — `sub` and `original` share the same underlying array. Modifying `sub[0]` → `original[1]` is changed. Full slice expression `original[1:3:3]` caps the sub-slice → `append` must allocate a new array.
-
-The resources below go deeper into internals.
+Các tài nguyên dưới đây đi sâu hơn vào nội bộ.
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource       | Type     | Link                                                         | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | -------------- | -------- | ------------------------------------------------------------ | ----- |
-| Go Slices      | Official | [go.dev/blog/slices-intro](https://go.dev/blog/slices-intro) | Slice internals deep dive |
-| Go Maps        | Official | [go.dev/blog/maps](https://go.dev/blog/maps)                 | Map implementation |
-| Go Strings     | Official | [go.dev/blog/strings](https://go.dev/blog/strings)           | UTF-8, rune, byte |
-| slices package | Official | [pkg.go.dev/slices](https://pkg.go.dev/slices)               | Go 1.21+ generic helpers |
+| Go Slices | Chính thức | [go.dev/blog/slices-intro](https://go.dev/blog/slices-intro) | Slice lặn sâu bên trong |
+| Go Maps | Chính thức | [go.dev/blog/maps](https://go.dev/blog/maps) | Map triển khai |
+| Go Chuỗi | Chính thức | [go.dev/blog/strings](https://go.dev/blog/strings) | UTF-8, rune, byte |
+| slices package | Chính thức | [pkg.go.dev/slices](https://pkg.go.dev/slices) | Go 1.21+ generic người trợ giúp |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-These extensions bridge data-structure knowledge into safe, efficient production code.
+Những phần mở rộng này kết nối kiến thức về cấu trúc dữ liệu vào mã sản xuất an toàn, hiệu quả.
 
-| Extension | When | Rationale | File/Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tệp/Liên kết |
 | --------- | ---- | --------- | --------- |
-| Generics | Type-safe collections | `Filter[T]`, `Map[T,U]`, generic containers | [02-generics.md](./02-generics.md) |
-| `sync.Map` | Concurrent map access | Thread-safe map for high-contention scenarios | [../helper/09-set-concurrent-map.md](../helper/09-set-concurrent-map.md) |
-| `slices` package | Go 1.21+ helpers | `slices.Sort`, `slices.Contains`, `slices.Delete` | [pkg.go.dev/slices](https://pkg.go.dev/slices) |
-| `strings.Builder` | String concat loop | Efficient alternative to `+=` (O(n) vs O(n²)) | [../functions/02-strings.md](../functions/02-strings.md) |
+| Generics | Bộ sưu tập an toàn loại | `Filter[T]` , `Map[T,U]` , generic container | [02-generics.md](./02-generics.md) |
+| `sync.Map` | Truy cập đồng thời map | Thread -safe map cho các tình huống có tính cạnh tranh cao | [../helper/09-set-concurrent-map.md](../helper/09-set-concurrent-map.md) |
+| `slices` package | Go 1.21+ người trợ giúp | `slices.Sort` , `slices.Contains` , `slices.Delete` | [pkg.go.dev/slices](https://pkg.go.dev/slices) |
+| `strings.Builder` | Vòng lặp nối chuỗi | Thay thế hiệu quả cho `+=` (O(n) vs O(n²)) | [../functions/02-strings.md](../functions/02-strings.md) |
 
-**Navigation**: [← Basics](../basics/README.md) · [→ Generics](./02-generics.md)
-
+**Điều hướng**: [← Basics](../basics/README.md) · [→ Generics](./02-generics.md)

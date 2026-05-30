@@ -1,56 +1,53 @@
-<!-- tags: golang, fundamentals, design -->
-# Design System: TS/JS to Go Translation Bridge
+<!-- tags: golang, fundamentals, design --> # Hệ thống thiết kế: Cầu dịch TS/JS sang Go > Khung trực quan này quy định các ranh giới bố cục ánh xạ các mô hình JavaScript động một cách an toàn theo các cấu trúc đặc ngữ Go nghiêm ngặt. Nó thiết lập các phương pháp màu sắc để tách các không gian tên gốc khỏi môi trường đích.
 
-> This visual framework dictates the layout boundaries mapping dynamic JavaScript paradigms securely toward strict idiomatic Go structures. It establishes color methodologies separating origin namespaces from target environments.
+📅 Cập nhật: 2026-04-14 · ⏱️ 5 phút đọc.
 
-📅 Updated: 2026-04-14 · ⏱️ 5 minutes read.
+## 1. Nhận dạng hình ảnh
 
-## 1. Visual Identity
+### 1.1 Tâm trạng
 
-### 1.1 Mood Statement
+Mã di chuyển giống như quá trình chuyển đổi giữa các hệ thống đô thị độc lập. TypeScript đại diện cho đèn neon và kiểu gõ async động. Go đại diện cho các cấu trúc huỳnh quang cứng và cấu trúc liên kết goroutine có cấu trúc. 
 
-Migrating code resembles transiting between independent metro systems. TypeScript represents neon lights and dynamic async typings. Go represents rigid fluorescent structures and structured goroutine topologies. 
+### 1.2 Ẩn dụ tường thuật
 
-### 1.2 Narrative Metaphor
+Một cây cầu trung chuyển khổng lồ kết nối hai khu kỹ thuật riêng biệt. Ranh giới bên trái hiển thị các mẫu TypeScript động phát ra các chỉ báo màu xanh lam. Ranh giới bên phải hiển thị Go tương đương phát ra tông màu hổ phách ấm áp. 
 
-A massive transit bridge connects two distinct engineering districts. The left boundary displays dynamic TypeScript patterns radiating blue indicators. The right boundary displays Go equivalents emanating warm amber tones. 
+### 1.3 DNA thiết kế
 
-### 1.3 Design DNA
+Thư mục này về cơ bản khác với các hướng dẫn giảng dạy cơ bản. Nó giả sử người đọc đã sử dụng thành thạo TypeScript. Các yếu tố nhận dạng trực quan phải phản ánh tính song ngữ này một cách cố hữu. Tránh hoàn toàn các lá cờ quốc gia hoạt hình hoặc tính thẩm mỹ mang tính cạnh tranh.
 
-This directory diverges fundamentally from basic instructional guides. It assumes readers already command TypeScript fluently. Visual identifiers must reflect this bilingualism inherently. Avoid cartoonish country flags or competitive aesthetics completely.
+## 2. Cấu trúc thành phần
 
-## 2. Component Structures
+### Bảng màu 2.1
 
-### 2.1 Color Palette
+- **TypeScript Blue** ( `#3178C6` ): Biểu thị các mô hình nguồn xác định ranh giới thực thi bên trái.
+- ** Go Amber** ( `#D4A574` ): Thể hiện các kiến ​​trúc đích xác định các đích biên dịch đáng tin cậy nguyên bản.
+- **Bridge Dark** ( `#1E1E2E` ): Thiết lập vùng so sánh trung lập quản lý các bảng tương tác một cách an toàn.
+- **Màu xanh lá cây chuyển đổi** ( `#10B981` ): Làm nổi bật việc di chuyển thành ngữ thành công ánh xạ rõ ràng các đường dẫn hoạt động chính xác.
+- **Cảnh báo Coral** ( `#F87171` ): Xác định các bẫy dịch nguy hiểm ngăn chặn các dị thường lớn runtime một cách cưỡng bức.
 
-- **TypeScript Blue** (`#3178C6`): Represents source paradigms identifying left-side execution boundaries.
-- **Go Amber** (`#D4A574`): Represents target architectures identifying trusted compilation destinations natively.
-- **Bridge Dark** (`#1E1E2E`): Establishes neutral comparison zones managing interaction tables securely.
-- **Conversion Green** (`#10B981`): Highlights successful idiom migrations mapping correct operational paths cleanly.
-- **Warning Coral** (`#F87171`): Identifies dangerous translation traps preventing massive runtime anomalies forcefully.
+### 2.2 Quy tắc kiểu chữ
 
-### 2.2 Typography Rules
+- **Cấu trúc chính**: `DM Sans` cung cấp các bảng so sánh dày đặc xử lý hình học mạnh mẽ hiện đại nguyên bản.
+- **Văn xuôi giải thích**: `Source Serif 4` duy trì tính nhất quán về kiến ​​trúc gốc, hỗ trợ bối cảnh di chuyển sâu một cách thoải mái.
+- **Thực thể mã**: `Fira Code` nhắm mục tiêu cả khối TypeScript và Go duy trì căn chỉnh dọc một cách hoàn hảo.
 
-- **Primary Structure**: `DM Sans` provides modern robust geometry handling dense comparison tables natively.
-- **Explanatory Prose**: `Source Serif 4` maintains parent architectural consistency supporting deep migration contexts comfortably.
-- **Code Entities**: `Fira Code` targets both TypeScript and Go blocks maintaining vertical alignment flawlessly.
+## 3. Quy ước về cấu trúc
 
-## 3. Structural Conventions
+### 3.1 Chia bố cục
 
-### 3.1 Split Layouts
+Triển khai các ma trận so sánh chặt chẽ. Đặt các cấu trúc liên kết TypeScript cô lập các ranh giới màu xanh lam liền kề theo chiều ngang về phía tương đương Go để hiển thị các ranh giới màu hổ phách một cách liền mạch. 
 
-Deploy rigorous comparative matrices. Place TypeScript topologies isolating blue boundaries horizontally adjacent toward Go equivalents rendering amber boundaries seamlessly. 
+### 3.2 Chú thích sơ đồ
 
-### 3.2 Diagram Annotations
+Tất cả các ánh xạ cầu nối đều sử dụng mũi tên `Conversion Green` theo dõi việc di chuyển khái niệm một cách rõ ràng. Không tận dụng các phản mẫu làm nổi bật ranh giới màu đỏ chính; thực thi các ranh giới `Warning Coral` đảm bảo độ tương phản hình ảnh nhẹ nhàng hơn một cách an toàn.
 
-All bridge mappings utilize `Conversion Green` arrows tracking conceptual migrations definitively. Do not leverage primary red boundaries highlighting antipatterns; enforce `Warning Coral` boundaries securing softer visual contrasts securely.
+## 4. Chống mẫu
 
-## 4. Anti-Patterns
+Việc từ chối những ràng buộc về văn phong sẽ làm tổn hại đến tính rõ ràng của bản dịch về mặt cấu trúc.
 
-Refusing stylistic constraints damages translation clarity structurally.
-
-| # | Defect | Fix |
+| # | Khiếm khuyết | Sửa chữa |
 | --- | --- | --- |
-| 1 | Blending language blocks indiscriminately | Utilize distinct `Blue/Amber` color bounds separating execution ecosystems permanently. |
-| 2 | Competing framework aesthetics | Avoid portraying JavaScript inferiorly. Frame comparisons objectively emphasizing native idiomatic transitions completely. |
-| 3 | Overloading conceptual visuals | Anchor single explicit translation topologies restricting unnecessary vector illustrations fully. |
+| 1 | Pha trộn các khối ngôn ngữ một cách bừa bãi | Sử dụng các giới hạn màu `Blue/Amber` riêng biệt để phân tách vĩnh viễn các hệ sinh thái thực thi. |
+| 2 | Thẩm mỹ khung cạnh tranh | Tránh miêu tả JavaScript một cách kém cỏi. Khung so sánh nhấn mạnh một cách khách quan sự chuyển đổi thành ngữ bản địa một cách hoàn toàn. |
+| 3 | Quá tải hình ảnh khái niệm | Neo các cấu trúc liên kết dịch rõ ràng duy nhất hạn chế đầy đủ các minh họa vector không cần thiết. |

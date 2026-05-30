@@ -1,65 +1,46 @@
-<!-- tags: golang -->
-# 📦 Binding & Validation — JSON, Form, File Upload
+<!-- tags: golang --> # 📦 Ràng buộc & Xác thực - JSON, Biểu mẫu, Tải tệp lên
 
-> **Library**: Bind JSON/form/URI data to Go structs and validate with `binding:` tags powered by `go-playground/validator`.
+> **Thư viện**: Liên kết dữ liệu JSON/form/URI với cấu trúc Go và xác thực bằng thẻ `binding:` được hỗ trợ bởi `go-playground/validator` .
 
-📅 Updated: 2026-04-19 · ⏱️ 14 min read
+📅 Cập nhật: 2026-04-19 · ⏱️ 14 phút đọc
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Gin’s `ShouldBind*` methods decode request data into a struct and run `go-playground/validator` rules from `binding:` tags — one line replaces manual parsing.
+Các phương thức `ShouldBind*` của Gin giải mã dữ liệu yêu cầu thành một cấu trúc và chạy các quy tắc `go-playground/validator` từ các thẻ `binding:` - một dòng thay thế phân tích cú pháp thủ công.
 
-| Method                    | Source                             |
+| Phương pháp | Nguồn |
 | ------------------------- | ---------------------------------- |
-| `c.ShouldBindJSON(&obj)`  | JSON request body                  |
-| `c.ShouldBindQuery(&obj)` | URL query parameters (`?page=2`)   |
-| `c.ShouldBindUri(&obj)`   | Path parameters (`:id`)            |
+| `c.ShouldBindJSON(&obj)` | Nội dung yêu cầu JSON |
+| `c.ShouldBindQuery(&obj)` | Tham số truy vấn URL ( `?page=2` ) |
+| `c.ShouldBindUri(&obj)` | Tham số đường dẫn ( `:id` ) |
 
-### Key Invariants
+### Bất biến chính
 
-- **Use `ShouldBind*` (not `Bind*`) for custom error responses.** `Bind*` auto-writes 400.
-- **Pointer fields + `omitempty` = PATCH semantics.** Non-nil means the client sent this field.
+- **Sử dụng `ShouldBind*` (không phải `Bind*` ) cho phản hồi lỗi tùy chỉnh.** `Bind*` tự động ghi 400.
+- **Trường con trỏ + `omitempty` = Ngữ nghĩa PATCH.** Khác không có nghĩa là khách hàng đã gửi trường này.
 
-## 2. VISUAL
-
-![Binding and validation pipeline — request sources → struct hydration → validator](./images/01-binding-validation-pipeline.png)
-
-*Figure: Gin binding pipeline — raw request data from JSON body, query string, or URL path flows through ShouldBind\* into a typed struct, then go-playground/validator checks binding tags. Pass = clean struct, Fail = 400 with field-level errors.*
-
-```mermaid
+## 2. HÌNH ẢNH ![Binding and validation pipeline — request sources → struct hydration → validator](./images/01-binding-validation-pipeline.png) *Hình: Đường dẫn liên kết Gin — dữ liệu yêu cầu thô từ nội dung JSON, chuỗi truy vấn hoặc đường dẫn URL chảy qua ShouldBind\* vào một cấu trúc đã nhập, sau đó go-playground/validator kiểm tra các thẻ liên kết. Đạt = cấu trúc sạch, Thất bại = 400 với lỗi cấp trường.*```mermaid
 flowchart LR
     A["Raw Request"] -->|"ShouldBindJSON"| B["Struct Hydration"]
     B --> C{"Validator\nrules pass?"}
     C -->|Yes| D["Clean struct"]
     C -->|No| E["400 + field errors"]
-```
-
-*Figure: Binding pipeline — raw request → ShouldBindJSON → struct hydration → validator rules → error or clean struct.*
-
-```mermaid
+```*Hình: Đường dẫn liên kết — yêu cầu thô → ShouldBindJSON → hydrat hóa cấu trúc → quy tắc xác thực → lỗi hoặc cấu trúc sạch.*```mermaid
 flowchart TD
     A{"Where is\nthe data?"} -->|"Body (JSON)"| B["ShouldBindJSON"]
     A -->|"Query string"| C["ShouldBindQuery"]
     A -->|"URL path"| D["ShouldBindUri"]
     A -->|"Form POST"| E["ShouldBind"]
-```
+```*Hình: Cây quyết định — chọn ShouldBindJSON (nội dung), ShouldBindQuery (chuỗi truy vấn) hoặc ShouldBindUri (đường dẫn).*
 
-*Figure: Decision tree — choose ShouldBindJSON (body), ShouldBindQuery (querystring), or ShouldBindUri (path).*
-
-### Binding Flow
-
-```text
+### Luồng liên kết```text
 POST /users  {"name":"Alice","email":"a@b.com","age":17}
     ├── ShouldBindJSON decodes into CreateUserRequest
     ├── Validator checks: age gte=18 → FAIL
     └── Handler returns 400 with validation details
-```
+```## 3. MÃ
 
-## 3. CODE
-
-### Example 1: Basic — JSON Property Bindings
-
-```go
+### Ví dụ 1: Cơ bản — Ràng buộc thuộc tính JSON```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // CreateUserRequest: binding tags validate on decode.
     // UpdateUserRequest: pointer fields for PATCH (nil = not sent).
@@ -112,11 +93,7 @@ POST /users  {"name":"Alice","email":"a@b.com","age":17}
             },
         })
     }
-```
-
-### Example 2: Intermediate — Query and URI Targeting
-
-```go
+```### Ví dụ 2: Trung cấp — Nhắm mục tiêu truy vấn và URI```go
     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
     // ShouldBindQuery: maps ?page=2&sort=name to struct.
     // ShouldBindUri: maps :id path param using uri: tags.
@@ -157,30 +134,28 @@ POST /users  {"name":"Alice","email":"a@b.com","age":17}
 
         c.JSON(200, gin.H{"id": uri.ID})
     }
-```
+```---
 
----
+## 4. Cạm bẫy
 
-## 4. PITFALLS
-
-| # | Severity | Defect | Impact | Fix |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Tác động | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Using `c.BindJSON` instead of `c.ShouldBindJSON` | Auto-writes 400; can’t customize error body | Always use `ShouldBind*` and handle errors yourself |
-| 2 | 🔴 Fatal | Accepting raw `map[string]any` instead of typed struct | No validation, no type safety | Define request structs with `binding:` tags |
+| 1 | 🔴 Gây tử vong | Sử dụng `c.BindJSON` thay vì `c.ShouldBindJSON` | Tự động viết 400; không thể tùy chỉnh nội dung lỗi | Luôn sử dụng `ShouldBind*` và tự xử lý lỗi |
+| 2 | 🔴 Gây tử vong | Chấp nhận `map[string]any` thô thay vì gõ struct | Không xác nhận, không an toàn về loại | Xác định cấu trúc yêu cầu bằng thẻ `binding:` |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Link |
+| Tài nguyên | Liên kết |
 | --- | --- |
-| Validator | [github.com/go-playground/validator](https://github.com/go-playground/validator) |
-| Gin Official | [gin-gonic.com/en/docs](https://gin-gonic.com/en/docs/) |
+| Trình xác thực | [github.com/go-playground/validator](https://github.com/go-playground/validator) |
+| Gin chính thức | [gin-gonic.com/en/docs](https://gin-gonic.com/en/docs/) |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-| Extension | When | Rationale | Resource |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tài nguyên |
 | --- | --- | --- | --- |
-| File Uploads | When accepting binary uploads (images, docs) | Multipart parsing, size limits, content-type validation | [./02-file-upload-multipart.md](./02-file-upload-multipart.md) |
+| Tải lên tệp | Khi chấp nhận tải lên nhị phân (hình ảnh, tài liệu) | Phân tích cú pháp nhiều phần, giới hạn kích thước, xác thực loại nội dung | [./02-file-upload-multipart.md](./02-file-upload-multipart.md) |

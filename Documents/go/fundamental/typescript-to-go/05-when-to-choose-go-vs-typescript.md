@@ -1,84 +1,77 @@
-<!-- tags: golang, typescript, architecture -->
-# ⚖️ When to Choose Go, When to Keep TypeScript.
+<!-- tags: golang, typescript, architecture --> # ⚖️ Khi nào nên chọn Go , Khi nào nên giữ TypeScript.
 
-> A guide to senior/principal decision-making: appropriate use cases, pragmatic pros/cons, hybrid architecture, and current trend signals of the two languages.
+> Hướng dẫn ra quyết định cấp cao/hiệu trưởng: trường hợp sử dụng phù hợp, ưu/nhược điểm thực dụng, kiến ​​trúc kết hợp và tín hiệu xu hướng hiện tại của hai ngôn ngữ.
 
-📅 Created: 2026-04-06 · 🔄 Updated: 2026-04-19 · ⏱️ 19 min read
+📅 Đã tạo: 2026-04-06 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 19 phút đọc
 
-| Aspect | Detail |
+| Khía cạnh | Chi tiết |
 | --- | --- |
-| **Focus** | Language choice, workload fit, long-term trade-offs |
-| **Use case** | Greenfield service, team split, scale-up rewrite, hybrid stack decisions |
-| **Key diff** | TypeScript optimized for full-stack/product velocity; Go is optimized for operational simplicity and targeted throughput |
-| **Go stdlib** | `net/http`, `encoding/json`, `bufio`, `os` |
+| **Tập trung** | Lựa chọn ngôn ngữ, phù hợp với khối lượng công việc, cân bằng lâu dài |
+| **Trường hợp sử dụng** | Dịch vụ Greenfield, tách nhóm, viết lại mở rộng quy mô, quyết định kết hợp stack |
+| **Khác biệt về phím** | TypeScript được tối ưu hóa cho tốc độ đầy đủ- stack /sản phẩm; Go được tối ưu hóa để đơn giản hóa hoạt động và thông lượng mục tiêu |
+| ** Go stdlib** | `net/http` , `encoding/json` , `bufio` , `os` |
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-The most difficult problem is not "How much faster is Go than TypeScript". The hardest problem is: **Which language will help your team make better decisions in the next 12-24 months?**.
+Vấn đề khó khăn nhất không phải là " Go nhanh hơn TypeScript bao nhiêu". Vấn đề khó khăn nhất là: **Ngôn ngữ nào sẽ giúp nhóm của bạn đưa ra quyết định tốt hơn trong 12-24 tháng tới?**.
 
-If you choose based on short-term benchmarks, you can easily rewrite things that are not worth rewriting. If you choose based on personal preference, you can overlook team composition, hiring pipeline, frontend sharing, and real operational cost.
+Nếu bạn chọn dựa trên benchmarks ngắn hạn, bạn có thể dễ dàng viết lại những thứ không đáng viết lại. Nếu chọn dựa trên sở thích cá nhân, bạn có thể bỏ qua nhóm composition , tuyển dụng pipeline , chia sẻ giao diện người dùng và chi phí vận hành thực tế.
 
-For TypeScript engineers, the most common trap is thinking Go is only worth using for "super fast services". The reality is broader than that:
+Đối với các kỹ sư TypeScript, cái bẫy phổ biến nhất là nghĩ rằng Go chỉ đáng sử dụng cho "các dịch vụ siêu nhanh". Thực tế còn rộng hơn thế:
 
-- Go is strong when you need clear concurrency, simple binary deployment, predictable resource usage, and consistent tooling.
-- TypeScript is strong when you need full-stack type sharing, ecosystem breadth, product iteration speed, and a JS-heavy team that can move fast.
+- Go mạnh mẽ khi bạn cần concurrency rõ ràng, triển khai nhị phân đơn giản, mức sử dụng tài nguyên có thể dự đoán được và công cụ nhất quán.
+- TypeScript mạnh mẽ khi bạn cần chia sẻ kiểu đầy đủ stack , độ rộng của hệ sinh thái, tốc độ lặp lại sản phẩm và một nhóm nặng về JS có thể di chuyển nhanh.
 
-This is not an article about choosing language to win an argument.
+Đây không phải là bài viết về việc lựa chọn ngôn ngữ để giành chiến thắng trong một cuộc tranh luận.
 
-This is an article on choosing a language to reduce regret.
+Đây là bài viết về việc chọn ngôn ngữ để giảm bớt sự hối tiếc.
 
-### 1.1 Pragmatic use cases: when Go is often the better choice.
+### 1.1 Các trường hợp sử dụng thực dụng: khi Go thường là lựa chọn tốt hơn.
 
-- API/service has stable load, many parallel I/O calls, needs P95/P99 latency control, and easy-to-reason concurrency.
-- Worker, queue consumer, ingestion pipeline, streaming transform
-- CLI, developer tooling, infra automation, sidecar, control plane
-- Service runs for a long time, requiring more predictable memory/CPU usage than equivalent Node.js workloads.
+- API/dịch vụ có tải ổn định, nhiều lệnh gọi I/O song song, cần kiểm soát độ trễ P95/P99 và dễ lý trí concurrency .
+- Công nhân, người tiêu dùng xếp hàng, nhập pipeline , chuyển đổi phát trực tuyến
+- CLI, công cụ dành cho nhà phát triển, tự động hóa cơ sở hạ tầng, sidecar, mặt phẳng điều khiển
+- Dịch vụ chạy trong thời gian dài time , yêu cầu mức sử dụng bộ nhớ/CPU có thể dự đoán được nhiều hơn khối lượng công việc Node.js tương đương.
 
-### 1.2 When keeping TypeScript is usually the better decision.
+### 1.2 Khi giữ lại TypeScript thường là quyết định tốt hơn.
 
-- The product/full-stack team wants to share types, validation schema, DTO, client contracts.
-- Business domains change quickly, feature churn is high, web ecosystem is the focus.
-- You need to leverage a deep web framework/Node ecosystem like Next.js, NestJS, tRPC, Prisma, Zod.
-- Strong team in JS/TS but no real bandwidth to build Go capacity.
+- Nhóm sản phẩm/đầy đủ- stack muốn chia sẻ các loại, lược đồ xác thực, DTO, hợp đồng khách hàng.
+- Lĩnh vực kinh doanh thay đổi nhanh chóng, tỷ lệ sử dụng tính năng cao, hệ sinh thái web là trọng tâm.
+- Bạn cần tận dụng hệ sinh thái deep web framework/Node như Next.js, NestJS, tRPC, Prisma, Zod.
+- Đội ngũ mạnh về JS/TS nhưng không có băng thông thực sự để xây dựng năng lực Go .
 
-### 1.3 Current trends and the near future.
+### 1.3 Xu hướng hiện tại và tương lai gần.
 
-According to GitHub Octoverse announced at the end of 2025, **August 2025** was the first time TypeScript surpassed Python and JavaScript to become the most used language on GitHub. GitHub also states that this trend reflects the maturation of TypeScript as a full-stack default.
+Theo GitHub Octoverse công bố vào cuối năm 2025, **Tháng 8 năm 2025** là time TypeScript đầu tiên vượt qua Python và JavaScript để trở thành ngôn ngữ được sử dụng nhiều nhất trên GitHub. GitHub cũng tuyên bố rằng xu hướng này phản ánh sự trưởng thành của TypeScript dưới dạng mặc định đầy đủ stack .
 
-That doesn't mean TypeScript "wins completely". It means:
+Điều đó không có nghĩa là TypeScript "thắng hoàn toàn". Nó có nghĩa là:
 
-- TypeScript is the clear default of the modern web/full-stack.
-- Go is still not the most popular language, but it holds a very strong position in cloud, infrastructure, services, and tooling — and is growing steadily in areas where operational reliability matters.
+- TypeScript là mặc định rõ ràng của web/full- stack hiện đại.
+- Go vẫn không phải là ngôn ngữ phổ biến nhất, nhưng nó giữ vị trí rất mạnh trong đám mây, cơ sở hạ tầng, dịch vụ và công cụ — và đang phát triển ổn định trong các lĩnh vực mà độ tin cậy vận hành là quan trọng.
 
-About the future of technology:
+Về tương lai của công nghệ:
 
-- On **March 11, 2025**, the TypeScript team announced a native port of compiler/tooling in Go with the goal of improving build times by about 10x and paving the way for TypeScript 7.
-- On **August 1, 2025**, TypeScript 5.9 was released and the team described TypeScript 6 as a transition to prepare for TypeScript 7 native.
-- On **August 2025**, Go 1.25 was released. Release notes show that Go continues to keep a very conservative evolution on the language surface but invests heavily in the toolchain/runtime instead of adding new syntax.
+- Vào **ngày 11 tháng 3 năm 2025**, nhóm TypeScript đã công bố một cổng trình biên dịch/công cụ gốc trong Go với mục tiêu cải thiện thời gian xây dựng lên khoảng 10 lần và mở đường cho TypeScript 7.
+- Vào **ngày 1 tháng 8 năm 2025**, TypeScript 5.9 được phát hành và nhóm mô tả TypeScript 6 như một bước chuyển đổi để chuẩn bị cho TypeScript 7 gốc.
+- Vào **tháng 8 năm 2025**, Go 1.25 đã được phát hành. Ghi chú phát hành cho thấy rằng Go tiếp tục duy trì sự phát triển rất thận trọng trên bề mặt ngôn ngữ nhưng đầu tư mạnh vào chuỗi công cụ/ runtime thay vì thêm cú pháp mới.
 
-**Inference from the above sources**: in the next 2-3 years, TypeScript is likely to get even stronger in developer experience for large codebases and AI-assisted coding; Go will continue to win in operational simplicity, binary deployment, and performance-sensitive workloads.
+**Suy luận từ các nguồn trên**: trong 2-3 năm tới, TypeScript có thể sẽ còn mạnh mẽ hơn nữa về trải nghiệm của nhà phát triển đối với các cơ sở mã lớn và mã hóa được hỗ trợ bởi AI; Go sẽ tiếp tục giành chiến thắng nhờ tính đơn giản trong vận hành, triển khai nhị phân và khối lượng công việc nhạy cảm với hiệu suất.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-This is a decision document, so static visual assets help scan faster than ASCII: one look and you can see both the decision question series and the boundary hybrid production.
+Đây là tài liệu quyết định, vì vậy nội dung trực quan tĩnh giúp quét nhanh hơn ASCII: chỉ cần nhìn một lần là bạn có thể thấy cả chuỗi câu hỏi quyết định và sản phẩm kết hợp ranh giới. ![Go vs TypeScript Decision Map](./images/go-vs-typescript-decision-map.png) *Hình: Bảng điều khiển bên trái là cây quyết định nghiêng về TypeScript, Go hoặc hybrid. Bảng bên phải hiển thị quá trình sản xuất phân chia điển hình trong đó cả hai đều chiếm vị trí hợp lý.*
 
-![Go vs TypeScript Decision Map](./images/go-vs-typescript-decision-map.png)
+## 3. MÃ
 
-*Figure: The left panel is the decision tree to lean towards TypeScript, Go, or hybrid. The right panel shows a typical split production where both occupy a reasonable position.*
+Lựa chọn ngôn ngữ không thể chỉ được thảo luận trong bảng. Ba ví dụ Go bên dưới minh họa các trường hợp sử dụng trong đó Go thường tạo ra đòn bẩy rõ ràng nhất; Sự so sánh với TypeScript nằm trong phần văn xuôi đi kèm.
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Dịch vụ HTTP JSON nhỏ với tư duy ưu tiên stdlib.
 
-Language choice cannot be discussed only in tables. The three Go examples below illustrate the use cases where Go often creates the clearest leverage; The comparison with TypeScript is in the accompanying prose.
+> **Mục tiêu**: Minh họa lý do tại sao Go phù hợp với các dịch vụ nhỏ có ít phần phụ thuộc cần triển khai đơn giản.
+> **Cách tiếp cận**: Sử dụng trực tiếp `net/http` và `encoding/json` .
+> **Ví dụ**: `/health` và `/version` .
 
-### Example 1: Basic — Small HTTP JSON service with stdlib-first mindset.
-
-> **Goal**: Illustrate why Go is suitable for small services with few dependencies that need simple deployment.
-> **Approach**: Use `net/http` and `encoding/json` directly.
-> **Example**: `/health` and `/version`.
-
-The TypeScript version is often a reasonable starting point for the web app/API layer:
-
-```typescript
+Phiên bản TypeScript thường là điểm khởi đầu hợp lý cho lớp API/ứng dụng web:```typescript
 import express from "express";
 
 const app = express();
@@ -93,11 +86,7 @@ app.get("/health", (_req, res) => {
 app.listen(8080, () => {
   console.log("listening on :8080");
 });
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -123,21 +112,17 @@ func main() {
 		panic(err)
 	}
 }
-```
+```> **Bài học rút ra**: Nếu dịch vụ của bạn chủ yếu là API nội bộ hoặc điểm cuối tiếp cận cơ sở hạ tầng, Go thường cung cấp đường cơ sở rất nhỏ gọn. TypeScript vẫn phù hợp hơn nếu bạn cần hệ sinh thái web hoặc tích hợp giao diện người dùng sâu.
 
-> **Takeaway**: If your service is primarily an internal API or infra-facing endpoint, Go often provides a very compact baseline. TypeScript is still better suited if you need the web ecosystem or deep frontend integration.
+Một dịch vụ HTTP nhỏ hiển thị đường cơ sở. Nhưng đòn bẩy lớn của Go chỉ trở nên rõ ràng hơn khi khối lượng công việc bắt đầu có concurrency và áp lực ngược.
 
-A small HTTP service that exposes the baseline. But Go's big leverage only becomes more apparent when workloads start to have concurrency and back-pressure.
+### Ví dụ 2: Trung cấp — giới hạn worker pool ​​cho khối lượng công việc theo lô/hàng đợi.
 
-### Example 2: Intermediate — bounded worker pool for batch/queue workloads.
+> **Mục tiêu**: Minh họa khối lượng công việc trong đó Go thường vượt trội rõ ràng so với Node/TypeScript về khả năng hoạt động.
+> **Phương pháp tiếp cận**: Xử lý công việc với worker pool cố định.
+> **Ví dụ**: 8 công việc, tối đa 3 công nhân.
 
-> **Goal**: Illustrate the workload where Go often clearly outperforms Node/TypeScript in operability.
-> **Approach**: Process jobs with a fixed worker pool.
-> **Example**: 8 jobs, maximum 3 workers.
-
-The TypeScript version can do it, but usually needs to keep its own concurrency discipline:
-
-```typescript
+Phiên bản TypeScript có thể làm được điều đó, nhưng thường cần phải giữ kỷ luật concurrency của riêng nó:```typescript
 async function worker(id: number, jobs: number[]): Promise<void> {
   while (jobs.length > 0) {
     const job = jobs.shift();
@@ -159,11 +144,7 @@ async function main() {
 }
 
 void main();
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -196,23 +177,19 @@ func main() {
 
 	wg.Wait()
 }
-```
+```> **Tại sao?** Loại khối lượng công việc này có thể thực hiện được trong TypeScript, nhưng Go ​​thường đơn giản hơn khi bạn cần kiểm soát đồng thời concurrency , áp lực ngược, hủy bỏ và dấu chân triển khai. Đây là nơi lợi thế của Go trở nên rõ ràng nhất.
 
-> **Why?** This type of workload is possible in TypeScript, but Go is often simpler when you need to control concurrency, back-pressure, cancellation, and deployment footprint simultaneously. This is where Go's advantage becomes most visible.
+> **Takeaway**: Xếp hàng người tiêu dùng, chuyển đổi luồng và dịch vụ cron/batch là lãnh thổ tự nhiên của Go .
 
-> **Takeaway**: Queue consumers, stream transforms, and cron/batch services are Go's natural territory.
+Nếu công nhân và người tiêu dùng là nơi [[E5]]] giành chiến thắng về khả năng hoạt động, thì CLI và công cụ là nơi lợi thế đó trở nên rất khó bỏ qua.
 
-If workers and consumers are where Go wins in terms of operability, CLI and tooling are where that advantage becomes very difficult to ignore.
+### Ví dụ 3: Nâng cao - CLI xử lý các tệp lớn, một tệp nhị phân là đủ.
 
-### Example 3: Advanced — CLI handles large files, one binary is enough.
+> **Mục tiêu**: Minh họa trường hợp sử dụng trong đó Go thường mang lại trải nghiệm vượt trội cho nhà phát triển.
+> **Phương pháp tiếp cận**: Truyền phát tệp theo từng dòng thay vì tải toàn bộ tệp vào bộ nhớ.
+> **Ví dụ**: Đếm dòng nhật ký lỗi từ một tệp đầu vào.
 
-> **Goal**: Illustrate a use case where Go typically excels in developer experience.
-> **Approach**: Stream files line-by-line instead of loading the entire file into memory.
-> **Example**: Count error log lines from an input file.
-
-The TypeScript version usually still depends on the Node runtime:
-
-```typescript
+Phiên bản TypeScript thường vẫn phụ thuộc vào Node runtime :```typescript
 import * as fs from "node:fs";
 import * as readline from "node:readline";
 
@@ -237,11 +214,7 @@ async function main() {
 }
 
 void main();
-```
-
-Corresponding Go version:
-
-```go
+```Phiên bản Go tương ứng:```go
 package main
 
 import (
@@ -276,46 +249,44 @@ func main() {
 
 	fmt.Println("error lines:", count)
 }
-```
+```> **Tại sao?** Công cụ CLI, sidecar, tự động hóa và các tiện ích nền tảng là những loại vấn đề trong đó Go đặc biệt phù hợp: xây dựng một tệp nhị phân duy nhất, vận chuyển dễ dàng, chạy hiệu quả và dấu chân bộ nhớ rất dễ hiểu. TypeScript vẫn có thể hoạt động, nhưng phần phụ thuộc runtime sẽ gây thêm rắc rối.
 
-> **Why?** CLI tooling, sidecars, automation, and platform utilities are problem categories where Go is particularly well-suited: build a single binary, ship easily, run efficiently, and memory footprint is straightforward to reason about. TypeScript can still work, but the runtime dependency adds friction.
+> **Bài học rút ra**: Nếu vấn đề của bạn liên quan nhiều đến nền tảng/công cụ hơn là việc lặp lại sản phẩm web thì Go đáng để xem xét.
 
-> **Takeaway**: If your problem is more about platform/tooling than web-product iteration, Go is worth considering.
+## 4. Cạm bẫy
 
-## 4. PITFALLS
+Sai lầm lớn nhất khi lựa chọn ngôn ngữ là biến nó thành lựa chọn bản sắc.
 
-The biggest mistake with language choice is turning it into identity choice.
+Một quyết định kiến ​​trúc tốt còn lạnh lùng hơn thế.
 
-A good architectural decision is colder than that.
-
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Choose a language just because of micro benchmarks or community hype | Rewrite the wrong problem, team velocity drops, worse ops | Choose by workload, team skill, deployment model, and coupling with frontend |
-| 2 | 🟡 Common | Choose Go for the service whose greatest value is shared full-stack types and web ecosystem | Losing TS's biggest leverage but not getting enough benefits from Go | Keep TypeScript or choose hybrid boundary |
-| 3 | 🔵 Minor | See TypeScript as "frontend only" or Go as "high-performance only" | Poor decision matrix, missing good use cases of both | Use workload fit tables instead of stereotypes |
+| 1 | 🔴 Gây tử vong | Chọn ngôn ngữ chỉ vì micro benchmarks hoặc cộng đồng cường điệu | Viết lại vấn đề sai, tốc độ của đội giảm xuống, hoạt động tệ hơn | Chọn theo khối lượng công việc, kỹ năng nhóm, mô hình triển khai và kết nối với giao diện người dùng |
+| 2 | 🟡 Chung | Chọn Go cho dịch vụ có giá trị lớn nhất được chia sẻ đầy đủ- stack loại và hệ sinh thái web | Mất đòn bẩy lớn nhất của TS nhưng không nhận đủ lợi ích từ Go | Giữ TypeScript hoặc chọn ranh giới kết hợp |
+| 3 | 🔵 Nhỏ | Xem TypeScript là "chỉ giao diện người dùng" hoặc Go là "chỉ hiệu suất cao" | Ma trận quyết định kém, thiếu trường hợp sử dụng tốt của cả hai | Sử dụng bảng phù hợp với khối lượng công việc thay vì khuôn mẫu |
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Note |
+| Tài nguyên | Loại | Liên kết | Lưu ý |
 | --- | --- | --- | --- |
-| Go for Cloud & Network Services | Official | https://go.dev/solutions/cloud | Official source for Go's strong position in services/cloud |
-| Go 1.25 Release Notes | Official | https://go.dev/doc/go1.25 | The basis for seeing Go continues to prioritize toolchain/runtime stability |
-| The TypeScript Handbook | Official | https://www.typescriptlang.org/docs/handbook/intro.html | The formal basis for TypeScript's value proposition |
-| A 10x Faster TypeScript | Official | https://devblogs.microsoft.com/typescript/typescript-native-port/ | Native toolchain announcement in Go on 11-03-25 |
-| Announcing TypeScript 5.9 | Official | https://devblogs.microsoft.com/typescript/announcing-typescript-5-9/ | Updated roadmap towards TypeScript 6/7 on 2025-08-01 |
-| GitHub Octoverse 2025 | Official | https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/ | TypeScript data is #1 on GitHub in August 2025 |
-| Stack Overflow Developer Survey 2025 — Technology | Official | https://survey.stackoverflow.co/2025/technology/ | Professional developers data: TypeScript 48.8%, Go 17.4% |
+| Go cho Dịch vụ Mạng & Đám mây | Chính thức | https://go.dev/solutions/cloud | Nguồn chính thức cho vị trí vững chắc của Go trong dịch vụ/đám mây |
+| Go 1.25 Ghi chú phát hành | Chính thức | https://go.dev/doc/go1.25 | Cơ sở để thấy Go tiếp tục ưu tiên độ ổn định của chuỗi công cụ/ runtime |
+| Cẩm nang TypeScript | Chính thức | https://www.typescriptlang.org/docs/handbook/intro.html | Cơ sở chính thức cho đề xuất giá trị của TypeScript |
+| TypeScript nhanh hơn gấp 10 lần | Chính thức | https://devblogs.microsoft.com/typescript/typescript-native-port/ | Thông báo về chuỗi công cụ gốc trong Go ngày 25-03-11 |
+| Công bố TypeScript 5.9 | Chính thức | https://devblogs.microsoft.com/typescript/announce-typescript-5-9/ | Lộ trình cập nhật hướng tới TypeScript 7/6 vào ngày 2025-08-01 |
+| GitHub Tháng 10 năm 2025 | Chính thức | https://github.blog/news-insights/octoverse/octoverse-a-new-developer-joins-github-every-second-as-ai-leads-typescript-to-1/ | Dữ liệu TypeScript đứng số 1 trên GitHub vào tháng 8 năm 2025 |
+| Stack Khảo sát nhà phát triển tràn 2025 — Công nghệ | Chính thức | https://survey.stackoverflow.co/2025/technology/ | Dữ liệu của nhà phát triển chuyên nghiệp: TypeScript 48,8%, Go 17,4% |
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **When to Choose Go vs TypeScript** is clear. The extensions below help you put technology decisions into action with the migration playbook and translation atlas.
+Cốt lõi của **Khi nào nên chọn Go so với TypeScript** rất rõ ràng. Các tiện ích mở rộng bên dưới giúp bạn thực hiện các quyết định về công nghệ bằng cẩm nang di chuyển và tập bản đồ dịch thuật.
 
-The next step is not to read more slogans, but to convert this decision into specific rollout or readiness.
+Bước tiếp theo không phải là đọc thêm khẩu hiệu mà là chuyển quyết định này thành việc triển khai hoặc sẵn sàng cụ thể.
 
-| Extension | When | Rationale | Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Liên kết |
 | --- | --- | --- | --- |
-| Migration Playbook | Once you have finalized the language or hybrid strategy | Good decisions must come with good rollout | [→ 06-migration-playbook](./06-migration-playbook.md) |
-| Project Layout, Tooling, Testing | When leaning towards Go and need to check team readiness | After choosing the language, you need to know if the team can ship it | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
-| Helper — TS/JS → Go Utilities | Once you have decided to use Go for part of the system | Go down to the specific API-level mapping | [→ Helper README](../helper/README.md) |
+| Cẩm nang di chuyển | Khi bạn đã hoàn thiện ngôn ngữ hoặc kết hợp strategy | Quyết định tốt phải đi kèm với việc triển khai tốt | [→ 06-migration-playbook](./06-migration-playbook.md) |
+| Bố cục dự án, Dụng cụ, Kiểm tra | Khi nghiêng về Go và cần kiểm tra sự sẵn sàng của đội | Sau khi chọn ngôn ngữ, bạn cần biết liệu nhóm có thể gửi nó hay không | [→ 04-project-layout-tooling](./04-project-layout-tooling-testing.md) |
+| Người trợ giúp — TS/JS → Go Tiện ích | Khi bạn đã quyết định sử dụng Go cho một phần của hệ thống | Go xuống ánh xạ cấp API cụ thể | [→ Helper README](../helper/README.md) |
 
-**Navigation**: [← Previous](./04-project-layout-tooling-testing.md) · [→ Next](./06-migration-playbook.md)
+**Điều hướng**: [← Previous](./04-project-layout-tooling-testing.md) · [→ Next](./06-migration-playbook.md)

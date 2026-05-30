@@ -1,89 +1,80 @@
-<!-- tags: golang, error-handling -->
-# ❌ Error Handling — Wrapping, Sentinel, Custom Errors
+<!-- tags: golang, error-handling --> # ❌ Xử lý lỗi — Wrapping, Sentinel, Custom Error
 
-> Go treats errors as values — no exceptions, no try-catch. You wrap errors with context using `%w`, inspect chains with `errors.Is()`, and extract structured types with `errors.As()`.
+> Go coi lỗi là giá trị — không có ngoại lệ, không thử bắt. Bạn gói các lỗi với ngữ cảnh bằng cách sử dụng `%w` , kiểm tra chuỗi bằng `errors.Is()` và trích xuất các loại có cấu trúc bằng `errors.As()` .
 
-📅 Created: 2026-03-20 · 🔄 Updated: 2026-04-19 · ⏱️ 17 min read
+📅 Đã tạo: 20-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 17 phút đọc
 
-| Aspect          | Detail                                                  |
-| --------------- | ------------------------------------------------------- |
-| **Concept**     | Error wrapping, sentinel errors, custom error types     |
-| **Use case**    | Structured failure handling across service layers        |
-| **Key insight** | `%w` preserves the chain; `errors.Is/As` inspects it    |
-| **Go proverb**  | "Don't just check errors, handle them gracefully"       |
+| Khía cạnh | Chi tiết |
+| --------------- | ---------------------------------------------- |
+| **Khái niệm** | Lỗi gói, lỗi trọng điểm, loại custom error |
+| **Trường hợp sử dụng** | Xử lý lỗi có cấu trúc trên các lớp dịch vụ |
+| **Thông tin chi tiết quan trọng** | `%w` bảo toàn chuỗi; `errors.Is/As` kiểm tra nó |
+| ** Go tục ngữ** | "Đừng chỉ kiểm tra lỗi, hãy xử lý chúng một cách khéo léo" |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Your API handler calls a service, which calls a repository, which calls PostgreSQL. The query fails with `connection refused`. The handler logs: `"something went wrong"`. Three hours later, the on-call engineer still cannot find the root cause because every layer swallowed the original error and replaced it with a fresh string.
+Trình xử lý API của bạn gọi một dịch vụ, dịch vụ này gọi một kho lưu trữ, gọi là PostgreSQL. Truy vấn không thành công với `connection refused` . Nhật ký xử lý: `"something went wrong"` . Ba giờ sau, kỹ sư trực vẫn không thể tìm ra nguyên nhân gốc rễ vì mỗi lớp đều nuốt lỗi ban đầu và thay thế bằng một chuỗi mới.
 
-This is the problem Go's error wrapping solves. Each layer adds its own context — function name, parameter values, operation description — while preserving the original failure at the bottom of the chain. When the error reaches the handler, `errors.Is(err, pgx.ErrNoRows)` still returns `true`, even through three layers of wrapping. The engineer reads one log line and knows exactly which query, which parameter, and which infrastructure failure caused the problem.
+Đây là vấn đề Go của error wrapping giải quyết. Mỗi lớp thêm ngữ cảnh riêng của nó — tên hàm, giá trị tham số, mô tả hoạt động — trong khi vẫn giữ nguyên lỗi ban đầu ở cuối chuỗi. Khi lỗi đến trình xử lý, `errors.Is(err, pgx.ErrNoRows)` vẫn trả về `true` , thậm chí thông qua ba lớp gói. Kỹ sư đọc một dòng nhật ký và biết chính xác truy vấn nào, tham số nào và lỗi cơ sở hạ tầng nào đã gây ra sự cố.
 
-But there is a trap. Using `%v` instead of `%w` in `fmt.Errorf` silently breaks the chain. The error message looks identical in logs, but `errors.Is` stops working. Tests pass because they compare strings. Production breaks because the middleware checks error types.
+Nhưng có một cái bẫy. Sử dụng `%v` thay vì `%w` trong `fmt.Errorf` âm thầm phá vỡ chuỗi. Thông báo lỗi trông giống hệt trong nhật ký, nhưng `errors.Is` ngừng hoạt động. Các bài kiểm tra vượt qua vì chúng so sánh các chuỗi. Việc ngừng sản xuất do phần mềm trung gian kiểm tra các loại lỗi.
 
-### 1.1 Error Types — 4 Patterns
+### 1.1 Loại lỗi — 4 mẫu Go cung cấp bốn mẫu lỗi. Mỗi cái phục vụ một mục đích khác nhau:
 
-Go provides four error patterns. Each serves a different purpose:
+| Loại | Mô tả | Trường hợp sử dụng |
+| --------------- | ------------------------------------ | --------------------------------------------- |
+| **Trọng điểm** | Package -biến xuất cấp | `var ErrNotFound = errors.New("not found")` |
+| **Loại tùy chỉnh** | Struct triển khai `error` interface | Mang trạng thái HTTP, tên hoạt động, siêu dữ liệu |
+| **Đã gói** | Chuỗi lỗi thông qua `fmt.Errorf("context: %w", err)` | Thêm mẩu bánh mì trong khi vẫn bảo tồn nguyên nhân gốc rễ |
+| **Đục** | Trả về `error` mà không để lộ nội bộ | Ẩn chi tiết triển khai trên các ranh giới package |
 
-| Type            | Description                          | Use case                                    |
-| --------------- | ------------------------------------ | ------------------------------------------- |
-| **Sentinel**    | Package-level exported variable      | `var ErrNotFound = errors.New("not found")` |
-| **Custom type** | Struct implementing the `error` interface | Carries HTTP status, operation name, metadata |
-| **Wrapped**     | Error chain via `fmt.Errorf("context: %w", err)` | Adds breadcrumbs while preserving the root cause |
-| **Opaque**      | Returns `error` without exposing internals | Hides implementation details across package boundaries |
+> **Tại sao có lỗi trọng điểm?** Việc so sánh các chuỗi lỗi rất dễ vỡ. Nếu trình điều khiển database thay đổi `"not found"` thành `"no rows"` , kiểm tra `err.Error() == "not found"` của bạn sẽ im lặng. Các biến quan trọng như `ErrNotFound` cung cấp cho bạn mục tiêu so sánh ổn định, an toàn về loại thông qua `errors.Is(err, ErrNotFound)` .
 
-> **Why sentinel errors?** Comparing error strings is brittle. If the database driver changes `"not found"` to `"no rows"`, your `err.Error() == "not found"` check breaks silently. Sentinel variables like `ErrNotFound` give you a stable, type-safe comparison target via `errors.Is(err, ErrNotFound)`.
+### 1.2 Hàm lỗi ( Go 1.13+)
 
-### 1.2 Error Functions (Go 1.13+)
-
-| Function                     | Description                                     |
+| Chức năng | Mô tả |
 | ---------------------------- | ----------------------------------------------- |
-| `errors.New("msg")`          | Create a simple error value                     |
-| `fmt.Errorf("ctx: %w", err)` | Wrap an error with additional context            |
-| `errors.Is(err, target)`     | Walk the chain and check for a specific sentinel |
-| `errors.As(err, &target)`    | Walk the chain and extract a specific error type |
-| `errors.Unwrap(err)`         | Return the next error in the chain               |
-| `errors.Join(err1, err2)`    | Combine multiple errors into one (Go 1.20+)      |
+| `errors.New("msg")` | Tạo một giá trị lỗi đơn giản |
+| `fmt.Errorf("ctx: %w", err)` | Bao bọc lỗi bằng ngữ cảnh bổ sung |
+| `errors.Is(err, target)` | Đi theo chuỗi và kiểm tra một lính canh cụ thể |
+| `errors.As(err, &target)` | Đi theo chuỗi và trích xuất một loại lỗi cụ thể |
+| `errors.Unwrap(err)` | Trả về lỗi tiếp theo trong chuỗi |
+| `errors.Join(err1, err2)` | Kết hợp nhiều lỗi thành một ( Go 1.20+) |
 
-> **Why `%w` instead of `%v`?** `%v` converts the wrapped error into a flat string — `errors.Is` and `errors.As` can no longer traverse the chain. `%w` preserves the original error as a linked value, keeping the entire chain inspectable.
+> **Tại sao `%w` thay vì `%v` ?** `%v` chuyển lỗi được gói thành một chuỗi phẳng — `errors.Is` và `errors.As` không thể đi qua chuỗi được nữa. `%w` giữ nguyên lỗi ban đầu dưới dạng giá trị được liên kết, giữ cho toàn bộ chuỗi có thể kiểm tra được.
 
-### 1.3 Failure Modes
+### 1.3 Các kiểu lỗi
 
-| # | Severity  | Defect                                  | Consequence                                  | Fix                                             |
-|---|-----------|----------------------------------------|----------------------------------------------|------------------------------------------------|
-| 1 | 🔴 Fatal  | Using `%v` instead of `%w`            | Error chain breaks; `errors.Is` returns false | Always use `%w` when wrapping errors            |
-| 2 | 🔴 Fatal  | Comparing error strings (`err.Error() == "..."`) | Breaks when error messages change         | Use sentinel variables with `errors.Is`         |
-| 3 | 🟠 Major  | Calling `panic` for expected failures  | Crashes the entire process                   | Return `error` for expected conditions          |
-| 4 | 🟡 Common | Wrapping at every layer without adding value | Log messages become unreadable chains    | Add context only when it provides new information |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Hậu quả | Sửa chữa |
+|---|----------|-------------------------------------------------|-------------------------------------------------------|------------------------------------------------|
+| 1 | 🔴 Gây tử vong | Sử dụng `%v` thay vì `%w` | Lỗi đứt chuỗi; `errors.Is` trả về sai | Luôn sử dụng `%w` khi gói lỗi |
+| 2 | 🔴 Gây tử vong | So sánh các chuỗi lỗi ( `err.Error() == "..."` ) | Ngắt khi thông báo lỗi thay đổi | Sử dụng các biến trọng điểm với `errors.Is` |
+| 3 | 🟠 Thiếu tá | Gọi `panic` cho các lỗi dự kiến ​​| Sự cố toàn bộ quá trình | Trả về `error` cho các điều kiện dự kiến ​​|
+| 4 | 🟡 Chung | Gói gọn từng lớp mà không tăng thêm giá trị | Thông điệp tường trình trở thành chuỗi không thể đọc được | Chỉ thêm ngữ cảnh khi nó cung cấp thông tin mới |
 
 ---
 
-The four error types and their functions form the foundation. The visual below shows how wrapping builds a chain — and how `errors.Is` traverses it.
+Bốn loại lỗi và chức năng của chúng tạo thành nền tảng. Hình ảnh bên dưới cho thấy cách gói tạo nên một chuỗi — và cách `errors.Is` đi qua chuỗi đó.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The most dangerous aspect of error handling is not the syntax — it is the invisible chain. When three layers each wrap an error, developers need to see the full unwrap path to understand why `errors.Is` matches or fails.
+Khía cạnh nguy hiểm nhất của việc xử lý lỗi không phải là cú pháp - đó là chuỗi vô hình. Khi ba lớp, mỗi lớp bao bọc một lỗi, nhà phát triển cần xem đường dẫn mở gói đầy đủ để hiểu lý do tại sao `errors.Is` khớp hoặc không thành công. ![Error wrapping workflow](./images/01-wrapping-custom-workflow.png) *Hình: Lỗi gói chuỗi từ kho lưu trữ thông qua dịch vụ đến trình xử lý. Mỗi gói `%w` sẽ giữ nguyên lỗi ban đầu. `errors.Is` đi qua toàn bộ chuỗi từ trên xuống dưới. Sử dụng `%v` tại lớp any sẽ cắt đứt chuỗi vĩnh viễn.*
 
-![Error wrapping workflow](./images/01-wrapping-custom-workflow.png)
+Với cơ chế chuỗi hiển thị, phần mã bên dưới thể hiện ba kiểu leo thang: lỗi trọng điểm khi bao bọc, custom error loại với `errors.As` và chuỗi nhiều lớp với `errors.Join` .
 
-*Figure: Error wrapping chain from repository through service to handler. Each `%w` wrap preserves the original error. `errors.Is` traverses the entire chain from top to bottom. Using `%v` at any layer severs the chain permanently.*
+## 3. MÃ
 
-With the chain mechanics visible, the code section below demonstrates three escalating patterns: sentinel errors with wrapping, custom error types with `errors.As`, and multi-layer chains with `errors.Join`.
+Với **Xử lý lỗi — Gói, Trọng điểm, Lỗi tùy chỉnh**, chuỗi gói sẽ rõ ràng. Bây giờ chúng tôi map mã hóa: lỗi trọng điểm để so sánh ổn định, loại tùy chỉnh cho siêu dữ liệu phong phú và `errors.Join` để tổng hợp các lỗi xác thực.
 
-## 3. CODE
+### Ví dụ 1: Cơ bản — Lỗi Sentinel & Gói
 
-With **Error Handling — Wrapping, Sentinel, Custom Errors**, the wrapping chain is clear. Now we map it to code: sentinel errors for stable comparisons, custom types for rich metadata, and `errors.Join` for aggregating validation failures.
+Bạn mở một tập tin config. Tập tin không tồn tại. Hàm của bạn sẽ xử lý lỗi bằng đường dẫn tệp và người gọi sẽ kiểm tra `os.ErrNotExist` thông qua chuỗi. Một gói, một kiểm tra - mẫu đơn giản nhất.
 
-### Example 1: Basic — Sentinel Errors & Wrapping
-
-You open a config file. The file does not exist. Your function wraps the error with the file path, and the caller checks `os.ErrNotExist` through the chain. One wrap, one check — the simplest pattern.
-
-> **Objective**: Wrap an `os` error with context and verify it through the chain using `errors.Is`.
-> **Approach**: `fmt.Errorf("readConfig(%s): %w", path, err)` preserves the chain. `errors.Is(err, os.ErrNotExist)` traverses it.
-> **Example**: `readConfig("/nonexistent")` → wrapped error → `errors.Is` still finds `os.ErrNotExist`.
-
-```go
+> **Mục tiêu**: Bao bọc lỗi `os` bằng ngữ cảnh và xác minh lỗi đó thông qua chuỗi bằng cách sử dụng `errors.Is` .
+> **Phương pháp**: `fmt.Errorf("readConfig(%s): %w", path, err)` bảo toàn chuỗi. `errors.Is(err, os.ErrNotExist)` đi ngang qua nó.
+> **Ví dụ**: `readConfig("/nonexistent")` → lỗi gói → `errors.Is` vẫn tìm thấy `os.ErrNotExist` .```go
 package main
 
 import (
@@ -123,25 +114,19 @@ func main() {
     }
     fmt.Println(string(data))
 }
-```
-
-> **Conclusion**: `%w` adds the file path for debugging without breaking the chain. The caller uses `errors.Is` to match `os.ErrNotExist` through the wrap. If you replace `%w` with `%v`, the log looks the same — but `errors.Is` silently stops working.
+```> **Kết luận**: `%w` thêm đường dẫn tệp để gỡ lỗi mà không làm đứt chuỗi. Người gọi sử dụng `errors.Is` để khớp với `os.ErrNotExist` thông qua gói. Nếu bạn thay thế `%w` bằng `%v` , nhật ký trông giống nhau — nhưng `errors.Is` âm thầm ngừng hoạt động.
 >
-> **When to use**: Sentinel errors work best when callers from other packages need to check for specific conditions. Export the sentinel (`var ErrNotFound`) and wrap with context at each layer.
+> **Khi nào nên sử dụng**: Lỗi Sentinel hoạt động hiệu quả nhất khi người gọi từ packages khác cần kiểm tra các điều kiện cụ thể. Xuất trọng điểm ( `var ErrNotFound` ) và bọc ngữ cảnh ở mỗi lớp.
 
-Sentinel errors handle simple identity checks. But when you need to carry structured metadata — HTTP status codes, operation names, request IDs — a custom error type is the right tool.
+Lỗi Sentinel xử lý việc kiểm tra danh tính đơn giản. Nhưng khi bạn cần mang siêu dữ liệu có cấu trúc — mã trạng thái HTTP, tên hoạt động, ID yêu cầu — loại custom error là công cụ phù hợp.
 
 ---
 
-### Example 2: Intermediate — Custom Error Types
+### Ví dụ 2: Loại trung cấp — Custom Error API của bạn trả về HTTP 404, nhưng trình xử lý không thể trích xuất mã trạng thái từ `error` đơn giản. Bạn cần một `struct` thỏa mãn `error` interface trong khi mang các trường cho mã HTTP, tên hoạt động và lỗi cơ bản.
 
-Your API returns HTTP 404, but the handler cannot extract the status code from a plain `error`. You need a `struct` that satisfies the `error` interface while carrying fields for HTTP code, operation name, and the underlying error.
-
-> **Objective**: Build a custom error type that carries structured metadata and supports `errors.Is`/`errors.As` chain traversal.
-> **Approach**: `AppError` struct with `Error()` and `Unwrap()` methods. Constructor helpers enforce consistent creation.
-> **Example**: `GetUser(42)` returns an `AppError`. The handler extracts the HTTP status code via `errors.As`.
-
-```go
+> **Mục tiêu**: Xây dựng loại custom error mang siêu dữ liệu có cấu trúc và hỗ trợ truyền tải chuỗi `errors.Is` / `errors.As` .
+> **Cách tiếp cận**: `AppError` struct với các phương thức `Error()` và `Unwrap()` . Trình trợ giúp của nhà xây dựng thực thi việc tạo nhất quán.
+> **Ví dụ**: `GetUser(42)` trả về `AppError` . Trình xử lý trích xuất mã trạng thái HTTP thông qua `errors.As` .```go
 package main
 
 import (
@@ -204,26 +189,22 @@ func main() {
         }
     }
 }
-```
-
-> **Why both `errors.Is` and `errors.As`?**
-> `errors.Is` answers "is this specific sentinel somewhere in the chain?" — a boolean identity check. `errors.As` answers "is there an `*AppError` somewhere in the chain, and if so, give me a reference to it." You need both: `Is` for routing decisions, `As` for extracting metadata like HTTP status codes or operation names.
+```> **Tại sao lại có cả `errors.Is` và `errors.As` ?**
+> `errors.Is` câu trả lời "liệu lính gác cụ thể này có ở đâu đó trong chuỗi không?" - kiểm tra danh tính boolean. `errors.As` trả lời "có `*AppError` ở đâu đó trong chuỗi không, và nếu có, hãy cho tôi tài liệu tham khảo về nó." Bạn cần cả hai: `Is` để đưa ra quyết định định tuyến, `As` để trích xuất siêu dữ liệu như mã trạng thái HTTP hoặc tên hoạt động.
 >
-> **Conclusion**: Custom error types turn errors from opaque strings into structured data. `Unwrap()` keeps the chain traversable. Constructor helpers enforce consistent creation across the codebase.
+> **Kết luận**: Các loại lỗi tùy chỉnh chuyển lỗi từ chuỗi mờ thành dữ liệu có cấu trúc. `Unwrap()` giữ cho chuỗi có thể đi qua được. Trình trợ giúp của trình xây dựng thực thi việc tạo nhất quán trên toàn bộ cơ sở mã.
 
-Custom types handle single errors with rich metadata. But validation often fails for multiple reasons at once — missing name, invalid email, weak password. Go 1.20's `errors.Join` aggregates them into a single error value.
+Các loại tùy chỉnh xử lý các lỗi đơn lẻ bằng siêu dữ liệu phong phú. Nhưng việc xác thực thường không thành công vì nhiều lý do cùng một lúc — thiếu tên, email không hợp lệ, mật khẩu yếu. Go [[C8]]] của 1.20 tổng hợp chúng thành một giá trị lỗi duy nhất.
 
 ---
 
-### Example 3: Advanced — Error Wrapping Chain & Multi-error
+### Ví dụ 3: Nâng cao — Error Wrapping Chuỗi & Nhiều lỗi
 
-Your handler calls a service, which calls a repository. Each layer wraps the error with its function name. The final error message reads like a call stack: `handler.GetUser: service.GetUser: query users WHERE id=42: connection refused`. Meanwhile, your validation function collects multiple errors and returns them as one.
+Trình xử lý của bạn gọi một dịch vụ gọi một kho lưu trữ. Mỗi lớp bao bọc lỗi bằng tên hàm của nó. Thông báo lỗi cuối cùng có nội dung giống như một cuộc gọi stack : `handler.GetUser: service.GetUser: query users WHERE id=42: connection refused` . Trong khi đó, chức năng xác thực của bạn thu thập nhiều lỗi và trả về chúng dưới dạng một lỗi.
 
-> **Objective**: Build a 3-layer wrapping chain and aggregate multiple validation errors with `errors.Join`.
-> **Approach**: Each layer uses `fmt.Errorf("layer: %w", err)`. Validation collects errors into a slice and joins them.
-> **Example**: `handler_GetUser(42)` produces a full call-path error. `validateUser("", "a")` produces two errors in one.
-
-```go
+> **Mục tiêu**: Xây dựng chuỗi gói 3 lớp và tổng hợp nhiều lỗi xác thực với `errors.Join` .
+> **Phương pháp tiếp cận**: Mỗi lớp sử dụng `fmt.Errorf("layer: %w", err)` . Quá trình xác thực thu thập các lỗi vào một slice và nối chúng lại.
+> **Ví dụ**: `handler_GetUser(42)` tạo ra lỗi đường dẫn cuộc gọi đầy đủ. `validateUser("", "a")` tạo ra hai lỗi trong một.```go
 package main
 
 import (
@@ -281,46 +262,44 @@ func main() {
         // email too short
     }
 }
-```
-
-> **Why layer wrapping instead of logging at each layer?**
-> Logging at every layer produces duplicate messages — the same error appears three times in three log files. Wrapping defers the logging decision to the top layer (the handler or middleware). Each layer contributes context; only the top layer decides whether to log, return HTTP, or trigger an alert.
+```> **Tại sao phải gói lớp thay vì ghi lại từng lớp?**
+> Việc ghi nhật ký ở mỗi lớp sẽ tạo ra các thông báo trùng lặp — cùng một lỗi xuất hiện ba lần trong ba tệp nhật ký. Việc gói sẽ trì hoãn quyết định ghi nhật ký ở lớp trên cùng (trình xử lý hoặc phần mềm trung gian). Mỗi lớp đóng góp bối cảnh; chỉ lớp trên cùng mới quyết định đăng nhập, trả về HTTP hay kích hoạt cảnh báo.
 >
-> **Conclusion**: The wrapping chain creates a structured call path. `errors.Join` (Go 1.20+) aggregates multiple independent failures into one error that `errors.Is` can still inspect. Both patterns keep error handling explicit without duplicating log output.
+> **Kết luận**: Chuỗi gói tạo ra đường dẫn cuộc gọi có cấu trúc. `errors.Join` ( Go 1.20+) tổng hợp nhiều lỗi độc lập thành một lỗi mà `errors.Is` vẫn có thể kiểm tra. Cả hai mẫu đều xử lý lỗi rõ ràng mà không trùng lặp đầu ra nhật ký.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-Error handling syntax is simple. The real danger is code that compiles, passes tests, and breaks silently in production.
+Cú pháp xử lý lỗi rất đơn giản. Mối nguy hiểm thực sự là mã biên dịch, vượt qua các bài kiểm tra và âm thầm phá vỡ trong quá trình sản xuất.
 
-| # | Severity  | Error                                          | Consequence                                         | Fix                                                      |
-|---|-----------|-----------------------------------------------|-----------------------------------------------------|----------------------------------------------------------|
-| 1 | 🔴 Fatal  | Using `%v` instead of `%w` in `fmt.Errorf`   | Chain breaks; `errors.Is/As` return false            | Always use `%w` to preserve the error chain              |
-| 2 | 🔴 Fatal  | Comparing `err.Error() == "not found"`        | Breaks when the error message text changes           | Define sentinel variables; use `errors.Is(err, ErrNotFound)` |
-| 3 | 🟡 Common | Wrapping the same error at every layer        | Log output becomes a 200-character unreadable chain  | Add context only when the layer provides new information |
-| 4 | 🟡 Common | Calling `panic` for business logic errors     | Process crashes; no graceful degradation             | Reserve `panic` for programming bugs; return `error` otherwise |
-| 5 | 🔵 Minor  | Forgetting `Unwrap()` on custom error types   | `errors.Is/As` cannot traverse through the type      | Implement `Unwrap() error` on every wrapper type         |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
+|---|----------|--------------------------------------------------------|------------------------------------------------------|-------------------------------------------------------------------|
+| 1 | 🔴 Gây tử vong | Sử dụng `%v` thay vì `%w` trong `fmt.Errorf` | đứt dây chuyền; `errors.Is/As` trả về sai | Luôn sử dụng `%w` để duy trì chuỗi lỗi |
+| 2 | 🔴 Gây tử vong | So sánh `err.Error() == "not found"` | Bị ngắt khi văn bản thông báo lỗi thay đổi | Xác định các biến trọng điểm; sử dụng `errors.Is(err, ErrNotFound)` |
+| 3 | 🟡 Chung | Bao bọc cùng một lỗi ở mọi lớp | Đầu ra nhật ký trở thành chuỗi 200 ký tự không thể đọc được | Chỉ thêm ngữ cảnh khi lớp cung cấp thông tin mới |
+| 4 | 🟡 Chung | Gọi `panic` để tìm lỗi logic nghiệp vụ | Sự cố quá trình; không có sự xuống cấp duyên dáng | Dự trữ `panic` cho các lỗi lập trình; trả về `error` nếu không thì |
+| 5 | 🔵 Nhỏ | Quên `Unwrap()` trên các loại custom error | `errors.Is/As` không thể duyệt qua loại | Triển khai `Unwrap() error` trên mọi loại trình bao bọc |
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource       | Type     | Link                                                                     | Notes                                  |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | -------------- | -------- | ------------------------------------------------------------------------ | -------------------------------------- |
-| Go Errors Blog | Official | [go.dev/blog/go1.13-errors](https://go.dev/blog/go1.13-errors)           | Introduces `%w`, `errors.Is`, `errors.As` |
-| Effective Go   | Official | [go.dev/doc/effective_go#errors](https://go.dev/doc/effective_go#errors) | Idiomatic error handling conventions    |
+| Go Lỗi Blog | Chính thức | [go.dev/blog/go1.13-errors](https://go.dev/blog/go1.13-errors) | Giới thiệu `%w` , `errors.Is` , `errors.As` |
+| Có hiệu lực Go | Chính thức | [go.dev/doc/effective_go#errors](https://go.dev/doc/effective_go#errors) | Quy ước xử lý lỗi thành ngữ |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-Error wrapping and custom types are covered. The next step depends on whether you need deeper chain mechanics or a completely different error domain.
+Lỗi gói và các loại tùy chỉnh được bảo hiểm. Bước tiếp theo phụ thuộc vào việc bạn cần cơ chế chuỗi sâu hơn hay một miền lỗi hoàn toàn khác.
 
-| Expansion             | When                                    | Rationale                                                        | File/Link                                         |
-| --------------------- | --------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------- |
-| Sentinel + Wrapping + Join | When combining sentinels, wrapping chains, and multi-error patterns | Deep dive into `errors.Join` (Go 1.20+), `errors.Is` with wrapped sentinels, and multi-error inspection | [02-sentinel-wrapping-join.md](./02-sentinel-wrapping-join.md) |
+| Mở rộng | Khi nào | Cơ sở lý luận | Tệp/Liên kết |
+| --------------------- | ------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------- |
+| Sentinel + Gói + Tham gia | Khi kết hợp lính canh, chuỗi gói và mẫu nhiều lỗi | Đi sâu vào `errors.Join` ( Go 1.20+), `errors.Is` với các lính gác được bao bọc và kiểm tra nhiều lỗi | [02-sentinel-wrapping-join.md](./02-sentinel-wrapping-join.md) |
 
 ---
 
-**Navigation**: [← Interfaces](../interfaces/README.md) · [→ Sentinel, Wrapping, Join](./02-sentinel-wrapping-join.md)
+**Điều hướng**: [← Interfaces](../interfaces/README.md) · [→ Sentinel, Wrapping, Join](./02-sentinel-wrapping-join.md)

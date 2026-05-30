@@ -1,87 +1,74 @@
-<!-- tags: golang, interfaces -->
-# 🔌 Interfaces — Implicit, io.Reader/Writer, Empty Interface
+<!-- tags: golang, interfaces --> # 🔌 Interfaces — Ẩn, io.Reader/Writer, Trống Interface > Go interfaces : sự hài lòng ngầm, gõ vịt, mẫu io, generics 📅 Đã tạo: 20-03-2026 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 17 phút đọc
 
-> Go interfaces: implicit satisfaction, duck typing, io patterns, generics
-
-📅 Created: 2026-03-20 · 🔄 Updated: 2026-04-19 · ⏱️ 17 min read
-
-| Aspect          | Detail                                        |
+| Khía cạnh | Chi tiết |
 | --------------- | --------------------------------------------- |
-| **Concept**     | Behavioral contracts, implicit implementation |
-| **Use case**    | Abstraction, dependency injection, testing    |
-| **Key insight** | NO `implements` keyword — implicit!           |
-| **Go proverb**  | "Accept interfaces, return structs"           |
+| **Khái niệm** | Hợp đồng hành vi, thực hiện ngầm định |
+| **Trường hợp sử dụng** | Trừu tượng hóa, dependency injection , thử nghiệm |
+| **Thông tin chi tiết quan trọng** | KHÔNG có từ khóa `implements` - ngầm định! |
+| ** Go tục ngữ** | "Chấp nhận interfaces , trả về structs " |
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Producers defining 8-method interfaces force consumers to implement behaviors they never use. Tests then require full mock implementations for a single method. The fix: consumers define the minimal interface they need.
+Nhà sản xuất xác định phương thức 8 interfaces buộc người tiêu dùng thực hiện các hành vi mà họ không bao giờ sử dụng. Sau đó, các thử nghiệm yêu cầu triển khai mock đầy đủ cho một phương thức duy nhất. Cách khắc phục: người tiêu dùng xác định interface tối thiểu họ cần.
 
-> *`exportReport(dest ???)` starts writing to a file. Next sprint: S3. Next: a test buffer. Hardcoding `*os.File` means three signature changes across the codebase — three regression risks.*
+> * `exportReport(dest ???)` bắt đầu ghi vào một tập tin. Lần chạy nước rút tiếp theo: S3. Tiếp theo: bộ đệm thử nghiệm. Mã hóa cứng `*os.File` có nghĩa là ba thay đổi signature trên toàn bộ cơ sở mã — ba rủi ro hồi quy.*
 >
-> *Go solves this with `io.Writer` — **1 method**: `Write([]byte) (int, error)`. Files, HTTP responses, `bytes.Buffer`, `strings.Builder`, and S3 writers all satisfy it. Functions accepting `io.Writer` need zero changes when the destination changes. There is **no `implements` keyword** — a type satisfies an interface by having the right method signatures. This is structural typing.*
+> * Go giải quyết vấn đề này bằng `io.Writer` — **1 phương thức**: `Write([]byte) (int, error)` . Các tệp, phản hồi HTTP, `bytes.Buffer` , `strings.Builder` và người viết S3 đều đáp ứng điều đó. Các hàm chấp nhận `io.Writer` không cần thay đổi khi đích thay đổi. **không có từ khóa `implements` ** — một loại thỏa mãn interface bằng cách sử dụng đúng phương thức signatures . Đây là kiểu gõ cấu trúc.*
 
-Implicit satisfaction has a sharp edge: Go interfaces store `(type, value)` internally. A nil `*bytes.Buffer` assigned to an `io.Writer` is **not** a nil interface — `w != nil` returns `true`, and `w.Write()` panics. This trap is unpacked in PITFALLS.
+Sự hài lòng tiềm ẩn có một khía cạnh sắc nét: Go interfaces lưu trữ `(type, value)` nội bộ. A nil `*bytes.Buffer` được gán cho một `io.Writer` là **không** a nil interface — `w != nil` trả về `true` và `w.Write()` hoảng loạn. Cái bẫy này được giải nén trong PITFALS.
 
-### 1.1 Interface Rules
+### 1.1 Interface Quy tắc
 
-| Rule        | Description                                            |
+| Quy tắc | Mô tả |
 | ----------- | ------------------------------------------------------ |
-| Implicit    | No `implements` keyword — matching method signatures is enough |
-| Small       | Prefer 1–2 methods for maximum composability                 |
-| Naming      | Single-method interfaces use `-er` suffix: `Reader`, `Writer` |
-| Composition | Embed interfaces to combine: `ReadWriter = Reader + Writer`  |
-| `any`       | `interface{}` alias — accepts any type                       |
+| ngầm định | Không có từ khóa `implements` — phương thức đối sánh signatures là đủ |
+| Nhỏ | Ưu tiên 1–2 phương pháp để có khả năng kết hợp tối đa |
+| Đặt tên | Phương thức đơn interfaces sử dụng hậu tố `-er` : `Reader` , `Writer` |
+| Composition | Nhúng interfaces để kết hợp: `ReadWriter = Reader + Writer` |
+| `any` | Bí danh `interface{}` - chấp nhận loại any |
 
-### 1.2 Standard Library Interfaces — Reference
+### 1.2 Thư viện chuẩn Interfaces — Tham khảo
 
-| Interface        | Methods                         | Package       | Use case                     |
+| Interface | Phương pháp | Package | Trường hợp sử dụng |
 | ---------------- | ------------------------------- | ------------- | ---------------------------- |
-| `io.Reader`      | `Read([]byte) (int, error)`     | io            | Read from a byte source              |
-| `io.Writer`      | `Write([]byte) (int, error)`    | io            | Write to a byte destination          |
-| `io.Closer`      | `Close() error`                 | io            | Release a resource                   |
-| `fmt.Stringer`   | `String() string`               | fmt           | Custom string representation         |
-| `error`          | `Error() string`                | builtin       | Error value                          |
-| `sort.Interface` | `Len, Less, Swap`               | sort          | Custom collection sorting            |
-| `http.Handler`   | `ServeHTTP(w, r)`               | net/http      | HTTP request handler                 |
-| `json.Marshaler` | `MarshalJSON() ([]byte, error)` | encoding/json | Custom JSON encoding                 |
+| `io.Reader` | `Read([]byte) (int, error)` | io | Đọc từ nguồn byte |
+| `io.Writer` | `Write([]byte) (int, error)` | io | Ghi vào đích byte |
+| `io.Closer` | `Close() error` | io | Phát hành một nguồn tài nguyên |
+| `fmt.Stringer` | `String() string` | fmt | Biểu diễn chuỗi tùy chỉnh |
+| `error` | `Error() string` | dựng sẵn | Giá trị lỗi |
+| `sort.Interface` | `Len, Less, Swap` | sắp xếp | Sắp xếp bộ sưu tập tùy chỉnh |
+| `http.Handler` | `ServeHTTP(w, r)` | mạng/http | Trình xử lý yêu cầu HTTP |
+| `json.Marshaler` | `MarshalJSON() ([]byte, error)` | mã hóa/json | Mã hóa JSON tùy chỉnh |
 
-> **Why implicit satisfaction?** In Java/C#, implementing an interface requires importing the package that defines it — coupling producer and consumer. Go inverts this: the consumer defines the interface, the producer never imports it. Result: **zero coupling**, and any type from any package can satisfy the contract.
+> **Tại sao lại ngầm hiểu sự hài lòng?** Trong Java/C#, việc triển khai interface yêu cầu nhập package xác định nó — kết nối nhà sản xuất và người tiêu dùng. Go đảo ngược điều này: người tiêu dùng xác định interface , nhà sản xuất không bao giờ nhập nó. Kết quả: **không khớp nối** và loại any từ any package có thể đáp ứng hợp đồng.
 
-The standard interfaces above cover most use cases. The failure modes below expose traps that catch even experienced Go developers.
+Tiêu chuẩn interfaces ở trên bao gồm hầu hết các trường hợp sử dụng. Các chế độ thất bại bên dưới bộc lộ những cái bẫy có thể bắt được ngay cả những nhà phát triển Go có kinh nghiệm.
 
-### 1.3 Failure Modes
+### 1.3 Các kiểu lỗi
 
-| Defect | Cause | Consequence | Fix |
+| Khiếm khuyết | Nguyên nhân | Hậu quả | Sửa chữa |
 | --- | ------------ | ------ | --- |
-| Nil interface vs interface holding nil | `var w io.Writer` (nil) vs `var w io.Writer = (*bytes.Buffer)(nil)` (non-nil!) | `w != nil` is true → `w.Write()` panics | Return `nil` explicitly, not a typed nil pointer |
-| Pointer receiver vs value | `func (t *T) Method()` → only `*T` satisfies the interface, not `T` | Silent compile error | Use pointer consistently |
-| Fat interfaces (>3 methods) | Too many methods in one interface | Hard to mock, hard to test | Decompose into smaller interfaces |
+| Nil interface vs interface giữ nil | `var w io.Writer` ( nil ) vs `var w io.Writer = (*bytes.Buffer)(nil)` (không- nil !) | `w != nil` là đúng → `w.Write()` hoảng sợ | Trả về `nil` một cách rõ ràng, không phải là nil pointer |
+| Pointer receiver so với giá trị | `func (t *T) Method()` → chỉ `*T` thỏa mãn interface , không phải `T` | Lỗi biên dịch im lặng | Sử dụng pointer một cách nhất quán |
+| Chất béo interfaces (>3 phương pháp) | Quá nhiều phương thức trong một interface | Khó mock , khó kiểm tra | Phân tách thành interfaces nhỏ hơn |
 
 ---
 
-The theory is clear. The danger is that implicit satisfaction can break silently: add a method to an interface, and every type that previously satisfied it stops compiling — with no `implements` line to search for.
+Lý thuyết là rõ ràng. Điều nguy hiểm là sự thỏa mãn tiềm ẩn có thể bị phá vỡ một cách âm thầm: thêm một phương thức vào interface và mọi loại đã thỏa mãn trước đó sẽ ngừng biên dịch - không có dòng `implements` để tìm kiếm.
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-Most interface confusion comes from projecting OOP class hierarchies onto Go's structural typing. This visual consolidates the three things you need to hold simultaneously: implicit satisfaction, the `(type, value)` pair, and the nil-interface trap.
+Hầu hết sự nhầm lẫn interface xuất phát từ việc chiếu hệ thống phân cấp lớp OOP lên kiểu cấu trúc của Go . Hình ảnh này củng cố ba điều bạn cần nắm giữ đồng thời: sự hài lòng tiềm ẩn, cặp `(type, value)` và bẫy nil - interface . ![Implicit interfaces mental model](./images/01-implicit-io-patterns-mental-model.png) *Hình: Mô hình tinh thần cho Go interfaces — sự hài lòng tiềm ẩn, interface composition , và sự khác biệt giữa nil - interface so với nil -value.*
 
-![Implicit interfaces mental model](./images/01-implicit-io-patterns-mental-model.png)
+Với mô hình này, mã bên dưới có cách đọc khác nhau: bạn sẽ thấy không chỉ chức năng của từng mẫu mà còn thấy hợp đồng ngầm có thể bị phá vỡ ở đâu.
 
-*Figure: Mental model for Go interfaces — implicit satisfaction, interface composition, and the nil-interface vs nil-value distinction.*
+## 3. MÃ
 
-With this model in mind, the code below reads differently: you will see not just what each pattern does, but where the implicit contract can break.
+Lý thuyết được lập bản đồ. Bây giờ chúng ta hãy xem sự hài lòng tiềm ẩn, `io.Reader/Writer` composition và gõ các xác nhận trong hành động.
 
-## 3. CODE
-
-The theory is mapped. Now let's see implicit satisfaction, `io.Reader/Writer` composition, and type assertions in action.
-
-### Example 1: Basic — Implicit Implementation & Polymorphism
-
-Both `Rectangle` and `Circle` implement `Shape` without declaring it. `PrintShape` accepts any `Shape` — the compiler checks method signatures at compile time.
-
-```go
+### Ví dụ 1: Cơ bản — Triển khai ngầm & Polymorphism Cả `Rectangle` và `Circle` đều thực hiện `Shape` mà không cần khai báo. `PrintShape` chấp nhận any `Shape` - phương thức kiểm tra trình biên dịch signatures tại biên dịch time .```go
 package main
 
 import "fmt"
@@ -133,19 +120,13 @@ func main() {
     }
     fmt.Printf("Total: %.2f\n", TotalArea(shapes))
 }
-```
+```> **Takeaway**: Không có từ khóa `implements` — phương thức đối sánh signatures là yêu cầu duy nhất. `[]Shape` giữ loại any đáp ứng hợp đồng.
 
-> **Takeaway**: No `implements` keyword — matching method signatures is the only requirement. `[]Shape` holds any type that satisfies the contract.
-
-Implicit satisfaction scales because the stdlib uses the same pattern: `io.Reader` is a 1-method interface satisfied by hundreds of types. The next example shows how to compose and decorate readers.
+Thang đo mức độ hài lòng ngầm định vì stdlib sử dụng cùng một mẫu: `io.Reader` là phương thức 1 interface được hàng trăm loại thỏa mãn. Ví dụ tiếp theo cho thấy cách soạn thảo và trang trí cho người đọc.
 
 ---
 
-### Example 2: Intermediate — io.Reader/Writer Pattern
-
-`CountWords()` accepts `io.Reader` — it works with strings, files, HTTP bodies, or any custom reader. `UpperReader` wraps any `io.Reader` and uppercases the output — the decorator pattern without inheritance.
-
-```go
+### Ví dụ 2: Trung cấp — Mẫu io.Reader/Writer `CountWords()` chấp nhận `io.Reader` — nó hoạt động với chuỗi, tệp, nội dung HTTP hoặc trình đọc tùy chỉnh any . `UpperReader` bao bọc any `io.Reader` và viết hoa đầu ra - mẫu decorator không có inheritance .```go
 package main
 
 import (
@@ -202,21 +183,15 @@ func main() {
     io.Copy(os.Stdout, upper)  // HELLO GO
     fmt.Println()
 }
-```
-
-> **Why 1-method interfaces?** A function accepting `io.Reader` works with every type that has `Read`. Add a second method and you exclude half the stdlib. Small interfaces maximize composability.
+```> **Tại sao 1 phương thức interfaces ?** Một hàm chấp nhận `io.Reader` hoạt động với mọi loại có `Read` . Thêm phương thức thứ hai và bạn loại trừ một nửa stdlib. interfaces nhỏ tối đa hóa khả năng kết hợp.
 >
-> **Why decorators?** Go has no inheritance. Instead, wrap an `io.Reader` inside another `io.Reader` to add behavior. Stack them: `&GzipReader{&UpperReader{fileReader}}`. Each layer is independent and testable.
+> **Tại sao trang trí?** Go không có inheritance . Thay vào đó, hãy bọc một `io.Reader` bên trong một `io.Reader` khác để thêm hành vi. Stack họ: `&GzipReader{&UpperReader{fileReader}}` . Mỗi lớp là độc lập và có thể kiểm tra được.
 
-> **Takeaway**: Accept `io.Reader`/`io.Writer` to decouple from concrete types. Decorators replace inheritance for layered behavior.
+> **Takeaway**: Chấp nhận `io.Reader` / `io.Writer` để tách khỏi các loại bê tông. Trình trang trí thay thế inheritance cho hành vi phân lớp.
 
 ---
 
-### Example 3: Advanced — Interface Composition & Type Assertion
-
-Compose small interfaces into larger ones (`ReadWriteCloser = Reader + Writer + Closer`). Use type assertions and type switches for runtime dispatch. Use compile-time guards (`var _ Writer = (*MyWriter)(nil)`) to catch missing methods early.
-
-```go
+### Ví dụ 3: Nâng cao — Interface Composition & Type Assertion Soạn interfaces nhỏ thành lớn hơn ( `ReadWriteCloser = Reader + Writer + Closer` ). Sử dụng xác nhận loại và chuyển đổi loại cho công văn runtime . Sử dụng bộ bảo vệ biên dịch- time ( `var _ Writer = (*MyWriter)(nil)` ) để sớm phát hiện các phương thức bị thiếu.```go
 package main
 
 import "fmt"
@@ -285,75 +260,67 @@ func main() {
     describe(true)
     describe(3.14)
 }
-```
-
-> **Why compose interfaces?** Each small interface captures one capability. Embedding combines them without creating a class hierarchy. Clients depend only on the methods they use — Interface Segregation Principle.
+```> **Tại sao soạn interfaces ?** Mỗi interface nhỏ nắm bắt một khả năng. Embedding kết hợp chúng mà không tạo hệ thống phân cấp lớp. Khách hàng chỉ phụ thuộc vào phương pháp họ sử dụng - Interface Nguyên tắc phân tách.
 >
-> **Why compile-time guards?** `var _ Writer = (*MyWriter)(nil)` fails at compile time if `*MyWriter` does not implement `Writer`. This catches missing methods before tests run.
+> **Tại sao biên dịch- time bảo vệ?** `var _ Writer = (*MyWriter)(nil)` không biên dịch được time nếu `*MyWriter` không triển khai `Writer` . Điều này phát hiện các phương thức còn thiếu trước khi chạy thử nghiệm.
 
-> **Takeaway**: Compose small interfaces via embedding. Use `var _ I = (*T)(nil)` for compile-time verification. Type switches handle runtime dispatch safely.
+> **Takeaway**: Soạn nhỏ interfaces qua embedding . Sử dụng `var _ I = (*T)(nil)` để biên dịch- time xác minh. Loại công tắc xử lý công văn runtime một cách an toàn.
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-The mechanics of **Interfaces** are clear. What remains is recognizing patterns that look correct but cause runtime panics or silent type errors.
+Cơ chế của ** Interfaces ** rất rõ ràng. Những gì còn lại là nhận dạng các mẫu trông có vẻ chính xác nhưng gây ra lỗi runtime hoặc lỗi loại im lặng.
 
-| # | Severity | Defect | Consequence | Fix |
-|---|----------|-----|---------|-----|
-| 1 | 🔴 Fatal | Nil interface vs interface holding nil | `w != nil` is true but `w.Write()` panics | Return `nil` explicitly, not a typed nil pointer |
-| 2 | 🔴 Fatal | Unsafe type assertion `i.(string)` | Panics if type is wrong | Use comma-ok: `s, ok := i.(string)` |
-| 3 | 🟡 Common | Pointer receiver excludes value satisfaction | `T` does not satisfy interface requiring `*T` method | Use pointer receivers consistently |
-| 4 | 🟡 Common | Fat interfaces (>3 methods) | Hard to mock, hard to test | Decompose into 1–2 method interfaces |
-| 5 | 🟡 Common | Returning interfaces instead of concrete types | Caller cannot access concrete methods | "Accept interfaces, return structs" |
-| 6 | 🔵 Minor | Overusing `interface{}`/`any` | Loses type safety | Use generics (Go 1.18+) instead |
+| # | Mức độ nghiêm trọng | Khiếm khuyết | Hậu quả | Sửa chữa |
+|---|----------|------|----------|------|
+| 1 | 🔴 Gây tử vong | Nil interface vs interface giữ nil | `w != nil` là đúng nhưng `w.Write()` hoảng sợ | Trả về `nil` một cách rõ ràng, không phải là nil pointer |
+| 2 | 🔴 Gây tử vong | Không an toàn type assertion `i.(string)` | Hoảng sợ nếu gõ sai | Sử dụng dấu phẩy-ok: `s, ok := i.(string)` |
+| 3 | 🟡 Chung | Pointer receiver không bao gồm sự hài lòng về giá trị | `T` không đáp ứng interface yêu cầu phương thức `*T` | Sử dụng pointer receivers một cách nhất quán |
+| 4 | 🟡 Chung | Chất béo interfaces (>3 phương pháp) | Khó mock , khó kiểm tra | Phân tách thành phương thức 1–2 interfaces |
+| 5 | 🟡 Chung | Trả về interfaces thay vì các loại cụ thể | Người gọi không thể truy cập các phương thức cụ thể | "Chấp nhận interfaces , trả về structs " |
+| 6 | 🔵 Nhỏ | Lạm dụng `interface{}` / `any` | Mất an toàn kiểu | Thay vào đó, hãy sử dụng generics ( Go 1.18+) |
 
-### 🔴 Pitfall #1 — Nil interface trap
+### 🔴 Cạm bẫy #1 — Nil interface bẫy
 
-A Go interface stores `(type, value)`. Returning a typed nil pointer wraps it in a non-nil interface — `w != nil` is `true`, but calling any method panics.
-
-```go
+A Go interface lưu trữ `(type, value)` . Trả về một nil pointer đã nhập sẽ bao bọc nó trong một nil interface - `w != nil` là `true` , nhưng việc gọi phương thức any sẽ gây hoảng loạn.```go
 func getWriter() io.Writer {
     var buf *bytes.Buffer // nil
     return buf            // ❌ interface{type: *Buffer, value: nil} — w != nil is true!
 }
 // Fix: return nil explicitly
 func getWriter() io.Writer { return nil }
-```
+```**Quy tắc**: Không bao giờ trả lại nil pointer đã nhập dưới dạng interface . Trả về `nil` trực tiếp.
 
-**Rule**: Never return a typed nil pointer as an interface. Return `nil` directly.
+### 🔴 Cạm bẫy #2 — Xác nhận kiểu panic `s := i.(string)` hoảng sợ nếu `i` không phải là một chuỗi. Không giống như các ngôn ngữ khác, Go không trả về giá trị mặc định - nó bị lỗi.
 
-### 🔴 Pitfall #2 — Type assertion panic
-
-`s := i.(string)` panics if `i` is not a string. Unlike other languages, Go does not return a default value — it crashes.
-
-**Fix**: Always use the comma-ok form: `s, ok := i.(string)`.
+**Khắc phục**: Luôn sử dụng dạng dấu phẩy-ok: `s, ok := i.(string)` .
 
 ---
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource      | Type     | Link                                                                             | Description |
+| Tài nguyên | Loại | Liên kết | Mô tả |
 | ------------- | -------- | -------------------------------------------------------------------------------- | ------- |
-| Go Tour       | Official | [go.dev/tour/methods/9](https://go.dev/tour/methods/9)                           | Interactive interface tutorial |
-| io Package    | Official | [pkg.go.dev/io](https://pkg.go.dev/io)                                           | Core streaming interfaces |
-| Effective Go  | Official | [go.dev/doc/effective_go#interfaces](https://go.dev/doc/effective_go#interfaces) | Naming and design guidance |
+| Go Chuyến tham quan | Chính thức | [go.dev/tour/methods/9](https://go.dev/tour/methods/9) | Hướng dẫn tương tác interface |
+| io Package | Chính thức | [pkg.go.dev/io](https://pkg.go.dev/io) | Truyền phát lõi interfaces |
+| Có hiệu lực Go | Chính thức | [go.dev/doc/effective_go#interfaces](https://go.dev/doc/effective_go#interfaces) | Hướng dẫn đặt tên và thiết kế |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The foundations of **Interfaces** are settled. The extensions below connect interface patterns to testing, generics, and production HTTP.
+Nền tảng của ** Interfaces ** đã được giải quyết. Các tiện ích mở rộng bên dưới kết nối các mẫu interface với thử nghiệm, generics và HTTP sản xuất.
 
-| Extension | When | Why | File/Link |
+| Gia hạn | Khi nào | Tại sao | Tệp/Liên kết |
 | ------- | ------- | ----- | --------- |
-| DI & Mocking | Testing with isolated dependencies | Replace real implementations with mocks via interfaces | [02-di-mocking-patterns.md](./02-di-mocking-patterns.md) |
-| Generics | Type-safe reusable functions | Constrain type parameters with interfaces | [../types/02-generics.md](../types/02-generics.md) |
-| HTTP Handler | Building web services | `http.Handler` is a 1-method interface | [../../concurrency/03-context.md](../../concurrency/03-context.md) |
-| sort.Interface | Custom sorting | `Len`, `Less`, `Swap` for collection ordering | [pkg.go.dev/sort](https://pkg.go.dev/sort) |
+| DI & Mocking | Thử nghiệm với các phần phụ thuộc bị cô lập | Thay thế các triển khai thực tế bằng mocks qua interfaces | [02-di-mocking-patterns.md](./02-di-mocking-patterns.md) |
+| Generics | Các chức năng tái sử dụng an toàn kiểu | Ràng buộc các tham số loại với interfaces | [../types/02-generics.md](../types/02-generics.md) |
+| Trình xử lý HTTP | Xây dựng dịch vụ web | `http.Handler` là phương thức 1 interface | [../../concurrency/03-context.md](../../concurrency/03-context.md) |
+| loại. Interface | Sắp xếp tùy chỉnh | `Len` , `Less` , `Swap` để đặt hàng bộ sưu tập | [pkg.go.dev/sort](https://pkg.go.dev/sort) |
 
 ---
 
-**Navigation**: [← Structs](../structs/) · [→ DI & Mocking Patterns](./02-di-mocking-patterns.md)
+**Điều hướng**: [← Structs](../structs/) · [→ DI & Mocking Patterns](./02-di-mocking-patterns.md)

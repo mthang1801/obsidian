@@ -1,66 +1,61 @@
-<!-- tags: golang, oop, mental-model -->
-# 🧠 OOP Mental Model — Transitioning from Java/TypeScript
+<!-- tags: golang, oop, mental-model --> # 🧠 Mô hình tinh thần OOP — Chuyển đổi từ Java/TypeScript
 
-> Does Go have OOP? Yes — but a minimalist variant. No classes, extends, or abstract modifiers. Structs + interfaces + composition replace all of them. This guide reframes your mental model.
+> Go có OOP không? Có - nhưng là một biến thể tối giản. Không có lớp, phần mở rộng hoặc công cụ sửa đổi trừu tượng. Structs + interfaces + composition thay thế tất cả chúng. Hướng dẫn này điều chỉnh lại mô hình tinh thần của bạn.
 
-📅 Created: 2026-04-10 · 🔄 Updated: 2026-04-19 · ⏱️ 18 min read
+📅 Đã tạo: 2026-04-10 · 🔄 Đã cập nhật: 19-04-2026 · ⏱️ 18 phút đọc
 
-| Aspect            | Detail                                       |
+| Khía cạnh | Chi tiết |
 | ----------------- | -------------------------------------------- |
-| **Concept**       | OOP concepts mapped to Go equivalents        |
-| **Use case**      | Developers migrating from Java/TS/C++ to Go |
-| **Key insight**   | Go is OOP — just not the OOP you learned     |
-| **Go philosophy** | Simplicity, composability, explicit > implicit|
+| **Khái niệm** | Các khái niệm OOP được ánh xạ tới tương đương Go |
+| **Trường hợp sử dụng** | Các nhà phát triển đang chuyển từ Java/TS/C++ sang Go |
+| **Thông tin chi tiết quan trọng** | Go là OOP — không phải là OOP bạn đã học |
+| ** Go triết lý** | Đơn giản, có khả năng kết hợp, rõ ràng > ngầm định|
 
 ---
 
-## 1. DEFINE
+## 1. ĐỊNH NGHĨA
 
-Day one writing Go. You launch the IDE, create `user.go`, and immediately type `class User` — error. You attempt `abstract class BaseEntity` — error. `User extends BaseEntity implements Serializable` — the syntax fundamentally does not exist.
+Ngày đầu tiên viết Go . Bạn khởi chạy IDE, tạo `user.go` và gõ ngay `class User` — lỗi. Bạn thử `abstract class BaseEntity` — lỗi. `User extends BaseEntity implements Serializable` - cú pháp về cơ bản không tồn tại.
 
-You search: "does Go support OOP?" Stack Overflow says: "Go is not an object-oriented language." You read further: "Go supports encapsulation, polymorphism, and composition." These statements contradict each other — that is the core confusion when arriving from Java or TypeScript.
+Bạn tìm kiếm: " Go có hỗ trợ OOP không?" Stack Overflow nói: " Go không phải là ngôn ngữ hướng đối tượng." Bạn đọc thêm: " Go hỗ trợ encapsulation , polymorphism , và composition ." Những câu lệnh này mâu thuẫn với nhau - đó là sự nhầm lẫn cốt lõi khi đến từ Java hoặc TypeScript.
 
-The truth: **Go has OOP, but a stripped-down variant.** No `class` keyword, no inheritance hierarchies, no `abstract` constraints, no `protected` scope. Instead, Go uses:
+Sự thật: ** Go có OOP, nhưng là một biến thể rút gọn.** Không có từ khóa `class` , không có phân cấp inheritance , không có ràng buộc `abstract` , không có phạm vi `protected` . Thay vào đó, Go sử dụng:
 
-| Traditional OOP | Go Equivalent | Core Differential |
+| OOP truyền thống | Go Tương đương | Sự khác biệt cốt lõi |
 | --- | --- | --- |
-| `class` | `struct` | Data + methods; no hierarchy |
-| `extends` | Embedding | Composition (has-a), not inheritance (is-a) |
-| `implements` | Implicit satisfaction | No explicit declaration; method matching suffices |
-| `abstract` | Interface | Minimalist, consumer-defined |
-| `private/public` | lowercase/Uppercase | Package-level scoping |
-| `new()` | Factory function | Explicit validation |
-| `this` | Receiver `(u *User)` | Explicit, no implicit state |
+| `class` | `struct` | Dữ liệu + phương pháp; không phân cấp |
+| `extends` | Embedding | Composition (has-a), không phải inheritance (is-a) |
+| `implements` | Sự hài lòng tiềm ẩn | Không có tuyên bố rõ ràng; phương pháp phù hợp đủ |
+| `abstract` | Interface | Tối giản, do người tiêu dùng xác định |
+| `private/public` | chữ thường/chữ hoa | Package -phạm vi cấp độ |
+| `new()` | Hàm Factory | Xác thực rõ ràng |
+| `this` | Receiver `(u *User)` | Rõ ràng, không có trạng thái ngầm định |
 
-### Why did Go engineer this precise structure?
+### Tại sao Go lại thiết kế cấu trúc chính xác này? Go có nguồn gốc từ Google — điều hướng các cơ sở mã với hàng tỷ dòng và hàng nghìn kỹ sư cam kết hàng ngày. Pike, Thompson và Griesemer đã cố tình loại bỏ:
 
-Go originated at Google — navigating codebases with billions of lines and thousands of engineer commits daily. Pike, Thompson, and Griesemer deliberately removed:
+- ** Inheritance **: Bởi vì hệ thống phân cấp cấp 5+ trên thực tế đảm bảo các lớp cơ sở dễ vỡ, vấn đề kim cương và khớp nối chặt chẽ.
+- **Từ khóa lớp**: Bởi vì struct + phương thức cung cấp đủ khả năng — lớp thêm lễ không cần thiết.
+- **Ngụ ý `this` **: Bởi vì receivers rõ ràng giúp việc theo dõi mã dễ dàng hơn nhiều trên quy mô lớn.
 
-- **Inheritance**: Because a 5+ level hierarchy practically guarantees fragile base classes, the diamond problem, and tight coupling.
-- **Class keywords**: Because struct + methods provide sufficient capability — classes add unnecessary ceremony.
-- **Implicit `this`**: Because explicit receivers make code far easier to trace at scale.
+Kết quả: OOP của Go giữ lại những gì quan trọng - encapsulation , polymorphism , composition - trong khi loại bỏ inheritance mong manh, các lớp trạng thái trừu tượng và hệ thống phân cấp phức tạp.
 
-The outcome: Go’s OOP retains what matters — encapsulation, polymorphism, composition — while eliminating fragile inheritance, abstract state classes, and convoluted hierarchies.
+### Chế độ lỗi
 
-### Failure Modes
-
-| Mental Error | Symptom | Consequence |
+| Lỗi Tâm Thần | Triệu chứng | Hậu quả |
 | --- | --- | --- |
-| "Go lacks OOP" | Writing flat procedural spaghetti | Domain logic bleeds everywhere, no encapsulation |
-| "Go OOP = Java OOP" | Translating 1:1 Java enterprise patterns | Verbose, non-idiomatic, hard to review |
-| "Every struct needs an interface" | Fat interfaces defined at the producer boundary | Coupling, mock hell, ISP violations |
+| " Go thiếu OOP" | Viết spaghetti thủ tục phẳng | Logic miền chảy máu khắp nơi, không encapsulation |
+| " Go OOP = Java OOP" | Dịch các mẫu doanh nghiệp Java 1:1 | Dài dòng, không thành ngữ, khó ôn lại |
+| "Mọi struct cần một interface " | Chất béo interfaces được xác định tại ranh giới nhà sản xuất | Khớp nối, mock chết tiệt, vi phạm ISP |
 
-Missing the paradigm in either direction has real cost. Below shows how the mental model actually works — mapping the thought flow, not just syntax.
+Thiếu mô hình theo một trong hai hướng đều phải trả giá thực sự. Dưới đây cho thấy mô hình tinh thần thực sự hoạt động như thế nào - lập bản đồ dòng suy nghĩ, không chỉ cú pháp.
 
 ---
 
-## 2. VISUAL
+## 2. HÌNH ẢNH
 
-The friction is not about syntax — it is about thought flow. When you think "I need polymorphism", Java drives you toward `extends` → `override`. Go directs you toward `interface` → implicit satisfaction. Same destination, opposite paths.
+Mâu thuẫn không nằm ở cú pháp - mà là ở dòng suy nghĩ. Khi bạn nghĩ "Tôi cần polymorphism ", Java sẽ thúc đẩy bạn hướng tới `extends` → `override` . Go hướng bạn tới `interface` → sự hài lòng tiềm ẩn. Cùng một đích đến, những con đường ngược nhau.
 
-### Java OOP Stack vs Go OOP Stack
-
-```mermaid
+### Java OOP Stack so với Go OOP Stack```mermaid
 flowchart LR
     subgraph Java["Java / TypeScript OOP"]
         direction TB
@@ -79,15 +74,9 @@ flowchart LR
     end
 
     Java -.->|"reframe"| Go
-```
+```![OOP mental model compare card](./images/01-oop-mental-model-compare.png) *Hình: Cùng 5 cấp mục tiêu — nhưng Go loại bỏ cấp 2 bên trong (phân cấp lớp + lớp trừu tượng). Kết quả: phẳng, khớp nối thấp.*
 
-![OOP mental model compare card](./images/01-oop-mental-model-compare.png)
-
-*Figure: Same 5 target tiers — but Go strips the inner 2 (class hierarchy + abstract class). Result: flat, low coupling.*
-
-### Decision Map: When strictly to deploy what?
-
-```mermaid
+### Quyết định Map : Khi nào triển khai nghiêm ngặt cái gì?```mermaid
 flowchart TD
     A[Require grouping data + behavior?] --> B{Complex behavior?}
     B -->|No — pure rigid data| C[simple struct]
@@ -100,25 +89,21 @@ flowchart TD
     I --> J{Total explicit methods?}
     J -->|1-3| K[✅ Small modular interface — Go standard]
     J -->|4+| L[⚠️ Heavily split — Enforce ISP]
-```
+```*Hình: Luồng quyết định của nhà phát triển Go — hầu hết các đường dẫn đều kết thúc ở struct + phương thức đơn giản hoặc [[E4]]] nhỏ. Embedding chỉ xuất hiện khi cần nâng cấp phương thức.*
 
-*Figure: The Go developer’s decision flow — most paths terminate at simple struct + methods or small interfaces. Embedding appears only when method promotion is required.*
-
-The mental model is clear. The code below maps it into working artifacts — starting from the simplest "class to struct" translation.
+Mô hình tinh thần là rõ ràng. Đoạn mã bên dưới maps biến nó thành các tạo phẩm đang hoạt động — bắt đầu từ bản dịch "lớp sang struct " đơn giản nhất.
 
 ---
 
-## 3. CODE
+## 3. MÃ
 
-### Example 1: Basic — Class → Struct + Methods
+### Ví dụ 1: Cơ bản — Lớp → Struct + Phương thức
 
-You process a standard Java class: `User` featuring private fields, a constructor, getters, and a business method. How strongly does this migrate into Go?
+Bạn xử lý một lớp Java tiêu chuẩn: `User` bao gồm các trường riêng tư, hàm tạo, getters và phương thức nghiệp vụ. Điều này di chuyển mạnh đến mức nào vào Go ?
 
-> **Goal**: Map a Java class to a Go struct + methods + factory.
-> **Approach**: Struct holds data, methods bind to it, `NewXxx()` handles construction validation.
-> **Example**: `User` Java class → `User` Go struct.
-
-```go
+> **Mục tiêu**: Map một lớp Java thành một Go struct + các phương thức + factory .
+> **Phương pháp tiếp cận**: Struct giữ dữ liệu, các phương thức liên kết với dữ liệu đó, `NewXxx()` xử lý việc xác thực cấu trúc.
+> **Ví dụ**: `User` Lớp Java → `User` Go struct .```go
 // mental_model.go — Java class → Go struct
 
 // Java:
@@ -152,23 +137,17 @@ func (u *User) Email() string { return u.email }
 func (u *User) Greet() string {
 	return "Hello, " + u.name
 }
-```
-
-> **Takeaway**: No `class`, no `this`, no boilerplate get/set. Structs + methods + factory functions = complete. The explicit receiver `(u *User)` clarifies what Java hides behind implicit `this`.
-
-Struct + methods handle a single entity. When you need polymorphism — making different types share the same behavioral contract — Java uses `implements`. How does Go handle it?
+```> **Takeaway**: Không `class` , không `this` , không có bản tóm tắt get/set. Structs + phương thức + chức năng factory = hoàn thành. receiver `(u *User)` rõ ràng làm rõ những gì Java ẩn đằng sau ẩn `this` . Struct + các phương thức xử lý một thực thể duy nhất. Khi bạn cần polymorphism — làm cho các loại khác nhau có chung một hợp đồng hành vi — Java sử dụng `implements` . Go xử lý nó như thế nào?
 
 ---
 
-### Example 2: Intermediate — Interface implements → Implicit Satisfaction
+### Ví dụ 2: Trung cấp — Interface dụng cụ → Sự hài lòng ngầm
 
-Java: `class EmailNotifier implements Notifier {}`. Go: drop the `implements` keyword entirely — if a struct has the matching methods, it satisfies the contract.
+Java: `class EmailNotifier implements Notifier {}` . Go : loại bỏ hoàn toàn từ khóa `implements` - nếu struct có các phương thức khớp, nó đáp ứng hợp đồng.
 
-> **Goal**: Translate Java `implements` to Go’s implicit interface satisfaction.
-> **Approach**: Define the interface at the consumer boundary. Any struct satisfies it by providing matching methods.
-> **Example**: `Notifier` interface — `EmailNotifier` and `SlackNotifier` satisfy it implicitly.
-
-```go
+> **Mục tiêu**: Dịch sự hài lòng của Java `implements` sang Go của implicit interface .
+> **Phương pháp tiếp cận**: Xác định interface ở ranh giới người tiêu dùng. Any struct đáp ứng nó bằng cách cung cấp các phương thức khớp.
+> **Ví dụ**: `Notifier` interface — `EmailNotifier` và `SlackNotifier` ngầm thỏa mãn điều đó.```go
 // implicit_interface.go — Java implements → Go implicit satisfaction
 
 // Java:
@@ -213,28 +192,22 @@ func (os *OrderService) Complete(orderID string) error {
 	// ... sequentially finalize root order transition parameters ...
 	return os.notifier.Send("ops-channel", "Order "+orderID+" completed successfully")
 }
-```
-
-> **Why implicit satisfaction instead of explicit `implements`?**
-> Explicit `implements` creates tight coupling: the producer MUST know the interface exists. Go reverses this: the consumer defines the minimum interface it needs. The producer implements methods without knowing which interface will consume them. Result: zero imports from producer to consumer. Clean decoupling.
+```> **Tại sao lại ngầm hiểu sự hài lòng thay vì rõ ràng `implements` ?**
+> Rõ ràng `implements` tạo ra sự liên kết chặt chẽ: nhà sản xuất PHẢI biết interface tồn tại. Go đảo ngược điều này: người tiêu dùng xác định mức interface tối thiểu mà nó cần. Nhà sản xuất thực hiện các phương thức mà không biết interface nào sẽ sử dụng chúng. Kết quả: không có nhập khẩu từ nhà sản xuất đến người tiêu dùng. Tách rời sạch sẽ.
 >
-> **Trap**: Do not create an "interface for every struct" — if only 1 concrete implementation exists and you do not need a test mock, skip the interface. Interfaces surface when ≥2 implementations exist OR when testing requires mock boundaries.
+> **Bẫy**: Không tạo " interface cho mọi struct " — nếu chỉ tồn tại 1 triển khai cụ thể và bạn không cần kiểm tra mock , hãy bỏ qua interface . Interfaces xuất hiện khi tồn tại ≥2 lần triển khai HOẶC khi thử nghiệm yêu cầu ranh giới mock .
 
-> **Takeaway**: Go uses structural typing (duck typing) rather than nominal typing. If the struct has the matching methods, it satisfies the interface — no declaration needed. Consumer-defined, not producer-defined.
+> **Takeaway**: Go sử dụng kiểu gõ cấu trúc (gõ vịt) thay vì kiểu gõ danh nghĩa. Nếu struct có các phương thức khớp, nó đáp ứng interface - không cần khai báo. Do người tiêu dùng xác định, không phải do nhà sản xuất xác định.
 
-Implicit interfaces cover polymorphism. But when you need cross-type code reuse — Java uses `extends`. How does Go handle that?
+Ẩn interfaces bìa polymorphism . Nhưng khi bạn cần sử dụng lại mã kiểu chéo - Java sử dụng `extends` . Go xử lý việc đó như thế nào?
 
 ---
 
-### Example 3: Advanced — Inheritance Hierarchy → Flat Composition
+### Ví dụ 3: Nâng cao — Inheritance Phân cấp → Flat Composition Trong Java, `AdminUser extends User extends BaseEntity` thúc đẩy việc tái sử dụng mã. Go thiếu `extends` . Nó thay thế bằng embedding + interface composition phẳng - tạo ra các cấu trúc phẳng, không dễ vỡ.
 
-In Java, `AdminUser extends User extends BaseEntity` drives code reuse. Go lacks `extends`. It substitutes with flat embedding + interface composition — creating flat, non-fragile structures.
-
-> **Goal**: Map a 3-level Java hierarchy to Go flat composition.
-> **Approach**: Embedding for field/method reuse, interfaces for contract reuse.
-> **Example**: BaseEntity + User + AdminUser — 3 Java levels → 2 Go levels (embedded).
-
-```go
+> **Mục tiêu**: Map hệ thống phân cấp Java 3 cấp tới Go phẳng composition .
+> **Phương pháp tiếp cận**: Embedding để tái sử dụng trường/phương thức, interfaces để tái sử dụng hợp đồng.
+> **Ví dụ**: BaseEntity + User + AdminUser — 3 cấp độ Java → 2 cấp độ Go (được nhúng).```go
 // flat_composition.go — Java 3-level hierarchy → Go flat embedding
 
 // Java:
@@ -294,70 +267,62 @@ func (u *User) GetEmail() string { return u.Email }
 
 // ✅ Both structured User and Admin completely satisfy Authenticatable — executing via the natively promoted method
 // func authenticate(a Authenticatable) { ... }
-```
+```> **Tại sao phẳng lại đánh bại hệ thống phân cấp 3 cấp độ sâu?**
+> Trong Java: việc thay đổi kiểu `BaseEntity.createdAt` gợn sóng thông qua `User` , `AdminUser` và mọi lớp con. Đó là vấn đề Lớp cơ sở mong manh. Với Go embedding : thay đổi `Timestamps.CreatedAt` chỉ ảnh hưởng đến các loại nhúng `Timestamps` . Không có vtables, không có xung đột thứ tự giải quyết phương pháp. Và quan trọng là: `Admin` KHÔNG phải là `User` - bạn cần một interface rõ ràng cho polymorphism . Điều này nghe có vẻ hạn chế nhưng tỏ ra an toàn hơn: nó buộc phải suy nghĩ có chủ ý về polymorphism thay vì mặc định là inheritance .
 
-> **Why flat beats a deep 3-level hierarchy?**
-> In Java: changing `BaseEntity.createdAt` type ripples through `User`, `AdminUser`, and every subclass. That is the Fragile Base Class problem. With Go embedding: changing `Timestamps.CreatedAt` only affects types that embed `Timestamps`. No vtables, no method resolution order conflicts. And critically: `Admin` IS NOT a `User` — you need an explicit interface for polymorphism. This sounds restrictive but proves safer: it forces deliberate thinking about polymorphism instead of defaulting to inheritance.
+> **Takeaway**: Go composition bằng Java inheritance trừ đi tính dễ vỡ. Embedding thúc đẩy việc tái sử dụng mã. Interfaces ổ đĩa polymorphism . Hai mối quan tâm riêng biệt - hoàn toàn tách biệt khỏi bẫy `extends` .
 
-> **Takeaway**: Go composition equals Java inheritance minus the fragility. Embedding drives code reuse. Interfaces drive polymorphism. Two separate concerns — cleanly isolated from the `extends` trap.
-
-These examples map to the 3 OOP pillars. Next: common traps where Java thinking triggers Go bugs.
+Những ví dụ này map cho 3 trụ cột OOP. Tiếp theo: các bẫy phổ biến trong đó tư duy Java kích hoạt lỗi Go .
 
 ---
 
-## 4. PITFALLS
+## 4. Cạm bẫy
 
-| # | Severity | Error | Consequence | Fix |
+| # | Mức độ nghiêm trọng | Lỗi | Hậu quả | Sửa chữa |
 | --- | --- | --- | --- | --- |
-| 1 | 🔴 Fatal | Translating 1:1 Java design patterns | An `AbstractFactoryBuilder` spanning 200 lines that nobody can review | Simplify: struct + factory + small interface |
-| 2 | 🔴 Fatal | Assuming embedding = inheritance (`admin = user`) | Compile error; or worse, silent runtime logic errors | Embedding is has-a. Use interfaces for polymorphism |
-| 3 | 🟡 Common | Creating fat interfaces before needing 2 implementations | Interface boundaries with zero value | YAGNI: create interfaces when ≥2 variants exist |
-| 4 | 🟡 Common | Adding getter/setter for every field | Redundant Java muscle memory | Go standard: export fields directly when appropriate |
-| 5 | 🔵 Minor | Using `this.field` by muscle memory | Non-idiomatic | Use short receivers (e.g., `u *User`) |
+| 1 | 🔴 Gây tử vong | Dịch 1:1 Java design patterns | Một `AbstractFactoryBuilder` dài 200 dòng mà không ai có thể xem lại | Rút gọn: struct + factory + nhỏ interface |
+| 2 | 🔴 Gây tử vong | Giả sử embedding = inheritance ( `admin = user` ) | Biên dịch lỗi; hoặc tệ hơn là lỗi logic runtime im lặng | Embedding là có-a. Sử dụng interfaces cho polymorphism |
+| 3 | 🟡 Chung | Tạo fat interfaces trước khi cần 2 lần triển khai | Interface ranh giới có giá trị bằng 0 | YAGNI: tạo interfaces khi tồn tại ≥2 biến thể |
+| 4 | 🟡 Chung | Thêm getter/setter cho mọi trường | Bộ nhớ cơ Java dư thừa | Go tiêu chuẩn: xuất trực tiếp các trường khi thích hợp |
+| 5 | 🔵 Nhỏ | Sử dụng `this.field` bằng bộ nhớ cơ | Không thành ngữ | Sử dụng ngắn receivers (ví dụ: `u *User` ) |
 
-### 🔴 Pitfall #1 — Java-to-Go translation = ceremony monster
+### 🔴 Cạm bẫy #1 — Java-to- Go dịch = quái vật nghi lễ
 
-Java developer writing Go natively creates:
-```go
+Nhà phát triển Java viết Go tự nhiên tạo ra:```go
 // ❌ Java-translated Go — structurally excessively complex
 type UserFactory interface {
     CreateUser(email string) (*User, error)
 }
 type UserFactoryImpl struct{}
 func (f *UserFactoryImpl) CreateUser(email string) (*User, error) { /* ... */ }
-```
-
-Crucial necessity purely:
-```go
+```Sự cần thiết quan trọng hoàn toàn:```go
 // ✅ Idiomatic Go — clean robust simple factory function
 func NewUser(email string) (*User, error) { /* ... */ }
-```
-
-The interface `UserFactory` logically exists fundamentally exclusively precisely when operating multiple implementations cleanly or securely mocking boundaries.
+```Các ranh giới interface `UserFactory` về mặt logic chỉ tồn tại một cách chính xác khi vận hành nhiều ranh giới triển khai một cách rõ ràng hoặc an toàn mocking .
 
 ---
 
-## 5. REF
+## 5. GIỚI THIỆU
 
-| Resource | Type | Link | Notes |
+| Tài nguyên | Loại | Liên kết | Ghi chú |
 | --- | --- | --- | --- |
-| Go FAQ — Is Go OOP? | Official | https://go.dev/doc/faq#Is_Go_an_object-oriented_language | Rob Pike's definitive answer |
-| Effective Go | Official | https://go.dev/doc/effective_go | Canonical structural idioms |
-| Go Blog — Composition | Official | https://go.dev/blog/embedding | Embedding conceptually explained purely |
+| Go Câu hỏi thường gặp — Go OOP? | Chính thức | https://go.dev/doc/faq#Is_Go_an_object-orient_lingu | Câu trả lời dứt khoát của Rob Pike |
+| Có hiệu lực Go | Chính thức | https://go.dev/doc/effect_go | Thành ngữ cấu trúc kinh điển |
+| Go Blog — Composition | Chính thức | https://go.dev/blog/ embedding | Embedding được giải thích thuần túy về mặt khái niệm |
 
 ---
 
-## 6. RECOMMEND
+## 6. KHUYẾN NGHỊ
 
-The core of **OOP Mental Model — Reframe for Go** is clear. The branches below navigate each OOP pillar in depth.
+Cốt lõi của **Mô hình tinh thần OOP - Điều chỉnh lại cho Go ** rất rõ ràng. Các nhánh bên dưới điều hướng theo chiều sâu từng trụ cột OOP.
 
-| Extension | When | Rationale | File/Link |
+| Gia hạn | Khi nào | Cơ sở lý luận | Tệp/Liên kết |
 | --- | --- | --- | --- |
-| [Encapsulation & Visibility](./02-encapsulation-visibility.md) | When navigating package-level visibility natively | Uppercase/lowercase is deceptively simple — the real complexity lies inside internal packages precisely | Next in sequence |
-| [Composition over Inheritance](./03-composition-over-inheritance.md) | When embedding structural patterns for DDD | Embedding + delegation = Go's replacement for extends | Core OOP logic |
-| [Interfaces & Polymorphism](./04-interfaces-polymorphism.md) | When requiring polymorphism design cleanly | Consumer-defined, implicit modular bounds — deep dive | Core OOP logic |
-| [Structs & Composition](../structs/01-composition-embedding.md) | When executing struct-specific structural details efficiently | Struct tags, native copy semantics, explicit constructor pattern pipelines | Cross-link |
+| [Encapsulation & Visibility](./02-encapsulation-visibility.md) | Khi điều hướng mức độ hiển thị package -level nguyên bản | Chữ hoa/chữ thường có vẻ đơn giản - độ phức tạp thực sự nằm bên trong packages chính xác | Tiếp theo theo thứ tự |
+| [Composition over Inheritance](./03-composition-over-inheritance.md) | Khi mẫu cấu trúc embedding cho DDD | Embedding + ủy quyền = Go thay thế cho kéo dài | Logic OOP cốt lõi |
+| [Interfaces & Polymorphism](./04-interfaces-polymorphism.md) | Khi yêu cầu thiết kế polymorphism sạch sẽ | Giới hạn mô-đun ngầm định, do người tiêu dùng xác định — tìm hiểu sâu | Logic OOP cốt lõi |
+| [Structs & Composition](../structs/01-composition-embedding.md) | Khi thực thi chi tiết cấu trúc cụ thể struct một cách hiệu quả | Thẻ Struct , ngữ nghĩa bản sao gốc, đường dẫn mẫu hàm tạo rõ ràng | Liên kết chéo |
 
 ---
 
-**Navigation**: [← OOP in Go](./README.md) · [→ Encapsulation](./02-encapsulation-visibility.md)
+**Điều hướng**: [← OOP in Go](./README.md) · [→ Encapsulation](./02-encapsulation-visibility.md)
