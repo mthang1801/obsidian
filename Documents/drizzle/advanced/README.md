@@ -3,12 +3,12 @@
 
 > Lane cho transactions, views, sequences và dynamic query patterns trong Drizzle.
 
-| Aspect | Detail |
-| --- | --- |
-| **Concept** | Hub điều hướng cho `Drizzle Advanced` |
-| **Audience** | Senior backend engineer, platform engineer |
-| **Primary style** | Concept-First router |
-| **Entry point** | Mở khi project đã qua CRUD cơ bản và bắt đầu đụng transaction boundary hoặc query composition khó hơn. |
+| Aspect            | Detail                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------ |
+| **Concept**       | Hub điều hướng cho `Drizzle Advanced`                                                                  |
+| **Audience**      | Senior backend engineer, platform engineer                                                             |
+| **Primary style** | Concept-First router                                                                                   |
+| **Entry point**   | Mở khi project đã qua CRUD cơ bản và bắt đầu đụng transaction boundary hoặc query composition khó hơn. |
 
 📅 Cập nhật: 2026-04-05 · ⏱️ 6 phút đọc
 
